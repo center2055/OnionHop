@@ -1,0 +1,56 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+
+# Publish output (optional; publish artifacts should not be committed)
+**/publish/
+
+# NuGet
+packages/
+*.nupkg
+
+# Test results
+TestResults/
+
+# Coverage
+coverage/
+coverage.*
+
+# Secrets
+*.pfx
+*.snk
+*.key
+
+# Local settings/cache
+**/settings.json
+
+# Large bundles / archives
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+
+# Generated HTML
+listing.html
+
+# Installer artifacts
+installer/output/
+installer/**/*.exe

@@ -1,0 +1,663 @@
+<Window x:Class="OnionHop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="OnionHop"
+        Width="1280" Height="820" MinWidth="1280" MinHeight="820" MaxWidth="1280" MaxHeight="820"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanMinimize"
+        Icon="{DynamicResource OnionIconImage}"
+        StateChanged="Window_StateChanged"
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <SolidColorBrush x:Key="NavButtonForegroundBrush" Color="#364152"/>
+        <SolidColorBrush x:Key="NavButtonBackgroundBrush" Color="#f3f6fb"/>
+        <SolidColorBrush x:Key="NavButtonHoverBrush" Color="#e3ecff"/>
+        <SolidColorBrush x:Key="SegmentedButtonBackgroundBrush" Color="#f6f7fb"/>
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#e9edf5"/>
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="White"/>
+        <SolidColorBrush x:Key="NavBackgroundBrush" Color="#f7f9fd"/>
+
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#2a3242"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#7b8396"/>
+        <SolidColorBrush x:Key="TertiaryTextBrush" Color="#6b7488"/>
+        <SolidColorBrush x:Key="OverlayScrimBrush" Color="#80000000"/>
+        <SolidColorBrush x:Key="InputBorderBrush" Color="#e0e4ed"/>
+        <SolidColorBrush x:Key="ToggleThumbBrush" Color="White"/>
+        <SolidColorBrush x:Key="ToggleTrackBrush" Color="#d3d7e1"/>
+        <SolidColorBrush x:Key="ToggleTrackCheckedBrush" Color="#36c17a"/>
+        <SolidColorBrush x:Key="ComboBackgroundBrush" Color="#f6f8fc"/>
+        <SolidColorBrush x:Key="ComboBorderBrush" Color="#e0e4ed"/>
+        <SolidColorBrush x:Key="ComboForegroundBrush" Color="#2a3242"/>
+        <SolidColorBrush x:Key="ComboItemHoverBrush" Color="#eef2fb"/>
+        <SolidColorBrush x:Key="ComboItemSelectedBrush" Color="#dde5fb"/>
+        <SolidColorBrush x:Key="WindowControlBorderBrush" Color="#d8deeb"/>
+
+        <LinearGradientBrush x:Key="OnionBadgeGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#2c2c72" Offset="0"/>
+            <GradientStop Color="#2d80aa" Offset="1"/>
+        </LinearGradientBrush>
+
+        <DrawingImage x:Key="OnionIconImage">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#2f3c74"
+                                     Geometry="F1 M 32,6 C 19,9 11,20 11,32 C 11,43.5 17.5,53 32,64 C 46.5,53 53,43.5 53,32 C 53,20 45,9 32,6 Z"/>
+                    <GeometryDrawing Brush="#f6f9ff"
+                                     Geometry="F1 M 32,10 C 22,14 16,23 16,33 C 16,41 20,50 32,59 C 44,50 48,41 48,33 C 48,23 42,14 32,10 Z"/>
+                    <GeometryDrawing Brush="#2f3c74"
+                                     Geometry="M 32 12 C 27 18 25 24 25 31 C 25 39 27 46 32 53 M 32 12 C 37 18 39 24 39 31 C 39 39 37 46 32 53 M 32 14 L 32 54"/>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <SolidColorBrush x:Key="TitleBarBrush" Color="#f6f8fd"/>
+        <SolidColorBrush x:Key="TitleButtonBrush" Color="#eef2fb"/>
+        <SolidColorBrush x:Key="TitleButtonHoverBrush" Color="#e2e9ff"/>
+        <SolidColorBrush x:Key="TitleButtonPressedBrush" Color="#cfd8f7"/>
+        <SolidColorBrush x:Key="TitleButtonCloseHoverBrush" Color="#f86c6b"/>
+        <SolidColorBrush x:Key="TitleButtonClosePressedBrush" Color="#d75453"/>
+
+        <LinearGradientBrush x:Key="HeroGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#2f2a7c" Offset="0"/>
+            <GradientStop Color="#334c8b" Offset="0.4"/>
+            <GradientStop Color="#2da5b5" Offset="1"/>
+        </LinearGradientBrush>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#18203a" BlurRadius="20" ShadowDepth="4" Opacity="0.16"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="Height" Value="46"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource NavButtonForegroundBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="{DynamicResource NavButtonBackgroundBrush}"/>
+            <Setter Property="Opacity" Value="0.9"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="12" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="1"/>
+                    <Setter Property="Background" Value="{DynamicResource NavButtonHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ToggleSwitch" TargetType="ToggleButton">
+            <Setter Property="Width" Value="56"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="Track" CornerRadius="14" Background="{DynamicResource ToggleTrackBrush}" Padding="4"/>
+                            <Border x:Name="Thumb" Width="20" Height="20" CornerRadius="10" Background="{DynamicResource ToggleThumbBrush}" HorizontalAlignment="Left">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#18203a" BlurRadius="8" ShadowDepth="2" Opacity="0.2"/>
+                                </Border.Effect>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource ToggleTrackCheckedBrush}"/>
+                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SegmentedButton" TargetType="Button" BasedOn="{StaticResource NavButton}">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Background" Value="{DynamicResource SegmentedButtonBackgroundBrush}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style x:Key="ComboBase" TargetType="ComboBox">
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Focusable="False"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Padding="{TemplateBinding Padding}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="12"
+                                                Padding="{TemplateBinding Padding}">
+                                            <Grid>
+                                                <ContentPresenter Margin="0"
+                                                                  HorizontalAlignment="Left"
+                                                                  VerticalAlignment="Center"
+                                                                  Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"/>
+                                                <Path x:Name="Arrow"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,6,0"
+                                                      Data="M 0 0 L 5 5 L 10 0 Z"
+                                                      Fill="{TemplateBinding Foreground}"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#5cc0ff"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="12"
+                                        Padding="4"
+                                        MaxHeight="240">
+                                    <ScrollViewer Margin="2">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Padding" Value="10,6"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ComboItemHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ComboItemSelectedBrush}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DarkCombo" TargetType="ComboBox" BasedOn="{StaticResource ComboBase}">
+            <Setter Property="Background" Value="#24306b"/>
+            <Setter Property="BorderBrush" Value="#3f4c85"/>
+            <Setter Property="Foreground" Value="#e9f1ff"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+        <Style x:Key="LightCombo" TargetType="ComboBox" BasedOn="{StaticResource ComboBase}">
+            <Setter Property="Background" Value="{DynamicResource ComboBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ComboBorderBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ComboForegroundBrush}"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+
+        <Style x:Key="WindowControlButton" TargetType="Button">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Background" Value="{DynamicResource TitleButtonBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WindowControlBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource TitleButtonHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource TitleButtonPressedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CloseControlButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource TitleButtonCloseHoverBrush}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource TitleButtonClosePressedBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource TitleBarBrush}" Padding="14,10" CornerRadius="14" Margin="12,12,12,6">
+            <Grid MouseDown="TitleBar_MouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="40" Height="40" CornerRadius="14" Background="{StaticResource OnionBadgeGradient}">
+                        <Image Source="{StaticResource OnionIconImage}" Stretch="Uniform" Margin="6"/>
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="OnionHop" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        <TextBlock Text="Tor VPN Companion" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="MinButton" Style="{StaticResource WindowControlButton}" Click="MinimizeButton_Click">
+                        <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    </Button>
+                    <Button x:Name="MaxButton" Style="{StaticResource WindowControlButton}" Click="MaximizeButton_Click" Visibility="Collapsed">
+                        <TextBlock x:Name="MaximizeIcon" Text="&#xE922;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    </Button>
+                    <Button x:Name="CloseButton" Style="{StaticResource CloseControlButton}" Click="CloseButton_Click">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="18" VerticalAlignment="Stretch">
+            <Border CornerRadius="30" Background="{DynamicResource CardBackgroundBrush}" Padding="14" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                <Grid VerticalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" MinWidth="300" MaxWidth="360"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Navigation -->
+                    <Border CornerRadius="22" Background="{DynamicResource NavBackgroundBrush}" Margin="6,0,16,0" Padding="18">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,22" VerticalAlignment="Center">
+                                <Border Width="40" Height="40" CornerRadius="12">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#2c2c72" Offset="0"/>
+                                            <GradientStop Color="#2d80aa" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <TextBlock Text="&#x1F9C5;" FontSize="22" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="10,0,0,0">
+                                    <TextBlock Text="OnionHop" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                    <TextBlock Text="Tor VPN Companion" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Button Style="{StaticResource NavButton}" Click="DashboardButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Dashboard" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource NavButton}" Click="SettingsButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#a35fd3" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Settings"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource NavButton}" Click="LogsButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#46aa6a" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Logs"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource NavButton}" Click="AboutButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#48536c" Margin="0,0,10,0"/>
+                                    <TextBlock Text="About"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Border Margin="0,24,0,0" Padding="14" CornerRadius="16" Background="{DynamicResource NavBackgroundBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="Status" FontSize="12" Foreground="#7c869a"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <Ellipse Width="12" Height="12" Fill="{Binding StatusBrush}" />
+                                        <TextBlock Text="{Binding ConnectionStatus}" FontWeight="Bold" Foreground="#1f2937" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="#6a7486" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Main column -->
+                    <Grid Grid.Column="1" VerticalAlignment="Stretch" Margin="0,0,16,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" CornerRadius="26" Padding="20" Background="Transparent" HorizontalAlignment="Stretch">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="220"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.ColumnSpan="2" CornerRadius="26" MinWidth="420" HorizontalAlignment="Stretch">
+                                    <Border.Background>
+                                        <DynamicResource ResourceKey="HeroGradient"/>
+                                    </Border.Background>
+                                    <Grid Margin="26">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="54" Height="54" CornerRadius="18" Background="#41a0bc">
+                                                    <TextBlock Text="&#x1F9C5;" FontSize="30" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Margin="12,0,0,0">
+                                                    <TextBlock Text="Connection Mode" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                                                    <TextBlock Text="Choose Proxy or TUN" Foreground="#dbe8ff" FontSize="13"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <Border CornerRadius="16" Background="#2b2f73" Padding="12" Width="260" Margin="0,14,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="Mode" Foreground="#dfe6ff" FontSize="12"/>
+                                                    <ComboBox Margin="0,8,0,0"
+                                                              ItemsSource="{Binding ConnectionModes}"
+                                                              SelectedItem="{Binding SelectedConnectionMode}"
+                                                              Style="{StaticResource DarkCombo}"
+                                                              MaxDropDownHeight="220"/>
+                                                    <TextBlock Text="TUN/VPN requires Administrator." Foreground="#dbe8ff" FontSize="12" Margin="0,8,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border CornerRadius="16" Background="#2b2f73" Padding="12" Width="260" Margin="0,10,0,0" Opacity="0.95"
+                                                    Visibility="{Binding IsTunMode, Converter={StaticResource BoolToVis}}">
+                                                <DockPanel>
+                                                    <TextBlock Text="Hybrid (browser via Tor)" Foreground="#dfe6ff" FontSize="13" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                                                    <ToggleButton Style="{StaticResource ToggleSwitch}"
+                                                                  DockPanel.Dock="Right"
+                                                                  IsChecked="{Binding UseHybridRouting}"/>
+                                                </DockPanel>
+                                            </Border>
+
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <Border Grid.Column="0" CornerRadius="14" Padding="10,8" Background="#2b2f73" Margin="0,0,10,0">
+                                                    <StackPanel>
+                                                        <TextBlock Foreground="#e9f1ff" Text="Exit Location" FontWeight="SemiBold" FontSize="12"/>
+                                                        <ComboBox Margin="0,6,0,0"
+                                                                  ItemsSource="{Binding Locations}"
+                                                                  SelectedItem="{Binding SelectedLocation}"
+                                                                  Style="{StaticResource DarkCombo}"
+                                                                  MaxDropDownHeight="200"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Grid.Column="1" CornerRadius="14" Padding="10,8" Background="#2b2f73">
+                                                    <StackPanel>
+                                                        <TextBlock Foreground="#e9f1ff" Text="Current IP" FontWeight="SemiBold" FontSize="12"/>
+                                                        <TextBlock Text="{Binding CurrentIp}" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,8,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="18,0,0,0">
+                                            <Grid>
+                                                <Ellipse x:Name="ConnectBubble" Width="150" Height="150">
+                                                    <Ellipse.Fill>
+                                                        <RadialGradientBrush x:Name="ConnectBubbleFill" GradientOrigin="0.4,0.4">
+                                                            <GradientStop Color="#38ff9c" Offset="0"/>
+                                                            <GradientStop Color="#1d9f64" Offset="1"/>
+                                                        </RadialGradientBrush>
+                                                    </Ellipse.Fill>
+                                                    <Ellipse.Effect>
+                                                        <DropShadowEffect x:Name="ConnectBubbleGlow" Color="#2cff9c" BlurRadius="38" ShadowDepth="0" Opacity="0.55"/>
+                                                    </Ellipse.Effect>
+                                                </Ellipse>
+                                                <Button Width="150" Height="150"
+                                                        Click="ConnectButton_Click"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Cursor="Hand"
+                                                        FocusVisualStyle="{x:Null}"
+                                                        Focusable="False">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding ConnectButtonText}" FontSize="20" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </Grid>
+                                            <TextBlock Text="{Binding ConnectionStatus}" Foreground="#dfefff" FontSize="14" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="1" Background="Transparent" Padding="8,12,8,0">
+                            <WrapPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+                                <Border Style="{StaticResource Card}" Margin="0,0,16,16" Width="280">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#x1F9C5;" FontSize="16"/>
+                                            <TextBlock Text="Connection Status" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource PrimaryTextBrush}" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                        <ProgressBar Minimum="0" Maximum="1" Height="8" Margin="0,10,0,0"
+                                                     Value="{Binding ConnectionProgress}" Background="#e5e9f2" Foreground="#45c993" BorderThickness="0"/>
+                                        <TextBlock Text="{Binding StatusMessage}" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{DynamicResource TertiaryTextBrush}" FontSize="12"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Side column -->
+                    <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="0,0,0,0">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" Foreground="#3c8dd1" FontSize="16"/>
+                                    <TextBlock Text="Live Status" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Ellipse Width="12" Height="12" Fill="{Binding StatusBrush}"/>
+                                    <TextBlock Text="{Binding ConnectionStatus}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource TertiaryTextBrush}" FontSize="12"/>
+                                <Border Background="{DynamicResource NavBackgroundBrush}" CornerRadius="12" Padding="12" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Current IP" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                        <TextBlock Text="{Binding CurrentIp}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" Foreground="#a35fd3" FontSize="16"/>
+                                    <TextBlock Text="Action Center" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button Style="{StaticResource SegmentedButton}" Width="120" Click="RefreshIpButton_Click">Refresh IP</Button>
+                                    <Button Style="{StaticResource SegmentedButton}" Width="120" Margin="10,0,0,0" Click="DisconnectButton_Click">Disconnect</Button>
+                                </StackPanel>
+                                <TextBlock Text="Use refresh to verify your Tor exit node once connected." FontSize="12" Foreground="{DynamicResource TertiaryTextBrush}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.RowSpan="2" Background="{DynamicResource OverlayScrimBrush}" Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVis}}">
+            <Border CornerRadius="18" Background="{DynamicResource CardBackgroundBrush}" Padding="16" Width="980" Height="640" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0">
+                        <Grid DockPanel.Dock="Left">
+                            <TextBlock Text="Logs" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Visibility="{Binding ShowLogs, Converter={StaticResource BoolToVis}}"/>
+                            <TextBlock Text="About" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Visibility="{Binding ShowAbout, Converter={StaticResource BoolToVis}}"/>
+                            <TextBlock Text="Settings" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVis}}"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                            <Button Style="{StaticResource SegmentedButton}" Width="110" Margin="0,0,10,0"
+                                    Visibility="{Binding ShowLogs, Converter={StaticResource BoolToVis}}"
+                                    Click="CopyLogs_Click">Copy</Button>
+                            <Button Style="{StaticResource SegmentedButton}" Width="110" Margin="0,0,10,0"
+                                    Visibility="{Binding ShowLogs, Converter={StaticResource BoolToVis}}"
+                                    Click="ExportLogs_Click">Export</Button>
+                            <Button Style="{StaticResource SegmentedButton}" Width="90" Click="CloseOverlay_Click">Close</Button>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1" Margin="0,12,0,0">
+                        <Border CornerRadius="14" Background="{DynamicResource NavBackgroundBrush}" Padding="12"
+                                Visibility="{Binding ShowLogs, Converter={StaticResource BoolToVis}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Logs" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                <ListBox Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding LogLines}" Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}" BorderThickness="1" BorderBrush="{DynamicResource InputBorderBrush}"
+                                         FontFamily="Consolas" FontSize="12"/>
+                            </Grid>
+                        </Border>
+
+                        <Border CornerRadius="14" Background="{DynamicResource NavBackgroundBrush}" Padding="12"
+                                Visibility="{Binding ShowAbout, Converter={StaticResource BoolToVis}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="About" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                    <TextBlock Text="{Binding AboutText}" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{DynamicResource PrimaryTextBrush}" FontSize="13"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <Border CornerRadius="14" Background="{DynamicResource NavBackgroundBrush}" Padding="12"
+                                Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Settings" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+
+                                <DockPanel Margin="0,14,0,0">
+                                    <StackPanel DockPanel.Dock="Left">
+                                        <TextBlock Text="Auto-Connect" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                        <TextBlock Text="Connect on launch" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </StackPanel>
+                                    <ToggleButton Style="{StaticResource ToggleSwitch}" DockPanel.Dock="Right"
+                                                  IsChecked="{Binding AutoConnect}"/>
+                                </DockPanel>
+
+                                <DockPanel Margin="0,14,0,0">
+                                    <StackPanel DockPanel.Dock="Left">
+                                        <TextBlock Text="Dark Mode" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                        <TextBlock Text="Switch theme" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </StackPanel>
+                                    <ToggleButton Style="{StaticResource ToggleSwitch}" DockPanel.Dock="Right"
+                                                  IsChecked="{Binding IsDarkMode}"/>
+                                </DockPanel>
+
+                                <DockPanel Margin="0,14,0,0">
+                                    <StackPanel DockPanel.Dock="Left">
+                                        <TextBlock Text="Kill Switch" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                        <TextBlock Text="Blocks non-Tor traffic if tunnel drops (Admin + TUN strict)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <ToggleButton Style="{StaticResource ToggleSwitch}" DockPanel.Dock="Right"
+                                                  IsChecked="{Binding KillSwitchEnabled}"/>
+                                </DockPanel>
+
+                                <TextBlock Text="Kill switch changes Windows Firewall rules. If OnionHop crashes while enabled, you may need to relaunch as Administrator to restore." FontSize="12" Foreground="{DynamicResource TertiaryTextBrush}" Margin="0,18,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
