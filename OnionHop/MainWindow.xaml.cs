@@ -1494,7 +1494,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 return false;
             }
 
-            return !output.Contains("No rules match", StringComparison.OrdinalIgnoreCase);
+            // Check if the output actually contains the rule name (indicating it was found)
+            // Using "No rules match" is unreliable on non-English systems.
+            return output.Contains(GetKillSwitchRuleName(), StringComparison.OrdinalIgnoreCase);
         }
         catch
         {

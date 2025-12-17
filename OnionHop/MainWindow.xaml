@@ -302,8 +302,10 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="40" Height="40" CornerRadius="14" Background="{StaticResource OnionBadgeGradient}">
-                        <Image Source="{StaticResource OnionIconImage}" Stretch="Uniform" Margin="6"/>
+                    <Border Width="40" Height="40" CornerRadius="14">
+                        <Border.Background>
+                            <ImageBrush ImageSource="logo.png" Stretch="UniformToFill"/>
+                        </Border.Background>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="OnionHop" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
@@ -340,12 +342,8 @@
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,22" VerticalAlignment="Center">
                                 <Border Width="40" Height="40" CornerRadius="12">
                                     <Border.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#2c2c72" Offset="0"/>
-                                            <GradientStop Color="#2d80aa" Offset="1"/>
-                                        </LinearGradientBrush>
+                                        <ImageBrush ImageSource="logo.png" Stretch="UniformToFill"/>
                                     </Border.Background>
-                                    <TextBlock Text="&#x1F9C5;" FontSize="22" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Margin="10,0,0,0">
                                     <TextBlock Text="OnionHop" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
@@ -378,16 +376,6 @@
                                 </StackPanel>
                             </Button>
 
-                            <Border Margin="0,24,0,0" Padding="14" CornerRadius="16" Background="{DynamicResource NavBackgroundBrush}">
-                                <StackPanel>
-                                    <TextBlock Text="Status" FontSize="12" Foreground="#7c869a"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                        <Ellipse Width="12" Height="12" Fill="{Binding StatusBrush}" />
-                                        <TextBlock Text="{Binding ConnectionStatus}" FontWeight="Bold" Foreground="#1f2937" Margin="8,0,0,0"/>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="#6a7486" FontSize="12"/>
-                                </StackPanel>
-                            </Border>
                         </StackPanel>
                     </Border>
 
@@ -417,8 +405,10 @@
 
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Border Width="54" Height="54" CornerRadius="18" Background="#41a0bc">
-                                                    <TextBlock Text="&#x1F9C5;" FontSize="30" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                <Border Width="54" Height="54" CornerRadius="18">
+                                                    <Border.Background>
+                                                        <ImageBrush ImageSource="logo.png" Stretch="UniformToFill"/>
+                                                    </Border.Background>
                                                 </Border>
                                                 <StackPanel Margin="12,0,0,0">
                                                     <TextBlock Text="Connection Mode" Foreground="White" FontSize="22" FontWeight="Bold"/>
