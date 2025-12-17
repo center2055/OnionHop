@@ -8,34 +8,55 @@
   <img src="screenshot.png" alt="OnionHop UI Screenshot" width="800"/>
 </div>
 
-**OnionHop** is a lightweight Windows WPF app that helps route your traffic through **Tor** using either:
+**OnionHop** is a lightweight Windows WPF app that routes your traffic through **Tor** using either:
 
-- **Proxy Mode (recommended):** sets the Windows proxy to Tor’s local SOCKS5 endpoint.
+- **Proxy Mode (recommended):** sets the Windows proxy to Tor's local SOCKS5 endpoint.
 - **TUN/VPN Mode (Admin):** starts a system-wide tunnel via **sing-box + Wintun**.
 
 It includes a **Hybrid** option (browser-only via Tor in TUN mode) and an optional **Kill Switch** for leak prevention.
 
 > **Disclaimer**
-> OnionHop is provided “as-is”. Tor usage can be illegal or restricted in some jurisdictions. You are responsible for complying with local laws and regulations.
+> OnionHop is provided "as-is". Tor usage can be illegal or restricted in some jurisdictions. You are responsible for complying with local laws and regulations.
+
+---
+
+## Getting Started (User)
+
+1) Install  
+   - Run the Windows installer at `installer/output/OnionHop-Setup-<version>.exe` (or your published installer).
+
+2) Choose a mode  
+   - **Proxy Mode (no admin):** Sets Windows proxy to Tor SOCKS (best compatibility).  
+   - **TUN/VPN Mode (admin):** System-wide tunnel via sing-box + Wintun; required if apps ignore proxy settings.
+
+3) Connect  
+   - Optionally select an **Exit Location**.  
+   - For TUN mode, toggle **Hybrid** if you want browsers via Tor and other apps direct.  
+   - Click **Connect**. Use **Disconnect** to stop Tor/tunnel (run as Administrator to fully clear kill-switch rules).
+
+Notes
+- Kill Switch works only in strict TUN (Hybrid off) and needs admin rights to add/remove firewall rules.  
+- Dark Mode currently affects UI only.  
+- Bundled binaries live under `OnionHop/OnionHop/tor/` and `OnionHop/OnionHop/vpn/`. Unsigned binaries can trigger AV warningsallow only if you trust the source.
 
 ---
 
 ## Features
 
-- **Tor routing (SOCKS5)**
-- **System proxy mode** (no admin required)
-- **TUN/VPN mode** via sing-box + Wintun (admin required)
-- **Hybrid routing** (in TUN mode: browsers via Tor, other apps direct)
-- **Kill Switch (strict TUN only)**
+- Tor routing (SOCKS5)
+- System proxy mode (no admin required)
+- TUN/VPN mode via sing-box + Wintun (admin required)
+- Hybrid routing (in TUN mode: browsers via Tor, other apps direct)
+- Kill Switch (strict TUN only)
   - If the tunnel drops unexpectedly, OnionHop blocks outbound traffic using Windows Firewall to prevent leaks.
   - Disconnect (as Administrator) to restore normal traffic.
-- **Persisted settings**
+- Persisted settings
   - Auto-Connect
   - Dark Mode
   - Kill Switch toggle
   - Exit Location
   - Connection mode + Hybrid
-- **Logs / About / Settings** overlay panels
+- Logs / About / Settings overlay panels
 
 ---
 
@@ -77,7 +98,7 @@ If you ever lose internet after a crash:
 
 OnionHop stores settings here:
 
-- `%AppData%\\OnionHop\\settings.json`
+- `%AppData%\OnionHop\settings.json`
 
 ---
 
@@ -106,7 +127,7 @@ Output:
 
 - `OnionHop/OnionHop/bin/Release/net9.0-windows/win-x64/publish/`
 
-> If publish fails with “file is being used by another process”, close any running `OnionHop.exe`.
+> If publish fails with "file is being used by another process", close any running `OnionHop.exe`.
 
 ---
 
@@ -150,9 +171,17 @@ These are copied to output/publish via `OnionHop.csproj`.
 
 ---
 
+## Privacy / Logging
+
+- No telemetry is sent.
+- Logs are local-only (app UI "Logs" panel).
+- Proxy mode edits Windows proxy settings; TUN mode may add/remove Windows Firewall rules when Kill Switch is active.
+
+---
+
 ## Troubleshooting
 
-### Proxy mode doesn’t affect some apps
+### Proxy mode doesn't affect some apps
 Many apps ignore the Windows proxy settings. Use **TUN/VPN Mode** if you need system-wide routing.
 
 ### TUN/VPN mode fails to start
@@ -190,4 +219,10 @@ Some networks block or throttle Tor.
 
 ## License
 
-No license file is included yet. If you want this open-source, add a `LICENSE` (MIT/Apache-2.0 recommended).
+GPLv3. See `LICENSE`.
+
+---
+
+## Support / Issues
+
+No formal support provided. If you distribute this, include your own support/contact path or issue tracker.
