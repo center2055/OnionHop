@@ -340,12 +340,7 @@
                     <Border CornerRadius="22" Background="{DynamicResource NavBackgroundBrush}" Margin="6,0,16,0" Padding="18">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,22" VerticalAlignment="Center">
-                                <Border Width="40" Height="40" CornerRadius="12">
-                                    <Border.Background>
-                                        <ImageBrush ImageSource="logo.png" Stretch="UniformToFill"/>
-                                    </Border.Background>
-                                </Border>
-                                <StackPanel Margin="10,0,0,0">
+                                <StackPanel>
                                     <TextBlock Text="OnionHop" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                     <TextBlock Text="Tor VPN Companion" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
                                 </StackPanel>
@@ -405,12 +400,7 @@
 
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Border Width="54" Height="54" CornerRadius="18">
-                                                    <Border.Background>
-                                                        <ImageBrush ImageSource="logo.png" Stretch="UniformToFill"/>
-                                                    </Border.Background>
-                                                </Border>
-                                                <StackPanel Margin="12,0,0,0">
+                                                <StackPanel>
                                                     <TextBlock Text="Connection Mode" Foreground="White" FontSize="22" FontWeight="Bold"/>
                                                     <TextBlock Text="Choose Proxy or TUN" Foreground="#dbe8ff" FontSize="13"/>
                                                 </StackPanel>
