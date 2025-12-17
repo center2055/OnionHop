@@ -1,5 +1,13 @@
 # OnionHop
 
+<div align="center">
+  <img src="logo.png" alt="OnionHop Logo" width="200"/>
+</div>
+
+<div align="center">
+  <img src="screenshot.png" alt="OnionHop UI Screenshot" width="800"/>
+</div>
+
 **OnionHop** is a lightweight Windows WPF app that helps route your traffic through **Tor** using either:
 
 - **Proxy Mode (recommended):** sets the Windows proxy to Tor’s local SOCKS5 endpoint.
