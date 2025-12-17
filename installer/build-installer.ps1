@@ -18,7 +18,7 @@ $sc = "false"
 if ($SelfContained.IsPresent) { $sc = "true" }
 
 Write-Host "Publishing OnionHop..." -ForegroundColor Cyan
-& dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc
+& dotnet publish $csproj -c $Configuration -r $Runtime --self-contained true
 
 $publishDir = Join-Path $projectDir "bin\$Configuration\net9.0-windows\$Runtime\publish"
 if (!(Test-Path $publishDir)) {

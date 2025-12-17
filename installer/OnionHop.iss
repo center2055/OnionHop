@@ -15,6 +15,7 @@
 #endif
 
 [Setup]
+SetupIconFile=..\OnionHop\OnionHop.ico
 AppId={{A3C8E2B1-0A70-4F41-8F21-5A9D5A9F0E27}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
