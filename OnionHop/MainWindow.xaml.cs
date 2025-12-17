@@ -715,6 +715,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ShowSettings = false;
     }
 
+    private void OverlayBackground_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Only close if the click was on the semi-transparent background itself,
+        // not bubbled up from the card content.
+        if (e.OriginalSource == sender)
+        {
+            CloseOverlay_Click(sender, e);
+        }
+    }
+
     private string GetLogsText()
     {
         lock (_logLock)

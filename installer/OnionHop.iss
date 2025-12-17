@@ -45,7 +45,7 @@ Source: "{#PubDir}\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs cr
 
 [Icons]
 Name: "{group}\\{#MyAppName}"; Filename: "{app}\\OnionHop.exe"
-Name: "{commondesktop}\\{#MyAppName}"; Filename: "{app}\\OnionHop.exe"; Tasks: desktopicon
+Name: "{userdesktop}\\{#MyAppName}"; Filename: "{app}\\OnionHop.exe"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\\OnionHop.exe"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
