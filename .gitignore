@@ -54,3 +54,7 @@ listing.html
 # Installer artifacts
 installer/output/
 installer/**/*.exe
+
+# Icon conversion files
+logo.jpg
+convert_icon_logo.ps1
