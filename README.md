@@ -1,4 +1,4 @@
-# OnionHop
+﻿# OnionHop
 
 <div align="center">
   <img src="logo.png" alt="OnionHop Logo" width="200"/>
@@ -37,7 +37,7 @@ It includes a **Hybrid** option (browser-only via Tor in TUN mode) and an option
 Notes
 - Kill Switch works only in strict TUN (Hybrid off) and needs admin rights to add/remove firewall rules.  
 - Dark Mode currently affects UI only.  
-- Bundled binaries live under `OnionHop/OnionHop/tor/` and `OnionHop/OnionHop/vpn/`. Unsigned binaries can trigger AV warningsallow only if you trust the source.
+- Bundled binaries live under `OnionHop/OnionHop/tor/` and `OnionHop/OnionHop/vpn/`. Unsigned binaries can trigger AV warnings — allow only if you trust the source.
 
 ---
 
@@ -225,4 +225,6 @@ GPLv3. See `LICENSE`.
 
 ## Support / Issues
 
-No formal support provided. If you distribute this, include your own support/contact path or issue tracker.
+For support, please either:
+- Open an issue on this repository
+- Join the Discord server: https://discord.gg/sNsJzKBNUG
