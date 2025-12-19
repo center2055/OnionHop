@@ -8,6 +8,12 @@
   <img src="screenshot.png" alt="OnionHop UI Screenshot" width="800"/>
 </div>
 
+<div align="center">
+  <a href="https://github.com/center2055/OnionHop/releases">
+    <img src="https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge&logo=github" alt="Download Latest Release"/>
+  </a>
+</div>
+
 **OnionHop** is a lightweight Windows WPF app that routes your traffic through **Tor** using either:
 
 - **Proxy Mode (recommended):** sets the Windows proxy to Tor's local SOCKS5 endpoint.
@@ -23,7 +29,8 @@ It includes a **Hybrid** option (browser-only via Tor in TUN mode) and an option
 ## Getting Started (User)
 
 1) Install  
-   - Run the Windows installer at `installer/output/OnionHop-Setup-<version>.exe` (or your published installer).
+   - Download the latest release from the [Releases](https://github.com/center2055/OnionHop/releases) section.
+   - Run the Windows installer (`OnionHop-Setup-<version>.exe`).
 
 2) Choose a mode  
    - **Proxy Mode (no admin):** Sets Windows proxy to Tor SOCKS (best compatibility).  
