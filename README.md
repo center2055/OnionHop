@@ -54,6 +54,7 @@ Notes
 - System proxy mode (no admin required)
 - TUN/VPN mode via sing-box + Wintun (admin required)
 - Hybrid routing (in TUN mode: browsers via Tor, other apps direct)
+- Tor bridges / pluggable transports (obfs4, snowflake, meek-azure)
 - Kill Switch (strict TUN only)
   - If the tunnel drops unexpectedly, OnionHop blocks outbound traffic using Windows Firewall to prevent leaks.
   - Disconnect (as Administrator) to restore normal traffic.
@@ -203,7 +204,7 @@ This usually means the kill switch firewall rule is still present.
 ### Tor bootstrap is slow
 Some networks block or throttle Tor.
 - Try a different Exit Location.
-- Consider using Tor bridges (not currently implemented in OnionHop).
+- Enable Tor bridges in Settings (obfs4, snowflake, meek-azure) or paste custom bridges.
 
 ---
 
@@ -218,7 +219,6 @@ Some networks block or throttle Tor.
 ## Roadmap / Ideas
 
 - Separate services (TorService/VpnService/SettingsService) for cleaner architecture
-- Optional Tor bridges / pluggable transports
 - Better kill switch: allow-only rules (Tor + tunnel) instead of emergency global block
 - More diagnostics and structured logging
 

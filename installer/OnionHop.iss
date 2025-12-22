@@ -1,13 +1,13 @@
 ; Inno Setup script for OnionHop
 ; Build with:
-;   ISCC.exe installer\OnionHop.iss /DMyAppVersion=1.0.0 /DPubDir="..."
+;   ISCC.exe installer\OnionHop.iss /DMyAppVersion=1.1.0 /DPubDir="..."
 
 #define MyAppName "OnionHop"
 #define MyAppPublisher "center2055"
 #define MyAppURL "https://github.com/center2055/OnionHop"
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "1.1.0"
 #endif
 
 #ifndef PubDir

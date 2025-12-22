@@ -30,7 +30,7 @@ if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
 }
 
-$version = "1.0.0"
+$version = "1.1.0"
 try {
   $xml = [xml](Get-Content $csproj)
   $pv = $xml.Project.PropertyGroup.Version
@@ -40,7 +40,7 @@ try {
 
 # Try to find ISCC.exe
 $possible = @(
-  "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe",
+  "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
   "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
 )
 

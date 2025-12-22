@@ -38,6 +38,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const string DefaultTorRelativePath = "tor\\tor.exe";
     private const string DefaultSingBoxRelativePath = "vpn\\sing-box.exe";
     private const string DefaultWintunRelativePath = "vpn\\wintun.dll";
+    private const string DefaultPtConfigRelativePath = "tor\\pluggable_transports\\pt_config.json";
 
     private bool _isConnecting;
     private bool _isConnected;
@@ -52,6 +53,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private Process? _singBoxProcess;
     private CancellationTokenSource? _connectCts;
     private TaskCompletionSource<bool>? _bootstrapSource;
+    private PluggableTransportConfig? _ptConfig;
 
     private DateTime _lastVpnMessageUtc = DateTime.MinValue;
     private readonly object _singBoxLogLock = new();
@@ -90,6 +92,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         "Proxy Mode (Recommended)",
         "TUN/VPN Mode (Admin)"
     };
+
+    public ObservableCollection<string> BridgeTypes { get; } = new();
 
     public string SelectedLocation
     {
@@ -179,6 +183,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
     private bool _killSwitchEnabled;
+
+    public bool UseTorBridges
+    {
+        get => _useTorBridges;
+        set
+        {
+            if (SetField(ref _useTorBridges, value))
+            {
+                NotifyBridgeSettingsChanged();
+            }
+        }
+    }
+    private bool _useTorBridges;
+
+    public string SelectedBridgeType
+    {
+        get => _selectedBridgeType;
+        set
+        {
+            if (SetField(ref _selectedBridgeType, value))
+            {
+                NotifyBridgeSettingsChanged();
+            }
+        }
+    }
+    private string _selectedBridgeType = "obfs4";
+
+    public string CustomBridges
+    {
+        get => _customBridges;
+        set
+        {
+            if (SetField(ref _customBridges, value))
+            {
+                NotifyBridgeSettingsChanged();
+            }
+        }
+    }
+    private string _customBridges = string.Empty;
 
     public bool IsDarkMode
     {
@@ -270,6 +313,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         "Exit Location\n" +
         "- A hint for which country Tor should try to exit from. Not guaranteed.\n" +
         "\n" +
+        "Tor Bridges\n" +
+        "- Use pluggable transports like obfs4 or snowflake when Tor is blocked\n" +
+        "- Enable in Settings and reconnect to apply\n" +
+        "\n" +
         "Auto-Connect\n" +
         "- Connect automatically when OnionHop starts.\n" +
         "\n" +
@@ -320,6 +367,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         InitializeComponent();
         DataContext = this;
 
+        LoadBridgeConfig();
         LoadUserSettings();
         ApplyStartupArguments(Environment.GetCommandLineArgs());
         ApplyTheme(IsDarkMode);
@@ -346,6 +394,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public string? SelectedLocation { get; set; }
         public string? SelectedConnectionMode { get; set; }
         public bool UseHybridRouting { get; set; }
+        public bool UseTorBridges { get; set; }
+        public string? SelectedBridgeType { get; set; }
+        public string? CustomBridges { get; set; }
+    }
+
+    private sealed class PluggableTransportConfig
+    {
+        public string? RecommendedDefault { get; set; }
+        public Dictionary<string, string> PluggableTransports { get; set; } = new();
+        public Dictionary<string, List<string>> Bridges { get; set; } = new();
     }
 
     private static string GetSettingsPath()
@@ -353,6 +411,57 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop");
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, "settings.json");
+    }
+
+    private void LoadBridgeConfig()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, DefaultPtConfigRelativePath);
+        if (File.Exists(configPath))
+        {
+            try
+            {
+                var json = File.ReadAllText(configPath);
+                _ptConfig = JsonSerializer.Deserialize<PluggableTransportConfig>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"Bridge config load failed: {ex.Message}");
+            }
+        }
+
+        var bridgeKeys = _ptConfig?.Bridges?.Keys?
+            .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
+            .ToList()
+            ?? new List<string>();
+
+        if (bridgeKeys.Count == 0)
+        {
+            bridgeKeys.AddRange(new[] { "obfs4", "snowflake", "meek-azure" });
+        }
+
+        BridgeTypes.Clear();
+        foreach (var key in bridgeKeys)
+        {
+            BridgeTypes.Add(key);
+        }
+
+        var defaultType = _ptConfig?.RecommendedDefault;
+        if (string.IsNullOrWhiteSpace(defaultType) || !BridgeTypes.Contains(defaultType))
+        {
+            defaultType = BridgeTypes.FirstOrDefault() ?? "obfs4";
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedBridgeType) || !BridgeTypes.Contains(_selectedBridgeType))
+        {
+            var wasLoading = _loadingSettings;
+            _loadingSettings = true;
+            _selectedBridgeType = defaultType;
+            Raise(nameof(SelectedBridgeType));
+            _loadingSettings = wasLoading;
+        }
     }
 
     private void LoadUserSettings()
@@ -389,6 +498,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             UseHybridRouting = settings.UseHybridRouting;
             KillSwitchEnabled = settings.KillSwitchEnabled;
+            UseTorBridges = settings.UseTorBridges;
+            if (!string.IsNullOrWhiteSpace(settings.SelectedBridgeType) && BridgeTypes.Contains(settings.SelectedBridgeType))
+            {
+                SelectedBridgeType = settings.SelectedBridgeType;
+            }
+
+            CustomBridges = settings.CustomBridges ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -438,11 +554,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             IsDarkMode = IsDarkMode,
             SelectedLocation = SelectedLocation,
             SelectedConnectionMode = SelectedConnectionMode,
-            UseHybridRouting = UseHybridRouting
+            UseHybridRouting = UseHybridRouting,
+            UseTorBridges = UseTorBridges,
+            SelectedBridgeType = SelectedBridgeType,
+            CustomBridges = CustomBridges
         };
 
         var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(GetSettingsPath(), json);
+    }
+
+    private void NotifyBridgeSettingsChanged()
+    {
+        if (_isConnected)
+        {
+            StatusMessage = "Bridge settings will apply after reconnecting.";
+        }
     }
 
     private void ApplyTheme(bool dark)
@@ -587,7 +714,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         try
         {
-            AppendLog($"Connecting. Mode={SelectedConnectionMode}, Hybrid={UseHybridRouting}, Exit={SelectedLocation}");
+            var bridgeSummary = UseTorBridges
+                ? (HasCustomBridgeLines() ? "Bridges=custom" : $"Bridges={SelectedBridgeType}")
+                : "Bridges=off";
+            AppendLog($"Connecting. Mode={SelectedConnectionMode}, Hybrid={UseHybridRouting}, Exit={SelectedLocation}, {bridgeSummary}");
             await StartTorAsync(torPath, SelectedLocation, _connectCts.Token);
 
             if (IsTunMode)
@@ -1177,6 +1307,183 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private bool HasCustomBridgeLines()
+    {
+        return ExtractBridgeLines(CustomBridges).Count > 0;
+    }
+
+    private IReadOnlyList<string> GetBridgeLines()
+    {
+        var custom = ExtractBridgeLines(CustomBridges);
+        if (custom.Count > 0)
+        {
+            return custom;
+        }
+
+        if (_ptConfig?.Bridges != null &&
+            _ptConfig.Bridges.TryGetValue(SelectedBridgeType, out var bridges) &&
+            bridges.Count > 0)
+        {
+            return bridges;
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private static List<string> ExtractBridgeLines(string? text)
+    {
+        var results = new List<string>();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return results;
+        }
+
+        using var reader = new StringReader(text);
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            line = line.Trim();
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            if (line.StartsWith("#", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (line.StartsWith("Bridge ", StringComparison.OrdinalIgnoreCase))
+            {
+                line = line.Substring("Bridge ".Length).Trim();
+            }
+
+            results.Add(line);
+        }
+
+        return results;
+    }
+
+    private IReadOnlyList<string> GetClientTransportPlugins(IReadOnlyList<string> bridgeLines, string torDir)
+    {
+        var ptPath = Path.Combine(torDir, "pluggable_transports");
+        var ptPathWithSlash = ptPath.EndsWith(Path.DirectorySeparatorChar)
+            ? ptPath
+            : ptPath + Path.DirectorySeparatorChar;
+
+        if (_ptConfig?.PluggableTransports != null && _ptConfig.PluggableTransports.Count > 0)
+        {
+            var transportMap = BuildTransportPluginMap(_ptConfig.PluggableTransports, ptPathWithSlash);
+            var needed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in bridgeLines)
+            {
+                var transport = ExtractBridgeTransport(line);
+                if (!string.IsNullOrWhiteSpace(transport))
+                {
+                    needed.Add(transport);
+                }
+            }
+
+            var pluginLines = new List<string>();
+            foreach (var transport in needed)
+            {
+                if (transportMap.TryGetValue(transport, out var plugin))
+                {
+                    pluginLines.Add(plugin);
+                }
+            }
+
+            if (pluginLines.Count > 0)
+            {
+                return pluginLines.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            }
+
+            return transportMap.Values.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        return BuildFallbackTransportPlugins(bridgeLines, ptPath);
+    }
+
+    private static IReadOnlyList<string> BuildFallbackTransportPlugins(IEnumerable<string> bridgeLines, string ptPath)
+    {
+        var transports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in bridgeLines)
+        {
+            var transport = ExtractBridgeTransport(line);
+            if (!string.IsNullOrWhiteSpace(transport))
+            {
+                transports.Add(transport);
+            }
+        }
+
+        var plugins = new List<string>();
+        foreach (var transport in transports)
+        {
+            if (string.Equals(transport, "conjure", StringComparison.OrdinalIgnoreCase))
+            {
+                plugins.Add($"ClientTransportPlugin conjure exec {Path.Combine(ptPath, "conjure-client.exe")} -registerURL https://registration.refraction.network/api");
+            }
+            else
+            {
+                plugins.Add($"ClientTransportPlugin {transport} exec {Path.Combine(ptPath, "lyrebird.exe")}");
+            }
+        }
+
+        return plugins;
+    }
+
+    private static Dictionary<string, string> BuildTransportPluginMap(Dictionary<string, string> pluggableTransports, string ptPathWithSlash)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in pluggableTransports.Values)
+        {
+            var resolved = entry.Replace("${pt_path}", ptPathWithSlash, StringComparison.OrdinalIgnoreCase);
+            var transportSegment = ExtractTransportSegment(resolved);
+            if (string.IsNullOrWhiteSpace(transportSegment))
+            {
+                continue;
+            }
+
+            var transports = transportSegment.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var transport in transports)
+            {
+                map[transport] = resolved;
+            }
+        }
+
+        return map;
+    }
+
+    private static string? ExtractTransportSegment(string pluginLine)
+    {
+        const string prefix = "ClientTransportPlugin ";
+        var startIndex = pluginLine.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        if (startIndex < 0)
+        {
+            return null;
+        }
+
+        startIndex += prefix.Length;
+        var execIndex = pluginLine.IndexOf(" exec ", startIndex, StringComparison.OrdinalIgnoreCase);
+        if (execIndex < 0)
+        {
+            return null;
+        }
+
+        return pluginLine.Substring(startIndex, execIndex - startIndex).Trim();
+    }
+
+    private static string? ExtractBridgeTransport(string bridgeLine)
+    {
+        if (string.IsNullOrWhiteSpace(bridgeLine))
+        {
+            return null;
+        }
+
+        var parts = bridgeLine.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 0 ? parts[0] : null;
+    }
+
     private async Task StartTorAsync(string torPath, string location, CancellationToken token)
     {
         _bootstrapSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1193,6 +1500,32 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var torDir = Path.GetDirectoryName(torPath) ?? AppContext.BaseDirectory;
         argsBuilder.Append($"--GeoIPFile \"{Path.Combine(torDir, "geoip")}\" ");
         argsBuilder.Append($"--GeoIPv6File \"{Path.Combine(torDir, "geoip6")}\" ");
+
+        if (UseTorBridges)
+        {
+            var bridgeLines = GetBridgeLines();
+            if (bridgeLines.Count == 0)
+            {
+                throw new InvalidOperationException("Bridges enabled but no bridge lines are configured.");
+            }
+
+            var pluginLines = GetClientTransportPlugins(bridgeLines, torDir);
+            if (pluginLines.Count == 0)
+            {
+                throw new InvalidOperationException("Bridges enabled but no transport plugins were found.");
+            }
+
+            argsBuilder.Append("--UseBridges 1 ");
+            foreach (var pluginLine in pluginLines)
+            {
+                argsBuilder.Append($"--ClientTransportPlugin \"{pluginLine}\" ");
+            }
+
+            foreach (var bridgeLine in bridgeLines)
+            {
+                argsBuilder.Append($"--Bridge \"{bridgeLine}\" ");
+            }
+        }
 
         var countryCode = GetCountryCode(location);
         if (!string.IsNullOrWhiteSpace(countryCode))
@@ -1591,7 +1924,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             or nameof(IsDarkMode)
             or nameof(SelectedLocation)
             or nameof(SelectedConnectionMode)
-            or nameof(UseHybridRouting))
+            or nameof(UseHybridRouting)
+            or nameof(UseTorBridges)
+            or nameof(SelectedBridgeType)
+            or nameof(CustomBridges))
         {
             ScheduleSaveUserSettings();
         }
