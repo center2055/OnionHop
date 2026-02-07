@@ -7,6 +7,33 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Remove-PathWithRetry {
+  param(
+    [Parameter(Mandatory = $true)][string]$Path,
+    [int]$Retries = 6,
+    [int]$DelayMs = 300
+  )
+
+  if (!(Test-Path $Path)) {
+    return
+  }
+
+  for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+    try {
+      Remove-Item -Recurse -Force $Path -ErrorAction Stop
+      return
+    } catch {
+      if (!(Test-Path $Path)) {
+        return
+      }
+      if ($attempt -eq $Retries) {
+        throw
+      }
+      Start-Sleep -Milliseconds $DelayMs
+    }
+  }
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop V2"
 $projectDir = Join-Path $solutionRoot "src\OnionHopV2.App"
@@ -50,8 +77,8 @@ if ($SelfContained.IsPresent) { $sc = "true" }
 Write-Host "Cleaning and Publishing OnionHop V2..." -ForegroundColor Cyan
 
 # Remove old build artifacts to ensure a fresh publish
-if (Test-Path "$projectDir\bin") { Remove-Item -Recurse -Force "$projectDir\bin" }
-if (Test-Path "$projectDir\obj") { Remove-Item -Recurse -Force "$projectDir\obj" }
+Remove-PathWithRetry -Path "$projectDir\bin"
+Remove-PathWithRetry -Path "$projectDir\obj"
 
 & dotnet clean $solutionRoot -c $Configuration
 & dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=false
@@ -66,7 +93,7 @@ if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
 }
 
-$version = "2.0.1"
+$version = "2.1.0"
 try {
   $xml = [xml](Get-Content $csproj)
   $pv = $xml.Project.PropertyGroup.Version

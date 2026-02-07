@@ -1,17 +1,21 @@
 using Material.Icons;
+using OnionHopV2.App.Services;
 
 namespace OnionHopV2.App.ViewModels;
 
 public abstract class PageViewModelBase : ViewModelBase
 {
-    protected PageViewModelBase(string displayName, MaterialIconKind icon, AppStateViewModel state)
+    private readonly string _displayNameKey;
+
+    protected PageViewModelBase(string displayNameKey, MaterialIconKind icon, AppStateViewModel state)
     {
-        DisplayName = displayName;
+        _displayNameKey = displayNameKey;
         Icon = icon;
         State = state;
+        LocalizationService.LanguageChanged += (_, _) => OnPropertyChanged(nameof(DisplayName));
     }
 
-    public string DisplayName { get; }
+    public string DisplayName => LocalizationService.Get(_displayNameKey);
     public MaterialIconKind Icon { get; }
     public AppStateViewModel State { get; }
 }

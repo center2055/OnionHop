@@ -98,7 +98,7 @@
                                      BorderThickness="0"
                                      Classes="NoShadow"
                                      Text="{TemplateBinding SearchText, Mode=TwoWay}"
-                                     Watermark="Search" />
+                                    Watermark="{DynamicResource Common.Search}" />
                           </DockPanel>
                         </suki:GlassCard>
                       </StackPanel>

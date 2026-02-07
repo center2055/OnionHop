@@ -113,7 +113,7 @@
                 <Button Classes="WindowChromeButton"
                         Width="40"
                         Height="34"
-                        ToolTip.Tip="Minimize"
+                        ToolTip.Tip="{DynamicResource Window.Minimize}"
                         Click="OnMinimizeClick">
                     <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Minus}"
                                         Width="16"
@@ -123,7 +123,7 @@
                 <Button Classes="WindowChromeButton"
                         Width="40"
                         Height="34"
-                        ToolTip.Tip="Maximize / Restore"
+                        ToolTip.Tip="{DynamicResource Window.MaximizeRestore}"
                         Click="OnMaximizeRestoreClick">
                     <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.SquareOutline}"
                                         Width="16"
@@ -133,7 +133,7 @@
                 <Button Classes="WindowChromeButton Close"
                         Width="40"
                         Height="34"
-                        ToolTip.Tip="Close"
+                        ToolTip.Tip="{DynamicResource Window.Close}"
                         Click="OnCloseClick">
                     <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Close}"
                                         Width="16"

@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0713" />
+
+    <title>OnionHop — Tor routing, simplified</title>
+    <meta
+      name="description"
+      content="OnionHop is a modern Windows app that routes your traffic through Tor with Proxy and TUN/VPN modes, bridges, and split tunneling."
+    />
+
+    <meta property="og:title" content="OnionHop" />
+    <meta
+      property="og:description"
+      content="Tor routing, simplified. Proxy + TUN/VPN modes, bridges, and split tunneling."
+    />
+    <meta property="og:type" content="website" />
+
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip_to_content">Skip to content</a>
+
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand" href="#" aria-label="OnionHop home">
+          <span class="brand__mark" aria-hidden="true"></span>
+          <span class="brand__name">OnionHop</span>
+          <span class="brand__tag" data-i18n="brand_tag">Tor routing, simplified</span>
+        </a>
+
+        <nav class="topbar__actions" aria-label="Primary">
+          <a
+            class="pill"
+            href="https://github.com/center2055/OnionHop"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <span class="pill__icon" aria-hidden="true">↗</span>
+            <span data-i18n="github">GitHub</span>
+          </a>
+
+          <button class="pill pill--ghost" id="langToggle" type="button" aria-label="Language">
+            <span class="pill__icon" aria-hidden="true">🌐</span>
+            <span id="langLabel">EN</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="container hero__inner">
+          <div class="hero__copy">
+            <p class="kicker reveal" data-i18n="kicker">Privacy-first connectivity.</p>
+            <h1 class="headline reveal" data-i18n="headline">
+              Hop into Tor with a clean, modern Windows client.
+            </h1>
+            <p class="subhead reveal" data-i18n="subhead">
+              Proxy mode for simplicity. TUN/VPN mode for system-wide routing. Bridges when networks say “no”.
+            </p>
+
+            <div class="cta reveal">
+              <a
+                class="btn btn--primary"
+                id="downloadLatest"
+                href="https://github.com/center2055/OnionHop/releases"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <span class="btn__shine" aria-hidden="true"></span>
+                <span class="btn__label" data-i18n="download_latest">Download latest</span>
+                <span class="btn__meta" id="downloadMeta" aria-hidden="true"></span>
+              </a>
+
+              <a class="btn btn--ghost" href="#downloads">
+                <span class="btn__label" data-i18n="see_downloads">See downloads</span>
+              </a>
+            </div>
+
+            <div class="stats reveal" aria-label="Repository stats">
+              <div class="stat">
+                <div class="stat__label" data-i18n="stat_stars">Stars</div>
+                <div class="stat__value" id="starsValue">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label" data-i18n="stat_downloads">Downloads</div>
+                <div class="stat__value" id="downloadsValue">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label" data-i18n="stat_release">Latest</div>
+                <div class="stat__value" id="latestValue">—</div>
+              </div>
+            </div>
+
+            <div class="badges reveal" aria-label="Badges">
+              <a
+                class="badge"
+                href="https://github.com/center2055/OnionHop/releases"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <span class="badge__dot" aria-hidden="true"></span>
+                <span data-i18n="badge_latest_release">Latest Release</span>
+              </a>
+              <a
+                class="badge badge--fmhy"
+                href="https://fmhy.net/"
+                target="_blank"
+                rel="noreferrer noopener"
+                title="fmhy.net"
+              >
+                <span class="badge__spark" aria-hidden="true"></span>
+                <span data-i18n="badge_fmhy">Featured on FMHY</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="hero__visual reveal" aria-hidden="true">
+            <div class="glass">
+              <div class="glass__title">OnionHop V2</div>
+              <div class="glass__sub" id="releaseHint">—</div>
+              <div class="glass__shot" id="heroShot" role="img" aria-label="OnionHop screenshot"></div>
+              <div class="glass__chips">
+                <span class="chip" data-i18n="chip_proxy">Proxy</span>
+                <span class="chip" data-i18n="chip_tun">TUN/VPN</span>
+                <span class="chip" data-i18n="chip_bridges">Bridges</span>
+                <span class="chip" data-i18n="chip_split">Split tunneling</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__bg" aria-hidden="true">
+          <div class="orbs">
+            <div class="orb orb--a"></div>
+            <div class="orb orb--b"></div>
+            <div class="orb orb--c"></div>
+          </div>
+          <div class="rings"></div>
+          <div class="grain"></div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="container">
+          <h2 class="h2 reveal" data-i18n="features_title">Built for real-world networks</h2>
+          <p class="lead reveal" data-i18n="features_lead">
+            OnionHop focuses on sensible defaults, powerful controls, and clear status — without the clutter.
+          </p>
+
+          <div class="grid reveal">
+            <article class="card">
+              <h3 class="card__title" data-i18n="f_proxy_title">Proxy mode (recommended)</h3>
+              <p class="card__text" data-i18n="f_proxy_text">
+                Quickly route proxy-aware apps via Tor by setting the Windows proxy to a local SOCKS endpoint.
+              </p>
+            </article>
+            <article class="card">
+              <h3 class="card__title" data-i18n="f_tun_title">TUN/VPN mode (admin)</h3>
+              <p class="card__text" data-i18n="f_tun_text">
+                System-wide routing via sing-box + Wintun for apps that ignore proxy settings.
+              </p>
+            </article>
+            <article class="card">
+              <h3 class="card__title" data-i18n="f_split_title">Split tunneling</h3>
+              <p class="card__text" data-i18n="f_split_text">
+                Choose which apps go through Tor and which go direct (Hybrid mode).
+              </p>
+            </article>
+            <article class="card">
+              <h3 class="card__title" data-i18n="f_bridges_title">Bridges + transports</h3>
+              <p class="card__text" data-i18n="f_bridges_text">
+                snowflake, obfs4, meek-azure, webtunnel, and custom bridges for restrictive networks.
+              </p>
+            </article>
+            <article class="card">
+              <h3 class="card__title" data-i18n="f_killswitch_title">Kill Switch</h3>
+              <p class="card__text" data-i18n="f_killswitch_text">
+                Optional firewall rules help prevent accidental leaks (strict TUN only).
+              </p>
+            </article>
+            <article class="card">
+              <h3 class="card__title" data-i18n="f_logs_title">Logs + diagnostics</h3>
+              <p class="card__text" data-i18n="f_logs_text">
+                See what’s happening and why — useful for troubleshooting bridges and connectivity.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--alt" id="screenshots">
+        <div class="container">
+          <h2 class="h2 reveal" data-i18n="shots_title">Screenshots</h2>
+          <p class="lead reveal" data-i18n="shots_lead">
+            Some real shots from the repo, plus placeholders you can replace with your own.
+          </p>
+          <div class="shots reveal" id="shotsGrid" aria-label="Screenshot gallery"></div>
+        </div>
+      </section>
+
+      <section class="section" id="downloads">
+        <div class="container">
+          <h2 class="h2 reveal" data-i18n="downloads_title">Downloads</h2>
+          <p class="lead reveal" data-i18n="downloads_lead">
+            This page fetches the newest release from GitHub and picks the best asset for your device.
+          </p>
+
+          <div class="downloadPanel reveal">
+            <div class="downloadPanel__left">
+              <div class="dlHeadline" id="dlHeadline">—</div>
+              <div class="dlMeta" id="dlMeta">—</div>
+              <div class="dlActions">
+                <a
+                  class="btn btn--primary"
+                  id="dlPrimary"
+                  href="https://github.com/center2055/OnionHop/releases"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <span class="btn__shine" aria-hidden="true"></span>
+                  <span class="btn__label" data-i18n="download_primary">Download</span>
+                </a>
+                <a
+                  class="btn btn--ghost"
+                  id="dlSecondary"
+                  href="https://github.com/center2055/OnionHop/releases"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <span class="btn__label" data-i18n="download_all">All releases</span>
+                </a>
+              </div>
+              <p class="fineprint" id="apiNote" data-i18n="api_note">
+                Counts come from GitHub’s public API (rate limits apply).
+              </p>
+            </div>
+            <div class="downloadPanel__right">
+              <div class="assetList" id="assetList" aria-label="Release assets"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--alt" id="faq">
+        <div class="container">
+          <h2 class="h2 reveal" data-i18n="faq_title">Quick notes</h2>
+          <div class="faq reveal">
+            <details class="q">
+              <summary data-i18n="faq_legal_q">Is Tor legal?</summary>
+              <p data-i18n="faq_legal_a">
+                Tor usage can be restricted or illegal in some jurisdictions. You are responsible for complying with
+                local laws and regulations.
+              </p>
+            </details>
+            <details class="q">
+              <summary data-i18n="faq_onion_q">Do .onion sites work?</summary>
+              <p data-i18n="faq_onion_a">
+                Use a Tor-aware client (Tor Browser recommended) or enable remote DNS over SOCKS in your browser/app.
+              </p>
+            </details>
+            <details class="q">
+              <summary data-i18n="faq_admin_q">Why does TUN/VPN need admin?</summary>
+              <p data-i18n="faq_admin_a">
+                TUN mode uses a system network driver (Wintun) and may add firewall rules for the kill switch.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer__inner">
+        <div class="footer__left">
+          <div class="footer__brand">
+            <span class="brand__mark brand__mark--small" aria-hidden="true"></span>
+            <span>OnionHop</span>
+          </div>
+          <p class="footer__text" data-i18n="footer_text">Built for privacy-minded users. Provided as-is.</p>
+        </div>
+        <div class="footer__right">
+          <a class="footer__link" href="https://github.com/center2055/OnionHop" target="_blank" rel="noreferrer noopener"
+            >GitHub</a
+          >
+          <a
+            class="footer__link"
+            href="https://github.com/center2055/OnionHop/releases"
+            target="_blank"
+            rel="noreferrer noopener"
+            data-i18n="footer_releases"
+            >Releases</a
+          >
+          <a class="footer__link" href="#features" data-i18n="footer_features">Features</a>
+          <a class="footer__link" href="#screenshots" data-i18n="footer_screenshots">Screenshots</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+

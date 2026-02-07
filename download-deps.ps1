@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 if ([string]::IsNullOrWhiteSpace($TorVersion)) {
     $TorVersion = "latest"
 }
-$TorFallbackVersion = "14.0.4"
+$TorFallbackVersion = "15.0.5"
 $TorBaseUrl = "https://dist.torproject.org/torbrowser"
 $TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser"
 $SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest"
@@ -35,21 +35,195 @@ function Ensure-Dir($path) {
     }
 }
 
+# Helper to fetch remote text in a way that works on Windows PowerShell and PowerShell 7
+function Get-RemoteText($url) {
+    try {
+        # PowerShell 5.x supports -UseBasicParsing and avoids legacy IE parser crashes.
+        return (Invoke-WebRequest -Uri $url -UseBasicParsing).Content
+    } catch {
+        try {
+            return (Invoke-WebRequest -Uri $url).Content
+        } catch {
+            $webClient = [System.Net.WebClient]::new()
+            try {
+                return $webClient.DownloadString($url)
+            } finally {
+                $webClient.Dispose()
+            }
+        }
+    }
+}
+
 # Helper to resolve latest Tor version with fallback
 function Get-LatestTorVersion($baseUrl, $fallbackVersion) {
     try {
-        $index = Invoke-WebRequest -Uri $baseUrl
-        $versions = [regex]::Matches($index.Content, 'href="(?<ver>\d+\.\d+(\.\d+)*)/"') |
-            ForEach-Object { $_.Groups["ver"].Value } |
-            Sort-Object { [Version]$_ } -Descending
-        if ($versions.Count -gt 0) {
-            return $versions[0]
+        $indexContent = Get-RemoteText -url $baseUrl
+        $versionMatches = [regex]::Matches($indexContent, 'href\s*=\s*["''](?<ver>\d+(?:\.\d+)+)/["'']', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        $versions = @($versionMatches | ForEach-Object { $_.Groups["ver"].Value } | Sort-Object -Unique)
+        if ($versions.Count -eq 0) {
+            Write-Warning "No Tor versions found at $baseUrl. Falling back to $fallbackVersion."
+            return $fallbackVersion
         }
-        Write-Warning "No Tor versions found at $baseUrl. Falling back to $fallbackVersion."
+
+        $parsedVersions = @(
+            $versions |
+                ForEach-Object {
+                    try {
+                        [PSCustomObject]@{
+                            Raw = $_
+                            Parsed = [Version]$_
+                        }
+                    } catch {
+                        $null
+                    }
+                } |
+                Where-Object { $_ -ne $null } |
+                Sort-Object Parsed -Descending
+        )
+
+        if ($parsedVersions.Count -gt 0) {
+            return $parsedVersions[0].Raw
+        }
+
+        Write-Warning "Found Tor version entries but none were parseable. Falling back to $fallbackVersion."
     } catch {
         Write-Warning "Failed to query Tor versions from ${baseUrl}: $($_.Exception.Message). Falling back to $fallbackVersion."
     }
     return $fallbackVersion
+}
+
+function Get-TorBundleFileNameFromIndex($versionBaseUrl) {
+    try {
+        $content = Get-RemoteText -url $versionBaseUrl
+        $fileMatches = [regex]::Matches($content, 'href\s*=\s*["''](?<file>tor-expert-bundle-windows-[^/"'']+\.tar\.gz)["'']', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        $files = @($fileMatches | ForEach-Object { $_.Groups["file"].Value } | Sort-Object -Unique)
+        if ($files.Count -eq 0) {
+            return $null
+        }
+
+        $amd64 = $files | Where-Object { $_ -match 'x86_64|amd64' } | Select-Object -First 1
+        if ($amd64) {
+            return $amd64
+        }
+
+        return $files[0]
+    } catch {
+        return $null
+    }
+}
+
+function Resolve-TorDownloadCandidates($version) {
+    $candidates = New-Object System.Collections.Generic.List[string]
+    $defaultName = "tor-expert-bundle-windows-x86_64-$version.tar.gz"
+    $baseDirs = @(
+        "$TorBaseUrl/$version",
+        "$TorArchiveBaseUrl/$version"
+    )
+
+    foreach ($base in $baseDirs) {
+        $candidates.Add("$base/$defaultName")
+    }
+
+    foreach ($base in $baseDirs) {
+        $fileName = Get-TorBundleFileNameFromIndex -versionBaseUrl "$base/"
+        if (-not [string]::IsNullOrWhiteSpace($fileName)) {
+            $candidates.Add("$base/$fileName")
+        }
+    }
+
+    return @($candidates | Select-Object -Unique)
+}
+
+function Get-BridgeSourceUrls($transport) {
+    $encoded = [System.Uri]::EscapeDataString($transport)
+    $urls = @(
+        "https://bridges.torproject.org/bridges?transport=$encoded&format=plain",
+        "https://bridges.torproject.org/bridges?transport=$encoded"
+    )
+    if ($transport -ieq "webtunnel") {
+        $urls += @(
+            "https://bridges.torproject.org/bridges?transport=$encoded&ipv6=yes&format=plain",
+            "https://bridges.torproject.org/bridges?transport=$encoded&ipv6=yes"
+        )
+    }
+    return @($urls | Select-Object -Unique)
+}
+
+function Get-WebTunnelBridgeLines([string[]]$urls) {
+    $lines = New-Object System.Collections.Generic.List[string]
+    $seen = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+    $fingerprintRegex = '^[A-Fa-f0-9]{40}$'
+    $fallbackPattern = 'webtunnel\s+[^\s<]+:\d{1,5}\s+[A-Fa-f0-9]{40}\s+url=[^\s<]+(?:\s+[^\s<]+=[^\s<]+)*'
+
+    foreach ($url in $urls) {
+        try {
+            $content = Get-RemoteText -url $url
+            if ([string]::IsNullOrWhiteSpace($content)) {
+                continue
+            }
+
+            $normalized = [System.Net.WebUtility]::HtmlDecode($content)
+            $normalized = [regex]::Replace($normalized, '<br\s*/?>', "`n", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            $normalized = [regex]::Replace($normalized, '</(p|div|li|h1|h2|h3|h4|h5|h6)>', "`n", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            $normalized = [regex]::Replace($normalized, '<[^>]+>', ' ')
+
+            foreach ($raw in ($normalized -split "`r?`n")) {
+                $line = if ($null -eq $raw) { "" } else { $raw.Trim() }
+                if ([string]::IsNullOrWhiteSpace($line)) {
+                    continue
+                }
+
+                $idx = $line.IndexOf("webtunnel ", [System.StringComparison]::OrdinalIgnoreCase)
+                if ($idx -lt 0) {
+                    continue
+                }
+
+                $line = $line.Substring($idx)
+                if ($line.StartsWith("Bridge ", [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $line = $line.Substring(7).Trim()
+                }
+
+                $line = [regex]::Replace($line, '\s+', ' ').Trim().TrimEnd(',', ';', '.')
+                if (-not $line.StartsWith("webtunnel ", [System.StringComparison]::OrdinalIgnoreCase)) {
+                    continue
+                }
+                if ($line.IndexOf(" url=", [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                    continue
+                }
+
+                $parts = $line -split '\s+'
+                if ($parts.Count -lt 4) {
+                    continue
+                }
+                if ($parts[1].IndexOf(':') -lt 0) {
+                    continue
+                }
+                if ($parts[2] -notmatch $fingerprintRegex) {
+                    continue
+                }
+
+                if ($seen.Add($line)) {
+                    $lines.Add($line)
+                }
+            }
+
+            foreach ($match in [regex]::Matches($content, $fallbackPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+                $line = [System.Net.WebUtility]::HtmlDecode($match.Value)
+                $line = [regex]::Replace($line, '\s+', ' ').Trim().TrimEnd(',', ';', '.')
+                if ($seen.Add($line)) {
+                    $lines.Add($line)
+                }
+            }
+
+            if ($lines.Count -gt 0) {
+                break
+            }
+        } catch {
+            Write-Warning "Failed to fetch webtunnel bridge lines from ${url}: $($_.Exception.Message)"
+        }
+    }
+
+    return @($lines)
 }
 
 # Helper to verify file checksum (SHA256)
@@ -83,8 +257,14 @@ function Exit-WithPause($code) {
 try {
     Write-Host "=== OnionHop Dependency Downloader ==="
 
-    # Cleanup temp
-    if (Test-Path $TempDir) { Remove-Item $TempDir -Recurse -Force }
+    # Cleanup temp (best effort; stale locks should not abort a full dependency update)
+    if (Test-Path $TempDir) {
+        try {
+            Remove-Item $TempDir -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "Could not fully remove temp directory '$TempDir' before start: $($_.Exception.Message)"
+        }
+    }
     Ensure-Dir $TempDir
     Ensure-Dir $TorDir
     Ensure-Dir $VpnDir
@@ -93,14 +273,13 @@ try {
     if ($TorVersion -eq "latest") {
         $TorVersion = Get-LatestTorVersion -baseUrl $TorBaseUrl -fallbackVersion $TorFallbackVersion
     }
-    $TorUrl = "$TorBaseUrl/$TorVersion/tor-expert-bundle-windows-x86_64-$TorVersion.tar.gz"
-    $TorArchiveUrl = "$TorArchiveBaseUrl/$TorVersion/tor-expert-bundle-windows-x86_64-$TorVersion.tar.gz"
+    $TorCandidates = Resolve-TorDownloadCandidates -version $TorVersion
 
     # --- 1. Tor Expert Bundle ---
     Write-Host "`n[1/4] Downloading Tor Expert Bundle ($TorVersion)..."
     $TorArchive = Join-Path $TempDir "tor.tar.gz"
     $TorDownloaded = $false
-    foreach ($candidate in @($TorUrl, $TorArchiveUrl)) {
+    foreach ($candidate in $TorCandidates) {
         try {
             Invoke-WebRequest -Uri $candidate -OutFile $TorArchive
             $TorDownloaded = $true
@@ -221,6 +400,33 @@ try {
                 $ptConfig.pluggableTransports | Add-Member -NotePropertyName "webtunnel" -NotePropertyValue "ClientTransportPlugin webtunnel exec `${pt_path}webtunnel-client.exe" -Force
             }
         }
+
+        if ($null -eq $ptConfig.bridges) {
+            $ptConfig | Add-Member -NotePropertyName "bridges" -NotePropertyValue @{} -Force
+        }
+
+        $existingWebTunnel = @()
+        if ($ptConfig.bridges -is [System.Collections.IDictionary] -and $ptConfig.bridges.Contains("webtunnel")) {
+            $existingWebTunnel = @($ptConfig.bridges["webtunnel"])
+        } elseif ($ptConfig.bridges.PSObject.Properties.Name -contains "webtunnel") {
+            $existingWebTunnel = @($ptConfig.bridges.webtunnel)
+        }
+
+        $usableExisting = @($existingWebTunnel | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($usableExisting.Count -eq 0) {
+            $fetchedWebTunnel = Get-WebTunnelBridgeLines -urls (Get-BridgeSourceUrls -transport "webtunnel")
+            if ($fetchedWebTunnel.Count -gt 0) {
+                if ($ptConfig.bridges -is [System.Collections.IDictionary]) {
+                    $ptConfig.bridges["webtunnel"] = @($fetchedWebTunnel)
+                } else {
+                    $ptConfig.bridges | Add-Member -NotePropertyName "webtunnel" -NotePropertyValue @($fetchedWebTunnel) -Force
+                }
+                Write-Host "Added $($fetchedWebTunnel.Count) webtunnel bridge line(s) to pt_config.json."
+            } else {
+                Write-Warning "No usable webtunnel bridge lines fetched; users may need to paste custom webtunnel bridges."
+            }
+        }
+
         $ptConfig | ConvertTo-Json -Depth 6 | Set-Content -Path $PtConfigPath
         Write-Host "Updated pt_config.json for webtunnel-client."
     }
@@ -281,8 +487,14 @@ try {
     Expand-Archive -Path $WintunArchive -DestinationPath (Join-Path $TempDir "wintun") -Force
     Copy-Item (Join-Path $TempDir "wintun\wintun\bin\amd64\wintun.dll") $VpnDir -Force
 
-    # Cleanup
-    Remove-Item $TempDir -Recurse -Force
+    # Cleanup (best effort)
+    if (Test-Path $TempDir) {
+        try {
+            Remove-Item $TempDir -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "Could not fully remove temp directory '$TempDir' after completion: $($_.Exception.Message)"
+        }
+    }
 
     Write-Host "`nDone! Binaries updated." -ForegroundColor Green
     Exit-WithPause 0

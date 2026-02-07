@@ -1,7 +1,7 @@
 {
     "recommendedDefault":  "obfs4",
     "pluggableTransports":  {
-                                "snowflake":  "ClientTransportPlugin snowflake exec ${pt_path}snowflake-client.exe",
+                                "snowflake":  "ClientTransportPlugin snowflake exec ${pt_path}lyrebird.exe",
                                 "conjure":  "ClientTransportPlugin conjure exec ${pt_path}conjure-client.exe -registerURL https://registration.refraction.network/api",
                                 "lyrebird":  "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec ${pt_path}lyrebird.exe",
                                 "webtunnel":  "ClientTransportPlugin webtunnel exec ${pt_path}webtunnel-client.exe"
@@ -22,6 +22,10 @@
                     "snowflake":  [
                                       "snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://1098762253.rsc.cdn77.org/ fronts=app.datapacket.com,www.datapacket.com ice=stun:stun.epygi.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.mixvoip.com:3478,stun:stun.nextcloud.com:3478,stun:stun.bethesda.net:3478,stun:stun.nextcloud.com:443 utls-imitate=hellorandomizedalpn",
                                       "snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://1098762253.rsc.cdn77.org/ fronts=app.datapacket.com,www.datapacket.com ice=stun:stun.epygi.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.mixvoip.com:3478,stun:stun.nextcloud.com:3478,stun:stun.bethesda.net:3478,stun:stun.nextcloud.com:443 utls-imitate=hellorandomizedalpn"
+                                  ],
+                    "webtunnel":  [
+                                      "webtunnel [2001:db8:e73c:13d:2f1d:1d27:5531:a599]:443 FEFBF3C7503830E89234F91154CC1964FFF701A2 url=https://nl.808.re/rzK3UEX7Xx3RhGiXGgZ5gJpG ver=0.0.2",
+                                      "webtunnel [2001:db8:db12:d3f0:335f:5cb1:f305:bdd1]:443 F0657A8419A7C14027CD79D33CA018D9487CB302 url=https://heresthespace.com/oAH2lLnop5li9wV ver=0.0.3"
                                   ]
                 }
 }

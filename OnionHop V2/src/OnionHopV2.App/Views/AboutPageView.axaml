@@ -11,7 +11,7 @@
              x:DataType="vm:AboutPageViewModel">
 
     <StackPanel Margin="24" Spacing="16">
-        <TextBlock Text="About"
+        <TextBlock Text="{DynamicResource About.Title}"
                    FontSize="28"
                    FontWeight="SemiBold" />
 
@@ -30,17 +30,15 @@
             </StackPanel>
         </suki:GlassCard>
 
-        <TextBlock Text="Links"
+        <TextBlock Text="{DynamicResource About.Links}"
                    FontSize="16"
                    FontWeight="SemiBold" />
 
         <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Classes="Flat" Click="OnOpenReleasesClick">
-                GitHub Issues
-            </Button>
-            <Button Classes="Flat" Click="OnOpenDiscordClick">
-                Discord
-            </Button>
+            <Button Classes="Flat" Click="OnOpenReleasesClick"
+                    Content="{DynamicResource About.GitHubIssues}" />
+            <Button Classes="Flat" Click="OnOpenDiscordClick"
+                    Content="{DynamicResource About.Discord}" />
         </StackPanel>
     </StackPanel>
 </UserControl>

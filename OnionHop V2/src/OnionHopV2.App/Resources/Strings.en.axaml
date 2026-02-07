@@ -1,0 +1,141 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Common -->
+  <x:String x:Key="Common.Search">Search</x:String>
+
+  <!-- Navigation -->
+  <x:String x:Key="Nav.Home">Home</x:String>
+  <x:String x:Key="Nav.Settings">Settings</x:String>
+  <x:String x:Key="Nav.Logs">Logs</x:String>
+  <x:String x:Key="Nav.About">About</x:String>
+
+  <!-- Home -->
+  <x:String x:Key="Home.Title">Connection</x:String>
+  <x:String x:Key="Home.CurrentIp">Current IP</x:String>
+  <x:String x:Key="Home.Connect">Connect</x:String>
+  <x:String x:Key="Home.Disconnect">Disconnect</x:String>
+  <x:String x:Key="Home.Cancel">Cancel</x:String>
+  <x:String x:Key="Home.RefreshIp">Refresh IP</x:String>
+  <x:String x:Key="Home.NewIdentity">New Identity</x:String>
+  <x:String x:Key="Home.Routing">Routing</x:String>
+  <x:String x:Key="Home.Mode">Mode</x:String>
+  <x:String x:Key="Home.ModeProxy">Proxy Mode (Recommended)</x:String>
+  <x:String x:Key="Home.ModeTun">TUN/VPN Mode (Admin)</x:String>
+  <x:String x:Key="Home.Automatic">Automatic</x:String>
+  <x:String x:Key="Home.ExitLocation">Exit Location</x:String>
+  <x:String x:Key="Home.TorNetwork">Tor Network</x:String>
+  <x:String x:Key="Home.TorNetworkHint">Shows Tor's own traffic (from the control port).</x:String>
+  <x:String x:Key="Home.TunOptions">TUN/VPN Options</x:String>
+  <x:String x:Key="Home.HybridRouting">Hybrid routing (split tunneling)</x:String>
+  <x:String x:Key="Home.KillSwitch">Kill switch (strict TUN only)</x:String>
+  <x:String x:Key="Home.KillSwitchHint">Kill switch requires Administrator and is disabled in Hybrid mode.</x:String>
+  <x:String x:Key="Home.DownloadingComponents">Downloading components...</x:String>
+
+  <!-- Logs -->
+  <x:String x:Key="Logs.Title">Logs</x:String>
+  <x:String x:Key="Logs.TabApp">App</x:String>
+  <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.Copy">Copy</x:String>
+  <x:String x:Key="Logs.Export">Export...</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">Tip: logs are local-only.</x:String>
+
+  <!-- About -->
+  <x:String x:Key="About.Title">About</x:String>
+  <x:String x:Key="About.Links">Links</x:String>
+  <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
+  <x:String x:Key="About.Discord">Discord</x:String>
+
+  <!-- Settings -->
+  <x:String x:Key="Settings.TabGeneral">General</x:String>
+  <x:String x:Key="Settings.TabNetwork">Network</x:String>
+  <x:String x:Key="Settings.TabAdvanced">Advanced</x:String>
+  <x:String x:Key="Settings.StartupBehavior">Startup &amp; Behavior</x:String>
+  <x:String x:Key="Settings.AutoConnect">Auto-connect on launch</x:String>
+  <x:String x:Key="Settings.AutoStart">Auto-start</x:String>
+  <x:String x:Key="Settings.AutoStartOff">Off</x:String>
+  <x:String x:Key="Settings.AutoStartOn">On</x:String>
+  <x:String x:Key="Settings.AutoStartMinimized">On (Minimized)</x:String>
+  <x:String x:Key="Settings.MinimizeToTray">Minimize to tray on close</x:String>
+  <x:String x:Key="Settings.AutoUpdate">Check for updates</x:String>
+  <x:String x:Key="Settings.Appearance">Appearance</x:String>
+  <x:String x:Key="Settings.DarkMode">Dark mode</x:String>
+  <x:String x:Key="Settings.NativeChrome">Use native window chrome (titlebar/buttons)</x:String>
+  <x:String x:Key="Settings.Language">Language</x:String>
+  <x:String x:Key="Settings.Maintenance">Maintenance</x:String>
+  <x:String x:Key="Settings.ResetHint">Resets all OnionHop V2 settings back to defaults.</x:String>
+  <x:String x:Key="Settings.RestoreDefaults">Restore default settings</x:String>
+
+  <x:String x:Key="Settings.BridgesTitle">Bridges &amp; Censored Networks</x:String>
+  <x:String x:Key="Settings.UseBridges">Use Tor bridges (obfs4/snowflake/etc)</x:String>
+  <x:String x:Key="Settings.BridgeType">Bridge type</x:String>
+  <x:String x:Key="Settings.CustomBridges">Custom bridges (optional, overrides built-in)</x:String>
+  <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
+  <x:String x:Key="Settings.CustomSni">Custom SNI/front hosts (optional)</x:String>
+  <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Snowflake: Use AMP cache (for blocked networks)</x:String>
+  <x:String x:Key="Settings.AmpCacheUrl">AMP cache URL (optional)</x:String>
+  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
+
+  <x:String x:Key="Settings.SecureDns">Secure DNS (DoH) in VPN mode</x:String>
+  <x:String x:Key="Settings.DnsProvider">DNS Provider</x:String>
+  <x:String x:Key="Settings.CustomDohHost">Custom DoH host / URL</x:String>
+  <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com or https://dns.example:443</x:String>
+  <x:String x:Key="Settings.CustomDohPath">Custom DoH path</x:String>
+  <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
+
+  <x:String x:Key="Settings.TorAdvanced">Tor Advanced</x:String>
+  <x:String x:Key="Settings.EntryNode">Entry node (optional)</x:String>
+  <x:String x:Key="Settings.EntryNodeHint">Entry nodes can't be used together with bridges.</x:String>
+  <x:String x:Key="Settings.IPv6Support">IPv6 support</x:String>
+  <x:String x:Key="Settings.HardwareAccel">Hardware acceleration</x:String>
+  <x:String x:Key="Settings.ConnectionPadding">Connection padding</x:String>
+  <x:String x:Key="Settings.EntryExitTip">Tip: restricting entry/exit nodes can reduce reliability and speed.</x:String>
+
+  <x:String x:Key="Settings.SplitTunnelingTitle">Split Tunneling (Hybrid mode)</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, you can choose which apps use Tor and which go direct. One process name per line (example: chrome.exe).</x:String>
+  <x:String x:Key="Settings.RouteAllWebTraffic">Route all web traffic (ports 80/443) through Tor</x:String>
+  <x:String x:Key="Settings.BlockQuic">Block QUIC/UDP for Tor apps (prevents bypass leaks)</x:String>
+  <x:String x:Key="Settings.TorApps">Apps routed through Tor (Hybrid mode)</x:String>
+  <x:String x:Key="Settings.TorAppsWatermark">firefox.exe&#10;chrome.exe&#10;msedge.exe</x:String>
+  <x:String x:Key="Settings.BypassApps">Apps bypassing Tor (optional)</x:String>
+  <x:String x:Key="Settings.BypassAppsWatermark">steam.exe&#10;discord.exe</x:String>
+  <x:String x:Key="Settings.SplitTunnelingEnableHint">Enable TUN/VPN mode + Hybrid routing on the Home page to use split tunneling.</x:String>
+
+  <!-- Bridge type labels -->
+  <x:String x:Key="BridgeType.Automatic">Automatic (recommended)</x:String>
+  <x:String x:Key="BridgeType.Obfs4">obfs4</x:String>
+  <x:String x:Key="BridgeType.Snowflake">snowflake</x:String>
+  <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
+  <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
+  <x:String x:Key="BridgeType.Custom">custom</x:String>
+
+  <!-- Language names -->
+  <x:String x:Key="Language.English">English</x:String>
+  <x:String x:Key="Language.German">German</x:String>
+
+  <!-- Window controls -->
+  <x:String x:Key="Window.Minimize">Minimize</x:String>
+  <x:String x:Key="Window.MaximizeRestore">Maximize / Restore</x:String>
+  <x:String x:Key="Window.Close">Close</x:String>
+
+  <!-- Runtime status -->
+  <x:String x:Key="Status.Disconnected">Disconnected</x:String>
+  <x:String x:Key="Status.Connected">Connected</x:String>
+  <x:String x:Key="Status.Connecting">Connecting...</x:String>
+  <x:String x:Key="Status.Disconnecting">Disconnecting...</x:String>
+  <x:String x:Key="Status.ReadyToRoute">Ready to route traffic through Tor.</x:String>
+  <x:String x:Key="Status.Resolving">Resolving...</x:String>
+  <x:String x:Key="Status.DownloadingComponentsWait">Downloading components. Please wait.</x:String>
+  <x:String x:Key="Status.AdminRequiredRequesting">TUN/VPN mode requires Administrator. Requesting elevation...</x:String>
+  <x:String x:Key="Status.AdminRequiredCanceled">Administrator access is required for TUN/VPN mode. Connection canceled.</x:String>
+  <x:String x:Key="Status.CancelingConnect">Canceling connection attempt...</x:String>
+  <x:String x:Key="Status.DefaultsRestored">Default settings restored.</x:String>
+  <x:String x:Key="Status.CheckingComponents">Checking components...</x:String>
+
+  <!-- Tray -->
+  <x:String x:Key="Tray.Tooltip">OnionHop V2</x:String>
+  <x:String x:Key="Tray.Show">Show</x:String>
+  <x:String x:Key="Tray.Connect">Connect</x:String>
+  <x:String x:Key="Tray.Disconnect">Disconnect</x:String>
+  <x:String x:Key="Tray.Exit">Exit</x:String>
+</ResourceDictionary>

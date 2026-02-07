@@ -35,13 +35,13 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
 }
 
 public sealed class HomePageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Home", MaterialIconKind.HomeOutline, state);
+    : PageViewModelBase("Nav.Home", MaterialIconKind.HomeOutline, state);
 
 public sealed class SettingsPageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Settings", MaterialIconKind.CogOutline, state);
+    : PageViewModelBase("Nav.Settings", MaterialIconKind.CogOutline, state);
 
 public sealed class LogsPageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Logs", MaterialIconKind.TextBoxOutline, state);
+    : PageViewModelBase("Nav.Logs", MaterialIconKind.TextBoxOutline, state);
 
 public sealed class AboutPageViewModel(AppStateViewModel state)
-    : PageViewModelBase("About", MaterialIconKind.InformationOutline, state);
+    : PageViewModelBase("Nav.About", MaterialIconKind.InformationOutline, state);

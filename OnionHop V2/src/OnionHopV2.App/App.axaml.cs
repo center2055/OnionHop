@@ -13,18 +13,24 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SukiUI.Controls;
+using OnionHopV2.App.Services;
 
 namespace OnionHopV2.App;
 
 public partial class App : Application
 {
     private TrayIcon? _trayIcon;
+    private NativeMenuItem? _trayShowItem;
+    private NativeMenuItem? _trayConnectItem;
+    private NativeMenuItem? _trayDisconnectItem;
+    private NativeMenuItem? _trayExitItem;
     private bool _allowShutdown;
     private CancellationTokenSource? _ipcCts;
 
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        LocalizationService.ApplyLanguage("en");
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -140,36 +146,36 @@ public partial class App : Application
 
             var menu = new NativeMenu();
 
-            var showItem = new NativeMenuItem("Show")
+            _trayShowItem = new NativeMenuItem(LocalizationService.Get("Tray.Show"))
             {
                 IsEnabled = true
             };
-            showItem.Click += (_, _) => ShowMainWindow(desktop);
+            _trayShowItem.Click += (_, _) => ShowMainWindow(desktop);
 
-            var connectItem = new NativeMenuItem("Connect");
-            connectItem.Click += (_, _) => Dispatcher.UIThread.Post(async () => await shell.State.ConnectCommand.ExecuteAsync(null));
+            _trayConnectItem = new NativeMenuItem(LocalizationService.Get("Tray.Connect"));
+            _trayConnectItem.Click += (_, _) => Dispatcher.UIThread.Post(async () => await shell.State.ConnectCommand.ExecuteAsync(null));
 
-            var disconnectItem = new NativeMenuItem("Disconnect");
-            disconnectItem.Click += (_, _) => Dispatcher.UIThread.Post(async () => await shell.State.DisconnectCommand.ExecuteAsync(null));
+            _trayDisconnectItem = new NativeMenuItem(LocalizationService.Get("Tray.Disconnect"));
+            _trayDisconnectItem.Click += (_, _) => Dispatcher.UIThread.Post(async () => await shell.State.DisconnectCommand.ExecuteAsync(null));
 
-            var exitItem = new NativeMenuItem("Exit");
-            exitItem.Click += (_, _) =>
+            _trayExitItem = new NativeMenuItem(LocalizationService.Get("Tray.Exit"));
+            _trayExitItem.Click += (_, _) =>
             {
                 _allowShutdown = true;
                 desktop.Shutdown();
             };
 
-            menu.Items.Add(showItem);
+            menu.Items.Add(_trayShowItem);
             menu.Items.Add(new NativeMenuItemSeparator());
-            menu.Items.Add(connectItem);
-            menu.Items.Add(disconnectItem);
+            menu.Items.Add(_trayConnectItem);
+            menu.Items.Add(_trayDisconnectItem);
             menu.Items.Add(new NativeMenuItemSeparator());
-            menu.Items.Add(exitItem);
+            menu.Items.Add(_trayExitItem);
 
             _trayIcon = new TrayIcon
             {
                 Icon = icon,
-                ToolTipText = "OnionHop V2",
+                ToolTipText = LocalizationService.Get("Tray.Tooltip"),
                 Menu = menu,
                 IsVisible = shell.State.MinimizeToTray
             };
@@ -184,10 +190,29 @@ public partial class App : Application
                     _trayIcon.IsVisible = shell.State.MinimizeToTray;
                 }
             };
+
+            LocalizationService.LanguageChanged += (_, _) => UpdateTrayLocalization();
         }
         catch
         {
             // Tray is optional; ignore failures on platforms/DEs without support.
+        }
+    }
+
+    private void UpdateTrayLocalization()
+    {
+        if (_trayShowItem == null)
+        {
+            return;
+        }
+
+        _trayShowItem.Header = LocalizationService.Get("Tray.Show");
+        _trayConnectItem!.Header = LocalizationService.Get("Tray.Connect");
+        _trayDisconnectItem!.Header = LocalizationService.Get("Tray.Disconnect");
+        _trayExitItem!.Header = LocalizationService.Get("Tray.Exit");
+        if (_trayIcon != null)
+        {
+            _trayIcon.ToolTipText = LocalizationService.Get("Tray.Tooltip");
         }
     }
 

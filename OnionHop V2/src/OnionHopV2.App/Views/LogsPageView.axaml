@@ -11,13 +11,13 @@
              x:DataType="vm:LogsPageViewModel">
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="24" RowSpacing="12">
-        <TextBlock Text="Logs"
+        <TextBlock Text="{DynamicResource Logs.Title}"
                    FontSize="28"
                    FontWeight="SemiBold" />
 
         <suki:GlassCard Grid.Row="1" Padding="0" CornerRadius="18">
             <TabControl x:Name="LogsTabs">
-                <TabItem Header="App">
+                <TabItem Header="{DynamicResource Logs.TabApp}">
                     <ScrollViewer>
                         <ItemsControl ItemsSource="{Binding State.LogLines}">
                             <ItemsControl.ItemTemplate>
@@ -28,7 +28,7 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </TabItem>
-                <TabItem Header="DNS">
+                <TabItem Header="{DynamicResource Logs.TabDns}">
                     <ScrollViewer>
                         <ItemsControl ItemsSource="{Binding State.DnsLogLines}">
                             <ItemsControl.ItemTemplate>
@@ -43,9 +43,11 @@
         </suki:GlassCard>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10">
-            <Button Classes="Flat" Click="OnCopyCurrentTabClick">Copy</Button>
-            <Button Classes="Flat" Click="OnExportCurrentTabClick">Export…</Button>
-            <TextBlock Text="Tip: logs are local-only."
+            <Button Classes="Flat" Click="OnCopyCurrentTabClick"
+                    Content="{DynamicResource Logs.Copy}" />
+            <Button Classes="Flat" Click="OnExportCurrentTabClick"
+                    Content="{DynamicResource Logs.Export}" />
+            <TextBlock Text="{DynamicResource Logs.TipLocalOnly}"
                        Opacity="0.75"
                        VerticalAlignment="Center" />
         </StackPanel>

@@ -15,7 +15,7 @@
           RowSpacing="14">
 
         <TextBlock Grid.Row="0"
-                   Text="Connection"
+                   Text="{DynamicResource Home.Title}"
                    FontSize="28"
                    FontWeight="SemiBold" />
 
@@ -37,7 +37,7 @@
                             Grid.Column="1"
                             HorizontalAlignment="Right"
                             Spacing="2">
-                    <TextBlock Text="Current IP" Opacity="0.7" HorizontalAlignment="Right" />
+                    <TextBlock Text="{DynamicResource Home.CurrentIp}" Opacity="0.7" HorizontalAlignment="Right" />
                     <TextBlock Text="{Binding State.CurrentIp}"
                                FontSize="18"
                                FontWeight="Bold"
@@ -66,25 +66,22 @@
                                 Height="38"
                                 Margin="0,0,10,0"
                                 Command="{Binding State.ConnectCommand}"
-                                IsVisible="{Binding State.ShowConnectButton}">
-                            Connect
-                        </Button>
+                                IsVisible="{Binding State.ShowConnectButton}"
+                                Content="{DynamicResource Home.Connect}" />
                         <Button Classes="Danger"
                                 Width="150"
                                 Height="38"
                                 Margin="0,0,10,0"
                                 Command="{Binding State.DisconnectCommand}"
-                                IsVisible="{Binding State.ShowDisconnectButton}">
-                            Disconnect
-                        </Button>
+                                IsVisible="{Binding State.ShowDisconnectButton}"
+                                Content="{DynamicResource Home.Disconnect}" />
                         <Button Classes="Warning"
                                 Width="150"
                                 Height="38"
                                 Margin="0,0,10,0"
                                 Command="{Binding State.CancelConnectCommand}"
-                                IsVisible="{Binding State.ShowCancelButton}">
-                            Cancel
-                        </Button>
+                                IsVisible="{Binding State.ShowCancelButton}"
+                                Content="{DynamicResource Home.Cancel}" />
                     </Grid>
 
                     <!-- Secondary actions -->
@@ -96,15 +93,13 @@
                         <Button Classes="Flat"
                                 Width="150"
                                 Height="38"
-                                Command="{Binding State.RefreshIpCommand}">
-                            Refresh IP
-                        </Button>
+                                Command="{Binding State.RefreshIpCommand}"
+                                Content="{DynamicResource Home.RefreshIp}" />
                         <Button Classes="Flat"
                                 Width="150"
                                 Height="38"
-                                Command="{Binding State.ChangeIdentityCommand}">
-                            New Identity
-                        </Button>
+                                Command="{Binding State.ChangeIdentityCommand}"
+                                Content="{DynamicResource Home.NewIdentity}" />
                     </StackPanel>
                 </Grid>
             </Grid>
@@ -115,27 +110,27 @@
               ColumnSpacing="14">
             <suki:GlassCard Grid.Column="0" Padding="16" CornerRadius="18">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Routing"
+                    <TextBlock Text="{DynamicResource Home.Routing}"
                                FontSize="16"
                                FontWeight="SemiBold" />
 
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Mode" Opacity="0.75" />
-                        <ComboBox ItemsSource="{Binding State.ConnectionModes}"
-                                  SelectedItem="{Binding State.SelectedConnectionMode}" />
+                        <TextBlock Text="{DynamicResource Home.Mode}" Opacity="0.75" />
+                        <ComboBox ItemsSource="{Binding State.ConnectionModeOptions}"
+                                  SelectedItem="{Binding State.SelectedConnectionModeOption}" />
                     </StackPanel>
 
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Exit Location" Opacity="0.75" />
-                        <ComboBox ItemsSource="{Binding State.Locations}"
-                                  SelectedItem="{Binding State.SelectedLocation}" />
+                        <TextBlock Text="{DynamicResource Home.ExitLocation}" Opacity="0.75" />
+                        <ComboBox ItemsSource="{Binding State.LocationOptions}"
+                                  SelectedItem="{Binding State.SelectedLocationOption}" />
                     </StackPanel>
                 </StackPanel>
             </suki:GlassCard>
 
             <suki:GlassCard Grid.Column="1" Padding="16" CornerRadius="18">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Tor Network"
+                    <TextBlock Text="{DynamicResource Home.TorNetwork}"
                                FontSize="16"
                                FontWeight="SemiBold" />
 
@@ -156,7 +151,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Text="Shows Tor's own traffic (from the control port)."
+                    <TextBlock Text="{DynamicResource Home.TorNetworkHint}"
                                Opacity="0.75"
                                TextWrapping="Wrap" />
                 </StackPanel>
@@ -165,18 +160,18 @@
 
         <suki:GlassCard Grid.Row="3" Padding="16" CornerRadius="18" IsVisible="{Binding State.IsTunMode}">
             <StackPanel Spacing="12">
-                <TextBlock Text="TUN/VPN Options"
+                <TextBlock Text="{DynamicResource Home.TunOptions}"
                            FontSize="16"
                            FontWeight="SemiBold" />
 
-                <ToggleSwitch Content="Hybrid routing (split tunneling)"
+                <ToggleSwitch Content="{DynamicResource Home.HybridRouting}"
                               IsChecked="{Binding State.UseHybridRouting}" />
 
-                <ToggleSwitch Content="Kill switch (strict TUN only)"
+                <ToggleSwitch Content="{DynamicResource Home.KillSwitch}"
                               IsChecked="{Binding State.KillSwitchEnabled}"
                               IsEnabled="{Binding State.CanUseKillSwitch}" />
 
-                <TextBlock Text="Kill switch requires Administrator and is disabled in Hybrid mode."
+                <TextBlock Text="{DynamicResource Home.KillSwitchHint}"
                            Opacity="0.75"
                            TextWrapping="Wrap" />
             </StackPanel>
@@ -187,7 +182,7 @@
                         CornerRadius="18"
                         IsVisible="{Binding State.IsDependencyDownloadInProgress}">
             <StackPanel Spacing="10">
-                <TextBlock Text="Downloading components..."
+                <TextBlock Text="{DynamicResource Home.DownloadingComponents}"
                            FontSize="16"
                            FontWeight="SemiBold" />
                 <TextBlock Text="{Binding State.DependencyDownloadStatus}"

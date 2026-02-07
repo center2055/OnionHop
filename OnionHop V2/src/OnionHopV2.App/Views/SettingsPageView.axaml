@@ -12,42 +12,49 @@
 
     <TabControl Margin="24">
         <!-- General / Startup -->
-        <TabItem Header="General">
+        <TabItem Header="{DynamicResource Settings.TabGeneral}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="16" Margin="0,16,0,0">
                     <suki:GlassCard Padding="18" CornerRadius="18">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Startup &amp; Behavior"
+                            <TextBlock Text="{DynamicResource Settings.StartupBehavior}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <ToggleSwitch Content="Auto-connect on launch"
+                            <ToggleSwitch Content="{DynamicResource Settings.AutoConnect}"
                                           IsChecked="{Binding State.AutoConnect}" />
 
                             <StackPanel Spacing="6">
-                                <TextBlock Text="Auto-start" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.AutoStartModes}"
-                                          SelectedItem="{Binding State.AutoStartMode}" />
+                                <TextBlock Text="{DynamicResource Settings.AutoStart}" Opacity="0.75" />
+                                <ComboBox ItemsSource="{Binding State.AutoStartModeOptions}"
+                                          SelectedItem="{Binding State.SelectedAutoStartModeOption}" />
                             </StackPanel>
 
-                            <ToggleSwitch Content="Minimize to tray on close"
+                            <ToggleSwitch Content="{DynamicResource Settings.MinimizeToTray}"
                                           IsChecked="{Binding State.MinimizeToTray}" />
 
-                            <ToggleSwitch Content="Check for updates"
+                            <ToggleSwitch Content="{DynamicResource Settings.AutoUpdate}"
                                           IsChecked="{Binding State.AutoUpdate}" />
                         </StackPanel>
                     </suki:GlassCard>
 
                     <suki:GlassCard Padding="18" CornerRadius="18">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Appearance"
+                            <TextBlock Text="{DynamicResource Settings.Appearance}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <ToggleSwitch Content="Dark mode"
+                            <ToggleSwitch Content="{DynamicResource Settings.DarkMode}"
                                           IsChecked="{Binding State.IsDarkMode}" />
 
-                            <ToggleSwitch Content="Use native window chrome (titlebar/buttons)"
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{DynamicResource Settings.Language}" Opacity="0.75" />
+                                <ComboBox ItemsSource="{Binding State.LanguageOptions}"
+                                          SelectedValueBinding="{Binding Value}"
+                                          SelectedValue="{Binding State.SelectedLanguage}" />
+                            </StackPanel>
+
+                            <ToggleSwitch Content="{DynamicResource Settings.NativeChrome}"
                                           IsVisible="{Binding State.SupportsNativeWindowChrome}"
                                           IsChecked="{Binding State.UseNativeTheme}" />
                         </StackPanel>
@@ -55,21 +62,19 @@
 
                     <suki:GlassCard Padding="18" CornerRadius="18">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Maintenance"
+                            <TextBlock Text="{DynamicResource Settings.Maintenance}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <TextBlock Text="Resets all OnionHop V2 settings back to defaults."
+                            <TextBlock Text="{DynamicResource Settings.ResetHint}"
                                        Opacity="0.75"
                                        TextWrapping="Wrap" />
 
                             <Button Classes="Danger"
-                                    Width="220"
                                     Height="38"
-                                    HorizontalAlignment="Left"
-                                    Command="{Binding State.RestoreDefaultsCommand}">
-                                Restore default settings
-                            </Button>
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding State.RestoreDefaultsCommand}"
+                                    Content="{DynamicResource Settings.RestoreDefaults}" />
                         </StackPanel>
                     </suki:GlassCard>
                 </StackPanel>
@@ -77,85 +82,85 @@
         </TabItem>
 
         <!-- Network & DNS -->
-        <TabItem Header="Network">
+        <TabItem Header="{DynamicResource Settings.TabNetwork}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="16" Margin="0,16,0,0">
                     <suki:GlassCard Padding="18" CornerRadius="18">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Bridges &amp; Censored Networks"
+                            <TextBlock Text="{DynamicResource Settings.BridgesTitle}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <ToggleSwitch Content="Use Tor bridges (obfs4/snowflake/etc)"
+                            <ToggleSwitch Content="{DynamicResource Settings.UseBridges}"
                                           IsChecked="{Binding State.UseTorBridges}" />
 
                             <StackPanel Spacing="10"
                                         IsVisible="{Binding State.UseTorBridges}">
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Bridge type" Opacity="0.75" />
-                                    <ComboBox ItemsSource="{Binding State.BridgeTypes}"
-                                              SelectedItem="{Binding State.SelectedBridgeType}" />
+                                    <TextBlock Text="{DynamicResource Settings.BridgeType}" Opacity="0.75" />
+                                    <ComboBox ItemsSource="{Binding State.BridgeTypeOptions}"
+                                              SelectedItem="{Binding State.SelectedBridgeTypeOption}" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Custom bridges (optional, overrides built-in)" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.CustomBridges}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.CustomBridges}"
                                              AcceptsReturn="True"
                                              TextWrapping="Wrap"
                                              MinHeight="140"
                                              VerticalContentAlignment="Top"
                                              Padding="10"
-                                             Watermark="Paste bridge lines from bridges.torproject.org..." />
+                                             Watermark="{DynamicResource Settings.CustomBridgesWatermark}" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Custom SNI/front hosts (optional)" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.CustomSni}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.CustomSniHosts}"
                                              VerticalContentAlignment="Center"
-                                             Watermark="example.com, another.example" />
+                                             Watermark="{DynamicResource Settings.CustomSniWatermark}" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="10"
                                             IsVisible="{Binding State.IsSnowflakeBridgeSelected}">
-                                    <ToggleSwitch Content="Snowflake: Use AMP cache (for blocked networks)"
+                                    <ToggleSwitch Content="{DynamicResource Settings.SnowflakeAmp}"
                                                   IsChecked="{Binding State.UseSnowflakeAmp}" />
 
                                     <StackPanel Spacing="6">
-                                        <TextBlock Text="AMP cache URL (optional)" Opacity="0.75" />
+                                        <TextBlock Text="{DynamicResource Settings.AmpCacheUrl}" Opacity="0.75" />
                                         <TextBox Text="{Binding State.SnowflakeAmpCache}"
                                                  IsEnabled="{Binding State.UseSnowflakeAmp}"
                                                  VerticalContentAlignment="Center"
-                                                 Watermark="https://cdn.ampproject.org/" />
+                                                 Watermark="{DynamicResource Settings.AmpCacheWatermark}" />
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
 
                             <Separator Height="1" Margin="0,8" Opacity="0.1" />
 
-                            <ToggleSwitch Content="Secure DNS (DoH) in VPN mode"
+                            <ToggleSwitch Content="{DynamicResource Settings.SecureDns}"
                                           IsChecked="{Binding State.UseCensoredMode}" />
 
                             <StackPanel Spacing="14" IsVisible="{Binding State.UseCensoredMode}">
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="DNS Provider" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.DnsProvider}" Opacity="0.75" />
                                     <ComboBox ItemsSource="{Binding State.DnsProviders}"
                                               SelectedItem="{Binding State.SelectedDnsProvider}" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Custom DoH host / URL" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.CustomDohHost}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.CustomDohHost}"
                                              IsEnabled="{Binding State.IsCustomDoh}"
                                              VerticalContentAlignment="Center"
-                                             Watermark="cloudflare-dns.com or https://dns.example:443" />
+                                             Watermark="{DynamicResource Settings.CustomDohHostWatermark}" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Custom DoH path" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.CustomDohPath}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.CustomDohPath}"
                                              IsEnabled="{Binding State.IsCustomDoh}"
                                              VerticalContentAlignment="Center"
-                                             Watermark="/dns-query" />
+                                             Watermark="{DynamicResource Settings.CustomDohPathWatermark}" />
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
@@ -165,46 +170,46 @@
         </TabItem>
 
         <!-- Advanced -->
-        <TabItem Header="Advanced">
+        <TabItem Header="{DynamicResource Settings.TabAdvanced}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="16" Margin="0,16,0,0">
                     <suki:GlassCard Padding="18" CornerRadius="18">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Tor Advanced"
+                            <TextBlock Text="{DynamicResource Settings.TorAdvanced}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                             <StackPanel Spacing="6">
-                                 <TextBlock Text="Entry node (optional)" Opacity="0.75" />
-                                 <ComboBox ItemsSource="{Binding State.Locations}"
-                                          IsEnabled="{Binding State.CanSelectEntryLocation}"
-                                          SelectedItem="{Binding State.SelectedEntryLocation}" />
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{DynamicResource Settings.EntryNode}" Opacity="0.75" />
+                                <ComboBox ItemsSource="{Binding State.LocationOptions}"
+                                           IsEnabled="{Binding State.CanSelectEntryLocation}"
+                                           SelectedItem="{Binding State.SelectedEntryLocationOption}" />
 
-                                 <TextBlock Text="Entry nodes can’t be used together with bridges."
-                                            Opacity="0.75"
-                                            TextWrapping="Wrap"
-                                            IsVisible="{Binding State.UseTorBridges}" />
-                             </StackPanel>
+                                <TextBlock Text="{DynamicResource Settings.EntryNodeHint}"
+                                           Opacity="0.75"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding State.UseTorBridges}" />
+                            </StackPanel>
 
                             <StackPanel Spacing="6">
-                                <TextBlock Text="IPv6 support" Opacity="0.75" />
+                                <TextBlock Text="{DynamicResource Settings.IPv6Support}" Opacity="0.75" />
                                 <ComboBox ItemsSource="{Binding State.TorOptionModes}"
                                           SelectedItem="{Binding State.TorIpv6Mode}" />
                             </StackPanel>
 
                             <StackPanel Spacing="6">
-                                <TextBlock Text="Hardware acceleration" Opacity="0.75" />
+                                <TextBlock Text="{DynamicResource Settings.HardwareAccel}" Opacity="0.75" />
                                 <ComboBox ItemsSource="{Binding State.TorOptionModes}"
                                           SelectedItem="{Binding State.HardwareAccelerationMode}" />
                             </StackPanel>
 
                             <StackPanel Spacing="6">
-                                <TextBlock Text="Connection padding" Opacity="0.75" />
+                                <TextBlock Text="{DynamicResource Settings.ConnectionPadding}" Opacity="0.75" />
                                 <ComboBox ItemsSource="{Binding State.ConnectionPaddingModes}"
                                           SelectedItem="{Binding State.ConnectionPaddingMode}" />
                             </StackPanel>
 
-                            <TextBlock Text="Tip: restricting entry/exit nodes can reduce reliability and speed."
+                            <TextBlock Text="{DynamicResource Settings.EntryExitTip}"
                                        Opacity="0.75"
                                        TextWrapping="Wrap" />
                         </StackPanel>
@@ -212,46 +217,46 @@
 
                     <suki:GlassCard Padding="18" CornerRadius="18">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="Split Tunneling (Hybrid mode)"
+                            <TextBlock Text="{DynamicResource Settings.SplitTunnelingTitle}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <TextBlock Text="In Hybrid mode, you can choose which apps use Tor and which go direct. One process name per line (example: chrome.exe)."
+                            <TextBlock Text="{DynamicResource Settings.SplitTunnelingHint}"
                                        Opacity="0.75"
                                        TextWrapping="Wrap" />
 
                             <StackPanel Spacing="10"
                                         IsEnabled="{Binding State.CanConfigureSplitTunneling}">
-                                <ToggleSwitch Content="Route all web traffic (ports 80/443) through Tor"
+                                <ToggleSwitch Content="{DynamicResource Settings.RouteAllWebTraffic}"
                                               IsChecked="{Binding State.HybridRouteAllWebTraffic}" />
 
-                                <ToggleSwitch Content="Block QUIC/UDP for Tor apps (prevents bypass leaks)"
+                                <ToggleSwitch Content="{DynamicResource Settings.BlockQuic}"
                                               IsChecked="{Binding State.HybridBlockQuicForTorApps}" />
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Apps routed through Tor (Hybrid mode)" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.TorApps}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.HybridTorApps}"
                                              AcceptsReturn="True"
                                              TextWrapping="Wrap"
                                              MinHeight="120"
                                              VerticalContentAlignment="Top"
                                              Padding="10"
-                                             Watermark="firefox.exe&#10;chrome.exe&#10;msedge.exe" />
+                                             Watermark="{DynamicResource Settings.TorAppsWatermark}" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Apps bypassing Tor (optional)" Opacity="0.75" />
+                                    <TextBlock Text="{DynamicResource Settings.BypassApps}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.HybridBypassApps}"
                                              AcceptsReturn="True"
                                              TextWrapping="Wrap"
                                              MinHeight="90"
                                              VerticalContentAlignment="Top"
                                              Padding="10"
-                                             Watermark="steam.exe&#10;discord.exe" />
+                                             Watermark="{DynamicResource Settings.BypassAppsWatermark}" />
                                 </StackPanel>
                             </StackPanel>
 
-                            <TextBlock Text="Enable TUN/VPN mode + Hybrid routing on the Home page to use split tunneling."
+                            <TextBlock Text="{DynamicResource Settings.SplitTunnelingEnableHint}"
                                        Opacity="0.75"
                                        TextWrapping="Wrap" />
                         </StackPanel>

@@ -187,7 +187,11 @@ public sealed class OnionHopClient : IDisposable
         }
         StartupLogger.Write("OnionHopClient.ConnectAsync: Dependencies OK");
 
-        var connectTimeout = options.UseTorBridges ? TimeSpan.FromSeconds(240) : TimeSpan.FromSeconds(60);
+        var connectTimeout = options.UseTorBridges
+            ? TorBridgeManager.IsAutomaticBridgeType(options.SelectedBridgeType)
+                ? TimeSpan.FromSeconds(360)
+                : TimeSpan.FromSeconds(240)
+            : TimeSpan.FromSeconds(60);
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeoutCts.CancelAfter(connectTimeout);
 
@@ -208,17 +212,18 @@ public sealed class OnionHopClient : IDisposable
         {
             RaiseLog($"Connecting. Mode={options.SelectedConnectionMode}, Hybrid={options.UseHybridRouting}, Exit={options.SelectedLocation}, Bridges={(options.UseTorBridges ? options.SelectedBridgeType : "off")}");
 
-            await StartTorAsync(options, timeoutCts.Token).ConfigureAwait(false);
+            var resolvedOptions = await StartTorWithBridgeFallbackAsync(options, timeoutCts.Token).ConfigureAwait(false);
+            _activeOptions = resolvedOptions;
 
-            if (IsTunMode(options))
+            if (IsTunMode(resolvedOptions))
             {
                 _connectionProgress = Math.Max(_connectionProgress, 0.9);
-                _statusMessage = options.UseHybridRouting
+                _statusMessage = resolvedOptions.UseHybridRouting
                     ? "Tor is running. Starting Hybrid tunnel (web via Tor)..."
                     : "Tor is running. Starting VPN tunnel (all traffic via Tor)...";
                 PublishStatus();
 
-                await StartSingBoxVpnAsync(options, timeoutCts.Token).ConfigureAwait(false);
+                await StartSingBoxVpnAsync(resolvedOptions, timeoutCts.Token).ConfigureAwait(false);
             }
             else
             {
@@ -228,8 +233,8 @@ public sealed class OnionHopClient : IDisposable
             _isConnected = true;
             _connectionStatus = "Connected";
             _connectionProgress = 1;
-            _statusMessage = IsTunMode(options)
-                ? (options.UseHybridRouting
+            _statusMessage = IsTunMode(resolvedOptions)
+                ? (resolvedOptions.UseHybridRouting
                     ? "Tor is running. Hybrid routing is active (browser via Tor)."
                     : "Tor is running. VPN tunnel is active (all traffic via Tor).")
                 : "Tor is running. Proxy mode is active (apps must respect proxy settings).";
@@ -559,6 +564,102 @@ public sealed class OnionHopClient : IDisposable
     private void RaiseDnsLog(string message)
     {
         DnsLog?.Invoke(this, message);
+    }
+
+    private async Task<OnionHopConnectOptions> StartTorWithBridgeFallbackAsync(OnionHopConnectOptions options, CancellationToken token)
+    {
+        if (!options.UseTorBridges || !TorBridgeManager.IsAutomaticBridgeType(options.SelectedBridgeType))
+        {
+            _activeOptions = options;
+            await StartTorAsync(options, token).ConfigureAwait(false);
+            return options;
+        }
+
+        var attempts = TorBridgeManager.BuildAutomaticBridgeFallbackOrder(options);
+        if (attempts.Count == 0)
+        {
+            attempts = ["webtunnel", "snowflake", "obfs4"];
+        }
+
+        Exception? lastError = null;
+        for (var index = 0; index < attempts.Count; index++)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var bridgeType = attempts[index];
+            var attemptOptions = CloneOptionsWithBridgeType(options, bridgeType);
+            RaiseLog($"Automatic bridges: trying {bridgeType} ({index + 1}/{attempts.Count})...");
+            _activeOptions = attemptOptions;
+
+            try
+            {
+                await StartTorAsync(attemptOptions, token).ConfigureAwait(false);
+                RaiseLog($"Automatic bridges: connected using {bridgeType}.");
+                return attemptOptions;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                RaiseLog($"Automatic bridges: {bridgeType} failed: {ex.Message}");
+                await CleanupFailedBridgeAttemptAsync().ConfigureAwait(false);
+            }
+        }
+
+        throw new InvalidOperationException(lastError == null
+            ? "Automatic bridges failed: no usable bridge transport succeeded."
+            : $"Automatic bridges failed: {lastError.Message}");
+    }
+
+    private async Task CleanupFailedBridgeAttemptAsync()
+    {
+        try
+        {
+            StopTorProcess();
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            await Task.Delay(200).ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+    }
+
+    private static OnionHopConnectOptions CloneOptionsWithBridgeType(OnionHopConnectOptions options, string bridgeType)
+    {
+        return new OnionHopConnectOptions
+        {
+            SelectedLocation = options.SelectedLocation,
+            SelectedEntryLocation = options.SelectedEntryLocation,
+            SelectedConnectionMode = options.SelectedConnectionMode,
+            UseHybridRouting = options.UseHybridRouting,
+            KillSwitchEnabled = options.KillSwitchEnabled,
+            UseTorBridges = options.UseTorBridges,
+            UseCensoredMode = options.UseCensoredMode,
+            SelectedBridgeType = bridgeType,
+            CustomBridges = options.CustomBridges,
+            CustomSniHosts = options.CustomSniHosts,
+            UseSnowflakeAmp = options.UseSnowflakeAmp,
+            SnowflakeAmpCache = options.SnowflakeAmpCache,
+            TorIpv6Mode = options.TorIpv6Mode,
+            HardwareAccelerationMode = options.HardwareAccelerationMode,
+            ConnectionPaddingMode = options.ConnectionPaddingMode,
+            SelectedDnsProvider = options.SelectedDnsProvider,
+            CustomDohHost = options.CustomDohHost,
+            CustomDohPath = options.CustomDohPath,
+            HybridRouteAllWebTraffic = options.HybridRouteAllWebTraffic,
+            HybridBlockQuicForTorApps = options.HybridBlockQuicForTorApps,
+            HybridTorApps = options.HybridTorApps,
+            HybridBypassApps = options.HybridBypassApps
+        };
     }
 
     private async Task StartTorAsync(OnionHopConnectOptions options, CancellationToken token)

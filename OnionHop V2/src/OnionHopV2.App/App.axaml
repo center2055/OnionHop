@@ -10,6 +10,10 @@
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
+
+    <Application.Resources>
+        <ResourceDictionary />
+    </Application.Resources>
   
     <Application.Styles>
         <FluentTheme />

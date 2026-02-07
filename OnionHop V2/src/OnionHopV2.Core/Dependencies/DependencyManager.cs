@@ -17,7 +17,7 @@ namespace OnionHopV2.Core.Dependencies;
 
 internal sealed class DependencyManager
 {
-    private const string TorFallbackVersion = "14.0.4";
+    private const string TorFallbackVersion = "15.0.5";
     private const string TorBaseUrl = "https://dist.torproject.org/torbrowser";
     private const string TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser";
     private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest";
@@ -203,12 +203,10 @@ internal sealed class DependencyManager
     private static async Task DownloadTorAsync(HttpClient client, string tempRoot, string torExePath, string ptDir, string baseDir)
     {
         var version = await GetLatestTorVersionAsync(client).ConfigureAwait(false);
-        var fileName = $"tor-expert-bundle-windows-x86_64-{version}.tar.gz";
-        var primaryUrl = $"{TorBaseUrl}/{version}/{fileName}";
-        var archiveUrl = $"{TorArchiveBaseUrl}/{version}/{fileName}";
         var torArchivePath = Path.Combine(tempRoot, "tor.tar.gz");
+        var candidates = await ResolveTorDownloadCandidatesAsync(client, version).ConfigureAwait(false);
 
-        await DownloadWithFallbackAsync(client, new[] { primaryUrl, archiveUrl }, torArchivePath).ConfigureAwait(false);
+        await DownloadWithFallbackAsync(client, candidates, torArchivePath).ConfigureAwait(false);
 
         await Task.Run(() =>
         {
@@ -385,6 +383,68 @@ internal sealed class DependencyManager
         }
 
         return TorFallbackVersion;
+    }
+
+    private static async Task<IReadOnlyList<string>> ResolveTorDownloadCandidatesAsync(HttpClient client, string version)
+    {
+        var candidates = new List<string>();
+        var fileName = $"tor-expert-bundle-windows-x86_64-{version}.tar.gz";
+        var bases = new[]
+        {
+            $"{TorBaseUrl}/{version}",
+            $"{TorArchiveBaseUrl}/{version}"
+        };
+
+        foreach (var baseUrl in bases)
+        {
+            candidates.Add($"{baseUrl}/{fileName}");
+        }
+
+        foreach (var baseUrl in bases)
+        {
+            var indexedFile = await GetTorBundleFileNameFromIndexAsync(client, baseUrl).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(indexedFile))
+            {
+                candidates.Add($"{baseUrl}/{indexedFile}");
+            }
+        }
+
+        return candidates
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static async Task<string?> GetTorBundleFileNameFromIndexAsync(HttpClient client, string versionBaseUrl)
+    {
+        try
+        {
+            var html = await client.GetStringAsync(versionBaseUrl.TrimEnd('/') + "/").ConfigureAwait(false);
+            var matches = Regex.Matches(
+                html,
+                "href\\s*=\\s*[\"'](?<file>tor-expert-bundle-windows-[^/\"']+\\.tar\\.gz)[\"']",
+                RegexOptions.IgnoreCase);
+
+            var files = matches
+                .Select(match => match.Groups["file"].Value)
+                .Where(file => !string.IsNullOrWhiteSpace(file))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                return null;
+            }
+
+            var preferred = files.FirstOrDefault(file =>
+                file.Contains("x86_64", StringComparison.OrdinalIgnoreCase)
+                || file.Contains("amd64", StringComparison.OrdinalIgnoreCase));
+
+            return preferred ?? files[0];
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static void ExtractTarGz(string archivePath, string destination)

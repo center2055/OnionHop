@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,15 +16,34 @@ internal sealed class TorBridgeManager
     private static readonly Regex BridgeFrontsRegex = new(@"\bfronts=(?<value>[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex BridgeFrontRegex = new(@"\bfront=(?<value>[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex BridgeSniRegex = new(@"\bsni=(?<value>[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex WebTunnelBridgeRegex = new(
+        @"(?:^|[\r\n])\s*(?:Bridge\s+)?(?<line>webtunnel\s+[^\s<]+:\d{1,5}\s+[A-Fa-f0-9]{40}\s+url=[^\s<]+(?:\s+[^\s<]+=[^\s<]+)*)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex BridgeFingerprintRegex = new("^[A-Fa-f0-9]{40}$", RegexOptions.Compiled);
 
+    public const string AutomaticBridgeType = "automatic";
     private const string WebTunnelBridgeType = "webtunnel";
+    private const string SnowflakeBridgeType = "snowflake";
+    private const string Obfs4BridgeType = "obfs4";
+    private static readonly string[] AutomaticBridgeFallbackChain = [WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType];
     private const string WebTunnelClientFileName = "webtunnel-client.exe";
+    private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromHours(12);
 
     private readonly string _baseDir;
+    private readonly string _bridgeCachePath;
+    private readonly SemaphoreSlim _bridgeFetchLock = new(1, 1);
+    private readonly Dictionary<string, IReadOnlyList<string>> _runtimeFetchedBridges = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _fetchAttempted = new(StringComparer.OrdinalIgnoreCase);
+    private BridgeFetchCacheStore? _cacheStore;
+    private bool _cacheLoaded;
 
     public TorBridgeManager(string baseDir)
     {
         _baseDir = baseDir;
+        _bridgeCachePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "OnionHop V2",
+            "bridge-cache.json");
     }
 
     public string? BridgeValidationMessage { get; private set; }
@@ -33,16 +55,47 @@ internal sealed class TorBridgeManager
                || line.Contains("example.com", StringComparison.OrdinalIgnoreCase);
     }
 
+    public static bool IsAutomaticBridgeType(string? bridgeType)
+    {
+        return string.Equals(bridgeType, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static IReadOnlyList<string> BuildAutomaticBridgeFallbackOrder(OnionHopConnectOptions options)
+    {
+        var ordered = new List<string>(AutomaticBridgeFallbackChain);
+
+        if (options.UseSnowflakeAmp)
+        {
+            ordered.Remove(SnowflakeBridgeType);
+            ordered.Insert(0, SnowflakeBridgeType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.CustomSniHosts))
+        {
+            ordered.Remove(WebTunnelBridgeType);
+            ordered.Insert(0, WebTunnelBridgeType);
+        }
+
+        return ordered
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     public static IReadOnlyList<string> GetBridgeTypeKeys(PluggableTransportConfig? config)
     {
         var bridgeKeys = config?.Bridges?.Keys?
-            .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList()
             ?? [];
 
+        if (!bridgeKeys.Any(key => string.Equals(key, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase)))
+        {
+            bridgeKeys.Add(AutomaticBridgeType);
+        }
+
         if (bridgeKeys.Count == 0)
         {
-            bridgeKeys.AddRange(["obfs4", "snowflake", "meek-azure"]);
+            bridgeKeys.AddRange([AutomaticBridgeType, Obfs4BridgeType, SnowflakeBridgeType, "meek-azure"]);
         }
 
         if (!bridgeKeys.Any(key => string.Equals(key, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase)))
@@ -50,18 +103,31 @@ internal sealed class TorBridgeManager
             bridgeKeys.Add(WebTunnelBridgeType);
         }
 
-        return bridgeKeys
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var preferredOrder = new[] { AutomaticBridgeType, WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType, "meek-azure", "custom" };
+        var result = new List<string>();
+
+        foreach (var key in preferredOrder)
+        {
+            if (bridgeKeys.Any(value => string.Equals(value, key, StringComparison.OrdinalIgnoreCase)))
+            {
+                result.Add(key);
+            }
+        }
+
+        var remaining = bridgeKeys
+            .Where(value => !result.Any(added => string.Equals(added, value, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase);
+        result.AddRange(remaining);
+        return result;
     }
 
-    public Task<IReadOnlyList<string>> GetBridgeLinesAsync(
+    public async Task<IReadOnlyList<string>> GetBridgeLinesAsync(
         OnionHopConnectOptions options,
         PluggableTransportConfig? config,
         Action<string> log,
         CancellationToken token)
     {
+        var selectedBridgeType = ResolveSelectedBridgeType(options, config, log);
         IReadOnlyList<string> selected = Array.Empty<string>();
         var usingCustom = false;
 
@@ -71,62 +137,46 @@ internal sealed class TorBridgeManager
             selected = custom;
             usingCustom = true;
         }
-        else if (config?.Bridges != null &&
-                 config.Bridges.TryGetValue(options.SelectedBridgeType, out var bridges) &&
-                 bridges.Count > 0)
+        else
         {
-            // When using bundled BridgeDB entries, shuffle the order so we don't get stuck retrying
-            // the same dead/blocked bridge on every connect attempt.
-            // (Users can still paste Custom Bridges to control ordering.)
-            if (bridges.Count > 1)
+            var fetched = await TryFetchBridgeLinesAsync(selectedBridgeType, log, token).ConfigureAwait(false);
+            if (fetched.Count > 0)
             {
-                var shuffled = new List<string>(bridges);
-                ShuffleInPlace(shuffled);
-                selected = shuffled;
-                log($"Shuffled bundled {options.SelectedBridgeType} bridges.");
+                selected = fetched;
             }
-            else
-            {
-                selected = bridges;
-            }
-        }
 
-        if (selected.Count > 0 &&
-            string.Equals(options.SelectedBridgeType, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase))
-        {
-            var filtered = selected.Where(line => !IsPlaceholderBridgeLine(line)).ToList();
-            if (filtered.Count == 0)
+            if (selected.Count == 0 &&
+                config?.Bridges != null &&
+                config.Bridges.TryGetValue(selectedBridgeType, out var bridges) &&
+                bridges.Count > 0)
             {
-                if (usingCustom)
+                // When using bundled BridgeDB entries, shuffle the order so we don't get stuck retrying
+                // the same dead/blocked bridge on every connect attempt.
+                // (Users can still paste Custom Bridges to control ordering.)
+                if (bridges.Count > 1)
                 {
-                    log("Webtunnel bridge lines look like examples (2001:db8/192.0.2/etc). Attempting anyway.");
+                    var shuffled = new List<string>(bridges);
+                    ShuffleInPlace(shuffled);
+                    selected = shuffled;
+                    log($"Shuffled bundled {selectedBridgeType} bridges.");
                 }
                 else
                 {
-                    log("No usable webtunnel bridges. Get bridges from bridges.torproject.org and paste in Custom Bridges.");
-                    selected = Array.Empty<string>();
+                    selected = bridges;
                 }
-            }
-            else
-            {
-                if (usingCustom && filtered.Count != selected.Count)
-                {
-                    log("Removed example WebTunnel bridge lines (use real BridgeDB entries).");
-                }
-
-                selected = filtered;
             }
         }
-        else if (selected.Count > 0)
+
+        if (selected.Count > 0)
         {
             // Users sometimes paste bridge lines missing the leading transport (e.g. "Bridge 1.2.3.4:443 ...").
             // Tor expects the first token to be the transport for PT bridges (e.g. "snowflake ...", "obfs4 ...").
-            selected = NormalizeTransportPrefix(selected, options.SelectedBridgeType, log);
+            selected = NormalizeTransportPrefix(selected, selectedBridgeType, log);
         }
 
         // If custom bridges were provided but none are usable, fall back to bundled BridgeDB entries.
         if (usingCustom && selected.Count == 0 && config?.Bridges != null &&
-            config.Bridges.TryGetValue(options.SelectedBridgeType, out var fallback) &&
+            config.Bridges.TryGetValue(selectedBridgeType, out var fallback) &&
             fallback.Count > 0)
         {
             usingCustom = false;
@@ -139,7 +189,34 @@ internal sealed class TorBridgeManager
             selected = ApplyCustomSniHosts(selected, customSni);
         }
 
-        return Task.FromResult(selected);
+        return selected;
+    }
+
+    private static string ResolveSelectedBridgeType(OnionHopConnectOptions options, PluggableTransportConfig? config, Action<string> log)
+    {
+        var selected = options.SelectedBridgeType?.Trim();
+        if (!IsAutomaticBridgeType(selected))
+        {
+            return string.IsNullOrWhiteSpace(selected) ? Obfs4BridgeType : selected;
+        }
+
+        var chain = BuildAutomaticBridgeFallbackOrder(options);
+        if (config?.Bridges is { Count: > 0 })
+        {
+            var available = new HashSet<string>(config.Bridges.Keys, StringComparer.OrdinalIgnoreCase);
+            foreach (var candidate in chain)
+            {
+                if (available.Contains(candidate))
+                {
+                    log($"Automatic bridges selected: {candidate} (single-attempt resolution).");
+                    return candidate;
+                }
+            }
+        }
+
+        var fallback = chain.FirstOrDefault() ?? SnowflakeBridgeType;
+        log($"Automatic bridges selected: {fallback} (single-attempt resolution).");
+        return fallback;
     }
 
     private static void ShuffleInPlace(List<string> list)
@@ -149,6 +226,269 @@ internal sealed class TorBridgeManager
             var j = Random.Shared.Next(i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
+    }
+
+    private static IReadOnlyList<string> BuildBridgeSourceUrls(string bridgeType)
+    {
+        var encoded = Uri.EscapeDataString(bridgeType);
+        var urls = new List<string>
+        {
+            $"https://bridges.torproject.org/bridges?transport={encoded}&format=plain",
+            $"https://bridges.torproject.org/bridges?transport={encoded}"
+        };
+
+        if (string.Equals(bridgeType, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase))
+        {
+            urls.Add($"https://bridges.torproject.org/bridges?transport={encoded}&ipv6=yes&format=plain");
+            urls.Add($"https://bridges.torproject.org/bridges?transport={encoded}&ipv6=yes");
+        }
+
+        return urls
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<string>> TryFetchBridgeLinesAsync(string bridgeType, Action<string> log, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(bridgeType) || string.Equals(bridgeType, "custom", StringComparison.OrdinalIgnoreCase))
+        {
+            return Array.Empty<string>();
+        }
+
+        if (_runtimeFetchedBridges.TryGetValue(bridgeType, out var runtimeCached) && runtimeCached.Count > 0)
+        {
+            return runtimeCached;
+        }
+
+        var diskCached = GetCachedBridgeLines(bridgeType);
+        if (diskCached.Count > 0)
+        {
+            _runtimeFetchedBridges[bridgeType] = diskCached;
+            log($"Loaded {diskCached.Count} cached {bridgeType} bridge lines.");
+            return diskCached;
+        }
+
+        if (_fetchAttempted.Contains(bridgeType))
+        {
+            return Array.Empty<string>();
+        }
+
+        await _bridgeFetchLock.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (_runtimeFetchedBridges.TryGetValue(bridgeType, out runtimeCached) && runtimeCached.Count > 0)
+            {
+                return runtimeCached;
+            }
+
+            if (_fetchAttempted.Contains(bridgeType))
+            {
+                return Array.Empty<string>();
+            }
+
+            _fetchAttempted.Add(bridgeType);
+
+            using var httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(15)
+            };
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHopV2/2.0");
+
+            foreach (var sourceUrl in BuildBridgeSourceUrls(bridgeType))
+            {
+                using var response = await httpClient.GetAsync(sourceUrl, token).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    log($"Bridge auto-fetch for {bridgeType} failed at {sourceUrl}: HTTP {(int)response.StatusCode}.");
+                    continue;
+                }
+
+                var content = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+                var lines = ExtractBridgeLinesFromSource(content, bridgeType)
+                    .Where(line => string.Equals(bridgeType, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase) || !IsPlaceholderBridgeLine(line))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (lines.Count == 0)
+                {
+                    continue;
+                }
+
+                _runtimeFetchedBridges[bridgeType] = lines;
+                SaveCachedBridgeLines(bridgeType, lines);
+                log($"Loaded {lines.Count} {bridgeType} bridges from BridgeDB.");
+                return lines;
+            }
+
+            log($"Bridge auto-fetch for {bridgeType} returned no usable lines (BridgeDB may require CAPTCHA).");
+            return Array.Empty<string>();
+        }
+        catch (Exception ex)
+        {
+            log($"Bridge auto-fetch for {bridgeType} failed: {ex.Message}");
+            return Array.Empty<string>();
+        }
+        finally
+        {
+            _bridgeFetchLock.Release();
+        }
+    }
+
+    private static IReadOnlyList<string> ExtractBridgeLinesFromSource(string content, string bridgeType)
+    {
+        if (string.Equals(bridgeType, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase))
+        {
+            return ExtractWebTunnelBridgeLines(content);
+        }
+
+        var results = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var prefix = bridgeType + " ";
+        foreach (var raw in EnumerateBridgeSourceLines(content))
+        {
+            var line = NormalizeBridgeLine(raw);
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            var marker = line.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (marker < 0)
+            {
+                continue;
+            }
+
+            line = line.Substring(marker).Trim();
+            if (line.StartsWith("Bridge ", StringComparison.OrdinalIgnoreCase))
+            {
+                line = line.Substring("Bridge ".Length).Trim();
+            }
+
+            if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (line.Length > 0 && seen.Add(line))
+            {
+                results.Add(line);
+            }
+        }
+
+        return results;
+    }
+
+    private static IReadOnlyList<string> ExtractWebTunnelBridgeLines(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return Array.Empty<string>();
+        }
+
+        var results = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (Match match in WebTunnelBridgeRegex.Matches(content))
+        {
+            var line = NormalizeBridgeLine(match.Groups["line"].Success ? match.Groups["line"].Value : match.Value);
+            if (!IsValidWebTunnelBridgeLine(line))
+            {
+                continue;
+            }
+
+            if (seen.Add(line))
+            {
+                results.Add(line);
+            }
+        }
+
+        if (results.Count > 0)
+        {
+            return results;
+        }
+
+        foreach (var raw in EnumerateBridgeSourceLines(content))
+        {
+            var line = NormalizeBridgeLine(raw);
+            var marker = line.IndexOf("webtunnel ", StringComparison.OrdinalIgnoreCase);
+            if (marker < 0)
+            {
+                continue;
+            }
+
+            line = line.Substring(marker).Trim();
+            if (!IsValidWebTunnelBridgeLine(line))
+            {
+                continue;
+            }
+
+            if (seen.Add(line))
+            {
+                results.Add(line);
+            }
+        }
+
+        return results;
+    }
+
+    private static IEnumerable<string> EnumerateBridgeSourceLines(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            yield break;
+        }
+
+        var normalized = WebUtility.HtmlDecode(content);
+        normalized = Regex.Replace(normalized, @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
+        normalized = Regex.Replace(normalized, @"</(p|div|li|h1|h2|h3|h4|h5|h6)>", "\n", RegexOptions.IgnoreCase);
+        normalized = Regex.Replace(normalized, @"<[^>]+>", " ");
+
+        foreach (var raw in normalized.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var line = raw?.Trim();
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                yield return line;
+            }
+        }
+    }
+
+    private static string NormalizeBridgeLine(string line)
+    {
+        var normalized = WebUtility.HtmlDecode(line ?? string.Empty).Trim();
+        if (normalized.StartsWith("Bridge ", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Substring("Bridge ".Length).Trim();
+        }
+
+        normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+        return normalized.TrimEnd(',', ';', '.');
+    }
+
+    private static bool IsValidWebTunnelBridgeLine(string line)
+    {
+        if (!line.StartsWith("webtunnel ", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 4)
+        {
+            return false;
+        }
+
+        if (!parts[1].Contains(':'))
+        {
+            return false;
+        }
+
+        if (!BridgeFingerprintRegex.IsMatch(parts[2]))
+        {
+            return false;
+        }
+
+        return line.Contains(" url=", StringComparison.OrdinalIgnoreCase);
     }
 
     public IReadOnlyList<string> GetClientTransportPlugins(
@@ -644,5 +984,112 @@ internal sealed class TorBridgeManager
         }
 
         return updated;
+    }
+
+    private IReadOnlyList<string> GetCachedBridgeLines(string bridgeType)
+    {
+        EnsureBridgeCacheLoaded();
+        if (_cacheStore?.Items == null)
+        {
+            return Array.Empty<string>();
+        }
+
+        var key = bridgeType.Trim().ToLowerInvariant();
+        if (!_cacheStore.Items.TryGetValue(key, out var entry) ||
+            entry.Lines is not { Count: > 0 })
+        {
+            return Array.Empty<string>();
+        }
+
+        var age = DateTimeOffset.UtcNow - entry.UpdatedUtc;
+        if (age > BridgeCacheTtl)
+        {
+            return Array.Empty<string>();
+        }
+
+        return entry.Lines
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private void SaveCachedBridgeLines(string bridgeType, IReadOnlyList<string> lines)
+    {
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        EnsureBridgeCacheLoaded();
+        _cacheStore ??= new BridgeFetchCacheStore();
+        _cacheStore.Items ??= new Dictionary<string, BridgeFetchCacheEntry>(StringComparer.OrdinalIgnoreCase);
+
+        var key = bridgeType.Trim().ToLowerInvariant();
+        _cacheStore.Items[key] = new BridgeFetchCacheEntry
+        {
+            UpdatedUtc = DateTimeOffset.UtcNow,
+            Lines = lines
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList()
+        };
+
+        try
+        {
+            var cacheDir = Path.GetDirectoryName(_bridgeCachePath);
+            if (!string.IsNullOrWhiteSpace(cacheDir))
+            {
+                Directory.CreateDirectory(cacheDir);
+            }
+
+            var json = JsonSerializer.Serialize(_cacheStore, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_bridgeCachePath, json);
+        }
+        catch
+        {
+            // Cache persistence is best-effort only.
+        }
+    }
+
+    private void EnsureBridgeCacheLoaded()
+    {
+        if (_cacheLoaded)
+        {
+            return;
+        }
+
+        _cacheLoaded = true;
+
+        try
+        {
+            if (!File.Exists(_bridgeCachePath))
+            {
+                return;
+            }
+
+            var json = File.ReadAllText(_bridgeCachePath);
+            var store = JsonSerializer.Deserialize<BridgeFetchCacheStore>(json);
+            if (store?.Items == null)
+            {
+                return;
+            }
+
+            _cacheStore = store;
+        }
+        catch
+        {
+            _cacheStore = null;
+        }
+    }
+
+    private sealed class BridgeFetchCacheStore
+    {
+        public Dictionary<string, BridgeFetchCacheEntry> Items { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private sealed class BridgeFetchCacheEntry
+    {
+        public DateTimeOffset UpdatedUtc { get; set; }
+        public List<string> Lines { get; set; } = [];
     }
 }

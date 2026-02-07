@@ -32,4 +32,5 @@ public sealed class UserSettings
     public bool? HybridBlockQuicForTorApps { get; set; }
     public string? HybridTorApps { get; set; }
     public string? HybridBypassApps { get; set; }
+    public string? LanguageCode { get; set; }
 }
