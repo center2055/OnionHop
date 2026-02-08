@@ -18,7 +18,8 @@ public sealed class OnionHopClient : IDisposable
     private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-?]*[ -/]*[@-~]", RegexOptions.Compiled);
     private static readonly Regex SingBoxConnectionToRegex = new(@"connection to (?<dest>\S+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public const int SocksPort = 9050;
+    public const int DefaultSocksPort = 9050;
+    public const int DefaultDnsPort = 53;
 
     public readonly record struct StatusUpdate(
         bool IsConnecting,
@@ -40,6 +41,8 @@ public sealed class OnionHopClient : IDisposable
     private readonly DependencyManager _deps = new();
     private readonly TorBridgeManager _bridgeManager;
     private readonly WindowsProxyService _proxyService = new();
+    private readonly WindowsOnionDnsProxyService _onionDnsProxyService = new();
+    private readonly TorNodeDatabaseService _nodeDatabaseService = new();
 
     private readonly TorService _torService;
     private readonly VpnService _vpnService;
@@ -65,6 +68,8 @@ public sealed class OnionHopClient : IDisposable
     private DateTime _lastNewnymUtc = DateTime.MinValue;
     private OnionHopConnectOptions? _activeOptions;
     private bool _snowflakeAmpHintShown;
+    private int _activeSocksPort = DefaultSocksPort;
+    private int? _activeDnsPort;
 
     private readonly object _singBoxLogLock = new();
     private readonly Queue<string> _singBoxRecentLines = new();
@@ -187,6 +192,26 @@ public sealed class OnionHopClient : IDisposable
         }
         StartupLogger.Write("OnionHopClient.ConnectAsync: Dependencies OK");
 
+        _activeSocksPort = PortSelector.FindAvailablePort(DefaultSocksPort, additionalAttempts: 30);
+        if (_activeSocksPort != DefaultSocksPort)
+        {
+            RaiseLog($"SOCKS port {DefaultSocksPort} is busy. Using {_activeSocksPort}.");
+        }
+
+        _activeDnsPort = null;
+        if (options.OnionDnsProxyEnabled)
+        {
+            var dnsCandidate = PortSelector.FindAvailablePort(DefaultDnsPort, additionalAttempts: 0);
+            if (dnsCandidate == DefaultDnsPort)
+            {
+                _activeDnsPort = DefaultDnsPort;
+            }
+            else
+            {
+                RaiseLog("Onion DNS proxying requested, but TCP/UDP port 53 is busy. Continuing without DNS proxying.");
+            }
+        }
+
         var connectTimeout = options.UseTorBridges
             ? TorBridgeManager.IsAutomaticBridgeType(options.SelectedBridgeType)
                 ? TimeSpan.FromSeconds(360)
@@ -215,6 +240,18 @@ public sealed class OnionHopClient : IDisposable
             var resolvedOptions = await StartTorWithBridgeFallbackAsync(options, timeoutCts.Token).ConfigureAwait(false);
             _activeOptions = resolvedOptions;
 
+            if (resolvedOptions.OnionDnsProxyEnabled)
+            {
+                if (!WindowsAdmin.IsAdministrator())
+                {
+                    RaiseLog(".onion DNS proxying requires Administrator; skipping.");
+                }
+                else if (_activeDnsPort == DefaultDnsPort)
+                {
+                    _onionDnsProxyService.Enable(RaiseLog);
+                }
+            }
+
             if (IsTunMode(resolvedOptions))
             {
                 _connectionProgress = Math.Max(_connectionProgress, 0.9);
@@ -227,7 +264,7 @@ public sealed class OnionHopClient : IDisposable
             }
             else
             {
-                _proxyService.ApplyTorSocksProxy(SocksPort, RaiseLog);
+                _proxyService.ApplyTorSocksProxy(_activeSocksPort, RaiseLog);
             }
 
             _isConnected = true;
@@ -309,7 +346,7 @@ public sealed class OnionHopClient : IDisposable
 
             if (torFirst)
             {
-                ip = await IpLookupService.TryFetchTorExitIpAsync(SocksPort, RaiseLog, cts.Token).ConfigureAwait(false);
+                ip = await IpLookupService.TryFetchTorExitIpAsync(_activeSocksPort, RaiseLog, cts.Token).ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(ip))
                 {
                     _currentIp = ip;
@@ -412,6 +449,14 @@ public sealed class OnionHopClient : IDisposable
 
         try
         {
+            _onionDnsProxyService.Disable(RaiseLog);
+        }
+        catch
+        {
+        }
+
+        try
+        {
             StopSingBoxProcess();
         }
         catch
@@ -488,6 +533,11 @@ public sealed class OnionHopClient : IDisposable
                 _proxyService.RestorePreviousProxy(RaiseLog);
             }
 
+            if (_activeOptions?.OnionDnsProxyEnabled == true)
+            {
+                _onionDnsProxyService.Disable(RaiseLog);
+            }
+
             StopTorProcess();
             await Task.Delay(250).ConfigureAwait(false);
         }
@@ -498,6 +548,8 @@ public sealed class OnionHopClient : IDisposable
             _isDisconnecting = false;
             _connectionStatus = "Disconnected";
             _connectionProgress = 0;
+            _activeSocksPort = DefaultSocksPort;
+            _activeDnsPort = null;
 
             if (!disableStatusUpdate)
             {
@@ -639,6 +691,7 @@ public sealed class OnionHopClient : IDisposable
         {
             SelectedLocation = options.SelectedLocation,
             SelectedEntryLocation = options.SelectedEntryLocation,
+            ExitNodeFingerprint = options.ExitNodeFingerprint,
             SelectedConnectionMode = options.SelectedConnectionMode,
             UseHybridRouting = options.UseHybridRouting,
             KillSwitchEnabled = options.KillSwitchEnabled,
@@ -655,6 +708,15 @@ public sealed class OnionHopClient : IDisposable
             SelectedDnsProvider = options.SelectedDnsProvider,
             CustomDohHost = options.CustomDohHost,
             CustomDohPath = options.CustomDohPath,
+            RestrictedFirewallMode = options.RestrictedFirewallMode,
+            AllowedPorts = options.AllowedPorts,
+            OnionDnsProxyEnabled = options.OnionDnsProxyEnabled,
+            MaxCircuitInactivityMinutes = options.MaxCircuitInactivityMinutes,
+            OpenConnectedPageEnabled = options.OpenConnectedPageEnabled,
+            ConnectedPageUrl = options.ConnectedPageUrl,
+            OpenDisconnectedPageEnabled = options.OpenDisconnectedPageEnabled,
+            DisconnectedPageUrl = options.DisconnectedPageUrl,
+            EnableDiscordStatus = options.EnableDiscordStatus,
             HybridRouteAllWebTraffic = options.HybridRouteAllWebTraffic,
             HybridBlockQuicForTorApps = options.HybridBlockQuicForTorApps,
             HybridTorApps = options.HybridTorApps,
@@ -704,8 +766,22 @@ public sealed class OnionHopClient : IDisposable
                 .ToList();
         }
 
-        var countryCode = GetCountryCode(options.SelectedLocation);
-        var entryCode = GetCountryCode(options.SelectedEntryLocation);
+        var countries = await _nodeDatabaseService.GetCountryStatsAsync(RaiseLog, token).ConfigureAwait(false);
+        var countryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedLocation, countries);
+        var entryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedEntryLocation, countries);
+
+        if (!string.IsNullOrWhiteSpace(countryCode) && !TorNodeDatabaseService.HasExitNodes(countries, countryCode))
+        {
+            RaiseLog($"Selected exit country '{options.SelectedLocation}' has no running exit nodes. Falling back to Automatic.");
+            countryCode = string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entryCode) && !TorNodeDatabaseService.HasEntryNodes(countries, entryCode))
+        {
+            RaiseLog($"Selected entry country '{options.SelectedEntryLocation}' has no running guard nodes. Falling back to Automatic.");
+            entryCode = string.Empty;
+        }
+
         if (options.UseTorBridges && !string.IsNullOrWhiteSpace(entryCode))
         {
             // Tor does not allow UseBridges together with EntryNodes.
@@ -713,15 +789,23 @@ public sealed class OnionHopClient : IDisposable
             RaiseLog("Note: Entry node pinning is not compatible with Tor bridges and will be ignored.");
             entryCode = null;
         }
+
+        var allowedPorts = ParseAllowedPorts(options.AllowedPorts);
+        var maxCircuitMinutes = Math.Clamp(options.MaxCircuitInactivityMinutes <= 0 ? 10 : options.MaxCircuitInactivityMinutes, 5, 120);
+
         var config = new TorLaunchConfig
         {
             TorPath = torPath,
-            SocksPort = SocksPort,
+            SocksPort = _activeSocksPort,
+            DnsPort = options.OnionDnsProxyEnabled ? _activeDnsPort : null,
             GeoIpPath = geoIpPath,
             GeoIp6Path = geoIp6Path,
             BridgeLines = bridgeLines,
             ClientTransportPlugins = normalizedPlugins,
+            AllowedPorts = options.RestrictedFirewallMode ? allowedPorts : null,
+            MaxCircuitDirtinessSeconds = maxCircuitMinutes * 60,
             ExitCountryCode = countryCode,
+            ExitNodeFingerprint = options.ExitNodeFingerprint,
             EntryCountryCode = entryCode,
             ClientUseIpv6 = ParseToggleMode(options.TorIpv6Mode),
             HardwareAccel = ParseToggleMode(options.HardwareAccelerationMode),
@@ -747,7 +831,7 @@ public sealed class OnionHopClient : IDisposable
             WintunPath = wintunPath,
             HybridRouting = options.UseHybridRouting,
             SecureDns = options.UseCensoredMode,
-            SocksPort = SocksPort,
+            SocksPort = _activeSocksPort,
             DohServer = doh.Server,
             DohServerPort = doh.Port,
             DohPath = doh.Path,
@@ -1250,20 +1334,22 @@ public sealed class OnionHopClient : IDisposable
         return string.IsNullOrWhiteSpace(summary) ? null : summary;
     }
 
-    private static string GetCountryCode(string location)
+    private static IReadOnlyList<int> ParseAllowedPorts(string? raw)
     {
-        return location switch
+        if (string.IsNullOrWhiteSpace(raw))
         {
-            OnionHopConnectOptions.AutomaticLocationLabel => string.Empty,
-            "United States" => "us",
-            "United Kingdom" => "gb",
-            "Germany" => "de",
-            "France" => "fr",
-            "Switzerland" => "ch",
-            "Netherlands" => "nl",
-            "Canada" => "ca",
-            "Singapore" => "sg",
-            _ => string.Empty
-        };
+            return [80, 443];
+        }
+
+        var result = new List<int>();
+        foreach (var token in raw.Split([',', ';', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (int.TryParse(token, out var port) && port is >= 1 and <= 65535 && !result.Contains(port))
+            {
+                result.Add(port);
+            }
+        }
+
+        return result.Count == 0 ? [80, 443] : result;
     }
 }

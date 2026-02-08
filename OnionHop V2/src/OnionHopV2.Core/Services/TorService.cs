@@ -357,6 +357,10 @@ internal sealed class TorService : IDisposable
         var sb = new StringBuilder();
 
         sb.Append($"--SocksPort {config.SocksPort} ");
+        if (config.DnsPort.HasValue)
+        {
+            sb.Append($"--DNSPort 127.0.0.1:{config.DnsPort.Value} ");
+        }
         sb.Append($"--DataDirectory \"{dataDirectory}\" ");
         sb.Append($"--GeoIPFile \"{config.GeoIpPath}\" ");
         sb.Append($"--GeoIPv6File \"{config.GeoIp6Path}\" ");
@@ -380,6 +384,25 @@ internal sealed class TorService : IDisposable
         if (!string.IsNullOrWhiteSpace(config.ConnectionPadding))
         {
             sb.Append($"--ConnectionPadding {config.ConnectionPadding} ");
+        }
+
+        if (config.AllowedPorts is { Count: > 0 })
+        {
+            var reachable = string.Join(",", config.AllowedPorts
+                .Where(port => port is > 0 and <= 65535)
+                .Distinct()
+                .Select(port => $"*:{port}"));
+            if (!string.IsNullOrWhiteSpace(reachable))
+            {
+                sb.Append($"--ReachableAddresses \"{reachable}\" ");
+                sb.Append($"--ReachableDirAddresses \"{reachable}\" ");
+                sb.Append($"--ReachableORAddresses \"{reachable}\" ");
+            }
+        }
+
+        if (config.MaxCircuitDirtinessSeconds.HasValue && config.MaxCircuitDirtinessSeconds.Value > 0)
+        {
+            sb.Append($"--MaxCircuitDirtiness {config.MaxCircuitDirtinessSeconds.Value} ");
         }
 
         if (config.BridgeLines is { Count: > 0 })
@@ -427,18 +450,23 @@ internal sealed class TorService : IDisposable
 
         var hasEntry = !string.IsNullOrWhiteSpace(config.EntryCountryCode);
         var hasExit = !string.IsNullOrWhiteSpace(config.ExitCountryCode);
+        var hasExitFingerprint = !string.IsNullOrWhiteSpace(config.ExitNodeFingerprint);
 
         if (hasEntry)
         {
             sb.Append($"--EntryNodes \"{{{config.EntryCountryCode}}}\" ");
         }
 
-        if (hasExit)
+        if (hasExitFingerprint)
+        {
+            sb.Append($"--ExitNodes \"{config.ExitNodeFingerprint}\" ");
+        }
+        else if (hasExit)
         {
             sb.Append($"--ExitNodes \"{{{config.ExitCountryCode}}}\" ");
         }
 
-        if (hasEntry || hasExit)
+        if (hasEntry || hasExit || hasExitFingerprint)
         {
             sb.Append("--StrictNodes 1 ");
         }
@@ -493,13 +521,17 @@ internal sealed class TorLaunchConfig
 {
     public string TorPath { get; init; } = string.Empty;
     public int SocksPort { get; init; }
+    public int? DnsPort { get; init; }
     public string? DataDirectory { get; init; }
     public string GeoIpPath { get; init; } = string.Empty;
     public string GeoIp6Path { get; init; } = string.Empty;
     public IReadOnlyList<string>? BridgeLines { get; init; }
     public IReadOnlyList<string>? ClientTransportPlugins { get; init; }
+    public IReadOnlyList<int>? AllowedPorts { get; init; }
+    public int? MaxCircuitDirtinessSeconds { get; init; }
     public string? EntryCountryCode { get; init; }
     public string? ExitCountryCode { get; init; }
+    public string? ExitNodeFingerprint { get; init; }
     public bool? ClientUseIpv6 { get; init; }
     public bool? HardwareAccel { get; init; }
     public string? ConnectionPadding { get; init; }

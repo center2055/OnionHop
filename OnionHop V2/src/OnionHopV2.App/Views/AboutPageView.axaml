@@ -24,9 +24,9 @@
                            FontSize="20"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="OnionHop V2.0.1"
-                            Opacity="0.85"
-                            HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding VersionText}"
+                             Opacity="0.85"
+                             HorizontalAlignment="Center" />
             </StackPanel>
         </suki:GlassCard>
 

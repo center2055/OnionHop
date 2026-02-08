@@ -394,9 +394,11 @@ try {
         if ($null -ne $ptConfig.pluggableTransports) {
             if ($ptConfig.pluggableTransports -is [System.Collections.IDictionary]) {
                 $ptConfig.pluggableTransports["lyrebird"] = "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec `${pt_path}lyrebird.exe"
+                $ptConfig.pluggableTransports["conjure"] = "ClientTransportPlugin conjure exec `${pt_path}lyrebird.exe"
                 $ptConfig.pluggableTransports["webtunnel"] = "ClientTransportPlugin webtunnel exec `${pt_path}webtunnel-client.exe"
             } else {
                 $ptConfig.pluggableTransports | Add-Member -NotePropertyName "lyrebird" -NotePropertyValue "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec `${pt_path}lyrebird.exe" -Force
+                $ptConfig.pluggableTransports | Add-Member -NotePropertyName "conjure" -NotePropertyValue "ClientTransportPlugin conjure exec `${pt_path}lyrebird.exe" -Force
                 $ptConfig.pluggableTransports | Add-Member -NotePropertyName "webtunnel" -NotePropertyValue "ClientTransportPlugin webtunnel exec `${pt_path}webtunnel-client.exe" -Force
             }
         }

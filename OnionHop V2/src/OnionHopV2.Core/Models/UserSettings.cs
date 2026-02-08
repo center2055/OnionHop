@@ -13,6 +13,7 @@ public sealed class UserSettings
     public bool UseNativeTheme { get; set; }
     public string? SelectedLocation { get; set; }
     public string? SelectedEntryLocation { get; set; }
+    public string? ExitNodeFingerprint { get; set; }
     public string? SelectedConnectionMode { get; set; }
     public bool UseHybridRouting { get; set; }
     public bool UseTorBridges { get; set; }
@@ -28,6 +29,15 @@ public sealed class UserSettings
     public string? SelectedDnsProvider { get; set; }
     public string? CustomDohHost { get; set; }
     public string? CustomDohPath { get; set; }
+    public bool RestrictedFirewallMode { get; set; }
+    public string? AllowedPorts { get; set; }
+    public bool OnionDnsProxyEnabled { get; set; }
+    public int? MaxCircuitInactivityMinutes { get; set; }
+    public bool OpenConnectedPageEnabled { get; set; }
+    public string? ConnectedPageUrl { get; set; }
+    public bool OpenDisconnectedPageEnabled { get; set; }
+    public string? DisconnectedPageUrl { get; set; }
+    public bool EnableDiscordStatus { get; set; }
     public bool? HybridRouteAllWebTraffic { get; set; }
     public bool? HybridBlockQuicForTorApps { get; set; }
     public string? HybridTorApps { get; set; }

@@ -178,6 +178,14 @@ internal sealed class DependencyManager
                 updated = true;
             }
 
+            if (!config.PluggableTransports.TryGetValue("conjure", out var conjureLine)
+                || string.IsNullOrWhiteSpace(conjureLine))
+            {
+                config.PluggableTransports["conjure"] =
+                    "ClientTransportPlugin conjure exec ${pt_path}lyrebird.exe";
+                updated = true;
+            }
+
             if (!config.PluggableTransports.TryGetValue("snowflake", out var snowflakeLine)
                 || string.IsNullOrWhiteSpace(snowflakeLine)
                 || !snowflakeLine.Contains("snowflake-client.exe", StringComparison.OrdinalIgnoreCase))

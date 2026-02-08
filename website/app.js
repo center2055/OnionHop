@@ -7,6 +7,7 @@
       skip_to_content: "Skip to content",
       brand_tag: "Tor routing, simplified",
       github: "GitHub",
+      discord: "Discord",
       kicker: "Privacy-first connectivity.",
       headline: "Hop into Tor with a clean, modern Windows client.",
       subhead:
@@ -71,6 +72,7 @@
       skip_to_content: "Zum Inhalt springen",
       brand_tag: "Tor-Routing, vereinfacht",
       github: "GitHub",
+      discord: "Discord",
       kicker: "Privatsphäre zuerst.",
       headline: "Mit einem modernen Windows-Client einfach in Tor starten.",
       subhead:
@@ -251,19 +253,15 @@
     {
       kind: "real",
       title: "OnionHop V2 UI",
-      src: "../assets/onionhop-v2-ui.png",
+      src: "assets/onionhop-v2-ui.png",
       fallback: `${GITHUB_RAW_BASE}/assets/onionhop-v2-ui.png`,
     },
     {
       kind: "real",
       title: "OnionHop UI",
-      src: "../assets/onionhop-ui.png",
+      src: "assets/onionhop-ui.png",
       fallback: `${GITHUB_RAW_BASE}/assets/onionhop-ui.png`,
     },
-    { kind: "placeholder", title: "Settings panel" },
-    { kind: "placeholder", title: "Bridge picker" },
-    { kind: "placeholder", title: "Split tunneling" },
-    { kind: "placeholder", title: "Logs" },
   ];
 
   function escapeSvgText(text) {
@@ -311,47 +309,12 @@
   }
 
   function renderScreenshots() {
-    if (!els.shotsGrid) return;
-    els.shotsGrid.innerHTML = "";
-
-    for (const shot of SCREENSHOTS) {
-      const wrap = document.createElement("article");
-      wrap.className = "shot";
-
-      const img = document.createElement("img");
-      img.className = "shot__img";
-      img.alt = shot.title;
-
-      if (shot.kind === "real") {
-        img.src = shot.src;
-        img.dataset.fallback = shot.fallback || "";
-        img.addEventListener("error", () => {
-          if (img.dataset.didFallback === "1") {
-            img.src = placeholderDataUri(shot.title);
-            return;
-          }
-          img.dataset.didFallback = "1";
-          img.src = img.dataset.fallback || placeholderDataUri(shot.title);
-        });
-      } else {
-        img.src = placeholderDataUri(shot.title);
-      }
-
-      const cap = document.createElement("div");
-      cap.className = "shot__cap";
-      const label = shot.kind === "real" ? t("shot_real") : t("shot_placeholder");
-      cap.innerHTML = `<strong>${label}</strong> — ${shot.title}`;
-
-      wrap.appendChild(img);
-      wrap.appendChild(cap);
-      els.shotsGrid.appendChild(wrap);
-    }
-
+    // Screenshot gallery removed
     const firstReal = SCREENSHOTS.find((s) => s.kind === "real");
     if (els.heroShot && firstReal) {
       const trySet = (src) => {
         els.heroShot.style.backgroundImage = `url("${src}")`;
-        els.heroShot.style.backgroundSize = "cover";
+        els.heroShot.style.backgroundSize = "contain";
         els.heroShot.style.backgroundPosition = "center";
         els.heroShot.style.backgroundRepeat = "no-repeat";
       };
@@ -607,8 +570,8 @@
         downloads = latestTotal;
       }
 
-      if (els.apiNote && typeof downloads === "number") {
-        els.apiNote.textContent = `${t("api_note")} (~${fmtNumber(downloads)} ${t("asset_downloads")})`;
+      if (els.apiNote) {
+        els.apiNote.style.display = 'none';
       }
 
       setCounts({
@@ -628,7 +591,18 @@
       );
     } catch (e) {
       console.warn(e);
-      if (els.apiNote) els.apiNote.textContent = t("failed_hint");
+      if (els.apiNote) els.apiNote.style.display = 'none';
+      
+      // Try to use cached data even if stale
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw);
+          if (typeof cached.stars === "number") els.starsValue.textContent = fmtCompactNumber(cached.stars);
+          if (typeof cached.downloads === "number") els.downloadsValue.textContent = fmtCompactNumber(cached.downloads);
+          if (cached.latestTag) els.latestValue.textContent = cached.latestTag;
+        } catch {}
+      }
+      
       renderAssets([]);
     }
   }

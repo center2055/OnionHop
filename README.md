@@ -1,4 +1,4 @@
-# OnionHop V2
+﻿# OnionHop V2
 
 <div align="center">
   <img src="logo.png" alt="OnionHop Logo" width="200"/>
@@ -19,7 +19,7 @@
 - **Proxy Mode (recommended):** sets the Windows proxy to Tor's local SOCKS5 endpoint.
 - **TUN/VPN Mode (Admin):** starts a system-wide tunnel via **sing-box + Wintun**.
 
-V2 adds a redesigned UI and stronger routing controls (including **per‑app split tunneling** in Hybrid mode).
+V2 adds a redesigned UI and stronger routing controls (including **perâ€‘app split tunneling** in Hybrid mode).
 
 > **Disclaimer**
 > OnionHop is provided "as-is". Tor usage can be illegal or restricted in some jurisdictions. You are responsible for complying with local laws and regulations.
@@ -43,25 +43,27 @@ V2 adds a redesigned UI and stronger routing controls (including **per‑app spl
 
 Notes
 - Kill Switch works only in strict TUN (Hybrid off) and needs admin rights to add/remove firewall rules.  
-- `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox “Proxy DNS when using SOCKS v5”).  
+- `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox â€œProxy DNS when using SOCKS v5â€).  
 
 ---
 
-## What’s New in V2
+## What's New in V2.2
 
-- **New UI** (Avalonia + Suki UI)
-- **Split tunneling in Hybrid mode (per‑app routing)**
-  - Choose which apps go through Tor and which go direct.
-  - Optional QUIC/UDP blocking for Tor apps to reduce bypass leaks.
-- **Snowflake AMP support** (optional AMP cache for restricted networks)
-- **Advanced Tor options**
-  - Entry node selection (optional)
-  - IPv6 toggle, hardware acceleration toggle, connection padding
-- **Quality-of-life**
-  - Restore default settings
-  - Improved settings layout and logs
-
----
+- **Language support**
+  - English/German switch in Settings.
+- **Bridges**
+  - Automatic bridge mode with fallback order.
+  - Bundled WebTunnel fallback list + bridge cache.
+  - Conjure transport added.
+- **Network and Tor controls**
+  - Restricted Firewall Mode with editable allowed ports.
+  - Max circuit inactivity setting.
+  - Dynamic country/node statistics for entry/exit validation.
+- **Automation**
+  - Optional launch pages on connect/disconnect.
+  - Optional Discord Rich Presence.
+- **Windows admin DNS**
+  - Optional `.onion` DNS proxying via Tor (admin mode).
 
 ## Features (Core)
 
@@ -69,12 +71,13 @@ Notes
 - System proxy mode (no admin required)
 - TUN/VPN mode via sing-box + Wintun (admin required)
 - Hybrid routing + split tunneling (Hybrid mode)
-- Tor bridges / pluggable transports (obfs4, snowflake, meek-azure, webtunnel, custom)
+- Tor bridges / pluggable transports (automatic, obfs4, snowflake, conjure, meek-azure, webtunnel, custom)
 - Kill Switch (strict TUN only)
 - Start with Windows (optional) + start minimized
 - Minimize-to-tray option on close
 - Auto-update checks via GitHub releases
 - Logs (App + DNS) and diagnostics
+- Optional Discord status + launch-page automation
 
 ---
 
@@ -106,8 +109,8 @@ OnionHop stores settings here:
 
 ## Repository layout
 
-- `OnionHop V2/` – OnionHop V2 (Avalonia UI)
-- `OnionHop/` – legacy OnionHop v1.x (WPF) codebase
+- `OnionHop V2/` â€“ OnionHop V2 (Avalonia UI)
+- `OnionHop/` â€“ legacy OnionHop v1.x (WPF) codebase
 
 ---
 

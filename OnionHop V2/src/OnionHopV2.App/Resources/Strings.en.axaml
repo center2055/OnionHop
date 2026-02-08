@@ -82,6 +82,8 @@
   <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com or https://dns.example:443</x:String>
   <x:String x:Key="Settings.CustomDohPath">Custom DoH path</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
+  <x:String x:Key="Settings.OnionDnsProxy">Proxy .onion DNS via Tor (Admin)</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">When enabled and running as Administrator, Windows .onion DNS queries are routed through Tor.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor Advanced</x:String>
   <x:String x:Key="Settings.EntryNode">Entry node (optional)</x:String>
@@ -89,6 +91,14 @@
   <x:String x:Key="Settings.IPv6Support">IPv6 support</x:String>
   <x:String x:Key="Settings.HardwareAccel">Hardware acceleration</x:String>
   <x:String x:Key="Settings.ConnectionPadding">Connection padding</x:String>
+  <x:String x:Key="Settings.OptionDefault">Default</x:String>
+  <x:String x:Key="Settings.OptionEnabled">Enabled</x:String>
+  <x:String x:Key="Settings.OptionDisabled">Disabled</x:String>
+  <x:String x:Key="Settings.ConnectionPaddingAuto">Auto (recommended)</x:String>
+  <x:String x:Key="Settings.MaxCircuitInactivity">Max circuit inactivity (minutes)</x:String>
+  <x:String x:Key="Settings.RestrictedFirewallMode">Restricted Firewall Mode</x:String>
+  <x:String x:Key="Settings.AllowedPorts">Allowed ports</x:String>
+  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
   <x:String x:Key="Settings.EntryExitTip">Tip: restricting entry/exit nodes can reduce reliability and speed.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split Tunneling (Hybrid mode)</x:String>
@@ -101,10 +111,18 @@
   <x:String x:Key="Settings.BypassAppsWatermark">steam.exe&#10;discord.exe</x:String>
   <x:String x:Key="Settings.SplitTunnelingEnableHint">Enable TUN/VPN mode + Hybrid routing on the Home page to use split tunneling.</x:String>
 
+  <x:String x:Key="Settings.AutomationTitle">Automation</x:String>
+  <x:String x:Key="Settings.OpenConnectedPage">Open page when connected</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPage">Open page when disconnected</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageWatermark">https://support.torproject.org/</x:String>
+  <x:String x:Key="Settings.DiscordStatus">Enable Discord status</x:String>
+
   <!-- Bridge type labels -->
   <x:String x:Key="BridgeType.Automatic">Automatic (recommended)</x:String>
   <x:String x:Key="BridgeType.Obfs4">obfs4</x:String>
   <x:String x:Key="BridgeType.Snowflake">snowflake</x:String>
+  <x:String x:Key="BridgeType.Conjure">conjure</x:String>
   <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Custom">custom</x:String>

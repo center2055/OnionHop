@@ -22,6 +22,7 @@ public sealed class OnionHopConnectOptions
 
     public string SelectedLocation { get; init; } = AutomaticLocationLabel;
     public string SelectedEntryLocation { get; init; } = AutomaticLocationLabel;
+    public string? ExitNodeFingerprint { get; init; }
     public string SelectedConnectionMode { get; init; } = ConnectionModeProxy;
 
     public bool UseHybridRouting { get; init; }
@@ -44,6 +45,20 @@ public sealed class OnionHopConnectOptions
     public string SelectedDnsProvider { get; init; } = DnsProviderCloudflare;
     public string? CustomDohHost { get; init; }
     public string? CustomDohPath { get; init; }
+
+    public bool RestrictedFirewallMode { get; init; }
+    public string? AllowedPorts { get; init; }
+
+    public bool OnionDnsProxyEnabled { get; init; }
+
+    public int MaxCircuitInactivityMinutes { get; init; } = 10;
+
+    public bool OpenConnectedPageEnabled { get; init; }
+    public string? ConnectedPageUrl { get; init; }
+    public bool OpenDisconnectedPageEnabled { get; init; }
+    public string? DisconnectedPageUrl { get; init; }
+
+    public bool EnableDiscordStatus { get; init; }
 
     // Hybrid mode split-tunneling (per-app routing) for TUN mode.
     public bool HybridRouteAllWebTraffic { get; init; } = true;

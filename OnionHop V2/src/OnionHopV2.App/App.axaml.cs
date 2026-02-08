@@ -98,11 +98,7 @@ public partial class App : Application
 
     private static void ApplyWindowChrome(Window window, bool useNativeChrome)
     {
-        // Windows: force custom chrome so we can fully remove the native titlebar strip and use our in-window buttons.
-        if (OperatingSystem.IsWindows())
-        {
-            useNativeChrome = false;
-        }
+        var wasMaximized = window.WindowState == WindowState.Maximized;
 
         if (useNativeChrome)
         {
@@ -123,7 +119,7 @@ public partial class App : Application
         }
 
         window.SystemDecorations = SystemDecorations.None;
-        window.ExtendClientAreaToDecorationsHint = true;
+        window.ExtendClientAreaToDecorationsHint = false;
         window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
         window.ExtendClientAreaTitleBarHeightHint = 0;
 
@@ -134,6 +130,12 @@ public partial class App : Application
             sw.ShowTitlebarBackground = false;
             sw.CanFullScreen = false;
             sw.CanPin = false;
+        }
+
+        if (wasMaximized)
+        {
+            window.WindowState = WindowState.Normal;
+            window.WindowState = WindowState.Maximized;
         }
     }
 
@@ -257,9 +259,10 @@ public partial class App : Application
             return;
         }
 
+        // Only honor explicit minimized launches (used by Windows autostart command line).
+        // Manual app launches should always open a visible window.
         var minimizedArg = desktop.Args?.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase)) == true;
-        var shouldMinimize = minimizedArg || shell.State.StartMinimized;
-        if (!shouldMinimize)
+        if (!minimizedArg)
         {
             return;
         }

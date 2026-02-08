@@ -19,7 +19,7 @@
     />
     <meta property="og:type" content="website" />
 
-    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="assets/brand-logo.png" type="image/png" />
     <link rel="stylesheet" href="styles.css" />
     <script defer src="app.js"></script>
   </head>
@@ -29,7 +29,7 @@
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="#" aria-label="OnionHop home">
-          <span class="brand__mark" aria-hidden="true"></span>
+          <img src="assets/brand-logo.png" class="brand__mark" alt="" />
           <span class="brand__name">OnionHop</span>
           <span class="brand__tag" data-i18n="brand_tag">Tor routing, simplified</span>
         </a>
@@ -41,8 +41,22 @@
             target="_blank"
             rel="noreferrer noopener"
           >
-            <span class="pill__icon" aria-hidden="true">↗</span>
+            <svg class="pill__icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
             <span data-i18n="github">GitHub</span>
+          </a>
+
+          <a
+            class="pill"
+            href="https://discord.gg/y3MVspPzKQ"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <svg class="pill__icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.68 13.68 0 0 0-.6 1.229 18.32 18.32 0 0 0-5.502 0 13.72 13.72 0 0 0-.602-1.229.077.077 0 0 0-.079-.037 19.736 19.736 0 0 0-4.885 1.515.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
+            <span data-i18n="discord">Discord</span>
           </a>
 
           <button class="pill pill--ghost" id="langToggle" type="button" aria-label="Language">
@@ -110,12 +124,12 @@
               </a>
               <a
                 class="badge badge--fmhy"
-                href="https://fmhy.net/"
+                href="https://fmhy.net/privacy#web-privacy"
                 target="_blank"
                 rel="noreferrer noopener"
                 title="fmhy.net"
               >
-                <span class="badge__spark" aria-hidden="true"></span>
+                <img src="assets/fmhy.svg" width="16" height="16" alt="" class="badge__icon" />
                 <span data-i18n="badge_fmhy">Featured on FMHY</span>
               </a>
             </div>
@@ -195,16 +209,6 @@
         </div>
       </section>
 
-      <section class="section section--alt" id="screenshots">
-        <div class="container">
-          <h2 class="h2 reveal" data-i18n="shots_title">Screenshots</h2>
-          <p class="lead reveal" data-i18n="shots_lead">
-            Some real shots from the repo, plus placeholders you can replace with your own.
-          </p>
-          <div class="shots reveal" id="shotsGrid" aria-label="Screenshot gallery"></div>
-        </div>
-      </section>
-
       <section class="section" id="downloads">
         <div class="container">
           <h2 class="h2 reveal" data-i18n="downloads_title">Downloads</h2>
@@ -237,7 +241,7 @@
                   <span class="btn__label" data-i18n="download_all">All releases</span>
                 </a>
               </div>
-              <p class="fineprint" id="apiNote" data-i18n="api_note">
+              <p class="fineprint" id="apiNote" data-i18n="api_note" style="display: none;">
                 Counts come from GitHub’s public API (rate limits apply).
               </p>
             </div>
@@ -280,7 +284,7 @@
       <div class="container footer__inner">
         <div class="footer__left">
           <div class="footer__brand">
-            <span class="brand__mark brand__mark--small" aria-hidden="true"></span>
+            <img src="assets/brand-logo.png" class="brand__mark brand__mark--small" alt="" />
             <span>OnionHop</span>
           </div>
           <p class="footer__text" data-i18n="footer_text">Built for privacy-minded users. Provided as-is.</p>
@@ -288,6 +292,9 @@
         <div class="footer__right">
           <a class="footer__link" href="https://github.com/center2055/OnionHop" target="_blank" rel="noreferrer noopener"
             >GitHub</a
+          >
+          <a class="footer__link" href="https://discord.gg/y3MVspPzKQ" target="_blank" rel="noreferrer noopener"
+            >Discord</a
           >
           <a
             class="footer__link"
@@ -298,7 +305,6 @@
             >Releases</a
           >
           <a class="footer__link" href="#features" data-i18n="footer_features">Features</a>
-          <a class="footer__link" href="#screenshots" data-i18n="footer_screenshots">Screenshots</a>
         </div>
       </div>
     </footer>

@@ -18,15 +18,32 @@ sealed class Program
             return;
         }
 
-        using var instanceMutex = SingleInstanceIpc.AcquireMutex(out var isPrimary);
+        var instanceMutex = SingleInstanceIpc.AcquireMutex(out var isPrimary);
         if (!isPrimary)
         {
             var message = Array.Exists(args, a => string.Equals(a, "--shutdown-existing", StringComparison.OrdinalIgnoreCase))
                 ? "shutdown"
                 : "show";
 
-            SingleInstanceIpc.TrySendAsync(message).GetAwaiter().GetResult();
-            return;
+            var sent = false;
+            try
+            {
+                sent = SingleInstanceIpc.TrySendAsync(message).GetAwaiter().GetResult();
+            }
+            catch
+            {
+                sent = false;
+            }
+
+            if (sent)
+            {
+                instanceMutex.Dispose();
+                return;
+            }
+
+            // IPC failed (e.g., stale/hung primary). Launch this instance as a fallback
+            // instead of silently exiting so the app can still open.
+            instanceMutex.Dispose();
         }
 
         if (Array.Exists(args, a => string.Equals(a, "--shutdown-existing", StringComparison.OrdinalIgnoreCase)))
@@ -35,10 +52,24 @@ sealed class Program
             // This happens if the installer launches us to close us, but we weren't running yet 
             // (or we just acquired the mutex). 
             // If we aren't primary, we sent the message above.
+            if (isPrimary)
+            {
+                instanceMutex.Dispose();
+            }
             return;
         }
 
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        try
+        {
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        finally
+        {
+            if (isPrimary)
+            {
+                instanceMutex.Dispose();
+            }
+        }
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

@@ -63,7 +63,7 @@
   <x:String x:Key="Settings.Language">Sprache</x:String>
   <x:String x:Key="Settings.Maintenance">Wartung</x:String>
   <x:String x:Key="Settings.ResetHint">Setzt alle OnionHop V2 Einstellungen auf Standard zur&#252;ck.</x:String>
-  <x:String x:Key="Settings.RestoreDefaults">Auf Standard zur&#252;cksetzen</x:String>
+  <x:String x:Key="Settings.RestoreDefaults">Standards wiederherstellen</x:String>
 
   <x:String x:Key="Settings.BridgesTitle">Bridges &amp; zensierte Netzwerke</x:String>
   <x:String x:Key="Settings.UseBridges">Tor-Bridges verwenden (obfs4/snowflake/etc)</x:String>
@@ -82,6 +82,8 @@
   <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com oder https://dns.example:443</x:String>
   <x:String x:Key="Settings.CustomDohPath">Eigener DoH-Pfad</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
+  <x:String x:Key="Settings.OnionDnsProxy">.onion-DNS &#252;ber Tor weiterleiten (Admin)</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">Wenn aktiviert und als Administrator ausgef&#252;hrt, werden Windows-.onion-DNS-Anfragen &#252;ber Tor geleitet.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor - Erweitert</x:String>
   <x:String x:Key="Settings.EntryNode">Einstiegsknoten (optional)</x:String>
@@ -89,6 +91,14 @@
   <x:String x:Key="Settings.IPv6Support">IPv6-Unterst&#252;tzung</x:String>
   <x:String x:Key="Settings.HardwareAccel">Hardwarebeschleunigung</x:String>
   <x:String x:Key="Settings.ConnectionPadding">Verbindungs-Padding</x:String>
+  <x:String x:Key="Settings.OptionDefault">Standard</x:String>
+  <x:String x:Key="Settings.OptionEnabled">Aktiviert</x:String>
+  <x:String x:Key="Settings.OptionDisabled">Deaktiviert</x:String>
+  <x:String x:Key="Settings.ConnectionPaddingAuto">Automatisch (empfohlen)</x:String>
+  <x:String x:Key="Settings.MaxCircuitInactivity">Maximale Circuit-Inaktivit&#228;t (Minuten)</x:String>
+  <x:String x:Key="Settings.RestrictedFirewallMode">Restriktiver Firewall-Modus</x:String>
+  <x:String x:Key="Settings.AllowedPorts">Erlaubte Ports</x:String>
+  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
   <x:String x:Key="Settings.EntryExitTip">Tipp: Einschr&#228;nkung von Ein-/Austrittsknoten kann Zuverl&#228;ssigkeit und Geschwindigkeit verringern.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split-Tunneling (Hybridmodus)</x:String>
@@ -101,10 +111,18 @@
   <x:String x:Key="Settings.BypassAppsWatermark">steam.exe&#10;discord.exe</x:String>
   <x:String x:Key="Settings.SplitTunnelingEnableHint">Aktiviere TUN/VPN-Modus + Hybrid-Routing auf der Startseite, um Split-Tunneling zu nutzen.</x:String>
 
+  <x:String x:Key="Settings.AutomationTitle">Automatisierung</x:String>
+  <x:String x:Key="Settings.OpenConnectedPage">Seite bei Verbindung &#246;ffnen</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPage">Seite bei Trennung &#246;ffnen</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageWatermark">https://support.torproject.org/</x:String>
+  <x:String x:Key="Settings.DiscordStatus">Discord-Status aktivieren</x:String>
+
   <!-- Bridge type labels -->
   <x:String x:Key="BridgeType.Automatic">Automatisch (empfohlen)</x:String>
   <x:String x:Key="BridgeType.Obfs4">obfs4</x:String>
   <x:String x:Key="BridgeType.Snowflake">snowflake</x:String>
+  <x:String x:Key="BridgeType.Conjure">conjure</x:String>
   <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Custom">benutzerdefiniert</x:String>

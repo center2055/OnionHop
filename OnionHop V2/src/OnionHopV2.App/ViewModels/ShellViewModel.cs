@@ -1,5 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Material.Icons;
 
@@ -44,4 +46,25 @@ public sealed class LogsPageViewModel(AppStateViewModel state)
     : PageViewModelBase("Nav.Logs", MaterialIconKind.TextBoxOutline, state);
 
 public sealed class AboutPageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Nav.About", MaterialIconKind.InformationOutline, state);
+    : PageViewModelBase("Nav.About", MaterialIconKind.InformationOutline, state)
+{
+    public string VersionText { get; } = BuildVersionText();
+
+    private static string BuildVersionText()
+    {
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        var semanticVersion = informationalVersion?
+            .Split('+', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(semanticVersion))
+        {
+            semanticVersion = assembly.GetName().Version?.ToString(3) ?? "unknown";
+        }
+
+        return $"OnionHop V{semanticVersion}";
+    }
+}

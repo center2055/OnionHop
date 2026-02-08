@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -21,6 +22,10 @@ namespace OnionHopV2.App.ViewModels;
 
 public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 {
+    private const string DefaultAllowedPorts = "80,443";
+    private const string DefaultConnectedPageUrl = "https://check.torproject.org/";
+    private const string DefaultDisconnectedPageUrl = "https://support.torproject.org/";
+
     public const string AutomaticLocationLabel = "Automatic";
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
     public const string ConnectionModeTun = "TUN/VPN Mode (Admin)";
@@ -87,6 +92,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(SelectedDnsProvider),
         nameof(CustomDohHost),
         nameof(CustomDohPath),
+        nameof(RestrictedFirewallMode),
+        nameof(AllowedPorts),
+        nameof(OnionDnsProxyEnabled),
+        nameof(MaxCircuitInactivityMinutes),
+        nameof(OpenConnectedPageEnabled),
+        nameof(ConnectedPageUrl),
+        nameof(OpenDisconnectedPageEnabled),
+        nameof(DisconnectedPageUrl),
+        nameof(EnableDiscordStatus),
         nameof(HybridRouteAllWebTraffic),
         nameof(HybridBlockQuicForTorApps),
         nameof(HybridTorApps),
@@ -96,24 +110,29 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     private readonly OnionHopClient _client;
     private readonly SettingsService _settingsService = new();
+    private readonly TorNodeDatabaseService _nodeDatabaseService = new();
+    private readonly DiscordPresenceService _discordPresence = new();
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
     private bool _loadingSettings;
     private bool _disposed;
+    private bool _hasStatusSnapshot;
+    private bool _wasConnected;
+    private Dictionary<string, TorCountryNodeStats> _countryStatsByCode = new(StringComparer.OrdinalIgnoreCase);
 
     public AppStateViewModel()
     {
         Locations =
         [
             AutomaticLocationLabel,
-            "United States",
-            "United Kingdom",
-            "Germany",
-            "France",
-            "Switzerland",
-            "Netherlands",
-            "Canada",
-            "Singapore"
+            "us",
+            "gb",
+            "de",
+            "fr",
+            "ch",
+            "nl",
+            "ca",
+            "sg"
         ];
 
         ConnectionModes =
@@ -157,6 +176,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         BridgeTypes.Add(BridgeTypeAutomatic);
         BridgeTypes.Add("obfs4");
         BridgeTypes.Add("snowflake");
+        BridgeTypes.Add("conjure");
         BridgeTypes.Add("meek-azure");
         BridgeTypes.Add("webtunnel");
         BridgeTypes.Add("custom");
@@ -193,6 +213,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> TorOptionModes { get; }
     public ObservableCollection<string> ConnectionPaddingModes { get; }
     public ObservableCollection<LocalizedOption> LanguageOptions { get; } = [];
+    public ObservableCollection<LocalizedOption> TorOptionModeOptions { get; } = [];
+    public ObservableCollection<LocalizedOption> ConnectionPaddingModeOptions { get; } = [];
 
     public ObservableCollection<string> LogLines { get; } = [];
     public ObservableCollection<string> DnsLogLines { get; } = [];
@@ -208,6 +230,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty] private string _selectedLocation = AutomaticLocationLabel;
     [ObservableProperty] private string _selectedEntryLocation = AutomaticLocationLabel;
+    [ObservableProperty] private string _exitNodeFingerprint = string.Empty;
     [ObservableProperty] private string _selectedConnectionMode = ConnectionModeProxy;
     [ObservableProperty] private bool _useHybridRouting;
     [ObservableProperty] private bool _killSwitchEnabled;
@@ -227,6 +250,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _selectedDnsProvider = DnsProviderCloudflare;
     [ObservableProperty] private string _customDohHost = string.Empty;
     [ObservableProperty] private string _customDohPath = "/dns-query";
+    [ObservableProperty] private bool _restrictedFirewallMode;
+    [ObservableProperty] private string _allowedPorts = DefaultAllowedPorts;
+    [ObservableProperty] private bool _onionDnsProxyEnabled;
+    [ObservableProperty] private int _maxCircuitInactivityMinutes = 10;
+    [ObservableProperty] private bool _openConnectedPageEnabled;
+    [ObservableProperty] private string _connectedPageUrl = DefaultConnectedPageUrl;
+    [ObservableProperty] private bool _openDisconnectedPageEnabled;
+    [ObservableProperty] private string _disconnectedPageUrl = DefaultDisconnectedPageUrl;
+    [ObservableProperty] private bool _enableDiscordStatus;
     [ObservableProperty] private string _selectedLanguage = "en";
     [ObservableProperty] private int _selectedLanguageIndex;
     [ObservableProperty] private LocalizedOption? _selectedConnectionModeOption;
@@ -235,6 +267,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private LocalizedOption? _selectedBridgeTypeOption;
     [ObservableProperty] private LocalizedOption? _selectedLanguageOption;
     [ObservableProperty] private LocalizedOption? _selectedAutoStartModeOption;
+    [ObservableProperty] private LocalizedOption? _selectedTorIpv6ModeOption;
+    [ObservableProperty] private LocalizedOption? _selectedHardwareAccelerationModeOption;
+    [ObservableProperty] private LocalizedOption? _selectedConnectionPaddingModeOption;
 
     [ObservableProperty] private bool _hybridRouteAllWebTraffic = true;
     [ObservableProperty] private bool _hybridBlockQuicForTorApps = true;
@@ -248,8 +283,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _autoUpdate;
     [ObservableProperty] private bool _isDarkMode;
-    // Windows: always use custom chrome (native titlebar creates an unavoidable top bar).
-    [ObservableProperty] private bool _useNativeTheme = !OperatingSystem.IsWindows();
+    [ObservableProperty] private bool _useNativeTheme;
 
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _connectionStatus = string.Empty;
@@ -280,8 +314,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool IsCustomDoh => string.Equals(SelectedDnsProvider, DnsProviderCustom, StringComparison.Ordinal);
     public bool UseCustomBridges => string.Equals(SelectedBridgeType, "custom", StringComparison.OrdinalIgnoreCase);
     public bool IsSnowflakeBridgeSelected => string.Equals(SelectedBridgeType, "snowflake", StringComparison.OrdinalIgnoreCase);
+    public bool CanUseOnionDnsProxy => OperatingSystem.IsWindows() && WindowsAdmin.IsAdministrator();
     public bool UseCustomChrome => !UseNativeTheme;
-    public bool SupportsNativeWindowChrome => !OperatingSystem.IsWindows();
+    public bool SupportsNativeWindowChrome => true;
     public bool CanConfigureSplitTunneling => IsTunMode && UseHybridRouting;
     public sealed record LocalizedOption(string Value, string Label)
     {
@@ -292,9 +327,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         if (value == null)
         {
-            SelectedLanguageOption = LanguageOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedLanguage, StringComparison.OrdinalIgnoreCase))
-                                   ?? LanguageOptions.FirstOrDefault();
+            var fallbackIndex = string.Equals(SelectedLanguage, "de", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            if (SelectedLanguageIndex != fallbackIndex)
+            {
+                SelectedLanguageIndex = fallbackIndex;
+            }
+
+            if (fallbackIndex >= 0 && fallbackIndex < LanguageOptions.Count)
+            {
+                SelectedLanguageOption = LanguageOptions[fallbackIndex];
+            }
             return;
+        }
+
+        var selectedIndex = LanguageOptions.IndexOf(value);
+        if (selectedIndex >= 0 && SelectedLanguageIndex != selectedIndex)
+        {
+            SelectedLanguageIndex = selectedIndex;
         }
 
         if (!string.Equals(SelectedLanguage, value.Value, StringComparison.OrdinalIgnoreCase))
@@ -402,9 +451,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedLanguageIndex = languageIndex;
         }
 
-        LocalizationService.ApplyLanguage(value);
-        RefreshLanguageOptions();
+        LocalizationService.ApplyLanguage(normalized);
         RefreshLocalizedOptions();
+        RefreshLanguageOptions();
         ConnectionStatus = LocalizeRuntimeText(ConnectionStatus);
         StatusMessage = LocalizeRuntimeText(StatusMessage);
         DependencyDownloadStatus = LocalizeRuntimeText(DependencyDownloadStatus);
@@ -416,6 +465,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (!string.Equals(SelectedLanguage, language, StringComparison.OrdinalIgnoreCase))
         {
             SelectedLanguage = language;
+            return;
+        }
+
+        if (value >= 0 && value < LanguageOptions.Count)
+        {
+            var option = LanguageOptions[value];
+            if (!ReferenceEquals(SelectedLanguageOption, option))
+            {
+                SelectedLanguageOption = option;
+            }
         }
     }
 
@@ -475,6 +534,81 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsCustomDoh));
     }
 
+    partial void OnTorIpv6ModeChanged(string value)
+    {
+        SelectedTorIpv6ModeOption = TorOptionModeOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal))
+                                    ?? TorOptionModeOptions.FirstOrDefault();
+    }
+
+    partial void OnHardwareAccelerationModeChanged(string value)
+    {
+        SelectedHardwareAccelerationModeOption = TorOptionModeOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal))
+                                                 ?? TorOptionModeOptions.FirstOrDefault();
+    }
+
+    partial void OnConnectionPaddingModeChanged(string value)
+    {
+        SelectedConnectionPaddingModeOption = ConnectionPaddingModeOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal))
+                                              ?? ConnectionPaddingModeOptions.FirstOrDefault();
+    }
+
+    partial void OnMaxCircuitInactivityMinutesChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 5, 120);
+        if (clamped != value)
+        {
+            MaxCircuitInactivityMinutes = clamped;
+        }
+    }
+
+    partial void OnEnableDiscordStatusChanged(bool value)
+    {
+        _discordPresence.SetEnabled(value, AppendLog);
+        var exitLabel = SelectedLocationOption?.Label
+                        ?? LocationOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedLocation, StringComparison.Ordinal))?.Label
+                        ?? LocalizationService.Get("Home.Automatic");
+        _discordPresence.Update(IsConnected, exitLabel, AppendLog);
+    }
+
+    partial void OnSelectedTorIpv6ModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(TorIpv6Mode, value.Value, StringComparison.Ordinal))
+        {
+            TorIpv6Mode = value.Value;
+        }
+    }
+
+    partial void OnSelectedHardwareAccelerationModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(HardwareAccelerationMode, value.Value, StringComparison.Ordinal))
+        {
+            HardwareAccelerationMode = value.Value;
+        }
+    }
+
+    partial void OnSelectedConnectionPaddingModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(ConnectionPaddingMode, value.Value, StringComparison.Ordinal))
+        {
+            ConnectionPaddingMode = value.Value;
+        }
+    }
+
     partial void OnUseNativeThemeChanged(bool value)
     {
         OnPropertyChanged(nameof(UseCustomChrome));
@@ -509,6 +643,19 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         Dispatcher.UIThread.Post(StartIpAutoRefresh);
 
         CurrentIp = LocalizationService.Get("Status.Resolving");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var countries = await _nodeDatabaseService.GetCountryStatsAsync(AppendLog, CancellationToken.None).ConfigureAwait(false);
+                Dispatcher.UIThread.Post(() => ApplyCountryStats(countries));
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.UIThread.Post(() => AppendLog($"Country DB update failed: {ex.Message}"));
+            }
+        });
+
         _ = Task.Run(async () =>
         {
             try
@@ -594,6 +741,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         try
         {
+            if (_ipRefreshTimer != null)
+            {
+                _ipRefreshTimer.Stop();
+                _ipRefreshTimer = null;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
             _connectCts?.Cancel();
             _connectCts?.Dispose();
             _connectCts = null;
@@ -620,6 +779,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
         }
 
+        _discordPresence.Dispose();
         _client.Dispose();
     }
 
@@ -645,6 +805,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         try
         {
+            if (OperatingSystem.IsWindows() && OnionDnsProxyEnabled && !WindowsAdmin.IsAdministrator())
+            {
+                StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
+                if (!WindowsUacHelper.TryElevate())
+                {
+                    StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
+                }
+                return;
+            }
+
             // Only prompt for elevation when the user actually tries to connect in TUN mode.
             if (OperatingSystem.IsWindows() && IsTunMode && !WindowsAdmin.IsAdministrator())
             {
@@ -725,6 +895,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             SelectedLocation = AutomaticLocationLabel;
             SelectedEntryLocation = AutomaticLocationLabel;
+            ExitNodeFingerprint = string.Empty;
             SelectedConnectionMode = ConnectionModeProxy;
 
             UseTorBridges = false;
@@ -742,6 +913,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedDnsProvider = DnsProviderCloudflare;
             CustomDohHost = string.Empty;
             CustomDohPath = "/dns-query";
+            RestrictedFirewallMode = false;
+            AllowedPorts = DefaultAllowedPorts;
+            OnionDnsProxyEnabled = false;
+            MaxCircuitInactivityMinutes = 10;
+            OpenConnectedPageEnabled = false;
+            ConnectedPageUrl = DefaultConnectedPageUrl;
+            OpenDisconnectedPageEnabled = false;
+            DisconnectedPageUrl = DefaultDisconnectedPageUrl;
+            EnableDiscordStatus = false;
 
             HybridRouteAllWebTraffic = true;
             HybridBlockQuicForTorApps = true;
@@ -749,12 +929,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             HybridBypassApps = string.Empty;
 
             IsDarkMode = true;
-
-            // Windows: always use custom chrome (native titlebar creates an unavoidable top bar).
-            if (OperatingSystem.IsWindows())
-            {
-                UseNativeTheme = false;
-            }
+            UseNativeTheme = false;
         }
         finally
         {
@@ -800,6 +975,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedDnsProvider = SelectedDnsProvider,
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
+            RestrictedFirewallMode = RestrictedFirewallMode,
+            AllowedPorts = AllowedPorts,
+            OnionDnsProxyEnabled = OnionDnsProxyEnabled,
+            MaxCircuitInactivityMinutes = MaxCircuitInactivityMinutes,
+            OpenConnectedPageEnabled = OpenConnectedPageEnabled,
+            ConnectedPageUrl = ConnectedPageUrl,
+            OpenDisconnectedPageEnabled = OpenDisconnectedPageEnabled,
+            DisconnectedPageUrl = DisconnectedPageUrl,
+            EnableDiscordStatus = EnableDiscordStatus,
             HybridRouteAllWebTraffic = HybridRouteAllWebTraffic,
             HybridBlockQuicForTorApps = HybridBlockQuicForTorApps,
             HybridTorApps = HybridTorApps,
@@ -809,6 +993,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     private void ApplyClientStatus(OnionHopClient.StatusUpdate update)
     {
+        var previouslyConnected = _hasStatusSnapshot && _wasConnected;
+
         IsConnecting = update.IsConnecting;
         IsConnected = update.IsConnected;
         IsDisconnecting = update.IsDisconnecting;
@@ -816,6 +1002,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         StatusMessage = LocalizeRuntimeText(update.StatusMessage);
         ConnectionProgress = update.ConnectionProgress;
         CurrentIp = update.CurrentIp;
+
+        _hasStatusSnapshot = true;
+        _wasConnected = IsConnected;
+
+        if (!previouslyConnected && IsConnected && OpenConnectedPageEnabled)
+        {
+            OpenLaunchPage(ConnectedPageUrl);
+        }
+        else if (previouslyConnected && !IsConnected && OpenDisconnectedPageEnabled)
+        {
+            OpenLaunchPage(DisconnectedPageUrl);
+        }
+
+        var exitLabel = SelectedLocationOption?.Label
+                        ?? LocationOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedLocation, StringComparison.Ordinal))?.Label
+                        ?? LocalizationService.Get("Home.Automatic");
+        _discordPresence.Update(IsConnected, exitLabel, AppendLog);
     }
 
     private void ApplyDependencyUpdate(OnionHopClient.DependencyUpdate update)
@@ -893,23 +1096,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             IsDarkMode = settings.IsDarkMode;
             UseNativeTheme = settings.UseNativeTheme;
 
-            // Force custom chrome on Windows to remove the titlebar strip and keep custom buttons visible.
-            if (OperatingSystem.IsWindows())
-            {
-                UseNativeTheme = false;
-            }
-
-            SelectedLocation = string.IsNullOrWhiteSpace(settings.SelectedLocation) ? AutomaticLocationLabel : settings.SelectedLocation;
-            if (!Locations.Contains(SelectedLocation))
+            SelectedLocation = string.IsNullOrWhiteSpace(settings.SelectedLocation)
+                ? AutomaticLocationLabel
+                : ResolveLocationCodeFromSelection(settings.SelectedLocation);
+            if (string.IsNullOrWhiteSpace(SelectedLocation))
             {
                 SelectedLocation = AutomaticLocationLabel;
             }
 
-            SelectedEntryLocation = string.IsNullOrWhiteSpace(settings.SelectedEntryLocation) ? AutomaticLocationLabel : settings.SelectedEntryLocation;
-            if (!Locations.Contains(SelectedEntryLocation))
+            SelectedEntryLocation = string.IsNullOrWhiteSpace(settings.SelectedEntryLocation)
+                ? AutomaticLocationLabel
+                : ResolveLocationCodeFromSelection(settings.SelectedEntryLocation);
+            if (string.IsNullOrWhiteSpace(SelectedEntryLocation))
             {
                 SelectedEntryLocation = AutomaticLocationLabel;
             }
+
+            ExitNodeFingerprint = settings.ExitNodeFingerprint ?? string.Empty;
 
             SelectedConnectionMode = string.IsNullOrWhiteSpace(settings.SelectedConnectionMode) ? ConnectionModeProxy : settings.SelectedConnectionMode;
             if (!ConnectionModes.Contains(SelectedConnectionMode))
@@ -960,6 +1163,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             CustomDohHost = settings.CustomDohHost ?? string.Empty;
             CustomDohPath = string.IsNullOrWhiteSpace(settings.CustomDohPath) ? "/dns-query" : settings.CustomDohPath;
+            RestrictedFirewallMode = settings.RestrictedFirewallMode;
+            AllowedPorts = string.IsNullOrWhiteSpace(settings.AllowedPorts) ? DefaultAllowedPorts : settings.AllowedPorts;
+            OnionDnsProxyEnabled = settings.OnionDnsProxyEnabled;
+            MaxCircuitInactivityMinutes = settings.MaxCircuitInactivityMinutes ?? 10;
+            OpenConnectedPageEnabled = settings.OpenConnectedPageEnabled;
+            ConnectedPageUrl = string.IsNullOrWhiteSpace(settings.ConnectedPageUrl) ? DefaultConnectedPageUrl : settings.ConnectedPageUrl;
+            OpenDisconnectedPageEnabled = settings.OpenDisconnectedPageEnabled;
+            DisconnectedPageUrl = string.IsNullOrWhiteSpace(settings.DisconnectedPageUrl) ? DefaultDisconnectedPageUrl : settings.DisconnectedPageUrl;
+            EnableDiscordStatus = settings.EnableDiscordStatus;
 
             HybridRouteAllWebTraffic = settings.HybridRouteAllWebTraffic ?? true;
             HybridBlockQuicForTorApps = settings.HybridBlockQuicForTorApps ?? true;
@@ -1032,6 +1244,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             UseNativeTheme = UseNativeTheme,
             SelectedLocation = SelectedLocation,
             SelectedEntryLocation = SelectedEntryLocation,
+            ExitNodeFingerprint = ExitNodeFingerprint,
             SelectedConnectionMode = SelectedConnectionMode,
             UseHybridRouting = UseHybridRouting,
             UseTorBridges = UseTorBridges,
@@ -1047,6 +1260,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedDnsProvider = SelectedDnsProvider,
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
+            RestrictedFirewallMode = RestrictedFirewallMode,
+            AllowedPorts = AllowedPorts,
+            OnionDnsProxyEnabled = OnionDnsProxyEnabled,
+            MaxCircuitInactivityMinutes = MaxCircuitInactivityMinutes,
+            OpenConnectedPageEnabled = OpenConnectedPageEnabled,
+            ConnectedPageUrl = ConnectedPageUrl,
+            OpenDisconnectedPageEnabled = OpenDisconnectedPageEnabled,
+            DisconnectedPageUrl = DisconnectedPageUrl,
+            EnableDiscordStatus = EnableDiscordStatus,
             HybridRouteAllWebTraffic = HybridRouteAllWebTraffic,
             HybridBlockQuicForTorApps = HybridBlockQuicForTorApps,
             HybridTorApps = HybridTorApps,
@@ -1097,16 +1319,26 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             LanguageOptions.Add(new LocalizedOption("de", "Deutsch"));
         }
 
-        var correctOption = LanguageOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedLanguage, StringComparison.OrdinalIgnoreCase));
-        if (SelectedLanguageOption != correctOption)
+        var targetIndex = string.Equals(SelectedLanguage, "de", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        if (SelectedLanguageIndex != targetIndex)
         {
-            SelectedLanguageOption = correctOption ?? LanguageOptions.FirstOrDefault();
+            SelectedLanguageIndex = targetIndex;
+        }
+
+        if (targetIndex >= 0 && targetIndex < LanguageOptions.Count)
+        {
+            var selectedOption = LanguageOptions[targetIndex];
+            if (!ReferenceEquals(SelectedLanguageOption, selectedOption))
+            {
+                SelectedLanguageOption = selectedOption;
+            }
         }
     }
 
     private void RefreshLocalizedOptions()
     {
         RefreshAutoStartModeOptions();
+        RefreshTorAdvancedModeOptions();
 
         ConnectionModeOptions.Clear();
         ConnectionModeOptions.Add(new LocalizedOption(ConnectionModeProxy, LocalizationService.Get("Home.ModeProxy")));
@@ -1117,9 +1349,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         LocationOptions.Clear();
         foreach (var location in Locations)
         {
-            var label = string.Equals(location, AutomaticLocationLabel, StringComparison.Ordinal)
-                ? LocalizationService.Get("Home.Automatic")
-                : location;
+            var label = GetLocationLabel(location);
             LocationOptions.Add(new LocalizedOption(location, label));
         }
 
@@ -1153,6 +1383,72 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                                     ?? AutoStartModeOptions.FirstOrDefault();
     }
 
+    private void RefreshTorAdvancedModeOptions()
+    {
+        TorOptionModeOptions.Clear();
+        TorOptionModeOptions.Add(new LocalizedOption(OnionHopConnectOptions.ToggleModeDefault, LocalizationService.Get("Settings.OptionDefault")));
+        TorOptionModeOptions.Add(new LocalizedOption(OnionHopConnectOptions.ToggleModeEnabled, LocalizationService.Get("Settings.OptionEnabled")));
+        TorOptionModeOptions.Add(new LocalizedOption(OnionHopConnectOptions.ToggleModeDisabled, LocalizationService.Get("Settings.OptionDisabled")));
+
+        ConnectionPaddingModeOptions.Clear();
+        ConnectionPaddingModeOptions.Add(new LocalizedOption(OnionHopConnectOptions.ConnectionPaddingAuto, LocalizationService.Get("Settings.ConnectionPaddingAuto")));
+        ConnectionPaddingModeOptions.Add(new LocalizedOption(OnionHopConnectOptions.ConnectionPaddingEnabled, LocalizationService.Get("Settings.OptionEnabled")));
+        ConnectionPaddingModeOptions.Add(new LocalizedOption(OnionHopConnectOptions.ConnectionPaddingDisabled, LocalizationService.Get("Settings.OptionDisabled")));
+
+        SelectedTorIpv6ModeOption = TorOptionModeOptions.FirstOrDefault(option => string.Equals(option.Value, TorIpv6Mode, StringComparison.Ordinal))
+                                    ?? TorOptionModeOptions.FirstOrDefault();
+        SelectedHardwareAccelerationModeOption = TorOptionModeOptions.FirstOrDefault(option => string.Equals(option.Value, HardwareAccelerationMode, StringComparison.Ordinal))
+                                                 ?? TorOptionModeOptions.FirstOrDefault();
+        SelectedConnectionPaddingModeOption = ConnectionPaddingModeOptions.FirstOrDefault(option => string.Equals(option.Value, ConnectionPaddingMode, StringComparison.Ordinal))
+                                              ?? ConnectionPaddingModeOptions.FirstOrDefault();
+    }
+
+    private string ResolveLocationCodeFromSelection(string? selection)
+    {
+        return TorNodeDatabaseService.NormalizeSelectionToCountryCode(selection, _countryStatsByCode.Values.ToList());
+    }
+
+    private string GetLocationLabel(string location)
+    {
+        if (string.Equals(location, AutomaticLocationLabel, StringComparison.Ordinal))
+        {
+            return LocalizationService.Get("Home.Automatic");
+        }
+
+        if (_countryStatsByCode.TryGetValue(location, out var stats))
+        {
+            return $"{stats.CountryName} ({stats.CountryCode.ToUpperInvariant()} - {stats.TotalNodes})";
+        }
+
+        return location.ToUpperInvariant();
+    }
+
+    private void ApplyCountryStats(IReadOnlyList<TorCountryNodeStats> stats)
+    {
+        _countryStatsByCode = stats
+            .Where(item => !string.IsNullOrWhiteSpace(item.CountryCode))
+            .GroupBy(item => item.CountryCode, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToDictionary(item => item.CountryCode, StringComparer.OrdinalIgnoreCase);
+
+        var previousExit = SelectedLocation;
+        var previousEntry = SelectedEntryLocation;
+
+        Locations.Clear();
+        Locations.Add(AutomaticLocationLabel);
+        foreach (var country in stats.OrderBy(item => item.CountryName, StringComparer.OrdinalIgnoreCase))
+        {
+            Locations.Add(country.CountryCode);
+        }
+
+        var normalizedExit = string.IsNullOrWhiteSpace(previousExit) ? string.Empty : ResolveLocationCodeFromSelection(previousExit);
+        var normalizedEntry = string.IsNullOrWhiteSpace(previousEntry) ? string.Empty : ResolveLocationCodeFromSelection(previousEntry);
+        SelectedLocation = string.IsNullOrWhiteSpace(normalizedExit) ? AutomaticLocationLabel : normalizedExit;
+        SelectedEntryLocation = string.IsNullOrWhiteSpace(normalizedEntry) ? AutomaticLocationLabel : normalizedEntry;
+
+        RefreshLocalizedOptions();
+    }
+
     private static string LocalizeBridgeType(string bridgeType)
     {
         return bridgeType.ToLowerInvariant() switch
@@ -1160,6 +1456,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             "automatic" => LocalizationService.Get("BridgeType.Automatic"),
             "obfs4" => LocalizationService.Get("BridgeType.Obfs4"),
             "snowflake" => LocalizationService.Get("BridgeType.Snowflake"),
+            "conjure" => LocalizationService.Get("BridgeType.Conjure"),
             "webtunnel" => LocalizationService.Get("BridgeType.Webtunnel"),
             "meek-azure" => LocalizationService.Get("BridgeType.MeekAzure"),
             "custom" => LocalizationService.Get("BridgeType.Custom"),
@@ -1178,6 +1475,34 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         return RuntimeStatusResourceMap.TryGetValue(normalized, out var key)
             ? LocalizationService.Get(key)
             : value;
+    }
+
+    private void OpenLaunchPage(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            AppendLog($"Ignoring invalid launch URL: {url}");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = uri.ToString(),
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to open launch URL '{uri}': {ex.Message}");
+        }
     }
 
     public void AppendLog(string message)

@@ -162,16 +162,13 @@
     <!-- Custom Theme for SukiWindow - Completely removes the TitleBar -->
     <ControlTheme x:Key="{x:Type suki:SukiWindow}" TargetType="suki:SukiWindow">
         <Setter Property="Margin" Value="0" />
-        <Setter Property="TransparencyLevelHint" Value="Transparent" />
-        <Setter Property="SystemDecorations" Value="{OnPlatform Full, Linux=None, x:TypeArguments=SystemDecorations}" />
-        <Setter Property="ExtendClientAreaChromeHints" Value="NoChrome" />
+        <Setter Property="TransparencyLevelHint" Value="None" />
         <Setter Property="ExtendClientAreaTitleBarHeightHint" Value="0" />
-        <Setter Property="ExtendClientAreaToDecorationsHint" Value="True" />
         <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
         <Setter Property="FlowDirection" Value="{DynamicResource FlowDirectionPrimary}" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Panel Name="PART_Root" Margin="{TemplateBinding Margin}">
+                <Panel Name="PART_Root" Margin="0">
                     <suki:SukiMainHost BackgroundAnimationEnabled="{TemplateBinding BackgroundAnimationEnabled}"
                                        BackgroundForceSoftwareRendering="{TemplateBinding BackgroundForceSoftwareRendering}"
                                        BackgroundShaderCode="{TemplateBinding BackgroundShaderCode}"
@@ -194,7 +191,7 @@
                                               VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                               Content="{TemplateBinding Content}"
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
-                                              CornerRadius="10"
+                                              CornerRadius="{TemplateBinding RootCornerRadius}"
                                               IsHitTestVisible="True" />
                         </DockPanel>
                     </suki:SukiMainHost>
@@ -208,4 +205,28 @@
                   BasedOn="{StaticResource OnionHopV2.SukiSideMenu}"
                   TargetType="suki:SukiSideMenu" />
   </Styles.Resources>
+
+  <!-- Fix for TabItem hit test area (Github issue) -->
+  <Style Selector="TabControl > TabItem">
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="TabControl > TabItem:pointerover">
+      <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- Actual clickable headers in Avalonia TabControl are TabStripItem. -->
+  <Style Selector="TabControl TabStripItem">
+      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="TabControl TabStripItem:pointerover">
+      <Setter Property="Cursor" Value="Hand" />
+  </Style>
 </Styles>

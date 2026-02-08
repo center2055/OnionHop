@@ -92,26 +92,13 @@ a {
 .brand__mark {
   width: 34px;
   height: 34px;
-  border-radius: 14px;
-  background: radial-gradient(circle at 35% 30%, #d8ccff, transparent 38%),
-    radial-gradient(circle at 50% 60%, rgba(255, 255, 255, 0.18), transparent 56%),
-    linear-gradient(135deg, var(--brand), var(--brand2));
-  box-shadow: 0 10px 22px rgba(124, 58, 237, 0.3);
-  position: relative;
-  overflow: hidden;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(124, 58, 237, 0.5));
 }
-.brand__mark::before {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background: conic-gradient(from 240deg, rgba(255, 255, 255, 0.35), transparent 40%, rgba(255, 255, 255, 0.24));
-  opacity: 0.7;
-  animation: swirl 8s linear infinite;
-}
+
 .brand__mark--small {
   width: 26px;
   height: 26px;
-  border-radius: 10px;
 }
 
 .brand__name {
@@ -331,13 +318,8 @@ a {
   border-color: rgba(167, 139, 250, 0.28);
   background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(124, 58, 237, 0.06));
 }
-.badge__spark {
-  width: 12px;
-  height: 12px;
-  background: radial-gradient(circle at 30% 30%, #fff, rgba(255, 255, 255, 0.18), transparent 70%);
-  border-radius: 4px;
-  transform: rotate(14deg);
-  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.14);
+.badge__icon {
+  color: rgba(167, 139, 250, 0.9);
 }
 
 .hero__visual {
@@ -529,35 +511,6 @@ a {
   position: relative;
 }
 
-.shots {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-.shot {
-  border-radius: var(--radius);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.035);
-  overflow: hidden;
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.18);
-}
-.shot__img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.14), rgba(124, 58, 237, 0.1));
-}
-.shot__cap {
-  padding: 12px 12px 14px;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.shot__cap strong {
-  color: rgba(255, 255, 255, 0.92);
-}
 
 .downloadPanel {
   border-radius: 26px;
@@ -819,4 +772,3 @@ a {
     transition: none !important;
   }
 }
-

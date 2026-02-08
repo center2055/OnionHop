@@ -9,22 +9,26 @@
                  mc:Ignorable="d"
                  d:DesignWidth="1200"
                  d:DesignHeight="820"
-                 x:Class="OnionHopV2.App.Views.MainWindow"
-                 x:DataType="vm:ShellViewModel"
-                  Icon="/Assets/OnionHop.ico"
-                  Title=""
+                  x:Class="OnionHopV2.App.Views.MainWindow"
+                  x:DataType="vm:ShellViewModel"
+                   Icon="/Assets/OnionHop.ico"
+                   Title="OnionHop V2"
                   Width="1200"
                   Height="820"
                   MinWidth="1000"
                   MinHeight="720"
+                  CanResize="True"
                   TitleBarAnimationEnabled="False"
                   IsTitleBarVisible="False"
                   ShowTitlebarBackground="False"
                   ShowBottomBorder="False"
-                  ExtendClientAreaToDecorationsHint="True"
+                  ExtendClientAreaToDecorationsHint="False"
                   ExtendClientAreaChromeHints="NoChrome"
                   ExtendClientAreaTitleBarHeightHint="0"
+                  TransparencyLevelHint="None"
+                  Background="{DynamicResource SukiBackground}"
                   SystemDecorations="None"
+                  WindowStartupLocation="CenterScreen"
                   Padding="0">
 
     <Design.DataContext>
@@ -33,7 +37,7 @@
         <vm:ShellViewModel/>
     </Design.DataContext>
 
-    <Grid>
+    <Grid PointerPressed="OnWindowPointerPressed">
         <Grid.Styles>
             <Style Selector="Button.WindowChromeButton">
                 <Setter Property="Background" Value="Transparent" />
@@ -73,7 +77,10 @@
             </suki:SukiSideMenu.ItemTemplate>
 
             <suki:SukiSideMenu.HeaderContent>
-                <StackPanel Margin="20,16" Spacing="10" HorizontalAlignment="Center">
+                <StackPanel Margin="20,16"
+                            Spacing="10"
+                            HorizontalAlignment="Center"
+                            PointerPressed="OnDragRegionPointerPressed">
                     <Image Width="64"
                            Height="64"
                            Source="/Assets/logo.png" />
@@ -95,53 +102,123 @@
             </suki:SukiSideMenu.FooterContent>
         </suki:SukiSideMenu>
 
-        <!-- Invisible Drag Region -->
-        <Border Height="40"
-                VerticalAlignment="Top"
-                HorizontalAlignment="Stretch"
-                Background="Transparent"
-                PointerPressed="OnDragRegionPointerPressed" />
-
-        <!-- Custom window controls for non-native chrome (no titlebar strip) -->
+        <!-- Custom title bar for non-native chrome -->
         <Border IsVisible="{Binding State.UseCustomChrome}"
-                HorizontalAlignment="Right"
+                HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
-                Margin="0,8,10,0"
+                Height="38"
+                Margin="0"
+                CornerRadius="0"
                 Background="Transparent"
                 PointerPressed="OnDragRegionPointerPressed">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Classes="WindowChromeButton"
-                        Width="40"
-                        Height="34"
-                        ToolTip.Tip="{DynamicResource Window.Minimize}"
-                        Click="OnMinimizeClick">
-                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Minus}"
-                                        Width="16"
-                                        Height="16"
-                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                </Button>
-                <Button Classes="WindowChromeButton"
-                        Width="40"
-                        Height="34"
-                        ToolTip.Tip="{DynamicResource Window.MaximizeRestore}"
-                        Click="OnMaximizeRestoreClick">
-                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.SquareOutline}"
-                                        Width="16"
-                                        Height="16"
-                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                </Button>
-                <Button Classes="WindowChromeButton Close"
-                        Width="40"
-                        Height="34"
-                        ToolTip.Tip="{DynamicResource Window.Close}"
-                        Click="OnCloseClick">
-                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Close}"
-                                        Width="16"
-                                        Height="16"
-                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                </Button>
-            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,2,8,0">
+                    <Button Classes="WindowChromeButton"
+                            Width="40"
+                            Height="34"
+                            ToolTip.Tip="{DynamicResource Window.Minimize}"
+                            Click="OnMinimizeClick">
+                        <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Minus}"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </Button>
+                    <Button Classes="WindowChromeButton"
+                            Width="40"
+                            Height="34"
+                            ToolTip.Tip="{DynamicResource Window.MaximizeRestore}"
+                            Click="OnMaximizeRestoreClick">
+                        <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.SquareOutline}"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </Button>
+                    <Button Classes="WindowChromeButton Close"
+                            Width="40"
+                            Height="34"
+                            ToolTip.Tip="{DynamicResource Window.Close}"
+                            Click="OnCloseClick">
+                        <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Close}"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
         </Border>
+
+        <!-- Resize grips for custom chrome mode -->
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Width="6"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Stretch"
+                Background="Transparent"
+                Cursor="SizeWestEast"
+                Tag="Left"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Width="6"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Background="Transparent"
+                Cursor="SizeWestEast"
+                Tag="Right"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Height="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                Background="Transparent"
+                Cursor="SizeNorthSouth"
+                Tag="Top"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Height="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Bottom"
+                Background="Transparent"
+                Cursor="SizeNorthSouth"
+                Tag="Bottom"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Width="12"
+                Height="12"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Background="Transparent"
+                Cursor="TopLeftCorner"
+                Tag="TopLeft"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Width="12"
+                Height="12"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Background="Transparent"
+                Cursor="TopRightCorner"
+                Tag="TopRight"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Width="12"
+                Height="12"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Background="Transparent"
+                Cursor="BottomLeftCorner"
+                Tag="BottomLeft"
+                PointerPressed="OnResizePointerPressed" />
+        <Border IsVisible="{Binding State.UseCustomChrome}"
+                Width="12"
+                Height="12"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Background="Transparent"
+                Cursor="BottomRightCorner"
+                Tag="BottomRight"
+                PointerPressed="OnResizePointerPressed" />
     </Grid>
 
 </suki:SukiWindow>

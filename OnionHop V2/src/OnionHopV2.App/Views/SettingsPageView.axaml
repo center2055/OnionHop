@@ -35,6 +35,9 @@
 
                             <ToggleSwitch Content="{DynamicResource Settings.AutoUpdate}"
                                           IsChecked="{Binding State.AutoUpdate}" />
+
+                            <ToggleSwitch Content="{DynamicResource Settings.DiscordStatus}"
+                                          IsChecked="{Binding State.EnableDiscordStatus}" />
                         </StackPanel>
                     </suki:GlassCard>
 
@@ -50,13 +53,21 @@
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{DynamicResource Settings.Language}" Opacity="0.75" />
                                 <ComboBox ItemsSource="{Binding State.LanguageOptions}"
-                                          SelectedValueBinding="{Binding Value}"
-                                          SelectedValue="{Binding State.SelectedLanguage}" />
+                                          DisplayMemberBinding="{Binding Label}"
+                                          SelectedIndex="{Binding State.SelectedLanguageIndex}" />
                             </StackPanel>
 
-                            <ToggleSwitch Content="{DynamicResource Settings.NativeChrome}"
-                                          IsVisible="{Binding State.SupportsNativeWindowChrome}"
-                                          IsChecked="{Binding State.UseNativeTheme}" />
+                            <Grid IsVisible="{Binding State.SupportsNativeWindowChrome}"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12">
+                                <TextBlock Grid.Column="0"
+                                           Text="{DynamicResource Settings.NativeChrome}"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <ToggleSwitch Grid.Column="1"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding State.UseNativeTheme}" />
+                            </Grid>
                         </StackPanel>
                     </suki:GlassCard>
 
@@ -162,6 +173,12 @@
                                              VerticalContentAlignment="Center"
                                              Watermark="{DynamicResource Settings.CustomDohPathWatermark}" />
                                 </StackPanel>
+
+                                <ToggleSwitch Content="{DynamicResource Settings.OnionDnsProxy}"
+                                              IsChecked="{Binding State.OnionDnsProxyEnabled}" />
+                                <TextBlock Text="{DynamicResource Settings.OnionDnsProxyHint}"
+                                           Opacity="0.75"
+                                           TextWrapping="Wrap" />
                             </StackPanel>
                         </StackPanel>
                     </suki:GlassCard>
@@ -193,25 +210,48 @@
 
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{DynamicResource Settings.IPv6Support}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.TorOptionModes}"
-                                          SelectedItem="{Binding State.TorIpv6Mode}" />
+                                <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
+                                          SelectedItem="{Binding State.SelectedTorIpv6ModeOption}" />
                             </StackPanel>
 
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{DynamicResource Settings.HardwareAccel}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.TorOptionModes}"
-                                          SelectedItem="{Binding State.HardwareAccelerationMode}" />
+                                <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
+                                          SelectedItem="{Binding State.SelectedHardwareAccelerationModeOption}" />
                             </StackPanel>
 
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{DynamicResource Settings.ConnectionPadding}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.ConnectionPaddingModes}"
-                                          SelectedItem="{Binding State.ConnectionPaddingMode}" />
+                                <ComboBox ItemsSource="{Binding State.ConnectionPaddingModeOptions}"
+                                          SelectedItem="{Binding State.SelectedConnectionPaddingModeOption}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{DynamicResource Settings.MaxCircuitInactivity}" Opacity="0.75" />
+                                <TextBox Text="{Binding State.MaxCircuitInactivityMinutes}"
+                                         VerticalContentAlignment="Center" />
+                            </StackPanel>
+
+                            <ToggleSwitch Content="{DynamicResource Settings.RestrictedFirewallMode}"
+                                          IsChecked="{Binding State.RestrictedFirewallMode}" />
+
+                            <StackPanel Spacing="6" IsVisible="{Binding State.RestrictedFirewallMode}">
+                                <TextBlock Text="{DynamicResource Settings.AllowedPorts}" Opacity="0.75" />
+                                <TextBox Text="{Binding State.AllowedPorts}"
+                                         VerticalContentAlignment="Center"
+                                         Watermark="{DynamicResource Settings.AllowedPortsWatermark}" />
                             </StackPanel>
 
                             <TextBlock Text="{DynamicResource Settings.EntryExitTip}"
                                        Opacity="0.75"
                                        TextWrapping="Wrap" />
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Manual Exit Node Fingerprint" Opacity="0.75" />
+                                <TextBox Text="{Binding State.ExitNodeFingerprint}"
+                                         VerticalContentAlignment="Center"
+                                         Watermark="Optional (e.g. $FINGERPRINT)" />
+                            </StackPanel>
                         </StackPanel>
                     </suki:GlassCard>
 
@@ -259,6 +299,29 @@
                             <TextBlock Text="{DynamicResource Settings.SplitTunnelingEnableHint}"
                                        Opacity="0.75"
                                        TextWrapping="Wrap" />
+                        </StackPanel>
+                    </suki:GlassCard>
+
+                    <suki:GlassCard Padding="18" CornerRadius="18">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="{DynamicResource Settings.AutomationTitle}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold" />
+
+                            <ToggleSwitch Content="{DynamicResource Settings.OpenConnectedPage}"
+                                          IsChecked="{Binding State.OpenConnectedPageEnabled}" />
+                            <TextBox Text="{Binding State.ConnectedPageUrl}"
+                                     IsEnabled="{Binding State.OpenConnectedPageEnabled}"
+                                     VerticalContentAlignment="Center"
+                                     Watermark="{DynamicResource Settings.OpenConnectedPageWatermark}" />
+
+                            <ToggleSwitch Content="{DynamicResource Settings.OpenDisconnectedPage}"
+                                          IsChecked="{Binding State.OpenDisconnectedPageEnabled}" />
+                            <TextBox Text="{Binding State.DisconnectedPageUrl}"
+                                     IsEnabled="{Binding State.OpenDisconnectedPageEnabled}"
+                                     VerticalContentAlignment="Center"
+                                     Watermark="{DynamicResource Settings.OpenDisconnectedPageWatermark}" />
+
                         </StackPanel>
                     </suki:GlassCard>
                 </StackPanel>
