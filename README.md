@@ -47,24 +47,6 @@ Notes
 
 ---
 
-## What's New in V2.2
-
-- **Language support**
-  - English/German switch in Settings.
-- **Bridges**
-  - Automatic bridge mode with fallback order.
-  - Bundled WebTunnel fallback list + bridge cache.
-  - Conjure transport added.
-- **Network and Tor controls**
-  - Restricted Firewall Mode with editable allowed ports.
-  - Max circuit inactivity setting.
-  - Dynamic country/node statistics for entry/exit validation.
-- **Automation**
-  - Optional launch pages on connect/disconnect.
-  - Optional Discord Rich Presence.
-- **Windows admin DNS**
-  - Optional `.onion` DNS proxying via Tor (admin mode).
-
 ## Features (Core)
 
 - Tor routing (SOCKS5)
