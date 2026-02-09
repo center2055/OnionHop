@@ -770,13 +770,17 @@ public sealed class OnionHopClient : IDisposable
         var countryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedLocation, countries);
         var entryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedEntryLocation, countries);
 
-        if (!string.IsNullOrWhiteSpace(countryCode) && !TorNodeDatabaseService.HasExitNodes(countries, countryCode))
+        if (countries.Count > 0 &&
+            !string.IsNullOrWhiteSpace(countryCode) &&
+            !TorNodeDatabaseService.HasExitNodes(countries, countryCode))
         {
             RaiseLog($"Selected exit country '{options.SelectedLocation}' has no running exit nodes. Falling back to Automatic.");
             countryCode = string.Empty;
         }
 
-        if (!string.IsNullOrWhiteSpace(entryCode) && !TorNodeDatabaseService.HasEntryNodes(countries, entryCode))
+        if (countries.Count > 0 &&
+            !string.IsNullOrWhiteSpace(entryCode) &&
+            !TorNodeDatabaseService.HasEntryNodes(countries, entryCode))
         {
             RaiseLog($"Selected entry country '{options.SelectedEntryLocation}' has no running guard nodes. Falling back to Automatic.");
             entryCode = string.Empty;

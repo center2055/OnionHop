@@ -77,6 +77,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(UseNativeTheme),
         nameof(SelectedLocation),
         nameof(SelectedEntryLocation),
+        nameof(ExitNodeFingerprint),
         nameof(SelectedConnectionMode),
         nameof(UseHybridRouting),
         nameof(UseTorBridges),
@@ -310,6 +311,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool IsTunMode => string.Equals(SelectedConnectionMode, ConnectionModeTun, StringComparison.Ordinal);
     public bool IsProxyMode => !IsTunMode;
     public bool CanUseKillSwitch => IsTunMode && !UseHybridRouting;
+    public bool IsManualExitNodeFingerprintSet => !string.IsNullOrWhiteSpace(ExitNodeFingerprint);
+    public bool CanSelectExitLocation => !IsManualExitNodeFingerprintSet;
     public bool CanSelectEntryLocation => !UseTorBridges;
     public bool IsCustomDoh => string.Equals(SelectedDnsProvider, DnsProviderCustom, StringComparison.Ordinal);
     public bool UseCustomBridges => string.Equals(SelectedBridgeType, "custom", StringComparison.OrdinalIgnoreCase);
@@ -515,12 +518,37 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedLocationChanged(string value)
     {
+        if (IsManualExitNodeFingerprintSet &&
+            !string.Equals(value, AutomaticLocationLabel, StringComparison.Ordinal))
+        {
+            SelectedLocation = AutomaticLocationLabel;
+            return;
+        }
+
         SelectedLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal));
     }
 
     partial void OnSelectedEntryLocationChanged(string value)
     {
         SelectedEntryLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal));
+    }
+
+    partial void OnExitNodeFingerprintChanged(string value)
+    {
+        var normalized = NormalizeExitNodeFingerprint(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            ExitNodeFingerprint = normalized;
+            return;
+        }
+
+        OnPropertyChanged(nameof(IsManualExitNodeFingerprintSet));
+        OnPropertyChanged(nameof(CanSelectExitLocation));
+        if (IsManualExitNodeFingerprintSet &&
+            !string.Equals(SelectedLocation, AutomaticLocationLabel, StringComparison.Ordinal))
+        {
+            SelectedLocation = AutomaticLocationLabel;
+        }
     }
 
     partial void OnUseHybridRoutingChanged(bool value)
@@ -1406,6 +1434,25 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private string ResolveLocationCodeFromSelection(string? selection)
     {
         return TorNodeDatabaseService.NormalizeSelectionToCountryCode(selection, _countryStatsByCode.Values.ToList());
+    }
+
+    private static string NormalizeExitNodeFingerprint(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value.Trim()
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Replace(":", string.Empty, StringComparison.Ordinal);
+
+        if (normalized.StartsWith("$", StringComparison.Ordinal))
+        {
+            normalized = normalized.Substring(1);
+        }
+
+        return normalized.ToUpperInvariant();
     }
 
     private string GetLocationLabel(string location)

@@ -123,7 +123,12 @@
                     <StackPanel Spacing="6">
                         <TextBlock Text="{DynamicResource Home.ExitLocation}" Opacity="0.75" />
                         <ComboBox ItemsSource="{Binding State.LocationOptions}"
-                                  SelectedItem="{Binding State.SelectedLocationOption}" />
+                                  SelectedItem="{Binding State.SelectedLocationOption}"
+                                  IsEnabled="{Binding State.CanSelectExitLocation}" />
+                        <TextBlock Text="{DynamicResource Home.ExitLocationManualHint}"
+                                   Opacity="0.7"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding State.IsManualExitNodeFingerprintSet}" />
                     </StackPanel>
                 </StackPanel>
             </suki:GlassCard>

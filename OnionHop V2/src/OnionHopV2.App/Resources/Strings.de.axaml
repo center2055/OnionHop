@@ -23,6 +23,7 @@
   <x:String x:Key="Home.ModeTun">TUN/VPN-Modus (Admin)</x:String>
   <x:String x:Key="Home.Automatic">Automatisch</x:String>
   <x:String x:Key="Home.ExitLocation">Austrittsort</x:String>
+  <x:String x:Key="Home.ExitLocationManualHint">Ein manueller Exit-Fingerprint ist gesetzt. Die Exit-Auswahl ist deaktiviert.</x:String>
   <x:String x:Key="Home.TorNetwork">Tor-Netzwerk</x:String>
   <x:String x:Key="Home.TorNetworkHint">Zeigt Tors eigenen Datenverkehr (vom Control-Port).</x:String>
   <x:String x:Key="Home.TunOptions">TUN/VPN-Optionen</x:String>
