@@ -38,6 +38,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string DnsProviderQuad9 = "Quad9 (DoH)";
     public const string DnsProviderCustom = "Custom (DoH)";
     public const string BridgeTypeAutomatic = "automatic";
+    public const string BridgeSourceAuto = OnionHopConnectOptions.BridgeSourceAuto;
+    public const string BridgeSourceBridgeDbOnly = OnionHopConnectOptions.BridgeSourceBridgeDbOnly;
+    public const string BridgeSourceOfflineOnly = OnionHopConnectOptions.BridgeSourceOfflineOnly;
     private static readonly Dictionary<string, string> RuntimeStatusResourceMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Disconnected"] = "Status.Disconnected",
@@ -83,6 +86,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(UseTorBridges),
         nameof(UseCensoredMode),
         nameof(SelectedBridgeType),
+        nameof(BridgeSourceMode),
         nameof(CustomBridges),
         nameof(CustomSniHosts),
         nameof(UseSnowflakeAmp),
@@ -171,6 +175,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             OnionHopConnectOptions.ConnectionPaddingDisabled
         ];
 
+        BridgeSourceModes =
+        [
+            BridgeSourceAuto,
+            BridgeSourceBridgeDbOnly,
+            BridgeSourceOfflineOnly
+        ];
+
         RefreshLanguageOptions();
         RefreshLocalizedOptions();
 
@@ -210,6 +221,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<LocalizedOption> AutoStartModeOptions { get; } = [];
     public ObservableCollection<string> BridgeTypes { get; } = [];
     public ObservableCollection<LocalizedOption> BridgeTypeOptions { get; } = [];
+    public ObservableCollection<string> BridgeSourceModes { get; }
+    public ObservableCollection<LocalizedOption> BridgeSourceModeOptions { get; } = [];
     public ObservableCollection<string> DnsProviders { get; }
     public ObservableCollection<string> TorOptionModes { get; }
     public ObservableCollection<string> ConnectionPaddingModes { get; }
@@ -239,6 +252,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _useTorBridges;
     [ObservableProperty] private bool _useCensoredMode;
     [ObservableProperty] private string _selectedBridgeType = "obfs4";
+    [ObservableProperty] private string _bridgeSourceMode = BridgeSourceAuto;
     [ObservableProperty] private string _customBridges = string.Empty;
     [ObservableProperty] private string _customSniHosts = string.Empty;
     [ObservableProperty] private bool _useSnowflakeAmp;
@@ -266,6 +280,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private LocalizedOption? _selectedLocationOption;
     [ObservableProperty] private LocalizedOption? _selectedEntryLocationOption;
     [ObservableProperty] private LocalizedOption? _selectedBridgeTypeOption;
+    [ObservableProperty] private LocalizedOption? _selectedBridgeSourceModeOption;
     [ObservableProperty] private LocalizedOption? _selectedLanguageOption;
     [ObservableProperty] private LocalizedOption? _selectedAutoStartModeOption;
     [ObservableProperty] private LocalizedOption? _selectedTorIpv6ModeOption;
@@ -289,6 +304,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _connectionStatus = string.Empty;
     [ObservableProperty] private string _currentIp = "--.--.--.--";
+    [ObservableProperty] private string _socksProxyPort = OnionHopClient.DefaultSocksPort.ToString();
+    [ObservableProperty] private string _httpProxyPort = "--";
     [ObservableProperty] private double _connectionProgress;
 
     [ObservableProperty] private bool _isDependencyDownloadInProgress;
@@ -418,6 +435,32 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (!string.Equals(SelectedBridgeType, value.Value, StringComparison.OrdinalIgnoreCase))
         {
             SelectedBridgeType = value.Value;
+        }
+    }
+
+    partial void OnBridgeSourceModeChanged(string value)
+    {
+        var normalized = NormalizeBridgeSourceMode(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            BridgeSourceMode = normalized;
+            return;
+        }
+
+        SelectedBridgeSourceModeOption = BridgeSourceModeOptions
+            .FirstOrDefault(option => string.Equals(option.Value, normalized, StringComparison.Ordinal));
+    }
+
+    partial void OnSelectedBridgeSourceModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(BridgeSourceMode, value.Value, StringComparison.Ordinal))
+        {
+            BridgeSourceMode = value.Value;
         }
     }
 
@@ -929,6 +972,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             UseTorBridges = false;
             UseCensoredMode = false;
             SelectedBridgeType = "obfs4";
+            BridgeSourceMode = BridgeSourceAuto;
             CustomBridges = string.Empty;
             CustomSniHosts = string.Empty;
             UseSnowflakeAmp = false;
@@ -987,12 +1031,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             SelectedLocation = SelectedLocation,
             SelectedEntryLocation = SelectedEntryLocation,
+            ExitNodeFingerprint = ExitNodeFingerprint,
             SelectedConnectionMode = SelectedConnectionMode,
             UseHybridRouting = UseHybridRouting,
             KillSwitchEnabled = KillSwitchEnabled,
             UseTorBridges = UseTorBridges,
             UseCensoredMode = UseCensoredMode,
             SelectedBridgeType = SelectedBridgeType,
+            BridgeSourceMode = BridgeSourceMode,
             CustomBridges = CustomBridges,
             CustomSniHosts = CustomSniHosts,
             UseSnowflakeAmp = UseSnowflakeAmp,
@@ -1030,6 +1076,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         StatusMessage = LocalizeRuntimeText(update.StatusMessage);
         ConnectionProgress = update.ConnectionProgress;
         CurrentIp = update.CurrentIp;
+        SocksProxyPort = update.SocksPort.ToString();
+        HttpProxyPort = update.HttpPort.HasValue ? update.HttpPort.Value.ToString() : "--";
 
         _hasStatusSnapshot = true;
         _wasConnected = IsConnected;
@@ -1154,6 +1202,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedBridgeType = string.IsNullOrWhiteSpace(settings.SelectedBridgeType)
                 ? SelectedBridgeType
                 : settings.SelectedBridgeType!.Trim().ToLowerInvariant();
+            BridgeSourceMode = NormalizeBridgeSourceMode(settings.BridgeSourceMode);
             CustomBridges = settings.CustomBridges ?? string.Empty;
             CustomSniHosts = settings.CustomSniHosts ?? string.Empty;
             UseSnowflakeAmp = settings.UseSnowflakeAmp;
@@ -1278,6 +1327,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             UseTorBridges = UseTorBridges,
             UseCensoredMode = UseCensoredMode,
             SelectedBridgeType = SelectedBridgeType,
+            BridgeSourceMode = BridgeSourceMode,
             CustomBridges = CustomBridges,
             CustomSniHosts = CustomSniHosts,
             UseSnowflakeAmp = UseSnowflakeAmp,
@@ -1386,6 +1436,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         SelectedEntryLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedEntryLocation, StringComparison.Ordinal))
                                    ?? LocationOptions.FirstOrDefault();
 
+        RefreshBridgeSourceOptions();
         RefreshBridgeTypeOptions();
     }
 
@@ -1399,6 +1450,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         SelectedBridgeTypeOption = BridgeTypeOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedBridgeType, StringComparison.OrdinalIgnoreCase))
                                  ?? BridgeTypeOptions.FirstOrDefault();
+    }
+
+    private void RefreshBridgeSourceOptions()
+    {
+        BridgeSourceModeOptions.Clear();
+        foreach (var bridgeSource in BridgeSourceModes)
+        {
+            BridgeSourceModeOptions.Add(new LocalizedOption(bridgeSource, LocalizeBridgeSourceMode(bridgeSource)));
+        }
+
+        SelectedBridgeSourceModeOption = BridgeSourceModeOptions.FirstOrDefault(option => string.Equals(option.Value, BridgeSourceMode, StringComparison.Ordinal))
+                                       ?? BridgeSourceModeOptions.FirstOrDefault();
     }
 
     private void RefreshAutoStartModeOptions()
@@ -1509,6 +1572,37 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             "custom" => LocalizationService.Get("BridgeType.Custom"),
             _ => bridgeType
         };
+    }
+
+    private static string LocalizeBridgeSourceMode(string sourceMode)
+    {
+        return sourceMode switch
+        {
+            BridgeSourceAuto => LocalizationService.Get("BridgeSource.Auto"),
+            BridgeSourceBridgeDbOnly => LocalizationService.Get("BridgeSource.BridgeDbOnly"),
+            BridgeSourceOfflineOnly => LocalizationService.Get("BridgeSource.OfflineOnly"),
+            _ => sourceMode
+        };
+    }
+
+    private static string NormalizeBridgeSourceMode(string? sourceMode)
+    {
+        if (string.IsNullOrWhiteSpace(sourceMode))
+        {
+            return BridgeSourceAuto;
+        }
+
+        if (string.Equals(sourceMode, BridgeSourceBridgeDbOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourceBridgeDbOnly;
+        }
+
+        if (string.Equals(sourceMode, BridgeSourceOfflineOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourceOfflineOnly;
+        }
+
+        return BridgeSourceAuto;
     }
 
     private static string LocalizeRuntimeText(string? value)

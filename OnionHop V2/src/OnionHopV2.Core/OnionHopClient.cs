@@ -19,7 +19,10 @@ public sealed class OnionHopClient : IDisposable
     private static readonly Regex SingBoxConnectionToRegex = new(@"connection to (?<dest>\S+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public const int DefaultSocksPort = 9050;
+    public const int DefaultHttpPort = 9080;
     public const int DefaultDnsPort = 53;
+    private const int MaxBridgeLinesForLaunch = 24;
+    private const int MaxBridgeArgumentCharsForLaunch = 12000;
 
     public readonly record struct StatusUpdate(
         bool IsConnecting,
@@ -28,7 +31,9 @@ public sealed class OnionHopClient : IDisposable
         string ConnectionStatus,
         string StatusMessage,
         double ConnectionProgress,
-        string CurrentIp);
+        string CurrentIp,
+        int SocksPort,
+        int? HttpPort);
 
     public readonly record struct DependencyUpdate(bool InProgress, string Status, double Progress);
 
@@ -69,6 +74,7 @@ public sealed class OnionHopClient : IDisposable
     private OnionHopConnectOptions? _activeOptions;
     private bool _snowflakeAmpHintShown;
     private int _activeSocksPort = DefaultSocksPort;
+    private int? _activeHttpPort;
     private int? _activeDnsPort;
 
     private readonly object _singBoxLogLock = new();
@@ -198,6 +204,12 @@ public sealed class OnionHopClient : IDisposable
             RaiseLog($"SOCKS port {DefaultSocksPort} is busy. Using {_activeSocksPort}.");
         }
 
+        _activeHttpPort = PortSelector.FindAvailablePort(DefaultHttpPort, additionalAttempts: 30);
+        if (_activeHttpPort != DefaultHttpPort)
+        {
+            RaiseLog($"HTTP tunnel port {DefaultHttpPort} is busy. Using {_activeHttpPort}.");
+        }
+
         _activeDnsPort = null;
         if (options.OnionDnsProxyEnabled)
         {
@@ -264,7 +276,7 @@ public sealed class OnionHopClient : IDisposable
             }
             else
             {
-                _proxyService.ApplyTorSocksProxy(_activeSocksPort, RaiseLog);
+                _proxyService.ApplyTorProxy(_activeSocksPort, _activeHttpPort, RaiseLog);
             }
 
             _isConnected = true;
@@ -549,6 +561,7 @@ public sealed class OnionHopClient : IDisposable
             _connectionStatus = "Disconnected";
             _connectionProgress = 0;
             _activeSocksPort = DefaultSocksPort;
+            _activeHttpPort = null;
             _activeDnsPort = null;
 
             if (!disableStatusUpdate)
@@ -584,7 +597,9 @@ public sealed class OnionHopClient : IDisposable
             ConnectionStatus: _connectionStatus,
             StatusMessage: _statusMessage,
             ConnectionProgress: _connectionProgress,
-            CurrentIp: _currentIp));
+            CurrentIp: _currentIp,
+            SocksPort: _activeSocksPort,
+            HttpPort: _activeHttpPort));
     }
 
     private void PublishDependency()
@@ -698,6 +713,7 @@ public sealed class OnionHopClient : IDisposable
             UseTorBridges = options.UseTorBridges,
             UseCensoredMode = options.UseCensoredMode,
             SelectedBridgeType = bridgeType,
+            BridgeSourceMode = options.BridgeSourceMode,
             CustomBridges = options.CustomBridges,
             CustomSniHosts = options.CustomSniHosts,
             UseSnowflakeAmp = options.UseSnowflakeAmp,
@@ -749,6 +765,8 @@ public sealed class OnionHopClient : IDisposable
                 throw new InvalidOperationException(message);
             }
 
+            bridgeLines = LimitBridgeLinesForLaunch(bridgeLines, RaiseLog);
+
             var pluginLines = _bridgeManager.GetClientTransportPlugins(options, bridgeLines, torDir, _ptConfig, RaiseLog);
             if (pluginLines.Count == 0)
             {
@@ -774,8 +792,7 @@ public sealed class OnionHopClient : IDisposable
             !string.IsNullOrWhiteSpace(countryCode) &&
             !TorNodeDatabaseService.HasExitNodes(countries, countryCode))
         {
-            RaiseLog($"Selected exit country '{options.SelectedLocation}' has no running exit nodes. Falling back to Automatic.");
-            countryCode = string.Empty;
+            RaiseLog($"Selected exit country '{options.SelectedLocation}' currently reports no running exit nodes. Continuing with the selected country.");
         }
 
         if (countries.Count > 0 &&
@@ -801,6 +818,7 @@ public sealed class OnionHopClient : IDisposable
         {
             TorPath = torPath,
             SocksPort = _activeSocksPort,
+            HttpTunnelPort = _activeHttpPort,
             DnsPort = options.OnionDnsProxyEnabled ? _activeDnsPort : null,
             GeoIpPath = geoIpPath,
             GeoIp6Path = geoIp6Path,
@@ -1355,5 +1373,46 @@ public sealed class OnionHopClient : IDisposable
         }
 
         return result.Count == 0 ? [80, 443] : result;
+    }
+
+    private static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, Action<string> log)
+    {
+        if (bridgeLines.Count == 0)
+        {
+            return bridgeLines;
+        }
+
+        var selected = new List<string>(Math.Min(MaxBridgeLinesForLaunch, bridgeLines.Count));
+        var totalChars = 0;
+
+        foreach (var line in bridgeLines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            var trimmed = line.Trim();
+            var estimatedArgChars = trimmed.Length + 12; // --Bridge "..."
+            if (selected.Count >= MaxBridgeLinesForLaunch || totalChars + estimatedArgChars > MaxBridgeArgumentCharsForLaunch)
+            {
+                break;
+            }
+
+            selected.Add(trimmed);
+            totalChars += estimatedArgChars;
+        }
+
+        if (selected.Count == 0)
+        {
+            selected.Add(bridgeLines[0].Trim());
+        }
+
+        if (selected.Count < bridgeLines.Count)
+        {
+            log($"Using {selected.Count} of {bridgeLines.Count} bridge lines to avoid Windows command-line length limits.");
+        }
+
+        return selected;
     }
 }

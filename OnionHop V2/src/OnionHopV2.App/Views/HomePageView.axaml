@@ -42,6 +42,10 @@
                                FontSize="18"
                                FontWeight="Bold"
                                HorizontalAlignment="Right" />
+                    <TextBlock Text="{DynamicResource Home.SocksPort}" Opacity="0.65" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding State.SocksProxyPort}" Opacity="0.85" HorizontalAlignment="Right" />
+                    <TextBlock Text="{DynamicResource Home.HttpPort}" Opacity="0.65" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding State.HttpProxyPort}" Opacity="0.85" HorizontalAlignment="Right" />
                 </StackPanel>
 
                 <ProgressBar Grid.Row="1"

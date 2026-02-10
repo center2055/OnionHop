@@ -71,4 +71,65 @@ public sealed class TorBridgeManagerTests
             try { Directory.Delete(dir, true); } catch { }
         }
     }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_offline_only_uses_community_file_and_strips_alias()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var ptDir = Path.Combine(dir, "tor", "pluggable_transports");
+            Directory.CreateDirectory(ptDir);
+            var offlinePath = Path.Combine(ptDir, "bridges-community-obfs4.txt");
+            File.WriteAllText(
+                offlinePath,
+                "obfs4 1.2.3.4:443 74FAD13168806246602538555B5521A0383A1875 cert=ssH+9rP8dG2NLDN2XuFw63hIO/9MNNinLmxQDpVa+7kTOa9/m+tGWT1SmSYpQ9uTBGa6Hw iat-mode=0 - DemoName");
+
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "obfs4",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceOfflineOnly
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Single(lines);
+            Assert.StartsWith("obfs4 ", lines[0]);
+            Assert.DoesNotContain(" - ", lines[0]);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_bridge_db_only_does_not_use_offline_files()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var ptDir = Path.Combine(dir, "tor", "pluggable_transports");
+            Directory.CreateDirectory(ptDir);
+            var offlinePath = Path.Combine(ptDir, "bridges-community-custom.txt");
+            File.WriteAllText(offlinePath, "obfs4 1.2.3.4:443 74FAD13168806246602538555B5521A0383A1875 cert=abc iat-mode=0");
+
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "custom",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceBridgeDbOnly
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Empty(lines);
+            Assert.Equal("No usable bridge lines were fetched from BridgeDB.", manager.BridgeValidationMessage);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
 }

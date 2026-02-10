@@ -114,6 +114,18 @@
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
+                                    <TextBlock Text="{DynamicResource Settings.BridgeSource}" Opacity="0.75" />
+                                    <ComboBox ItemsSource="{Binding State.BridgeSourceModeOptions}"
+                                              SelectedItem="{Binding State.SelectedBridgeSourceModeOption}" />
+                                    <TextBlock Text="{DynamicResource Settings.BridgeSourceHint}"
+                                               Opacity="0.7"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{DynamicResource Settings.BridgeSourceCredits}"
+                                               Opacity="0.65"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
                                     <TextBlock Text="{DynamicResource Settings.CustomBridges}" Opacity="0.75" />
                                     <TextBox Text="{Binding State.CustomBridges}"
                                              AcceptsReturn="True"

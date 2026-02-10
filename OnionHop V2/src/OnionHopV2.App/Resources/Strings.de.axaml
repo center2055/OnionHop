@@ -12,6 +12,8 @@
   <!-- Home -->
   <x:String x:Key="Home.Title">Verbindung</x:String>
   <x:String x:Key="Home.CurrentIp">Aktuelle IP</x:String>
+  <x:String x:Key="Home.SocksPort">SOCKS-Port</x:String>
+  <x:String x:Key="Home.HttpPort">HTTP-Port</x:String>
   <x:String x:Key="Home.Connect">Verbinden</x:String>
   <x:String x:Key="Home.Disconnect">Trennen</x:String>
   <x:String x:Key="Home.Cancel">Abbrechen</x:String>
@@ -69,6 +71,9 @@
   <x:String x:Key="Settings.BridgesTitle">Bridges &amp; zensierte Netzwerke</x:String>
   <x:String x:Key="Settings.UseBridges">Tor-Bridges verwenden (obfs4/snowflake/etc)</x:String>
   <x:String x:Key="Settings.BridgeType">Bridge-Typ</x:String>
+  <x:String x:Key="Settings.BridgeSource">Bridge-Quelle</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Auto probiert zuerst BridgeDB und wechselt bei Fehlern auf lokale Offline-Listen.</x:String>
+  <x:String x:Key="Settings.BridgeSourceCredits">Offline-Bridge-Fallback: Tor-Bridges-Namer von Chara-Freedom und Mitwirkenden.</x:String>
   <x:String x:Key="Settings.CustomBridges">Eigene Bridges (optional, &#252;berschreibt eingebaute)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Bridge-Zeilen von bridges.torproject.org einf&#252;gen...</x:String>
   <x:String x:Key="Settings.CustomSni">Eigene SNI/Front-Hosts (optional)</x:String>
@@ -127,6 +132,9 @@
   <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Custom">benutzerdefiniert</x:String>
+  <x:String x:Key="BridgeSource.Auto">Auto (BridgeDB -&gt; Offline)</x:String>
+  <x:String x:Key="BridgeSource.BridgeDbOnly">Nur BridgeDB</x:String>
+  <x:String x:Key="BridgeSource.OfflineOnly">Nur Offline</x:String>
 
   <!-- Language names -->
   <x:String x:Key="Language.English">Englisch</x:String>

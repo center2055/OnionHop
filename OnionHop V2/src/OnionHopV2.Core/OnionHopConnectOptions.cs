@@ -14,6 +14,9 @@ public sealed class OnionHopConnectOptions
     public const string ConnectionPaddingAuto = "Auto (recommended)";
     public const string ConnectionPaddingEnabled = "Enabled";
     public const string ConnectionPaddingDisabled = "Disabled";
+    public const string BridgeSourceAuto = "Auto (BridgeDB -> Offline)";
+    public const string BridgeSourceBridgeDbOnly = "BridgeDB only";
+    public const string BridgeSourceOfflineOnly = "Offline only";
 
     public const string DnsProviderCloudflare = "Cloudflare (DoH)";
     public const string DnsProviderGoogle = "Google (DoH)";
@@ -32,6 +35,7 @@ public sealed class OnionHopConnectOptions
     public bool UseCensoredMode { get; init; }
 
     public string SelectedBridgeType { get; init; } = "obfs4";
+    public string BridgeSourceMode { get; init; } = BridgeSourceAuto;
     public string? CustomBridges { get; init; }
     public string? CustomSniHosts { get; init; }
 

@@ -30,8 +30,15 @@ internal sealed class TorBridgeManager
     private static readonly string[] AutomaticBridgeFallbackChain = [WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType];
     private const string WebTunnelClientFileName = "webtunnel-client.exe";
     private const string BundledBridgeFilePrefix = "bridges-";
+    private const string CommunityBridgeFilePrefix = "bridges-community-";
     private const string BundledBridgeFileExtension = ".txt";
     private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromHours(12);
+    private enum BridgeSourcePreference
+    {
+        Auto,
+        BridgeDbOnly,
+        OfflineOnly
+    }
 
     private readonly string _baseDir;
     private readonly string _bridgeCachePath;
@@ -83,6 +90,21 @@ internal sealed class TorBridgeManager
             .ToList();
     }
 
+    private static BridgeSourcePreference ResolveBridgeSourcePreference(string? mode)
+    {
+        if (string.Equals(mode, OnionHopConnectOptions.BridgeSourceBridgeDbOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourcePreference.BridgeDbOnly;
+        }
+
+        if (string.Equals(mode, OnionHopConnectOptions.BridgeSourceOfflineOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourcePreference.OfflineOnly;
+        }
+
+        return BridgeSourcePreference.Auto;
+    }
+
     public static IReadOnlyList<string> GetBridgeTypeKeys(PluggableTransportConfig? config)
     {
         var bridgeKeys = config?.Bridges?.Keys?
@@ -130,6 +152,9 @@ internal sealed class TorBridgeManager
         CancellationToken token)
     {
         BridgeValidationMessage = null;
+        var sourcePreference = ResolveBridgeSourcePreference(options.BridgeSourceMode);
+        var allowBridgeDbFetch = sourcePreference != BridgeSourcePreference.OfflineOnly;
+        var allowOfflineFallback = sourcePreference != BridgeSourcePreference.BridgeDbOnly;
         var selectedBridgeType = ResolveSelectedBridgeType(options, config, log);
         IReadOnlyList<string> selected = Array.Empty<string>();
         var usingCustom = false;
@@ -160,18 +185,32 @@ internal sealed class TorBridgeManager
         }
         else
         {
-            var fetched = await TryFetchBridgeLinesAsync(selectedBridgeType, log, token).ConfigureAwait(false);
-            if (fetched.Count > 0)
+            if (allowBridgeDbFetch)
             {
-                selected = fetched;
+                var fetched = await TryFetchBridgeLinesAsync(selectedBridgeType, log, token).ConfigureAwait(false);
+                if (fetched.Count > 0)
+                {
+                    selected = fetched;
+                }
             }
 
-            if (selected.Count == 0)
+            if (selected.Count == 0 && allowOfflineFallback)
+            {
+                if (allowBridgeDbFetch && sourcePreference == BridgeSourcePreference.Auto)
+                {
+                    log($"BridgeDB fetch for {selectedBridgeType} was unavailable. Falling back to offline bridge lists.");
+                }
+
+                selected = TryLoadOfflineBridgeLines(selectedBridgeType, log);
+            }
+
+            if (selected.Count == 0 && allowOfflineFallback)
             {
                 selected = TryLoadBundledBridgeLines(selectedBridgeType, log);
             }
 
             if (selected.Count == 0 &&
+                allowOfflineFallback &&
                 config?.Bridges != null &&
                 config.Bridges.TryGetValue(selectedBridgeType, out var bridges) &&
                 bridges.Count > 0)
@@ -213,7 +252,7 @@ internal sealed class TorBridgeManager
         }
 
         // If custom bridges were provided but none are usable, fall back to bundled BridgeDB entries.
-        if (usingCustom && selected.Count == 0 && config?.Bridges != null &&
+        if (usingCustom && selected.Count == 0 && allowOfflineFallback && config?.Bridges != null &&
             config.Bridges.TryGetValue(selectedBridgeType, out var fallback) &&
             fallback.Count > 0)
         {
@@ -224,7 +263,12 @@ internal sealed class TorBridgeManager
                 .ToList();
         }
 
-        if (selected.Count == 0)
+        if (selected.Count == 0 && allowOfflineFallback)
+        {
+            selected = TryLoadOfflineBridgeLines(selectedBridgeType, log);
+        }
+
+        if (selected.Count == 0 && allowOfflineFallback)
         {
             selected = TryLoadBundledBridgeLines(selectedBridgeType, log);
         }
@@ -237,7 +281,12 @@ internal sealed class TorBridgeManager
 
         if (selected.Count == 0 && string.IsNullOrWhiteSpace(BridgeValidationMessage))
         {
-            BridgeValidationMessage = "No usable bridge lines were found (auto-fetch failed and bundled lines were not usable).";
+            BridgeValidationMessage = sourcePreference switch
+            {
+                BridgeSourcePreference.BridgeDbOnly => "No usable bridge lines were fetched from BridgeDB.",
+                BridgeSourcePreference.OfflineOnly => "No usable offline bridge lines were found.",
+                _ => "No usable bridge lines were found (BridgeDB and offline fallback both failed)."
+            };
         }
 
         return selected;
@@ -424,6 +473,8 @@ internal sealed class TorBridgeManager
                 line = line.Substring("Bridge ".Length).Trim();
             }
 
+            line = TrimTrailingBridgeAlias(line);
+
             if (!line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -451,6 +502,7 @@ internal sealed class TorBridgeManager
         foreach (Match match in WebTunnelBridgeRegex.Matches(content))
         {
             var line = NormalizeBridgeLine(match.Groups["line"].Success ? match.Groups["line"].Value : match.Value);
+            line = TrimTrailingBridgeAlias(line);
             if (!IsValidWebTunnelBridgeLine(line))
             {
                 continue;
@@ -477,6 +529,7 @@ internal sealed class TorBridgeManager
             }
 
             line = line.Substring(marker).Trim();
+            line = TrimTrailingBridgeAlias(line);
             if (!IsValidWebTunnelBridgeLine(line))
             {
                 continue;
@@ -523,6 +576,37 @@ internal sealed class TorBridgeManager
 
         normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
         return normalized.TrimEnd(',', ';', '.');
+    }
+
+    private static string TrimTrailingBridgeAlias(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = line.Trim();
+        var marker = trimmed.LastIndexOf(" - ", StringComparison.Ordinal);
+        if (marker <= 0 || marker + 3 >= trimmed.Length)
+        {
+            return trimmed;
+        }
+
+        var alias = trimmed[(marker + 3)..].Trim();
+        if (alias.Length == 0)
+        {
+            return trimmed;
+        }
+
+        // Bridge aliases are commonly appended as " - Name" in community lists.
+        // Keep key=value/endpoint-like suffixes untouched.
+        if (alias.Contains('=') || alias.Contains(':'))
+        {
+            return trimmed;
+        }
+
+        var withoutAlias = trimmed[..marker].TrimEnd();
+        return withoutAlias.Length == 0 ? trimmed : withoutAlias;
     }
 
     private static bool IsValidWebTunnelBridgeLine(string line)
@@ -1080,6 +1164,44 @@ internal sealed class TorBridgeManager
         return updated;
     }
 
+    private IReadOnlyList<string> TryLoadOfflineBridgeLines(string bridgeType, Action<string> log)
+    {
+        if (string.IsNullOrWhiteSpace(bridgeType))
+        {
+            return Array.Empty<string>();
+        }
+
+        foreach (var candidate in GetOfflineBridgeFileCandidates(bridgeType))
+        {
+            if (!File.Exists(candidate))
+            {
+                continue;
+            }
+
+            try
+            {
+                var content = File.ReadAllText(candidate);
+                var lines = ExtractBridgeLinesFromSource(content, bridgeType)
+                    .Where(line => !IsReservedOrPlaceholderBridgeLine(line))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                if (lines.Count == 0)
+                {
+                    continue;
+                }
+
+                log($"Loaded {lines.Count} offline {bridgeType} bridge lines.");
+                return lines;
+            }
+            catch
+            {
+                // Offline bridge file loading is best-effort.
+            }
+        }
+
+        return Array.Empty<string>();
+    }
+
     private IReadOnlyList<string> TryLoadBundledBridgeLines(string bridgeType, Action<string> log)
     {
         if (string.IsNullOrWhiteSpace(bridgeType))
@@ -1116,6 +1238,14 @@ internal sealed class TorBridgeManager
         }
 
         return Array.Empty<string>();
+    }
+
+    private IEnumerable<string> GetOfflineBridgeFileCandidates(string bridgeType)
+    {
+        var safeBridgeType = bridgeType.Trim().ToLowerInvariant();
+        var fileName = $"{CommunityBridgeFilePrefix}{safeBridgeType}{BundledBridgeFileExtension}";
+        yield return Path.Combine(_baseDir, "tor", "pluggable_transports", fileName);
+        yield return Path.Combine(_baseDir, "tor", fileName);
     }
 
     private IEnumerable<string> GetBundledBridgeFileCandidates(string bridgeType)

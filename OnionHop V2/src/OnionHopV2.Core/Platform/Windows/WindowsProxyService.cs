@@ -15,7 +15,7 @@ internal sealed class WindowsProxyService
 
     public bool IsApplied => _applied;
 
-    public void ApplyTorSocksProxy(int socksPort, Action<string> log)
+    public void ApplyTorProxy(int socksPort, int? httpPort, Action<string> log)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -35,11 +35,22 @@ internal sealed class WindowsProxyService
             _previousProxyEnabled = enabledValue;
         }
 
-        key.SetValue("ProxyServer", $"socks=127.0.0.1:{socksPort}", RegistryValueKind.String);
+        var httpValue = httpPort.HasValue
+            ? $"http=127.0.0.1:{httpPort.Value};https=127.0.0.1:{httpPort.Value};socks=127.0.0.1:{socksPort}"
+            : $"socks=127.0.0.1:{socksPort}";
+
+        key.SetValue("ProxyServer", httpValue, RegistryValueKind.String);
         key.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
 
         _applied = true;
-        log($"Proxy enabled: socks=127.0.0.1:{socksPort}");
+        if (httpPort.HasValue)
+        {
+            log($"Proxy enabled: http/https=127.0.0.1:{httpPort.Value}, socks=127.0.0.1:{socksPort}");
+        }
+        else
+        {
+            log($"Proxy enabled: socks=127.0.0.1:{socksPort}");
+        }
 
         InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
         InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
@@ -84,4 +95,3 @@ internal sealed class WindowsProxyService
     [DllImport("wininet.dll", SetLastError = true)]
     private static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
 }
-

@@ -12,6 +12,8 @@
   <!-- Home -->
   <x:String x:Key="Home.Title">Connection</x:String>
   <x:String x:Key="Home.CurrentIp">Current IP</x:String>
+  <x:String x:Key="Home.SocksPort">SOCKS Port</x:String>
+  <x:String x:Key="Home.HttpPort">HTTP Port</x:String>
   <x:String x:Key="Home.Connect">Connect</x:String>
   <x:String x:Key="Home.Disconnect">Disconnect</x:String>
   <x:String x:Key="Home.Cancel">Cancel</x:String>
@@ -69,6 +71,9 @@
   <x:String x:Key="Settings.BridgesTitle">Bridges &amp; Censored Networks</x:String>
   <x:String x:Key="Settings.UseBridges">Use Tor bridges (obfs4/snowflake/etc)</x:String>
   <x:String x:Key="Settings.BridgeType">Bridge type</x:String>
+  <x:String x:Key="Settings.BridgeSource">Bridge source</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Auto tries BridgeDB first, then switches to local offline lists if fetch fails.</x:String>
+  <x:String x:Key="Settings.BridgeSourceCredits">Offline bridge fallback data: Tor-Bridges-Namer by Chara-Freedom and contributors.</x:String>
   <x:String x:Key="Settings.CustomBridges">Custom bridges (optional, overrides built-in)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Custom SNI/front hosts (optional)</x:String>
@@ -127,6 +132,9 @@
   <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Custom">custom</x:String>
+  <x:String x:Key="BridgeSource.Auto">Auto (BridgeDB -> Offline)</x:String>
+  <x:String x:Key="BridgeSource.BridgeDbOnly">BridgeDB only</x:String>
+  <x:String x:Key="BridgeSource.OfflineOnly">Offline only</x:String>
 
   <!-- Language names -->
   <x:String x:Key="Language.English">English</x:String>

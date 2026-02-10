@@ -357,6 +357,10 @@ internal sealed class TorService : IDisposable
         var sb = new StringBuilder();
 
         sb.Append($"--SocksPort {config.SocksPort} ");
+        if (config.HttpTunnelPort.HasValue)
+        {
+            sb.Append($"--HTTPTunnelPort {config.HttpTunnelPort.Value} ");
+        }
         if (config.DnsPort.HasValue)
         {
             sb.Append($"--DNSPort 127.0.0.1:{config.DnsPort.Value} ");
@@ -521,6 +525,7 @@ internal sealed class TorLaunchConfig
 {
     public string TorPath { get; init; } = string.Empty;
     public int SocksPort { get; init; }
+    public int? HttpTunnelPort { get; init; }
     public int? DnsPort { get; init; }
     public string? DataDirectory { get; init; }
     public string GeoIpPath { get; init; } = string.Empty;

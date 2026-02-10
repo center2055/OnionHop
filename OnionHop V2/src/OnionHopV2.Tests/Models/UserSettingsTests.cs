@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OnionHopV2.Core;
 using OnionHopV2.Core.Models;
 using Xunit;
 
@@ -30,6 +31,7 @@ public sealed class UserSettingsTests
             UseTorBridges = true,
             UseCensoredMode = false,
             SelectedBridgeType = "snowflake",
+            BridgeSourceMode = OnionHopConnectOptions.BridgeSourceAuto,
             CustomBridges = "snowflake 1.2.3.4:443",
             CustomSniHosts = "sni.example.com",
             UseSnowflakeAmp = true,
@@ -54,6 +56,7 @@ public sealed class UserSettingsTests
         Assert.Equal(original.AutoStartMode, deserialized.AutoStartMode);
         Assert.Equal(original.SelectedLocation, deserialized.SelectedLocation);
         Assert.Equal(original.CustomBridges, deserialized.CustomBridges);
+        Assert.Equal(original.BridgeSourceMode, deserialized.BridgeSourceMode);
         Assert.Equal(original.CustomDohHost, deserialized.CustomDohHost);
         Assert.Equal(original.HybridTorApps, deserialized.HybridTorApps);
     }

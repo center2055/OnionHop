@@ -19,6 +19,7 @@ public sealed class UserSettings
     public bool UseTorBridges { get; set; }
     public bool UseCensoredMode { get; set; }
     public string? SelectedBridgeType { get; set; }
+    public string? BridgeSourceMode { get; set; }
     public string? CustomBridges { get; set; }
     public string? CustomSniHosts { get; set; }
     public bool UseSnowflakeAmp { get; set; }
