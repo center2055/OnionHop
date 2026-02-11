@@ -363,7 +363,10 @@ internal sealed class TorService : IDisposable
         }
         if (config.DnsPort.HasValue)
         {
-            sb.Append($"--DNSPort 127.0.0.1:{config.DnsPort.Value} ");
+            var dnsListenAddress = string.IsNullOrWhiteSpace(config.DnsListenAddress)
+                ? "127.0.0.1"
+                : config.DnsListenAddress.Trim();
+            sb.Append($"--DNSPort {dnsListenAddress}:{config.DnsPort.Value} ");
         }
         sb.Append($"--DataDirectory \"{dataDirectory}\" ");
         sb.Append($"--GeoIPFile \"{config.GeoIpPath}\" ");
@@ -470,7 +473,8 @@ internal sealed class TorService : IDisposable
             sb.Append($"--ExitNodes \"{{{config.ExitCountryCode}}}\" ");
         }
 
-        if (hasEntry || hasExit || hasExitFingerprint)
+        var strictNodes = hasEntry || hasExit || (hasExitFingerprint && config.StrictManualExitNodeFingerprint);
+        if (strictNodes)
         {
             sb.Append("--StrictNodes 1 ");
         }
@@ -527,6 +531,7 @@ internal sealed class TorLaunchConfig
     public int SocksPort { get; init; }
     public int? HttpTunnelPort { get; init; }
     public int? DnsPort { get; init; }
+    public string? DnsListenAddress { get; init; }
     public string? DataDirectory { get; init; }
     public string GeoIpPath { get; init; } = string.Empty;
     public string GeoIp6Path { get; init; } = string.Empty;
@@ -537,6 +542,7 @@ internal sealed class TorLaunchConfig
     public string? EntryCountryCode { get; init; }
     public string? ExitCountryCode { get; init; }
     public string? ExitNodeFingerprint { get; init; }
+    public bool StrictManualExitNodeFingerprint { get; init; } = true;
     public bool? ClientUseIpv6 { get; init; }
     public bool? HardwareAccel { get; init; }
     public string? ConnectionPadding { get; init; }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,8 +19,8 @@ public sealed class OnionHopClient : IDisposable
     private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-?]*[ -/]*[@-~]", RegexOptions.Compiled);
     private static readonly Regex SingBoxConnectionToRegex = new(@"connection to (?<dest>\S+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public const int DefaultSocksPort = 9050;
-    public const int DefaultHttpPort = 9080;
+    public const int DefaultSocksPort = OnionHopConnectOptions.DefaultSocksPort;
+    public const int DefaultHttpPort = OnionHopConnectOptions.DefaultHttpPort;
     public const int DefaultDnsPort = 53;
     private const int MaxBridgeLinesForLaunch = 24;
     private const int MaxBridgeArgumentCharsForLaunch = 12000;
@@ -76,6 +77,7 @@ public sealed class OnionHopClient : IDisposable
     private int _activeSocksPort = DefaultSocksPort;
     private int? _activeHttpPort;
     private int? _activeDnsPort;
+    private string? _activeDnsBindAddress;
 
     private readonly object _singBoxLogLock = new();
     private readonly Queue<string> _singBoxRecentLines = new();
@@ -198,29 +200,40 @@ public sealed class OnionHopClient : IDisposable
         }
         StartupLogger.Write("OnionHopClient.ConnectAsync: Dependencies OK");
 
-        _activeSocksPort = PortSelector.FindAvailablePort(DefaultSocksPort, additionalAttempts: 30);
-        if (_activeSocksPort != DefaultSocksPort)
+        var preferredSocksPort = NormalizePreferredProxyPort(options.PreferredSocksPort, DefaultSocksPort);
+        _activeSocksPort = PortSelector.FindAvailablePort(preferredSocksPort, additionalAttempts: 30);
+        if (_activeSocksPort != preferredSocksPort)
         {
-            RaiseLog($"SOCKS port {DefaultSocksPort} is busy. Using {_activeSocksPort}.");
+            RaiseLog($"SOCKS port {preferredSocksPort} is busy. Using {_activeSocksPort}.");
         }
 
-        _activeHttpPort = PortSelector.FindAvailablePort(DefaultHttpPort, additionalAttempts: 30);
-        if (_activeHttpPort != DefaultHttpPort)
+        var preferredHttpPort = NormalizePreferredProxyPort(options.PreferredHttpPort, DefaultHttpPort);
+        _activeHttpPort = PortSelector.FindAvailablePort(
+            preferredHttpPort,
+            additionalAttempts: 30,
+            excludedPorts: [_activeSocksPort]);
+        if (_activeHttpPort != preferredHttpPort)
         {
-            RaiseLog($"HTTP tunnel port {DefaultHttpPort} is busy. Using {_activeHttpPort}.");
+            RaiseLog($"HTTP tunnel port {preferredHttpPort} is busy. Using {_activeHttpPort}.");
         }
 
         _activeDnsPort = null;
+        _activeDnsBindAddress = null;
         if (options.OnionDnsProxyEnabled)
         {
-            var dnsCandidate = PortSelector.FindAvailablePort(DefaultDnsPort, additionalAttempts: 0);
-            if (dnsCandidate == DefaultDnsPort)
+            var dnsEndpoint = SelectOnionDnsEndpoint();
+            if (dnsEndpoint.HasValue)
             {
+                _activeDnsBindAddress = dnsEndpoint.Value.Address;
                 _activeDnsPort = DefaultDnsPort;
+                if (!string.Equals(_activeDnsBindAddress, "127.0.0.1", StringComparison.Ordinal))
+                {
+                    RaiseLog($"Onion DNS proxying: 127.0.0.1:{DefaultDnsPort} busy. Using {_activeDnsBindAddress}:{DefaultDnsPort}.");
+                }
             }
             else
             {
-                RaiseLog("Onion DNS proxying requested, but TCP/UDP port 53 is busy. Continuing without DNS proxying.");
+                RaiseLog("Onion DNS proxying requested, but all loopback candidates on TCP/UDP port 53 are busy (127.0.0.1, 127.0.0.2, 127.0.0.53). Continuing without DNS proxying.");
             }
         }
 
@@ -258,9 +271,9 @@ public sealed class OnionHopClient : IDisposable
                 {
                     RaiseLog(".onion DNS proxying requires Administrator; skipping.");
                 }
-                else if (_activeDnsPort == DefaultDnsPort)
+                else if (_activeDnsPort == DefaultDnsPort && !string.IsNullOrWhiteSpace(_activeDnsBindAddress))
                 {
-                    _onionDnsProxyService.Enable(RaiseLog);
+                    _onionDnsProxyService.Enable(_activeDnsBindAddress!, RaiseLog);
                 }
             }
 
@@ -276,7 +289,14 @@ public sealed class OnionHopClient : IDisposable
             }
             else
             {
-                _proxyService.ApplyTorProxy(_activeSocksPort, _activeHttpPort, RaiseLog);
+                if (UsesSystemProxyScope(resolvedOptions))
+                {
+                    _proxyService.ApplyTorProxy(_activeSocksPort, _activeHttpPort, RaiseLog);
+                }
+                else
+                {
+                    RaiseLog(BuildManualProxyHint(_activeSocksPort, _activeHttpPort));
+                }
             }
 
             _isConnected = true;
@@ -286,7 +306,9 @@ public sealed class OnionHopClient : IDisposable
                 ? (resolvedOptions.UseHybridRouting
                     ? "Tor is running. Hybrid routing is active (browser via Tor)."
                     : "Tor is running. VPN tunnel is active (all traffic via Tor).")
-                : "Tor is running. Proxy mode is active (apps must respect proxy settings).";
+                : UsesSystemProxyScope(resolvedOptions)
+                    ? "Tor is running. System proxy mode is active."
+                    : "Tor is running. Local proxy mode is active (configure apps manually).";
             PublishStatus();
 
             await RefreshIpAsync(updateStatusMessage: false, CancellationToken.None).ConfigureAwait(false);
@@ -563,6 +585,7 @@ public sealed class OnionHopClient : IDisposable
             _activeSocksPort = DefaultSocksPort;
             _activeHttpPort = null;
             _activeDnsPort = null;
+            _activeDnsBindAddress = null;
 
             if (!disableStatusUpdate)
             {
@@ -724,9 +747,13 @@ public sealed class OnionHopClient : IDisposable
             SelectedDnsProvider = options.SelectedDnsProvider,
             CustomDohHost = options.CustomDohHost,
             CustomDohPath = options.CustomDohPath,
+            ProxyScopeMode = options.ProxyScopeMode,
+            PreferredSocksPort = options.PreferredSocksPort,
+            PreferredHttpPort = options.PreferredHttpPort,
             RestrictedFirewallMode = options.RestrictedFirewallMode,
             AllowedPorts = options.AllowedPorts,
             OnionDnsProxyEnabled = options.OnionDnsProxyEnabled,
+            StrictManualExitNodeFingerprint = options.StrictManualExitNodeFingerprint,
             MaxCircuitInactivityMinutes = options.MaxCircuitInactivityMinutes,
             OpenConnectedPageEnabled = options.OpenConnectedPageEnabled,
             ConnectedPageUrl = options.ConnectedPageUrl,
@@ -820,6 +847,7 @@ public sealed class OnionHopClient : IDisposable
             SocksPort = _activeSocksPort,
             HttpTunnelPort = _activeHttpPort,
             DnsPort = options.OnionDnsProxyEnabled ? _activeDnsPort : null,
+            DnsListenAddress = _activeDnsBindAddress,
             GeoIpPath = geoIpPath,
             GeoIp6Path = geoIp6Path,
             BridgeLines = bridgeLines,
@@ -828,6 +856,7 @@ public sealed class OnionHopClient : IDisposable
             MaxCircuitDirtinessSeconds = maxCircuitMinutes * 60,
             ExitCountryCode = countryCode,
             ExitNodeFingerprint = options.ExitNodeFingerprint,
+            StrictManualExitNodeFingerprint = options.StrictManualExitNodeFingerprint,
             EntryCountryCode = entryCode,
             ClientUseIpv6 = ParseToggleMode(options.TorIpv6Mode),
             HardwareAccel = ParseToggleMode(options.HardwareAccelerationMode),
@@ -1373,6 +1402,50 @@ public sealed class OnionHopClient : IDisposable
         }
 
         return result.Count == 0 ? [80, 443] : result;
+    }
+
+    private static int NormalizePreferredProxyPort(int preferredPort, int fallbackPort)
+    {
+        return preferredPort is >= 1 and <= 65535
+            ? preferredPort
+            : fallbackPort;
+    }
+
+    private static bool UsesSystemProxyScope(OnionHopConnectOptions options)
+    {
+        return !string.Equals(
+            options.ProxyScopeMode,
+            OnionHopConnectOptions.ProxyScopeLocalOnly,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildManualProxyHint(int socksPort, int? httpPort)
+    {
+        if (httpPort.HasValue)
+        {
+            return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}, HTTP 127.0.0.1:{httpPort.Value}).";
+        }
+
+        return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}).";
+    }
+
+    private static (string Address, int Port)? SelectOnionDnsEndpoint()
+    {
+        var candidates = new[] { "127.0.0.1", "127.0.0.2", "127.0.0.53" };
+        foreach (var candidate in candidates)
+        {
+            if (!IPAddress.TryParse(candidate, out var address))
+            {
+                continue;
+            }
+
+            if (PortSelector.IsTcpAndUdpEndpointAvailable(address, DefaultDnsPort))
+            {
+                return (candidate, DefaultDnsPort);
+            }
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, Action<string> log)

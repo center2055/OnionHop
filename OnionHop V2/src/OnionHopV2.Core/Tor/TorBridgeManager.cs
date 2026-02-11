@@ -127,7 +127,18 @@ internal sealed class TorBridgeManager
             bridgeKeys.Add(WebTunnelBridgeType);
         }
 
-        var preferredOrder = new[] { AutomaticBridgeType, WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType, ConjureBridgeType, "meek-azure", "custom" };
+        if (!bridgeKeys.Any(key => string.Equals(key, ConjureBridgeType, StringComparison.OrdinalIgnoreCase))
+            && config?.PluggableTransports?.ContainsKey(ConjureBridgeType) == true)
+        {
+            bridgeKeys.Add(ConjureBridgeType);
+        }
+
+        if (!bridgeKeys.Any(key => string.Equals(key, "custom", StringComparison.OrdinalIgnoreCase)))
+        {
+            bridgeKeys.Add("custom");
+        }
+
+        var preferredOrder = new[] { AutomaticBridgeType, WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType, ConjureBridgeType, "meek-azure", "meek" };
         var result = new List<string>();
 
         foreach (var key in preferredOrder)
@@ -139,9 +150,17 @@ internal sealed class TorBridgeManager
         }
 
         var remaining = bridgeKeys
+            .Where(value => !string.Equals(value, "custom", StringComparison.OrdinalIgnoreCase))
             .Where(value => !result.Any(added => string.Equals(added, value, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase);
         result.AddRange(remaining);
+
+        if (bridgeKeys.Any(value => string.Equals(value, "custom", StringComparison.OrdinalIgnoreCase)))
+        {
+            result.RemoveAll(value => string.Equals(value, "custom", StringComparison.OrdinalIgnoreCase));
+            result.Add("custom");
+        }
+
         return result;
     }
 

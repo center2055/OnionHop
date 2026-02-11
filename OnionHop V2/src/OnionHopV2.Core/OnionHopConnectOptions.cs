@@ -6,6 +6,8 @@ public sealed class OnionHopConnectOptions
 
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
     public const string ConnectionModeTun = "TUN/VPN Mode (Admin)";
+    public const string ProxyScopeSystem = "System proxy (all apps)";
+    public const string ProxyScopeLocalOnly = "Local proxy only (manual apps)";
 
     public const string ToggleModeDefault = "Default";
     public const string ToggleModeEnabled = "Enabled";
@@ -22,6 +24,8 @@ public sealed class OnionHopConnectOptions
     public const string DnsProviderGoogle = "Google (DoH)";
     public const string DnsProviderQuad9 = "Quad9 (DoH)";
     public const string DnsProviderCustom = "Custom (DoH)";
+    public const int DefaultSocksPort = 9050;
+    public const int DefaultHttpPort = 9080;
 
     public string SelectedLocation { get; init; } = AutomaticLocationLabel;
     public string SelectedEntryLocation { get; init; } = AutomaticLocationLabel;
@@ -49,11 +53,15 @@ public sealed class OnionHopConnectOptions
     public string SelectedDnsProvider { get; init; } = DnsProviderCloudflare;
     public string? CustomDohHost { get; init; }
     public string? CustomDohPath { get; init; }
+    public string ProxyScopeMode { get; init; } = ProxyScopeSystem;
+    public int PreferredSocksPort { get; init; } = DefaultSocksPort;
+    public int PreferredHttpPort { get; init; } = DefaultHttpPort;
 
     public bool RestrictedFirewallMode { get; init; }
     public string? AllowedPorts { get; init; }
 
     public bool OnionDnsProxyEnabled { get; init; }
+    public bool StrictManualExitNodeFingerprint { get; init; } = true;
 
     public int MaxCircuitInactivityMinutes { get; init; } = 10;
 

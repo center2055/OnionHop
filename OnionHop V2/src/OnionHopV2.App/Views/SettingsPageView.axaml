@@ -57,6 +57,12 @@
                                           SelectedIndex="{Binding State.SelectedLanguageIndex}" />
                             </StackPanel>
 
+                            <ToggleSwitch Content="{DynamicResource Settings.ShowAdvancedHomeConnectionDetails}"
+                                          IsChecked="{Binding State.ShowAdvancedHomeConnectionDetails}" />
+                            <TextBlock Text="{DynamicResource Settings.ShowAdvancedHomeConnectionDetailsHint}"
+                                       Opacity="0.75"
+                                       TextWrapping="Wrap" />
+
                             <Grid IsVisible="{Binding State.SupportsNativeWindowChrome}"
                                   ColumnDefinitions="*,Auto"
                                   ColumnSpacing="12">
@@ -159,6 +165,36 @@
                             </StackPanel>
 
                             <Separator Height="1" Margin="0,8" Opacity="0.1" />
+
+                            <TextBlock Text="{DynamicResource Settings.ProxyModeTitle}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold" />
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{DynamicResource Settings.ProxyScope}" Opacity="0.75" />
+                                <ComboBox ItemsSource="{Binding State.ProxyScopeModeOptions}"
+                                          SelectedItem="{Binding State.SelectedProxyScopeModeOption}" />
+                                <TextBlock Text="{DynamicResource Settings.ProxyScopeHint}"
+                                           Opacity="0.7"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*"
+                                  ColumnSpacing="10">
+                                <StackPanel Grid.Column="0"
+                                            Spacing="6">
+                                    <TextBlock Text="{DynamicResource Settings.PreferredSocksPort}" Opacity="0.75" />
+                                    <TextBox Text="{Binding State.PreferredSocksPort}"
+                                             VerticalContentAlignment="Center" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1"
+                                            Spacing="6">
+                                    <TextBlock Text="{DynamicResource Settings.PreferredHttpPort}" Opacity="0.75" />
+                                    <TextBox Text="{Binding State.PreferredHttpPort}"
+                                             VerticalContentAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
 
                             <ToggleSwitch Content="{DynamicResource Settings.SecureDns}"
                                           IsChecked="{Binding State.UseCensoredMode}" />
@@ -264,6 +300,13 @@
                                          VerticalContentAlignment="Center"
                                          Watermark="Optional (e.g. $FINGERPRINT)" />
                             </StackPanel>
+
+                            <ToggleSwitch Content="{DynamicResource Settings.StrictManualExitFingerprint}"
+                                          IsChecked="{Binding State.StrictManualExitNodeFingerprint}"
+                                          IsEnabled="{Binding State.IsManualExitNodeFingerprintSet}" />
+                            <TextBlock Text="{DynamicResource Settings.StrictManualExitFingerprintHint}"
+                                       Opacity="0.75"
+                                       TextWrapping="Wrap" />
                         </StackPanel>
                     </suki:GlassCard>
 

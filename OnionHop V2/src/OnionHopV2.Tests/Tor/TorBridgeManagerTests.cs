@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -131,5 +134,28 @@ public sealed class TorBridgeManagerTests
         {
             try { Directory.Delete(dir, true); } catch { }
         }
+    }
+
+    [Fact]
+    public void GetBridgeTypeKeys_includes_conjure_when_transport_exists()
+    {
+        var config = new PluggableTransportConfig
+        {
+            PluggableTransports = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["conjure"] = "ClientTransportPlugin conjure exec pluggable_transports\\lyrebird.exe"
+            },
+            Bridges = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["obfs4"] = ["obfs4 1.2.3.4:443 74FAD13168806246602538555B5521A0383A1875 cert=abc iat-mode=0"],
+                ["meek"] = ["meek_lite 192.0.2.20:80 url=https://example.test front=www.example.test"]
+            }
+        };
+
+        var keys = TorBridgeManager.GetBridgeTypeKeys(config);
+
+        Assert.Contains(keys, key => string.Equals(key, "conjure", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(keys, key => string.Equals(key, "custom", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("custom", Assert.Single(keys.Skip(Math.Max(0, keys.Count - 1))));
     }
 }

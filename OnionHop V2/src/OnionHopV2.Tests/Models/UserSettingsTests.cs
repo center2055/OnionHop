@@ -42,6 +42,11 @@ public sealed class UserSettingsTests
             SelectedDnsProvider = "Quad9 (DoH)",
             CustomDohHost = "https://dns.quad9.net/dns-query",
             CustomDohPath = "/dns-query",
+            ProxyScopeMode = OnionHopConnectOptions.ProxyScopeLocalOnly,
+            PreferredSocksPort = 19050,
+            PreferredHttpPort = 19080,
+            StrictManualExitNodeFingerprint = false,
+            ShowAdvancedHomeConnectionDetails = true,
             HybridRouteAllWebTraffic = true,
             HybridBlockQuicForTorApps = false,
             HybridTorApps = "firefox.exe",
@@ -58,6 +63,11 @@ public sealed class UserSettingsTests
         Assert.Equal(original.CustomBridges, deserialized.CustomBridges);
         Assert.Equal(original.BridgeSourceMode, deserialized.BridgeSourceMode);
         Assert.Equal(original.CustomDohHost, deserialized.CustomDohHost);
+        Assert.Equal(original.ProxyScopeMode, deserialized.ProxyScopeMode);
+        Assert.Equal(original.PreferredSocksPort, deserialized.PreferredSocksPort);
+        Assert.Equal(original.PreferredHttpPort, deserialized.PreferredHttpPort);
+        Assert.Equal(original.StrictManualExitNodeFingerprint, deserialized.StrictManualExitNodeFingerprint);
+        Assert.Equal(original.ShowAdvancedHomeConnectionDetails, deserialized.ShowAdvancedHomeConnectionDetails);
         Assert.Equal(original.HybridTorApps, deserialized.HybridTorApps);
     }
 

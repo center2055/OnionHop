@@ -14,6 +14,7 @@
   <x:String x:Key="Home.CurrentIp">Current IP</x:String>
   <x:String x:Key="Home.SocksPort">SOCKS Port</x:String>
   <x:String x:Key="Home.HttpPort">HTTP Port</x:String>
+  <x:String x:Key="Home.ManualExitFingerprint">Manual Exit Fingerprint</x:String>
   <x:String x:Key="Home.Connect">Connect</x:String>
   <x:String x:Key="Home.Disconnect">Disconnect</x:String>
   <x:String x:Key="Home.Cancel">Cancel</x:String>
@@ -64,6 +65,8 @@
   <x:String x:Key="Settings.DarkMode">Dark mode</x:String>
   <x:String x:Key="Settings.NativeChrome">Use native window chrome (titlebar/buttons)</x:String>
   <x:String x:Key="Settings.Language">Language</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">Show advanced connection details on Home</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">Shows active SOCKS/HTTP ports and manual exit fingerprint status on the Home card.</x:String>
   <x:String x:Key="Settings.Maintenance">Maintenance</x:String>
   <x:String x:Key="Settings.ResetHint">Resets all OnionHop V2 settings back to defaults.</x:String>
   <x:String x:Key="Settings.RestoreDefaults">Restore default settings</x:String>
@@ -81,6 +84,11 @@
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: Use AMP cache (for blocked networks)</x:String>
   <x:String x:Key="Settings.AmpCacheUrl">AMP cache URL (optional)</x:String>
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
+  <x:String x:Key="Settings.ProxyModeTitle">Proxy Mode</x:String>
+  <x:String x:Key="Settings.ProxyScope">Proxy behavior</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">System proxy updates Windows proxy for all apps. Local-only keeps settings untouched so you configure apps manually.</x:String>
+  <x:String x:Key="Settings.PreferredSocksPort">Preferred SOCKS port</x:String>
+  <x:String x:Key="Settings.PreferredHttpPort">Preferred HTTP tunnel port</x:String>
 
   <x:String x:Key="Settings.SecureDns">Secure DNS (DoH) in VPN mode</x:String>
   <x:String x:Key="Settings.DnsProvider">DNS Provider</x:String>
@@ -106,6 +114,8 @@
   <x:String x:Key="Settings.AllowedPorts">Allowed ports</x:String>
   <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
   <x:String x:Key="Settings.EntryExitTip">Tip: restricting entry/exit nodes can reduce reliability and speed.</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprint">Strict manual exit fingerprint (fail if unavailable)</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprintHint">Disable this to allow fallback exits when the selected fingerprint is unavailable.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split Tunneling (Hybrid mode)</x:String>
   <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, you can choose which apps use Tor and which go direct. One process name per line (example: chrome.exe).</x:String>
@@ -135,6 +145,8 @@
   <x:String x:Key="BridgeSource.Auto">Auto (BridgeDB -> Offline)</x:String>
   <x:String x:Key="BridgeSource.BridgeDbOnly">BridgeDB only</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Offline only</x:String>
+  <x:String x:Key="ProxyScope.System">System proxy (all apps)</x:String>
+  <x:String x:Key="ProxyScope.LocalOnly">Local proxy only (manual apps)</x:String>
 
   <!-- Language names -->
   <x:String x:Key="Language.English">English</x:String>

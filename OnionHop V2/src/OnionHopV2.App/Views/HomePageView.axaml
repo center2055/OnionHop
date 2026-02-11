@@ -42,6 +42,32 @@
                                FontSize="18"
                                FontWeight="Bold"
                                HorizontalAlignment="Right" />
+                    <StackPanel Spacing="2"
+                                IsVisible="{Binding State.ShowAdvancedHomeConnectionDetails}">
+                        <TextBlock Text="{DynamicResource Home.SocksPort}"
+                                   Opacity="0.7"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding State.SocksProxyPort}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Text="{DynamicResource Home.HttpPort}"
+                                   Opacity="0.7"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding State.HttpProxyPort}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Text="{DynamicResource Home.ManualExitFingerprint}"
+                                   Opacity="0.7"
+                                   HorizontalAlignment="Right"
+                                   IsVisible="{Binding State.IsManualExitNodeFingerprintSet}" />
+                        <TextBlock Text="{Binding State.ManualExitFingerprintSummary}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Right"
+                                   IsVisible="{Binding State.IsManualExitNodeFingerprintSet}" />
+                    </StackPanel>
                 </StackPanel>
 
                 <ProgressBar Grid.Row="1"

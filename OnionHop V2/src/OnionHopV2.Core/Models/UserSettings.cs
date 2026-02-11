@@ -30,9 +30,14 @@ public sealed class UserSettings
     public string? SelectedDnsProvider { get; set; }
     public string? CustomDohHost { get; set; }
     public string? CustomDohPath { get; set; }
+    public string? ProxyScopeMode { get; set; }
+    public int? PreferredSocksPort { get; set; }
+    public int? PreferredHttpPort { get; set; }
     public bool RestrictedFirewallMode { get; set; }
     public string? AllowedPorts { get; set; }
     public bool OnionDnsProxyEnabled { get; set; }
+    public bool? StrictManualExitNodeFingerprint { get; set; }
+    public bool ShowAdvancedHomeConnectionDetails { get; set; }
     public int? MaxCircuitInactivityMinutes { get; set; }
     public bool OpenConnectedPageEnabled { get; set; }
     public string? ConnectedPageUrl { get; set; }

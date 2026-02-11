@@ -7,7 +7,7 @@ internal sealed class WindowsOnionDnsProxyService
 {
     private const string RuleComment = "OnionHopV2-OnionDnsProxy";
 
-    public bool Enable(Action<string> log)
+    public bool Enable(string nameServerAddress, Action<string> log)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -22,10 +22,13 @@ internal sealed class WindowsOnionDnsProxyService
 
         try
         {
+            var safeNameServer = string.IsNullOrWhiteSpace(nameServerAddress)
+                ? "127.0.0.1"
+                : nameServerAddress.Trim();
             RemoveRule(log);
             ExecutePowerShell(
-                "$ErrorActionPreference='Stop'; Add-DnsClientNrptRule -Namespace '.onion' -NameServers '127.0.0.1' -Comment '" + RuleComment + "' | Out-Null");
-            log(".onion DNS proxying enabled (NRPT rule added).");
+                "$ErrorActionPreference='Stop'; Add-DnsClientNrptRule -Namespace '.onion' -NameServers '" + safeNameServer + "' -Comment '" + RuleComment + "' | Out-Null");
+            log($".onion DNS proxying enabled (NRPT rule added, nameserver={safeNameServer}).");
             return true;
         }
         catch (Exception ex)

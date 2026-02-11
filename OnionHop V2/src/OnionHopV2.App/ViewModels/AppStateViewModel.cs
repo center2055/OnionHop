@@ -29,6 +29,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string AutomaticLocationLabel = "Automatic";
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
     public const string ConnectionModeTun = "TUN/VPN Mode (Admin)";
+    public const string ProxyScopeSystem = OnionHopConnectOptions.ProxyScopeSystem;
+    public const string ProxyScopeLocalOnly = OnionHopConnectOptions.ProxyScopeLocalOnly;
     public const string AutoStartModeOff = "Off";
     public const string AutoStartModeOn = "On";
     public const string AutoStartModeMinimized = "On (Minimized)";
@@ -41,6 +43,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string BridgeSourceAuto = OnionHopConnectOptions.BridgeSourceAuto;
     public const string BridgeSourceBridgeDbOnly = OnionHopConnectOptions.BridgeSourceBridgeDbOnly;
     public const string BridgeSourceOfflineOnly = OnionHopConnectOptions.BridgeSourceOfflineOnly;
+    private static readonly Regex ExitFingerprintRegex = new("^[A-F0-9]{40}$", RegexOptions.Compiled);
     private static readonly Dictionary<string, string> RuntimeStatusResourceMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Disconnected"] = "Status.Disconnected",
@@ -97,9 +100,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(SelectedDnsProvider),
         nameof(CustomDohHost),
         nameof(CustomDohPath),
+        nameof(ProxyScopeMode),
+        nameof(PreferredSocksPort),
+        nameof(PreferredHttpPort),
         nameof(RestrictedFirewallMode),
         nameof(AllowedPorts),
         nameof(OnionDnsProxyEnabled),
+        nameof(StrictManualExitNodeFingerprint),
+        nameof(ShowAdvancedHomeConnectionDetails),
         nameof(MaxCircuitInactivityMinutes),
         nameof(OpenConnectedPageEnabled),
         nameof(ConnectedPageUrl),
@@ -159,6 +167,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             DnsProviderGoogle,
             DnsProviderQuad9,
             DnsProviderCustom
+        ];
+
+        ProxyScopeModes =
+        [
+            ProxyScopeSystem,
+            ProxyScopeLocalOnly
         ];
 
         TorOptionModes =
@@ -224,6 +238,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> BridgeSourceModes { get; }
     public ObservableCollection<LocalizedOption> BridgeSourceModeOptions { get; } = [];
     public ObservableCollection<string> DnsProviders { get; }
+    public ObservableCollection<string> ProxyScopeModes { get; }
+    public ObservableCollection<LocalizedOption> ProxyScopeModeOptions { get; } = [];
     public ObservableCollection<string> TorOptionModes { get; }
     public ObservableCollection<string> ConnectionPaddingModes { get; }
     public ObservableCollection<LocalizedOption> LanguageOptions { get; } = [];
@@ -265,9 +281,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _selectedDnsProvider = DnsProviderCloudflare;
     [ObservableProperty] private string _customDohHost = string.Empty;
     [ObservableProperty] private string _customDohPath = "/dns-query";
+    [ObservableProperty] private string _proxyScopeMode = ProxyScopeSystem;
+    [ObservableProperty] private string _preferredSocksPort = OnionHopConnectOptions.DefaultSocksPort.ToString();
+    [ObservableProperty] private string _preferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
     [ObservableProperty] private bool _restrictedFirewallMode;
     [ObservableProperty] private string _allowedPorts = DefaultAllowedPorts;
     [ObservableProperty] private bool _onionDnsProxyEnabled;
+    [ObservableProperty] private bool _strictManualExitNodeFingerprint = true;
+    [ObservableProperty] private bool _showAdvancedHomeConnectionDetails;
     [ObservableProperty] private int _maxCircuitInactivityMinutes = 10;
     [ObservableProperty] private bool _openConnectedPageEnabled;
     [ObservableProperty] private string _connectedPageUrl = DefaultConnectedPageUrl;
@@ -281,6 +302,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private LocalizedOption? _selectedEntryLocationOption;
     [ObservableProperty] private LocalizedOption? _selectedBridgeTypeOption;
     [ObservableProperty] private LocalizedOption? _selectedBridgeSourceModeOption;
+    [ObservableProperty] private LocalizedOption? _selectedProxyScopeModeOption;
     [ObservableProperty] private LocalizedOption? _selectedLanguageOption;
     [ObservableProperty] private LocalizedOption? _selectedAutoStartModeOption;
     [ObservableProperty] private LocalizedOption? _selectedTorIpv6ModeOption;
@@ -335,6 +357,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool UseCustomBridges => string.Equals(SelectedBridgeType, "custom", StringComparison.OrdinalIgnoreCase);
     public bool IsSnowflakeBridgeSelected => string.Equals(SelectedBridgeType, "snowflake", StringComparison.OrdinalIgnoreCase);
     public bool CanUseOnionDnsProxy => OperatingSystem.IsWindows() && WindowsAdmin.IsAdministrator();
+    public string ManualExitFingerprintSummary => BuildFingerprintSummary(ExitNodeFingerprint);
     public bool UseCustomChrome => !UseNativeTheme;
     public bool SupportsNativeWindowChrome => true;
     public bool CanConfigureSplitTunneling => IsTunMode && UseHybridRouting;
@@ -464,6 +487,32 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
     }
 
+    partial void OnProxyScopeModeChanged(string value)
+    {
+        var normalized = NormalizeProxyScopeMode(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            ProxyScopeMode = normalized;
+            return;
+        }
+
+        SelectedProxyScopeModeOption = ProxyScopeModeOptions
+            .FirstOrDefault(option => string.Equals(option.Value, normalized, StringComparison.Ordinal));
+    }
+
+    partial void OnSelectedProxyScopeModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(ProxyScopeMode, value.Value, StringComparison.Ordinal))
+        {
+            ProxyScopeMode = value.Value;
+        }
+    }
+
     partial void OnUseTorBridgesChanged(bool value)
     {
         OnPropertyChanged(nameof(CanSelectEntryLocation));
@@ -587,6 +636,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         OnPropertyChanged(nameof(IsManualExitNodeFingerprintSet));
         OnPropertyChanged(nameof(CanSelectExitLocation));
+        OnPropertyChanged(nameof(ManualExitFingerprintSummary));
         if (IsManualExitNodeFingerprintSet &&
             !string.Equals(SelectedLocation, AutomaticLocationLabel, StringComparison.Ordinal))
         {
@@ -872,6 +922,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         _connectCts?.Dispose();
         _connectCts = new CancellationTokenSource();
 
+        if (!TryValidateConnectInputs(out var validationError))
+        {
+            StatusMessage = validationError;
+            AppendLog(validationError);
+            return;
+        }
+
         var options = BuildConnectOptions();
 
         try
@@ -985,9 +1042,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedDnsProvider = DnsProviderCloudflare;
             CustomDohHost = string.Empty;
             CustomDohPath = "/dns-query";
+            ProxyScopeMode = ProxyScopeSystem;
+            PreferredSocksPort = OnionHopConnectOptions.DefaultSocksPort.ToString();
+            PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
             RestrictedFirewallMode = false;
             AllowedPorts = DefaultAllowedPorts;
             OnionDnsProxyEnabled = false;
+            StrictManualExitNodeFingerprint = true;
+            ShowAdvancedHomeConnectionDetails = false;
             MaxCircuitInactivityMinutes = 10;
             OpenConnectedPageEnabled = false;
             ConnectedPageUrl = DefaultConnectedPageUrl;
@@ -1025,6 +1087,59 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         StatusMessage = LocalizationService.Get("Status.DefaultsRestored");
     }
 
+    private bool TryValidateConnectInputs(out string error)
+    {
+        error = string.Empty;
+
+        if (IsManualExitNodeFingerprintSet && !ExitFingerprintRegex.IsMatch(ExitNodeFingerprint))
+        {
+            error = "Manual exit fingerprint must be exactly 40 hexadecimal characters.";
+            return false;
+        }
+
+        if (!TryParsePreferredProxyPort(PreferredSocksPort, out var socksPort))
+        {
+            error = "Preferred SOCKS port is invalid. Use a port between 1 and 65535.";
+            return false;
+        }
+
+        if (!TryParsePreferredProxyPort(PreferredHttpPort, out var httpPort))
+        {
+            error = "Preferred HTTP port is invalid. Use a port between 1 and 65535.";
+            return false;
+        }
+
+        if (socksPort == httpPort)
+        {
+            error = "Preferred SOCKS and HTTP ports must be different.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryParsePreferredProxyPort(string raw, out int port)
+    {
+        port = 0;
+        if (!int.TryParse(raw, out var parsed))
+        {
+            return false;
+        }
+
+        if (parsed is < 1 or > 65535)
+        {
+            return false;
+        }
+
+        port = parsed;
+        return true;
+    }
+
+    private static int ParsePreferredProxyPort(string raw, int fallback)
+    {
+        return TryParsePreferredProxyPort(raw, out var port) ? port : fallback;
+    }
+
     private OnionHopConnectOptions BuildConnectOptions()
     {
         return new OnionHopConnectOptions
@@ -1049,9 +1164,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedDnsProvider = SelectedDnsProvider,
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
+            ProxyScopeMode = ProxyScopeMode,
+            PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
+            PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
             OnionDnsProxyEnabled = OnionDnsProxyEnabled,
+            StrictManualExitNodeFingerprint = StrictManualExitNodeFingerprint,
             MaxCircuitInactivityMinutes = MaxCircuitInactivityMinutes,
             OpenConnectedPageEnabled = OpenConnectedPageEnabled,
             ConnectedPageUrl = ConnectedPageUrl,
@@ -1240,9 +1359,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             CustomDohHost = settings.CustomDohHost ?? string.Empty;
             CustomDohPath = string.IsNullOrWhiteSpace(settings.CustomDohPath) ? "/dns-query" : settings.CustomDohPath;
+            ProxyScopeMode = NormalizeProxyScopeMode(settings.ProxyScopeMode);
+            PreferredSocksPort = (settings.PreferredSocksPort is >= 1 and <= 65535
+                ? settings.PreferredSocksPort.Value
+                : OnionHopConnectOptions.DefaultSocksPort).ToString();
+            PreferredHttpPort = (settings.PreferredHttpPort is >= 1 and <= 65535
+                ? settings.PreferredHttpPort.Value
+                : OnionHopConnectOptions.DefaultHttpPort).ToString();
             RestrictedFirewallMode = settings.RestrictedFirewallMode;
             AllowedPorts = string.IsNullOrWhiteSpace(settings.AllowedPorts) ? DefaultAllowedPorts : settings.AllowedPorts;
             OnionDnsProxyEnabled = settings.OnionDnsProxyEnabled;
+            StrictManualExitNodeFingerprint = settings.StrictManualExitNodeFingerprint ?? true;
+            ShowAdvancedHomeConnectionDetails = settings.ShowAdvancedHomeConnectionDetails;
             MaxCircuitInactivityMinutes = settings.MaxCircuitInactivityMinutes ?? 10;
             OpenConnectedPageEnabled = settings.OpenConnectedPageEnabled;
             ConnectedPageUrl = string.IsNullOrWhiteSpace(settings.ConnectedPageUrl) ? DefaultConnectedPageUrl : settings.ConnectedPageUrl;
@@ -1338,9 +1466,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedDnsProvider = SelectedDnsProvider,
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
+            ProxyScopeMode = ProxyScopeMode,
+            PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
+            PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
             OnionDnsProxyEnabled = OnionDnsProxyEnabled,
+            StrictManualExitNodeFingerprint = StrictManualExitNodeFingerprint,
+            ShowAdvancedHomeConnectionDetails = ShowAdvancedHomeConnectionDetails,
             MaxCircuitInactivityMinutes = MaxCircuitInactivityMinutes,
             OpenConnectedPageEnabled = OpenConnectedPageEnabled,
             ConnectedPageUrl = ConnectedPageUrl,
@@ -1423,6 +1556,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         ConnectionModeOptions.Add(new LocalizedOption(ConnectionModeTun, LocalizationService.Get("Home.ModeTun")));
         SelectedConnectionModeOption = ConnectionModeOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedConnectionMode, StringComparison.Ordinal))
                                      ?? ConnectionModeOptions.FirstOrDefault();
+        RefreshProxyScopeOptions();
 
         LocationOptions.Clear();
         foreach (var location in Locations)
@@ -1462,6 +1596,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         SelectedBridgeSourceModeOption = BridgeSourceModeOptions.FirstOrDefault(option => string.Equals(option.Value, BridgeSourceMode, StringComparison.Ordinal))
                                        ?? BridgeSourceModeOptions.FirstOrDefault();
+    }
+
+    private void RefreshProxyScopeOptions()
+    {
+        ProxyScopeModeOptions.Clear();
+        foreach (var mode in ProxyScopeModes)
+        {
+            ProxyScopeModeOptions.Add(new LocalizedOption(mode, LocalizeProxyScopeMode(mode)));
+        }
+
+        SelectedProxyScopeModeOption = ProxyScopeModeOptions.FirstOrDefault(option => string.Equals(option.Value, ProxyScopeMode, StringComparison.Ordinal))
+                                   ?? ProxyScopeModeOptions.FirstOrDefault();
     }
 
     private void RefreshAutoStartModeOptions()
@@ -1518,6 +1664,22 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         return normalized.ToUpperInvariant();
     }
 
+    private static string BuildFingerprintSummary(string fingerprint)
+    {
+        if (string.IsNullOrWhiteSpace(fingerprint))
+        {
+            return "--";
+        }
+
+        var normalized = NormalizeExitNodeFingerprint(fingerprint);
+        if (normalized.Length <= 16)
+        {
+            return normalized;
+        }
+
+        return $"{normalized[..8]}...{normalized[^8..]}";
+    }
+
     private string GetLocationLabel(string location)
     {
         if (string.Equals(location, AutomaticLocationLabel, StringComparison.Ordinal))
@@ -1568,6 +1730,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             "snowflake" => LocalizationService.Get("BridgeType.Snowflake"),
             "conjure" => LocalizationService.Get("BridgeType.Conjure"),
             "webtunnel" => LocalizationService.Get("BridgeType.Webtunnel"),
+            "meek" => LocalizationService.Get("BridgeType.MeekAzure"),
             "meek-azure" => LocalizationService.Get("BridgeType.MeekAzure"),
             "custom" => LocalizationService.Get("BridgeType.Custom"),
             _ => bridgeType
@@ -1582,6 +1745,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BridgeSourceBridgeDbOnly => LocalizationService.Get("BridgeSource.BridgeDbOnly"),
             BridgeSourceOfflineOnly => LocalizationService.Get("BridgeSource.OfflineOnly"),
             _ => sourceMode
+        };
+    }
+
+    private static string LocalizeProxyScopeMode(string mode)
+    {
+        return mode switch
+        {
+            ProxyScopeSystem => LocalizationService.Get("ProxyScope.System"),
+            ProxyScopeLocalOnly => LocalizationService.Get("ProxyScope.LocalOnly"),
+            _ => mode
         };
     }
 
@@ -1603,6 +1776,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return BridgeSourceAuto;
+    }
+
+    private static string NormalizeProxyScopeMode(string? mode)
+    {
+        if (string.Equals(mode, ProxyScopeLocalOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return ProxyScopeLocalOnly;
+        }
+
+        return ProxyScopeSystem;
     }
 
     private static string LocalizeRuntimeText(string? value)
