@@ -19,7 +19,7 @@
 - **Proxy Mode (recommended):** sets the Windows proxy to Tor's local SOCKS5 endpoint.
 - **TUN/VPN Mode (Admin):** starts a system-wide tunnel via **sing-box + Wintun**.
 
-V2 adds a redesigned UI and stronger routing controls (including **perâ€‘app split tunneling** in Hybrid mode).
+V2 adds a redesigned UI and stronger routing controls (including **per-app split tunneling** in Hybrid mode).
 
 > **Disclaimer**
 > OnionHop is provided "as-is". Tor usage can be illegal or restricted in some jurisdictions. You are responsible for complying with local laws and regulations.
@@ -43,7 +43,7 @@ V2 adds a redesigned UI and stronger routing controls (including **perâ€‘ap
 
 Notes
 - Kill Switch works only in strict TUN (Hybrid off) and needs admin rights to add/remove firewall rules.  
-- `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox â€œProxy DNS when using SOCKS v5â€).  
+- `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox "Proxy DNS when using SOCKS v5").  
 
 ---
 
@@ -91,8 +91,7 @@ OnionHop stores settings here:
 
 ## Repository layout
 
-- `OnionHop V2/` â€“ OnionHop V2 (Avalonia UI)
-- `OnionHop/` â€“ legacy OnionHop v1.x (WPF) codebase
+- `OnionHop/` - OnionHop V2 (Avalonia UI)
 
 ---
 

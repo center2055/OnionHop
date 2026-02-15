@@ -35,7 +35,7 @@ function Remove-PathWithRetry {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$solutionRoot = Join-Path $repoRoot "OnionHop V2"
+$solutionRoot = Join-Path $repoRoot "OnionHop"
 $projectDir = Join-Path $solutionRoot "src\\OnionHopV2.App"
 $csproj = Join-Path $projectDir "OnionHopV2.App.csproj"
 
