@@ -22,7 +22,7 @@ public sealed class OnionHopClient : IDisposable
     public const int DefaultSocksPort = OnionHopConnectOptions.DefaultSocksPort;
     public const int DefaultHttpPort = OnionHopConnectOptions.DefaultHttpPort;
     public const int DefaultDnsPort = 53;
-    private const int MaxBridgeLinesForLaunch = 24;
+    private const int MaxBridgeLinesForLaunch = 64;
     private const int MaxBridgeArgumentCharsForLaunch = 12000;
 
     public readonly record struct StatusUpdate(
@@ -221,7 +221,7 @@ public sealed class OnionHopClient : IDisposable
         _activeDnsBindAddress = null;
         if (options.OnionDnsProxyEnabled)
         {
-            var dnsEndpoint = SelectOnionDnsEndpoint();
+            var dnsEndpoint = SelectOnionDnsEndpoint(out var attemptedDnsCandidates);
             if (dnsEndpoint.HasValue)
             {
                 _activeDnsBindAddress = dnsEndpoint.Value.Address;
@@ -233,7 +233,10 @@ public sealed class OnionHopClient : IDisposable
             }
             else
             {
-                RaiseLog("Onion DNS proxying requested, but all loopback candidates on TCP/UDP port 53 are busy (127.0.0.1, 127.0.0.2, 127.0.0.53). Continuing without DNS proxying.");
+                var attemptedList = attemptedDnsCandidates.Count == 0
+                    ? "none"
+                    : string.Join(", ", attemptedDnsCandidates);
+                RaiseLog($"Onion DNS proxying requested, but all tested loopback candidates on TCP/UDP port 53 are busy ({attemptedList}). Continuing without DNS proxying.");
             }
         }
 
@@ -1429,9 +1432,10 @@ public sealed class OnionHopClient : IDisposable
         return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}).";
     }
 
-    private static (string Address, int Port)? SelectOnionDnsEndpoint()
+    private static (string Address, int Port)? SelectOnionDnsEndpoint(out IReadOnlyList<string> attemptedCandidates)
     {
-        var candidates = new[] { "127.0.0.1", "127.0.0.2", "127.0.0.53" };
+        var attempted = new List<string>();
+        var candidates = BuildOnionDnsLoopbackCandidates();
         foreach (var candidate in candidates)
         {
             if (!IPAddress.TryParse(candidate, out var address))
@@ -1439,13 +1443,39 @@ public sealed class OnionHopClient : IDisposable
                 continue;
             }
 
+            attempted.Add(candidate);
             if (PortSelector.IsTcpAndUdpEndpointAvailable(address, DefaultDnsPort))
             {
+                attemptedCandidates = attempted;
                 return (candidate, DefaultDnsPort);
             }
         }
 
+        attemptedCandidates = attempted;
         return null;
+    }
+
+    private static IReadOnlyList<string> BuildOnionDnsLoopbackCandidates()
+    {
+        var candidates = new List<string>
+        {
+            "127.0.0.1",
+            "127.0.0.2",
+            "127.0.0.53",
+            "127.0.0.54",
+            "127.0.0.100",
+            "127.0.1.1",
+            "::1"
+        };
+
+        for (var suffix = 3; suffix <= 32; suffix++)
+        {
+            candidates.Add($"127.0.0.{suffix}");
+        }
+
+        return candidates
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
     }
 
     private static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, Action<string> log)

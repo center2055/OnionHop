@@ -366,7 +366,15 @@ internal sealed class TorService : IDisposable
             var dnsListenAddress = string.IsNullOrWhiteSpace(config.DnsListenAddress)
                 ? "127.0.0.1"
                 : config.DnsListenAddress.Trim();
-            sb.Append($"--DNSPort {dnsListenAddress}:{config.DnsPort.Value} ");
+            var dnsEndpointAddress = dnsListenAddress;
+            if (IPAddress.TryParse(dnsListenAddress, out var dnsIpAddress) &&
+                dnsIpAddress.AddressFamily == AddressFamily.InterNetworkV6 &&
+                !dnsListenAddress.StartsWith("[", StringComparison.Ordinal))
+            {
+                dnsEndpointAddress = $"[{dnsListenAddress}]";
+            }
+
+            sb.Append($"--DNSPort {dnsEndpointAddress}:{config.DnsPort.Value} ");
         }
         sb.Append($"--DataDirectory \"{dataDirectory}\" ");
         sb.Append($"--GeoIPFile \"{config.GeoIpPath}\" ");

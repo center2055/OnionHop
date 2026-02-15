@@ -344,7 +344,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool IsBusy => IsConnecting || IsDisconnecting || IsDependencyDownloadInProgress;
 
     public bool ShowConnectButton => !IsConnected && !IsConnecting;
-    public bool ShowDisconnectButton => IsConnected && !IsDisconnecting;
+    public bool ShowDisconnectButton => IsConnected && !IsConnecting && !IsDisconnecting;
     public bool ShowCancelButton => IsConnecting;
 
     public bool IsTunMode => string.Equals(SelectedConnectionMode, ConnectionModeTun, StringComparison.Ordinal);

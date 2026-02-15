@@ -5,7 +5,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,6 +35,9 @@ internal sealed class TorBridgeManager
     private const string CommunityBridgeFilePrefix = "bridges-community-";
     private const string BundledBridgeFileExtension = ".txt";
     private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromHours(12);
+    private const string MoatBuiltinUrl = "https://bridges.torproject.org/moat/circumvention/builtin";
+    private const string MoatSettingsUrl = "https://bridges.torproject.org/moat/circumvention/settings";
+    private const string MoatDefaultsUrl = "https://bridges.torproject.org/moat/circumvention/defaults";
     private enum BridgeSourcePreference
     {
         Auto,
@@ -292,6 +297,13 @@ internal sealed class TorBridgeManager
             selected = TryLoadBundledBridgeLines(selectedBridgeType, log);
         }
 
+        if (!usingCustom && selected.Count > 1)
+        {
+            var randomized = new List<string>(selected);
+            ShuffleInPlace(randomized);
+            selected = randomized;
+        }
+
         var customSni = ExtractSniHosts(options.CustomSniHosts);
         if (customSni.Count > 0 && selected.Count > 0)
         {
@@ -422,6 +434,15 @@ internal sealed class TorBridgeManager
             };
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHopV2/2.0");
 
+            var moatLines = await TryFetchBridgeLinesViaMoatAsync(httpClient, bridgeType, token).ConfigureAwait(false);
+            if (moatLines.Count > 0)
+            {
+                _runtimeFetchedBridges[bridgeType] = moatLines;
+                SaveCachedBridgeLines(bridgeType, moatLines);
+                log($"Loaded {moatLines.Count} {bridgeType} bridges from Tor Moat (Ask Tor endpoint).");
+                return moatLines;
+            }
+
             foreach (var sourceUrl in BuildBridgeSourceUrls(bridgeType))
             {
                 using var response = await httpClient.GetAsync(sourceUrl, token).ConfigureAwait(false);
@@ -432,10 +453,7 @@ internal sealed class TorBridgeManager
                 }
 
                 var content = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
-                var lines = ExtractBridgeLinesFromSource(content, bridgeType)
-                    .Where(line => !IsReservedOrPlaceholderBridgeLine(line))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
+                var lines = SanitizeBridgeLines(bridgeType, ExtractBridgeLinesFromSource(content, bridgeType));
 
                 if (lines.Count == 0)
                 {
@@ -460,6 +478,170 @@ internal sealed class TorBridgeManager
         {
             _bridgeFetchLock.Release();
         }
+    }
+
+    private async Task<IReadOnlyList<string>> TryFetchBridgeLinesViaMoatAsync(HttpClient httpClient, string bridgeType, CancellationToken token)
+    {
+        var moatBuiltin = await TryFetchBridgeLinesFromMoatBuiltinAsync(httpClient, bridgeType, token).ConfigureAwait(false);
+        if (moatBuiltin.Count > 0)
+        {
+            return moatBuiltin;
+        }
+
+        var transports = BuildMoatTransportRequestList(bridgeType);
+        var moatSettings = await TryFetchBridgeLinesFromMoatSettingsEndpointAsync(httpClient, MoatSettingsUrl, bridgeType, transports, token).ConfigureAwait(false);
+        if (moatSettings.Count > 0)
+        {
+            return moatSettings;
+        }
+
+        return await TryFetchBridgeLinesFromMoatSettingsEndpointAsync(httpClient, MoatDefaultsUrl, bridgeType, transports, token).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<string>> TryFetchBridgeLinesFromMoatBuiltinAsync(
+        HttpClient httpClient,
+        string bridgeType,
+        CancellationToken token)
+    {
+        try
+        {
+            using var response = await httpClient.GetAsync(MoatBuiltinUrl, token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Array.Empty<string>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+            var lines = ExtractBridgeLinesFromMoatBuiltin(content, bridgeType);
+            return SanitizeBridgeLines(bridgeType, lines);
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    private async Task<IReadOnlyList<string>> TryFetchBridgeLinesFromMoatSettingsEndpointAsync(
+        HttpClient httpClient,
+        string endpointUrl,
+        string bridgeType,
+        IReadOnlyList<string> transports,
+        CancellationToken token)
+    {
+        try
+        {
+            var payload = JsonSerializer.Serialize(new MoatSettingsRequest
+            {
+                Transports = transports.ToList()
+            });
+            using var content = new StringContent(payload, Encoding.UTF8, "application/vnd.api+json");
+            using var response = await httpClient.PostAsync(endpointUrl, content, token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Array.Empty<string>();
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+            var parsed = JsonSerializer.Deserialize<MoatSettingsResponse>(responseBody);
+            if (parsed?.Settings is not { Count: > 0 })
+            {
+                return Array.Empty<string>();
+            }
+
+            var lines = parsed.Settings
+                .Where(setting => string.Equals(setting.Bridge?.Type, bridgeType, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(setting => setting.Bridge?.BridgeStrings ?? [])
+                .ToList();
+            return SanitizeBridgeLines(bridgeType, lines);
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    private static IReadOnlyList<string> BuildMoatTransportRequestList(string bridgeType)
+    {
+        var transports = new List<string>();
+
+        static void AddUnique(List<string> values, string value)
+        {
+            if (!values.Contains(value, StringComparer.OrdinalIgnoreCase))
+            {
+                values.Add(value);
+            }
+        }
+
+        AddUnique(transports, bridgeType);
+        AddUnique(transports, Obfs4BridgeType);
+        AddUnique(transports, SnowflakeBridgeType);
+        AddUnique(transports, WebTunnelBridgeType);
+
+        return transports;
+    }
+
+    private static IReadOnlyList<string> ExtractBridgeLinesFromMoatBuiltin(string jsonContent, string bridgeType)
+    {
+        if (string.IsNullOrWhiteSpace(jsonContent))
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(jsonContent);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return Array.Empty<string>();
+            }
+
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (!string.Equals(property.Name, bridgeType, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (property.Value.ValueKind != JsonValueKind.Array)
+                {
+                    return Array.Empty<string>();
+                }
+
+                var lines = new List<string>();
+                foreach (var item in property.Value.EnumerateArray())
+                {
+                    if (item.ValueKind != JsonValueKind.String)
+                    {
+                        continue;
+                    }
+
+                    var value = item.GetString();
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        lines.Add(value);
+                    }
+                }
+
+                return lines;
+            }
+        }
+        catch
+        {
+            // Moat parsing is best-effort.
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private static IReadOnlyList<string> SanitizeBridgeLines(string bridgeType, IEnumerable<string> lines)
+    {
+        return lines
+            .Select(NormalizeBridgeLine)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Where(line => !IsReservedOrPlaceholderBridgeLine(line))
+            .Where(line => IsBridgeLineCompatibleWithType(bridgeType, line))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static IReadOnlyList<string> ExtractBridgeLinesFromSource(string content, string bridgeType)
@@ -1438,6 +1620,33 @@ internal sealed class TorBridgeManager
         {
             _cacheStore = null;
         }
+    }
+
+    private sealed class MoatSettingsRequest
+    {
+        [JsonPropertyName("transports")]
+        public List<string> Transports { get; set; } = [];
+    }
+
+    private sealed class MoatSettingsResponse
+    {
+        [JsonPropertyName("settings")]
+        public List<MoatSetting>? Settings { get; set; }
+    }
+
+    private sealed class MoatSetting
+    {
+        [JsonPropertyName("bridges")]
+        public MoatBridge? Bridge { get; set; }
+    }
+
+    private sealed class MoatBridge
+    {
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("bridge_strings")]
+        public List<string>? BridgeStrings { get; set; }
     }
 
     private sealed class BridgeFetchCacheStore
