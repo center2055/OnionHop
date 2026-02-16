@@ -92,6 +92,7 @@
 
   <x:String x:Key="Settings.SecureDns">Sicheres DNS (DoH) im VPN-Modus</x:String>
   <x:String x:Key="Settings.DnsProvider">DNS-Anbieter</x:String>
+  <x:String x:Key="Settings.DnsProviderHint">Auto testet integrierte DoH-Anbieter und w&#228;hlt den schnellsten erreichbaren. Manuelle Anbieter fallen bei Nichterreichbarkeit automatisch zur&#252;ck.</x:String>
   <x:String x:Key="Settings.CustomDohHost">Eigener DoH-Host / URL</x:String>
   <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com oder https://dns.example:443</x:String>
   <x:String x:Key="Settings.CustomDohPath">Eigener DoH-Pfad</x:String>

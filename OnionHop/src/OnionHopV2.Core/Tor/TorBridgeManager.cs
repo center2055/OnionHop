@@ -35,6 +35,9 @@ internal sealed class TorBridgeManager
     private const string CommunityBridgeFilePrefix = "bridges-community-";
     private const string BundledBridgeFileExtension = ".txt";
     private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromHours(12);
+    private const int RuntimeBridgeFailureThreshold = 3;
+    private static readonly TimeSpan RuntimeBridgeFailureWindow = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan RuntimeBridgePenaltyDuration = TimeSpan.FromMinutes(30);
     private const string MoatBuiltinUrl = "https://bridges.torproject.org/moat/circumvention/builtin";
     private const string MoatSettingsUrl = "https://bridges.torproject.org/moat/circumvention/settings";
     private const string MoatDefaultsUrl = "https://bridges.torproject.org/moat/circumvention/defaults";
@@ -52,6 +55,8 @@ internal sealed class TorBridgeManager
     private readonly HashSet<string> _fetchAttempted = new(StringComparer.OrdinalIgnoreCase);
     private BridgeFetchCacheStore? _cacheStore;
     private bool _cacheLoaded;
+    private readonly object _runtimeBridgeHealthLock = new();
+    private readonly Dictionary<string, RuntimeBridgeHealthEntry> _runtimeBridgeHealth = new(StringComparer.OrdinalIgnoreCase);
 
     public TorBridgeManager(string baseDir)
     {
@@ -72,6 +77,60 @@ internal sealed class TorBridgeManager
     public static bool IsAutomaticBridgeType(string? bridgeType)
     {
         return string.Equals(bridgeType, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void ReportRuntimeBridgeFailure(string bridgeType, string endpoint, Action<string>? log = null)
+    {
+        var safeBridgeType = NormalizeBridgeTypeKey(bridgeType);
+        if (safeBridgeType.Length == 0 || string.Equals(safeBridgeType, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var normalizedEndpoint = TryNormalizeBridgeEndpoint(endpoint);
+        if (string.IsNullOrWhiteSpace(normalizedEndpoint))
+        {
+            return;
+        }
+
+        var key = BuildRuntimeBridgeHealthKey(safeBridgeType, normalizedEndpoint);
+        var now = DateTimeOffset.UtcNow;
+        var newlyBlocked = false;
+        DateTimeOffset blockedUntilUtc = default;
+
+        lock (_runtimeBridgeHealthLock)
+        {
+            if (!_runtimeBridgeHealth.TryGetValue(key, out var entry))
+            {
+                entry = new RuntimeBridgeHealthEntry();
+                _runtimeBridgeHealth[key] = entry;
+            }
+
+            if (entry.LastFailureUtc == default || now - entry.LastFailureUtc > RuntimeBridgeFailureWindow)
+            {
+                entry.FailureCount = 0;
+            }
+
+            entry.FailureCount++;
+            entry.LastFailureUtc = now;
+
+            if (entry.FailureCount >= RuntimeBridgeFailureThreshold)
+            {
+                var candidateUntil = now.Add(RuntimeBridgePenaltyDuration);
+                if (candidateUntil > entry.BlockedUntilUtc)
+                {
+                    entry.BlockedUntilUtc = candidateUntil;
+                    newlyBlocked = true;
+                }
+            }
+
+            blockedUntilUtc = entry.BlockedUntilUtc;
+        }
+
+        if (newlyBlocked)
+        {
+            log?.Invoke($"Temporarily suppressing unstable {safeBridgeType} bridge endpoint {normalizedEndpoint} until {blockedUntilUtc:HH:mm:ss} UTC.");
+        }
     }
 
     public static IReadOnlyList<string> BuildAutomaticBridgeFallbackOrder(OnionHopConnectOptions options)
@@ -308,6 +367,28 @@ internal sealed class TorBridgeManager
         if (customSni.Count > 0 && selected.Count > 0)
         {
             selected = ApplyCustomSniHosts(selected, customSni);
+        }
+
+        var filteredToZeroByHealth = false;
+        if (selected.Count > 0)
+        {
+            var beforeFilter = selected.Count;
+            selected = FilterTemporarilyUnhealthyBridgeLines(selectedBridgeType, selected, log);
+            filteredToZeroByHealth = beforeFilter > 0 && selected.Count == 0;
+        }
+
+        if (filteredToZeroByHealth && !usingCustom && allowOfflineFallback)
+        {
+            var healthyOffline = FilterTemporarilyUnhealthyBridgeLines(selectedBridgeType, TryLoadOfflineBridgeLines(selectedBridgeType, log), log);
+            if (healthyOffline.Count == 0)
+            {
+                healthyOffline = FilterTemporarilyUnhealthyBridgeLines(selectedBridgeType, TryLoadBundledBridgeLines(selectedBridgeType, log), log);
+            }
+
+            if (healthyOffline.Count > 0)
+            {
+                selected = healthyOffline;
+            }
         }
 
         if (selected.Count == 0 && string.IsNullOrWhiteSpace(BridgeValidationMessage))
@@ -1365,6 +1446,122 @@ internal sealed class TorBridgeManager
         return updated;
     }
 
+    private IReadOnlyList<string> FilterTemporarilyUnhealthyBridgeLines(string bridgeType, IReadOnlyList<string> lines, Action<string> log)
+    {
+        if (lines.Count == 0)
+        {
+            return lines;
+        }
+
+        var safeBridgeType = NormalizeBridgeTypeKey(bridgeType);
+        if (safeBridgeType.Length == 0 || string.Equals(safeBridgeType, "custom", StringComparison.OrdinalIgnoreCase))
+        {
+            return lines;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var filtered = new List<string>(lines.Count);
+        var skipped = 0;
+
+        foreach (var line in lines)
+        {
+            var endpoint = TryExtractBridgeEndpointFromLine(line);
+            if (!string.IsNullOrWhiteSpace(endpoint) && IsBridgeEndpointTemporarilyBlocked(safeBridgeType, endpoint, now))
+            {
+                skipped++;
+                continue;
+            }
+
+            filtered.Add(line);
+        }
+
+        if (skipped == 0)
+        {
+            return lines;
+        }
+
+        log($"Skipped {skipped} recently unstable {safeBridgeType} bridge endpoint(s).");
+        if (filtered.Count == 0)
+        {
+            BridgeValidationMessage ??= $"All discovered {safeBridgeType} bridge endpoints are temporarily marked unstable. Try again later or switch bridge type.";
+        }
+
+        return filtered;
+    }
+
+    private bool IsBridgeEndpointTemporarilyBlocked(string bridgeType, string normalizedEndpoint, DateTimeOffset now)
+    {
+        var key = BuildRuntimeBridgeHealthKey(bridgeType, normalizedEndpoint);
+
+        lock (_runtimeBridgeHealthLock)
+        {
+            if (!_runtimeBridgeHealth.TryGetValue(key, out var entry))
+            {
+                return false;
+            }
+
+            if (entry.BlockedUntilUtc > now)
+            {
+                return true;
+            }
+
+            if (entry.LastFailureUtc != default && now - entry.LastFailureUtc > RuntimeBridgeFailureWindow)
+            {
+                _runtimeBridgeHealth.Remove(key);
+            }
+            else if (entry.FailureCount >= RuntimeBridgeFailureThreshold)
+            {
+                entry.FailureCount = RuntimeBridgeFailureThreshold - 1;
+            }
+
+            return false;
+        }
+    }
+
+    private static string BuildRuntimeBridgeHealthKey(string bridgeType, string normalizedEndpoint)
+    {
+        return $"{NormalizeBridgeTypeKey(bridgeType)}|{normalizedEndpoint}";
+    }
+
+    private static string NormalizeBridgeTypeKey(string? bridgeType)
+    {
+        return string.IsNullOrWhiteSpace(bridgeType) ? string.Empty : bridgeType.Trim().ToLowerInvariant();
+    }
+
+    private static string? TryExtractBridgeEndpointFromLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return null;
+        }
+
+        var normalized = NormalizeBridgeLine(line);
+        var parts = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+        {
+            return null;
+        }
+
+        return TryNormalizeBridgeEndpoint(parts[1]);
+    }
+
+    private static string? TryNormalizeBridgeEndpoint(string endpointToken)
+    {
+        if (!TryParseBridgeEndpointToken(endpointToken, out var host, out var port) ||
+            port is <= 0 or > 65535)
+        {
+            return null;
+        }
+
+        host = host.Trim().Trim('[', ']').ToLowerInvariant();
+        if (host.Length == 0)
+        {
+            return null;
+        }
+
+        return $"{host}:{port}";
+    }
+
     private IReadOnlyList<string> TryLoadOfflineBridgeLines(string bridgeType, Action<string> log)
     {
         if (string.IsNullOrWhiteSpace(bridgeType))
@@ -1658,5 +1855,12 @@ internal sealed class TorBridgeManager
     {
         public DateTimeOffset UpdatedUtc { get; set; }
         public List<string> Lines { get; set; } = [];
+    }
+
+    private sealed class RuntimeBridgeHealthEntry
+    {
+        public int FailureCount { get; set; }
+        public DateTimeOffset LastFailureUtc { get; set; }
+        public DateTimeOffset BlockedUntilUtc { get; set; }
     }
 }

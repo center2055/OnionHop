@@ -23,6 +23,10 @@ public sealed class OnionHopConnectOptions
     public const string DnsProviderCloudflare = "Cloudflare (DoH)";
     public const string DnsProviderGoogle = "Google (DoH)";
     public const string DnsProviderQuad9 = "Quad9 (DoH)";
+    public const string DnsProviderAuto = "Auto (best available DoH)";
+    public const string DnsProviderAdGuard = "AdGuard (DoH)";
+    public const string DnsProviderMullvad = "Mullvad (DoH)";
+    public const string DnsProviderOpenDns = "OpenDNS (DoH)";
     public const string DnsProviderCustom = "Custom (DoH)";
     public const int DefaultSocksPort = 9050;
     public const int DefaultHttpPort = 9080;
@@ -50,7 +54,7 @@ public sealed class OnionHopConnectOptions
     public string HardwareAccelerationMode { get; init; } = ToggleModeDefault;
     public string ConnectionPaddingMode { get; init; } = ConnectionPaddingAuto;
 
-    public string SelectedDnsProvider { get; init; } = DnsProviderCloudflare;
+    public string SelectedDnsProvider { get; init; } = DnsProviderAuto;
     public string? CustomDohHost { get; init; }
     public string? CustomDohPath { get; init; }
     public string ProxyScopeMode { get; init; } = ProxyScopeSystem;

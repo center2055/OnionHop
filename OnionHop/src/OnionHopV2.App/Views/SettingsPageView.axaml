@@ -204,6 +204,9 @@
                                     <TextBlock Text="{DynamicResource Settings.DnsProvider}" Opacity="0.75" />
                                     <ComboBox ItemsSource="{Binding State.DnsProviders}"
                                               SelectedItem="{Binding State.SelectedDnsProvider}" />
+                                    <TextBlock Text="{DynamicResource Settings.DnsProviderHint}"
+                                               Opacity="0.7"
+                                               TextWrapping="Wrap" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
