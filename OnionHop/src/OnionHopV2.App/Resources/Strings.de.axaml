@@ -48,6 +48,22 @@
   <x:String x:Key="About.Links">Links</x:String>
   <x:String x:Key="About.GitHubIssues">GitHub-Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
+  <x:String x:Key="About.Changelog">&#196;nderungen</x:String>
+  <x:String x:Key="About.Refresh">Aktualisieren</x:String>
+  <x:String x:Key="About.ChangelogDetails">Details</x:String>
+  <x:String x:Key="About.ChangelogDetailsExpand">Details +</x:String>
+  <x:String x:Key="About.ChangelogDetailsCollapse">Details -</x:String>
+  <x:String x:Key="About.ChangelogLoading">&#196;nderungsverlauf wird von GitHub geladen...</x:String>
+  <x:String x:Key="About.ChangelogLoaded">&#196;nderungsverlauf geladen.</x:String>
+  <x:String x:Key="About.ChangelogFailed">&#196;nderungsverlauf konnte derzeit nicht geladen werden. Verbindung pr&#252;fen und erneut versuchen.</x:String>
+  <x:String x:Key="About.ChangelogEmpty">Keine Release-Eintr&#228;ge gefunden.</x:String>
+  <x:String x:Key="About.ChangelogSummaryLoading">Release-Verlauf wird geladen...</x:String>
+  <x:String x:Key="About.ChangelogSummaryEmpty">Release-Verlauf ist noch nicht geladen.</x:String>
+  <x:String x:Key="About.ChangelogSummaryRange">Zeige {0} Releases von {1} bis {2}.</x:String>
+  <x:String x:Key="About.ChangelogTypeRelease">Release</x:String>
+  <x:String x:Key="About.ChangelogTypeBeta">Beta / Vorabversion</x:String>
+  <x:String x:Key="About.ChangelogDateUnknown">Unbekanntes Datum</x:String>
+  <x:String x:Key="About.ChangelogNotesMissing">F&#252;r dieses Release wurden keine &#196;nderungsnotizen bereitgestellt.</x:String>
 
   <!-- Settings -->
   <x:String x:Key="Settings.TabGeneral">Allgemein</x:String>
@@ -62,6 +78,10 @@
   <x:String x:Key="Settings.MinimizeToTray">Beim Schlie&#223;en ins Tray minimieren</x:String>
   <x:String x:Key="Settings.AutoUpdate">Nach Updates suchen</x:String>
   <x:String x:Key="Settings.Appearance">Darstellung</x:String>
+  <x:String x:Key="Settings.AppearanceMode">Designmodus</x:String>
+  <x:String x:Key="Settings.AppearanceSystemDefault">Systemstandard</x:String>
+  <x:String x:Key="Settings.AppearanceDark">Dunkel</x:String>
+  <x:String x:Key="Settings.AppearanceLight">Hell</x:String>
   <x:String x:Key="Settings.DarkMode">Dunkelmodus</x:String>
   <x:String x:Key="Settings.NativeChrome">Native Fensterrahmen verwenden (Titelleiste/Buttons)</x:String>
   <x:String x:Key="Settings.Language">Sprache</x:String>

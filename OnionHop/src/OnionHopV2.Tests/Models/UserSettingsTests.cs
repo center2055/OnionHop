@@ -22,6 +22,7 @@ public sealed class UserSettingsTests
             MinimizeToTray = true,
             AutoUpdate = true,
             KillSwitchEnabled = false,
+            ThemeMode = "system",
             IsDarkMode = true,
             UseNativeTheme = false,
             SelectedLocation = "United States",
@@ -59,6 +60,7 @@ public sealed class UserSettingsTests
 
         Assert.Equal(original.AutoConnect, deserialized.AutoConnect);
         Assert.Equal(original.AutoStartMode, deserialized.AutoStartMode);
+        Assert.Equal(original.ThemeMode, deserialized.ThemeMode);
         Assert.Equal(original.SelectedLocation, deserialized.SelectedLocation);
         Assert.Equal(original.CustomBridges, deserialized.CustomBridges);
         Assert.Equal(original.BridgeSourceMode, deserialized.BridgeSourceMode);

@@ -1,17 +1,23 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform;
 using Avalonia.VisualTree;
 using SukiUI.Controls;
 using OnionHopV2.App.ViewModels;
 using Avalonia;
 using Avalonia.Controls.Primitives;
 using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 
 namespace OnionHopV2.App.Views;
 
 public partial class MainWindow : SukiWindow
 {
+    private static readonly CornerRadius RoundedWindowCornerRadius = new(12);
+    private ShellViewModel? _shellViewModel;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -103,7 +109,19 @@ public partial class MainWindow : SukiWindow
 
     protected override void OnDataContextChanged(EventArgs e)
     {
+        if (_shellViewModel != null)
+        {
+            _shellViewModel.State.PropertyChanged -= OnStatePropertyChanged;
+        }
+
         base.OnDataContextChanged(e);
+
+        _shellViewModel = DataContext as ShellViewModel;
+        if (_shellViewModel != null)
+        {
+            _shellViewModel.State.PropertyChanged += OnStatePropertyChanged;
+        }
+
         UpdateCustomChromeCornerRadius();
     }
 
@@ -116,9 +134,51 @@ public partial class MainWindow : SukiWindow
         }
     }
 
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        UpdateCustomChromeCornerRadius();
+    }
+
+    private void OnStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppStateViewModel.UseNativeTheme) ||
+            e.PropertyName == nameof(AppStateViewModel.UseCustomChrome))
+        {
+            UpdateCustomChromeCornerRadius();
+        }
+    }
+
     private void UpdateCustomChromeCornerRadius()
     {
-        RootCornerRadius = new CornerRadius(0);
+        var shouldRound = DataContext is ShellViewModel { State.UseCustomChrome: true }
+                          && WindowState != WindowState.Maximized
+                          && WindowState != WindowState.FullScreen;
+
+        RootCornerRadius = shouldRound ? RoundedWindowCornerRadius : new CornerRadius(0);
+        ApplyNativeWindowCornerPreference(shouldRound);
+    }
+
+    private void ApplyNativeWindowCornerPreference(bool shouldRound)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = TryGetPlatformHandle();
+        if (handle == null || handle.Handle == IntPtr.Zero ||
+            !string.Equals(handle.HandleDescriptor, "HWND", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var cornerPref = shouldRound ? DwmWindowCornerPreference.RoundSmall : DwmWindowCornerPreference.DoNotRound;
+        var prefValue = (int)cornerPref;
+        _ = DwmSetWindowAttribute(handle.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref prefValue, sizeof(int));
+
+        var borderColor = shouldRound ? DWMWA_COLOR_NONE : DWMWA_COLOR_DEFAULT;
+        _ = DwmSetWindowAttribute(handle.Handle, DWMWA_BORDER_COLOR, ref borderColor, sizeof(uint));
     }
 
     private static bool IsInteractivePointerSource(object? source)
@@ -133,4 +193,23 @@ public partial class MainWindow : SukiWindow
 
         return false;
     }
+
+    private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const int DWMWA_BORDER_COLOR = 34;
+    private const uint DWMWA_COLOR_DEFAULT = 0xFFFFFFFF;
+    private const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
+
+    private enum DwmWindowCornerPreference
+    {
+        Default = 0,
+        DoNotRound = 1,
+        Round = 2,
+        RoundSmall = 3
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref uint pvAttribute, int cbAttribute);
 }

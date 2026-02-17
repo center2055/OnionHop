@@ -9,6 +9,7 @@ public sealed class UserSettings
     public bool MinimizeToTray { get; set; }
     public bool AutoUpdate { get; set; }
     public bool KillSwitchEnabled { get; set; }
+    public string? ThemeMode { get; set; }
     public bool IsDarkMode { get; set; }
     public bool UseNativeTheme { get; set; }
     public string? SelectedLocation { get; set; }

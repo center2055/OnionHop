@@ -47,6 +47,7 @@ public sealed class SettingsServiceTests
                 MinimizeToTray = true,
                 AutoUpdate = false,
                 KillSwitchEnabled = true,
+                ThemeMode = "dark",
                 IsDarkMode = true,
                 UseNativeTheme = false,
                 SelectedLocation = "Germany",
@@ -65,6 +66,7 @@ public sealed class SettingsServiceTests
             Assert.NotNull(loaded);
             Assert.Equal(original.AutoConnect, loaded.AutoConnect);
             Assert.Equal(original.AutoStartMode, loaded.AutoStartMode);
+            Assert.Equal(original.ThemeMode, loaded.ThemeMode);
             Assert.Equal(original.SelectedLocation, loaded.SelectedLocation);
             Assert.Equal(original.CustomBridges, loaded.CustomBridges);
             Assert.Equal(original.CustomDohHost, loaded.CustomDohHost);

@@ -47,8 +47,11 @@
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <ToggleSwitch Content="{DynamicResource Settings.DarkMode}"
-                                          IsChecked="{Binding State.IsDarkMode}" />
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{DynamicResource Settings.AppearanceMode}" Opacity="0.75" />
+                                <ComboBox ItemsSource="{Binding State.ThemeModeOptions}"
+                                          SelectedItem="{Binding State.SelectedThemeModeOption}" />
+                            </StackPanel>
 
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{DynamicResource Settings.Language}" Opacity="0.75" />

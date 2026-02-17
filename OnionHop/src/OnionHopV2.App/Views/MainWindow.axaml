@@ -29,6 +29,7 @@
                   Background="{DynamicResource SukiBackground}"
                   SystemDecorations="None"
                   WindowStartupLocation="CenterScreen"
+                  RootCornerRadius="16"
                   Padding="0">
 
     <Design.DataContext>
@@ -43,7 +44,7 @@
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="Padding" Value="0" />
                 <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
             </Style>
@@ -107,7 +108,7 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
                 Height="38"
-                Margin="0"
+                Margin="10,10,10,0"
                 CornerRadius="0"
                 Background="Transparent"
                 PointerPressed="OnDragRegionPointerPressed">

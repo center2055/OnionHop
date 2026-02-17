@@ -48,6 +48,22 @@
   <x:String x:Key="About.Links">Links</x:String>
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
+  <x:String x:Key="About.Changelog">Changelog</x:String>
+  <x:String x:Key="About.Refresh">Refresh</x:String>
+  <x:String x:Key="About.ChangelogDetails">Details</x:String>
+  <x:String x:Key="About.ChangelogDetailsExpand">Details +</x:String>
+  <x:String x:Key="About.ChangelogDetailsCollapse">Details -</x:String>
+  <x:String x:Key="About.ChangelogLoading">Loading changelog entries from GitHub...</x:String>
+  <x:String x:Key="About.ChangelogLoaded">Changelog loaded.</x:String>
+  <x:String x:Key="About.ChangelogFailed">Unable to load changelog history right now. Check your connection and try refresh.</x:String>
+  <x:String x:Key="About.ChangelogEmpty">No release entries were found.</x:String>
+  <x:String x:Key="About.ChangelogSummaryLoading">Fetching release history...</x:String>
+  <x:String x:Key="About.ChangelogSummaryEmpty">Release history is not loaded yet.</x:String>
+  <x:String x:Key="About.ChangelogSummaryRange">Showing {0} releases from {1} to {2}.</x:String>
+  <x:String x:Key="About.ChangelogTypeRelease">Release</x:String>
+  <x:String x:Key="About.ChangelogTypeBeta">Beta / Pre-release</x:String>
+  <x:String x:Key="About.ChangelogDateUnknown">Unknown date</x:String>
+  <x:String x:Key="About.ChangelogNotesMissing">No changelog notes were provided for this release.</x:String>
 
   <!-- Settings -->
   <x:String x:Key="Settings.TabGeneral">General</x:String>
@@ -62,6 +78,10 @@
   <x:String x:Key="Settings.MinimizeToTray">Minimize to tray on close</x:String>
   <x:String x:Key="Settings.AutoUpdate">Check for updates</x:String>
   <x:String x:Key="Settings.Appearance">Appearance</x:String>
+  <x:String x:Key="Settings.AppearanceMode">Theme mode</x:String>
+  <x:String x:Key="Settings.AppearanceSystemDefault">System default</x:String>
+  <x:String x:Key="Settings.AppearanceDark">Dark</x:String>
+  <x:String x:Key="Settings.AppearanceLight">Light</x:String>
   <x:String x:Key="Settings.DarkMode">Dark mode</x:String>
   <x:String x:Key="Settings.NativeChrome">Use native window chrome (titlebar/buttons)</x:String>
   <x:String x:Key="Settings.Language">Language</x:String>

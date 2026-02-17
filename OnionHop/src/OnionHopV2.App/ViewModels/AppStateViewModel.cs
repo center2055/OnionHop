@@ -34,6 +34,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string AutoStartModeOff = "Off";
     public const string AutoStartModeOn = "On";
     public const string AutoStartModeMinimized = "On (Minimized)";
+    public const string ThemeModeSystem = "system";
+    public const string ThemeModeDark = "dark";
+    public const string ThemeModeLight = "light";
 
     public const string DnsProviderCloudflare = "Cloudflare (DoH)";
     public const string DnsProviderGoogle = "Google (DoH)";
@@ -83,6 +86,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(MinimizeToTray),
         nameof(AutoUpdate),
         nameof(KillSwitchEnabled),
+        nameof(ThemeMode),
         nameof(IsDarkMode),
         nameof(UseNativeTheme),
         nameof(SelectedLocation),
@@ -165,6 +169,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             AutoStartModeMinimized
         ];
 
+        ThemeModes =
+        [
+            ThemeModeSystem,
+            ThemeModeDark,
+            ThemeModeLight
+        ];
+
         DnsProviders =
         [
             DnsProviderAuto,
@@ -241,6 +252,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<LocalizedOption> ConnectionModeOptions { get; } = [];
     public ObservableCollection<string> AutoStartModes { get; }
     public ObservableCollection<LocalizedOption> AutoStartModeOptions { get; } = [];
+    public ObservableCollection<string> ThemeModes { get; }
+    public ObservableCollection<LocalizedOption> ThemeModeOptions { get; } = [];
     public ObservableCollection<string> BridgeTypes { get; } = [];
     public ObservableCollection<LocalizedOption> BridgeTypeOptions { get; } = [];
     public ObservableCollection<string> BridgeSourceModes { get; }
@@ -313,6 +326,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private LocalizedOption? _selectedProxyScopeModeOption;
     [ObservableProperty] private LocalizedOption? _selectedLanguageOption;
     [ObservableProperty] private LocalizedOption? _selectedAutoStartModeOption;
+    [ObservableProperty] private LocalizedOption? _selectedThemeModeOption;
     [ObservableProperty] private LocalizedOption? _selectedTorIpv6ModeOption;
     [ObservableProperty] private LocalizedOption? _selectedHardwareAccelerationModeOption;
     [ObservableProperty] private LocalizedOption? _selectedConnectionPaddingModeOption;
@@ -328,6 +342,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _startMinimized;
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _autoUpdate;
+    [ObservableProperty] private string _themeMode = ThemeModeSystem;
     [ObservableProperty] private bool _isDarkMode;
     [ObservableProperty] private bool _useNativeTheme;
 
@@ -536,6 +551,38 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (!string.Equals(AutoStartMode, value.Value, StringComparison.OrdinalIgnoreCase))
         {
             AutoStartMode = value.Value;
+        }
+    }
+
+    partial void OnThemeModeChanged(string value)
+    {
+        var normalized = NormalizeThemeMode(value);
+        if (!string.Equals(value, normalized, StringComparison.OrdinalIgnoreCase))
+        {
+            ThemeMode = normalized;
+            return;
+        }
+
+        SelectedThemeModeOption = ThemeModeOptions
+            .FirstOrDefault(option => string.Equals(option.Value, normalized, StringComparison.OrdinalIgnoreCase));
+
+        var shouldBeDark = string.Equals(normalized, ThemeModeDark, StringComparison.OrdinalIgnoreCase);
+        if (IsDarkMode != shouldBeDark)
+        {
+            IsDarkMode = shouldBeDark;
+        }
+    }
+
+    partial void OnSelectedThemeModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(ThemeMode, value.Value, StringComparison.OrdinalIgnoreCase))
+        {
+            ThemeMode = value.Value;
         }
     }
 
@@ -1070,7 +1117,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             HybridTorApps = string.Empty;
             HybridBypassApps = string.Empty;
 
-            IsDarkMode = true;
+            ThemeMode = ThemeModeSystem;
             UseNativeTheme = false;
         }
         finally
@@ -1248,7 +1295,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ScheduleSave();
         }
 
-        if (e.PropertyName == nameof(IsDarkMode) || e.PropertyName == nameof(UseNativeTheme))
+        if (e.PropertyName == nameof(ThemeMode) || e.PropertyName == nameof(UseNativeTheme) || e.PropertyName == nameof(IsDarkMode))
         {
             ApplyTheme();
         }
@@ -1296,7 +1343,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             MinimizeToTray = settings.MinimizeToTray;
             AutoUpdate = settings.AutoUpdate;
             KillSwitchEnabled = settings.KillSwitchEnabled;
-            IsDarkMode = settings.IsDarkMode;
+            ThemeMode = string.IsNullOrWhiteSpace(settings.ThemeMode)
+                ? (settings.IsDarkMode ? ThemeModeDark : ThemeModeLight)
+                : NormalizeThemeMode(settings.ThemeMode);
             UseNativeTheme = settings.UseNativeTheme;
 
             SelectedLocation = string.IsNullOrWhiteSpace(settings.SelectedLocation)
@@ -1453,7 +1502,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             MinimizeToTray = MinimizeToTray,
             AutoUpdate = AutoUpdate,
             KillSwitchEnabled = KillSwitchEnabled,
-            IsDarkMode = IsDarkMode,
+            ThemeMode = ThemeMode,
+            IsDarkMode = string.Equals(ThemeMode, ThemeModeDark, StringComparison.OrdinalIgnoreCase) ||
+                         (string.Equals(ThemeMode, ThemeModeSystem, StringComparison.OrdinalIgnoreCase) &&
+                          Application.Current?.ActualThemeVariant == ThemeVariant.Dark),
             UseNativeTheme = UseNativeTheme,
             SelectedLocation = SelectedLocation,
             SelectedEntryLocation = SelectedEntryLocation,
@@ -1527,7 +1579,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        Application.Current.RequestedThemeVariant = IsDarkMode ? ThemeVariant.Dark : ThemeVariant.Light;
+        Application.Current.RequestedThemeVariant = ThemeMode switch
+        {
+            ThemeModeDark => ThemeVariant.Dark,
+            ThemeModeLight => ThemeVariant.Light,
+            _ => ThemeVariant.Default
+        };
     }
 
     private void RefreshLanguageOptions()
@@ -1557,6 +1614,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private void RefreshLocalizedOptions()
     {
         RefreshAutoStartModeOptions();
+        RefreshThemeModeOptions();
         RefreshTorAdvancedModeOptions();
 
         ConnectionModeOptions.Clear();
@@ -1626,6 +1684,19 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         AutoStartModeOptions.Add(new LocalizedOption(AutoStartModeMinimized, LocalizationService.Get("Settings.AutoStartMinimized")));
         SelectedAutoStartModeOption = AutoStartModeOptions.FirstOrDefault(option => string.Equals(option.Value, AutoStartMode, StringComparison.OrdinalIgnoreCase))
                                     ?? AutoStartModeOptions.FirstOrDefault();
+    }
+
+    private void RefreshThemeModeOptions()
+    {
+        ThemeModeOptions.Clear();
+        foreach (var mode in ThemeModes)
+        {
+            ThemeModeOptions.Add(new LocalizedOption(mode, LocalizeThemeMode(mode)));
+        }
+
+        var normalizedThemeMode = NormalizeThemeMode(ThemeMode);
+        SelectedThemeModeOption = ThemeModeOptions.FirstOrDefault(option => string.Equals(option.Value, normalizedThemeMode, StringComparison.OrdinalIgnoreCase))
+                                  ?? ThemeModeOptions.FirstOrDefault();
     }
 
     private void RefreshTorAdvancedModeOptions()
@@ -1766,6 +1837,17 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         };
     }
 
+    private static string LocalizeThemeMode(string mode)
+    {
+        return NormalizeThemeMode(mode) switch
+        {
+            ThemeModeSystem => LocalizationService.Get("Settings.AppearanceSystemDefault"),
+            ThemeModeDark => LocalizationService.Get("Settings.AppearanceDark"),
+            ThemeModeLight => LocalizationService.Get("Settings.AppearanceLight"),
+            _ => LocalizationService.Get("Settings.AppearanceSystemDefault")
+        };
+    }
+
     private static string NormalizeBridgeSourceMode(string? sourceMode)
     {
         if (string.IsNullOrWhiteSpace(sourceMode))
@@ -1794,6 +1876,21 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return ProxyScopeSystem;
+    }
+
+    private static string NormalizeThemeMode(string? mode)
+    {
+        if (string.Equals(mode, ThemeModeDark, StringComparison.OrdinalIgnoreCase))
+        {
+            return ThemeModeDark;
+        }
+
+        if (string.Equals(mode, ThemeModeLight, StringComparison.OrdinalIgnoreCase))
+        {
+            return ThemeModeLight;
+        }
+
+        return ThemeModeSystem;
     }
 
     private static string LocalizeRuntimeText(string? value)

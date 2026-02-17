@@ -10,35 +10,126 @@
              x:Class="OnionHopV2.App.Views.AboutPageView"
              x:DataType="vm:AboutPageViewModel">
 
-    <StackPanel Margin="24" Spacing="16">
-        <TextBlock Text="{DynamicResource About.Title}"
-                   FontSize="28"
-                   FontWeight="SemiBold" />
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24" Spacing="16">
+            <TextBlock Text="{DynamicResource About.Title}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
 
-        <suki:GlassCard Padding="20" CornerRadius="18">
-            <StackPanel Spacing="12" HorizontalAlignment="Center">
-                <Image Width="96"
-                       Height="96"
-                       Source="/Assets/logo.png" />
-                <TextBlock Text="OnionHop V2"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding VersionText}"
-                             Opacity="0.85"
-                             HorizontalAlignment="Center" />
+            <suki:GlassCard Padding="20" CornerRadius="18">
+                <StackPanel Spacing="12" HorizontalAlignment="Center">
+                    <Image Width="96"
+                           Height="96"
+                           Source="/Assets/logo.png" />
+                    <TextBlock Text="OnionHop V2"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding VersionText}"
+                               Opacity="0.85"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </suki:GlassCard>
+
+            <TextBlock Text="{DynamicResource About.Links}"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Classes="Flat"
+                        Click="OnOpenReleasesClick"
+                        Content="{DynamicResource About.GitHubIssues}" />
+                <Button Classes="Flat"
+                        Click="OnOpenDiscordClick"
+                        Content="{DynamicResource About.Discord}" />
             </StackPanel>
-        </suki:GlassCard>
 
-        <TextBlock Text="{DynamicResource About.Links}"
-                   FontSize="16"
-                   FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource About.Changelog}"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
 
-        <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Classes="Flat" Click="OnOpenReleasesClick"
-                    Content="{DynamicResource About.GitHubIssues}" />
-            <Button Classes="Flat" Click="OnOpenDiscordClick"
-                    Content="{DynamicResource About.Discord}" />
+            <suki:GlassCard Padding="16" CornerRadius="18">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding ChangelogSummaryText}"
+                                   Opacity="0.75"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="Flat"
+                                Command="{Binding RefreshChangelogsCommand}"
+                                Content="{DynamicResource About.Refresh}" />
+                    </Grid>
+
+                    <ProgressBar IsIndeterminate="True"
+                                 IsVisible="{Binding IsLoadingChangelogs}" />
+
+                    <TextBlock Text="{Binding ChangelogStatusText}"
+                               IsVisible="{Binding HasChangelogStatus}"
+                               Opacity="0.8"
+                               TextWrapping="Wrap" />
+
+                    <ItemsControl ItemsSource="{Binding ChangelogEntries}"
+                                  IsVisible="{Binding HasChangelogEntries}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AboutChangelogEntry">
+                                <Border Margin="0,0,0,8"
+                                        Padding="12"
+                                        Background="#0F000000"
+                                        CornerRadius="12">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding Title}"
+                                                           FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Tag}"
+                                                           Opacity="0.72"
+                                                           FontSize="12" />
+                                                <TextBlock Text="{Binding PublishedText}"
+                                                           Opacity="0.72"
+                                                           FontSize="12" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1"
+                                                    Background="#1EFFFFFF"
+                                                    CornerRadius="8"
+                                                    Padding="8,4"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ReleaseType}"
+                                                           FontSize="12" />
+                                            </Border>
+                                            <ToggleButton Grid.Column="2"
+                                                          x:Name="DetailsToggle"
+                                                          Classes="Flat"
+                                                          IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                          VerticalAlignment="Center">
+                                                <ToggleButton.Styles>
+                                                    <Style Selector="ToggleButton#DetailsToggle">
+                                                        <Setter Property="Content"
+                                                                Value="{DynamicResource About.ChangelogDetailsExpand}" />
+                                                    </Style>
+                                                    <Style Selector="ToggleButton#DetailsToggle:checked">
+                                                        <Setter Property="Content"
+                                                                Value="{DynamicResource About.ChangelogDetailsCollapse}" />
+                                                    </Style>
+                                                </ToggleButton.Styles>
+                                            </ToggleButton>
+                                        </Grid>
+                                        <Border IsVisible="{Binding IsExpanded}"
+                                                Padding="10"
+                                                Background="#12000000"
+                                                CornerRadius="10">
+                                            <TextBlock Text="{Binding Notes}"
+                                                       TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </suki:GlassCard>
         </StackPanel>
-    </StackPanel>
+    </ScrollViewer>
 </UserControl>
