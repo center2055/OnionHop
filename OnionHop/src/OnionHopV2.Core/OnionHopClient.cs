@@ -195,6 +195,26 @@ public sealed class OnionHopClient : IDisposable
             return;
         }
 
+        StartupLogger.Write("OnionHopClient.ConnectAsync: Checking internet connectivity...");
+        var connectivity = await InternetConnectivityProbe.CheckAsync(token).ConfigureAwait(false);
+        if (connectivity.State == InternetConnectivityState.Offline)
+        {
+            RaiseLog($"Connect blocked: {connectivity.Reason}");
+            SetStatus(
+                isConnecting: false,
+                isConnected: false,
+                isDisconnecting: false,
+                connectionStatus: "Disconnected",
+                statusMessage: "No internet connection detected. Check your network and try again.",
+                progress: 0);
+            return;
+        }
+
+        if (connectivity.State == InternetConnectivityState.Unknown)
+        {
+            RaiseLog($"Internet check warning: {connectivity.Reason} Continuing connection attempt.");
+        }
+
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking dependencies...");
         if (!await EnsureDependenciesAsync(token).ConfigureAwait(false))
         {
@@ -913,7 +933,8 @@ public sealed class OnionHopClient : IDisposable
         var singBoxPath = Path.Combine(vpnDir, "sing-box.exe");
         var wintunPath = Path.Combine(vpnDir, "wintun.dll");
         var doh = DohSettingsResolver.Resolve(options);
-        if (options.UseCensoredMode)
+        if (options.UseCensoredMode &&
+            string.Equals(options.SelectedDnsProvider, OnionHopConnectOptions.DnsProviderAuto, StringComparison.Ordinal))
         {
             var dohResolution = await DohSettingsResolver.ResolveWithHealthFallbackAsync(options, RaiseLog, token).ConfigureAwait(false);
             doh = dohResolution.Settings;

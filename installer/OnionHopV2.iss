@@ -1,6 +1,6 @@
 ; Inno Setup script for OnionHop V2
 ; Build with:
-;   ISCC.exe installer\OnionHopV2.iss /DMyAppVersion=2.3.1 /DPubDir="..."
+;   ISCC.exe installer\OnionHopV2.iss /DMyAppVersion=2.3.2 /DPubDir="..."
 
 #define MyAppName "OnionHop V2"
 #define MyAppExeName "OnionHopV2.exe"
@@ -8,7 +8,7 @@
 #define MyAppURL "https://github.com/center2055/OnionHop"
 
 #ifndef MyAppVersion
-  #define MyAppVersion "2.3.1"
+  #define MyAppVersion "2.3.2"
 #endif
 
 #ifndef PubDir

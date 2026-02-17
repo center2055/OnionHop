@@ -54,7 +54,7 @@ public sealed class OnionHopConnectOptions
     public string HardwareAccelerationMode { get; init; } = ToggleModeDefault;
     public string ConnectionPaddingMode { get; init; } = ConnectionPaddingAuto;
 
-    public string SelectedDnsProvider { get; init; } = DnsProviderAuto;
+    public string SelectedDnsProvider { get; init; } = DnsProviderCloudflare;
     public string? CustomDohHost { get; init; }
     public string? CustomDohPath { get; init; }
     public string ProxyScopeMode { get; init; } = ProxyScopeSystem;

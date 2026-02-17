@@ -299,7 +299,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _hardwareAccelerationMode = OnionHopConnectOptions.ToggleModeDefault;
     [ObservableProperty] private string _connectionPaddingMode = OnionHopConnectOptions.ConnectionPaddingAuto;
 
-    [ObservableProperty] private string _selectedDnsProvider = DnsProviderAuto;
+    [ObservableProperty] private string _selectedDnsProvider = DnsProviderCloudflare;
     [ObservableProperty] private string _customDohHost = string.Empty;
     [ObservableProperty] private string _customDohPath = "/dns-query";
     [ObservableProperty] private string _proxyScopeMode = ProxyScopeSystem;
@@ -1094,7 +1094,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             HardwareAccelerationMode = OnionHopConnectOptions.ToggleModeDefault;
             ConnectionPaddingMode = OnionHopConnectOptions.ConnectionPaddingAuto;
 
-            SelectedDnsProvider = DnsProviderAuto;
+            SelectedDnsProvider = DnsProviderCloudflare;
             CustomDohHost = string.Empty;
             CustomDohPath = "/dns-query";
             ProxyScopeMode = ProxyScopeSystem;
@@ -1408,10 +1408,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 ConnectionPaddingMode = OnionHopConnectOptions.ConnectionPaddingAuto;
             }
 
-            SelectedDnsProvider = string.IsNullOrWhiteSpace(settings.SelectedDnsProvider) ? DnsProviderAuto : settings.SelectedDnsProvider;
+            SelectedDnsProvider = string.IsNullOrWhiteSpace(settings.SelectedDnsProvider) ? DnsProviderCloudflare : settings.SelectedDnsProvider;
             if (!DnsProviders.Contains(SelectedDnsProvider))
             {
-                SelectedDnsProvider = DnsProviderAuto;
+                SelectedDnsProvider = DnsProviderCloudflare;
             }
 
             CustomDohHost = settings.CustomDohHost ?? string.Empty;
