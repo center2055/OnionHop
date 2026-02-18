@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using System.Text;
 using OnionHopV2.Core;
@@ -111,6 +112,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine("Commands:", ConsoleColor.White);
         WriteLine("  help                         Show this help", ConsoleColor.Gray);
         WriteLine("  connect [options]            Connect to Tor", ConsoleColor.Gray);
+        WriteLine("  countries                    List country options for --exit/--entry", ConsoleColor.Gray);
         WriteLine("  disconnect                   Disconnect", ConsoleColor.Gray);
         WriteLine("  status                       Show current status snapshot", ConsoleColor.Gray);
         WriteLine("  ip                           Refresh current IP", ConsoleColor.Gray);
@@ -128,12 +130,18 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine("  --bridge-type <type>         automatic, obfs4, snowflake, webtunnel, conjure, meek-azure, custom", ConsoleColor.Gray);
         WriteLine("  --censored <on|off>          Enable censored mode in manual mode", ConsoleColor.Gray);
         WriteLine("  --proxy-scope <system|socks|local>", ConsoleColor.Gray);
+        WriteLine("  --exit <auto|cc|country>     Exit location (e.g. us, de, \"United States\")", ConsoleColor.Gray);
+        WriteLine("  --entry <auto|cc|country>    Entry location (ignored when bridges are on)", ConsoleColor.Gray);
+        WriteLine("  --exit-fingerprint <hex40>   Pin exit relay fingerprint (40 hex chars)", ConsoleColor.Gray);
+        WriteLine("  --strict-exit-fingerprint <on|off>  Fail if pinned exit is unavailable", ConsoleColor.Gray);
         WriteLine("  --dns <auto|cloudflare|quad9|adguard|mullvad|opendns|google|custom>", ConsoleColor.Gray);
         WriteLine("  --onion-dns-proxy <on|off>   Enable .onion DNS proxy listener", ConsoleColor.Gray);
         WriteLine(string.Empty, ConsoleColor.Gray);
         WriteLine("Examples:", ConsoleColor.White);
         WriteLine("  connect --smart on", ConsoleColor.Gray);
         WriteLine("  connect --smart off --mode tun --bridges on --bridge-type snowflake", ConsoleColor.Gray);
+        WriteLine("  connect --smart off --exit us --entry nl", ConsoleColor.Gray);
+        WriteLine("  countries", ConsoleColor.Gray);
         WriteLine("  plan --mode proxy", ConsoleColor.Gray);
         WriteLine(string.Empty, ConsoleColor.Gray);
     }
@@ -238,18 +246,42 @@ internal sealed class CliHost : IAsyncDisposable
                 await DisconnectAsync();
                 return CommandResult.Success;
 
+            case "countries":
+            case "country":
+            case "locations":
+                await ShowCountriesAsync(token);
+                return CommandResult.Success;
+
             case "status":
-                PrintStatus();
+                await PrintStatusAsync(token);
                 return CommandResult.Success;
 
             case "ip":
+            {
+                var before = GetStatusSnapshot();
+                WriteInfo("Refreshing IP...");
                 await _client.RefreshIpAsync(updateStatusMessage: true, token);
+                var after = GetStatusSnapshot();
+                if (!string.Equals(before.CurrentIp, after.CurrentIp, StringComparison.OrdinalIgnoreCase))
+                {
+                    WriteInfo($"IP updated: {before.CurrentIp} -> {after.CurrentIp}");
+                }
+                else
+                {
+                    WriteInfo($"IP unchanged: {after.CurrentIp}");
+                }
+
                 return CommandResult.Success;
+            }
 
             case "newnym":
             case "identity":
+            {
                 await _client.ChangeIdentityAsync(token);
+                var snapshot = GetStatusSnapshot();
+                WriteInfo(snapshot.StatusMessage);
                 return CommandResult.Success;
+            }
 
             case "plan":
             {
@@ -298,6 +330,13 @@ internal sealed class CliHost : IAsyncDisposable
         {
             WriteWarning("Already connected/connecting.");
             return snapshot.IsConnected;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ExitNodeFingerprint) &&
+            !IsValidExitNodeFingerprint(request.ExitNodeFingerprint))
+        {
+            WriteWarning("Invalid --exit-fingerprint. Expected 40 hex characters.");
+            return false;
         }
 
         if (!OperatingSystem.IsWindows())
@@ -436,6 +475,23 @@ internal sealed class CliHost : IAsyncDisposable
         WriteInfo("Disconnected.");
     }
 
+    private async Task ShowCountriesAsync(CancellationToken token)
+    {
+        var countries = await _client.GetCountryStatsAsync(token).ConfigureAwait(false);
+        if (countries.Count == 0)
+        {
+            WriteWarning("No country data available right now.");
+            return;
+        }
+
+        WriteLine("Country options (--exit / --entry):", ConsoleColor.White);
+        foreach (var country in countries)
+        {
+            var code = country.CountryCode.ToUpperInvariant();
+            WriteLine($"  {code,-2}  {country.CountryName,-28} entry:{country.EntryNodes,5} exit:{country.ExitNodes,5}", ConsoleColor.Gray);
+        }
+    }
+
     private async Task ShowPlanAsync(ConnectRequest request, CancellationToken token)
     {
         var baseOptions = BuildBaseOptions(request);
@@ -485,8 +541,10 @@ internal sealed class CliHost : IAsyncDisposable
         {
             SelectedConnectionMode = mode,
             ProxyScopeMode = proxyScope,
-            SelectedLocation = OnionHopConnectOptions.AutomaticLocationLabel,
-            SelectedEntryLocation = OnionHopConnectOptions.AutomaticLocationLabel,
+            SelectedLocation = request.ExitLocation,
+            SelectedEntryLocation = request.EntryLocation,
+            ExitNodeFingerprint = request.ExitNodeFingerprint,
+            StrictManualExitNodeFingerprint = request.StrictManualExitNodeFingerprint,
             SelectedBridgeType = bridgeType,
             BridgeSourceMode = OnionHopConnectOptions.BridgeSourceAuto,
             UseTorBridges = useBridges,
@@ -534,6 +592,30 @@ internal sealed class CliHost : IAsyncDisposable
         };
     }
 
+    private async Task PrintStatusAsync(CancellationToken token)
+    {
+        await TryRefreshIpForStatusAsync(token).ConfigureAwait(false);
+        PrintStatus();
+    }
+
+    private async Task TryRefreshIpForStatusAsync(CancellationToken token)
+    {
+        var snapshot = GetStatusSnapshot();
+        if (snapshot.IsConnected || snapshot.IsConnecting || snapshot.IsDisconnecting)
+        {
+            return;
+        }
+
+        if (IPAddress.TryParse(snapshot.CurrentIp?.Trim(), out _))
+        {
+            return;
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+        await _client.RefreshIpAsync(updateStatusMessage: false, cts.Token).ConfigureAwait(false);
+    }
+
     private void PrintStatus()
     {
         var snapshot = GetStatusSnapshot();
@@ -571,7 +653,7 @@ internal sealed class CliHost : IAsyncDisposable
         lock (_statusLock)
         {
             _status = update;
-            statusKey = $"{update.ConnectionStatus}|{update.StatusMessage}|{(int)Math.Round(update.ConnectionProgress * 10)}|{update.IsConnected}|{update.IsConnecting}|{update.IsDisconnecting}";
+            statusKey = $"{update.ConnectionStatus}|{update.StatusMessage}|{(int)Math.Round(update.ConnectionProgress * 10)}|{update.IsConnected}|{update.IsConnecting}|{update.IsDisconnecting}|{update.CurrentIp}|{update.SocksPort}|{update.HttpPort?.ToString() ?? "-"}";
             if (!string.Equals(statusKey, _lastStatusPrintKey, StringComparison.Ordinal))
             {
                 _lastStatusPrintKey = statusKey;
@@ -652,6 +734,24 @@ internal sealed class CliHost : IAsyncDisposable
         var dnsProvider = GetOption(parsed.Options, "dns", "auto");
         var onionDnsProxy = GetBooleanOption(parsed.Options, "onion-dns-proxy", false);
         var useSnowflakeAmp = GetBooleanOption(parsed.Options, "snowflake-amp", false);
+        var exitLocation = NormalizeLocationSelection(GetOptionAny(
+            parsed.Options,
+            OnionHopConnectOptions.AutomaticLocationLabel,
+            "exit",
+            "exit-country",
+            "location",
+            "country"));
+        var entryLocation = NormalizeLocationSelection(GetOptionAny(
+            parsed.Options,
+            OnionHopConnectOptions.AutomaticLocationLabel,
+            "entry",
+            "entry-country"));
+        var exitNodeFingerprint = NormalizeExitNodeFingerprint(GetOptionAny(
+            parsed.Options,
+            string.Empty,
+            "exit-fingerprint",
+            "fingerprint"));
+        var strictExitFingerprint = GetBooleanOption(parsed.Options, "strict-exit-fingerprint", true);
 
         return new ConnectRequest(
             Mode: mode,
@@ -664,7 +764,11 @@ internal sealed class CliHost : IAsyncDisposable
             ProxyScope: proxyScope,
             DnsProvider: dnsProvider,
             UseOnionDnsProxy: onionDnsProxy,
-            UseSnowflakeAmp: useSnowflakeAmp);
+            UseSnowflakeAmp: useSnowflakeAmp,
+            ExitLocation: exitLocation,
+            EntryLocation: entryLocation,
+            ExitNodeFingerprint: exitNodeFingerprint,
+            StrictManualExitNodeFingerprint: strictExitFingerprint);
     }
 
     private static ParsedOptions ParseOptions(IReadOnlyList<string> args)
@@ -752,6 +856,59 @@ internal sealed class CliHost : IAsyncDisposable
             : fallback;
     }
 
+    private static string GetOptionAny(IReadOnlyDictionary<string, string> options, string fallback, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (options.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
+        }
+
+        return fallback;
+    }
+
+    private static string NormalizeLocationSelection(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return OnionHopConnectOptions.AutomaticLocationLabel;
+        }
+
+        var trimmed = raw.Trim();
+        return trimmed.ToLowerInvariant() switch
+        {
+            "auto" => OnionHopConnectOptions.AutomaticLocationLabel,
+            "automatic" => OnionHopConnectOptions.AutomaticLocationLabel,
+            "any" => OnionHopConnectOptions.AutomaticLocationLabel,
+            "*" => OnionHopConnectOptions.AutomaticLocationLabel,
+            _ => trimmed
+        };
+    }
+
+    private static string? NormalizeExitNodeFingerprint(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        var trimmed = raw.Trim();
+        if (trimmed.Equals("off", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (trimmed.StartsWith('$'))
+        {
+            trimmed = trimmed[1..];
+        }
+
+        return trimmed.Replace(" ", string.Empty, StringComparison.Ordinal).ToUpperInvariant();
+    }
+
     private static bool GetBooleanOption(IReadOnlyDictionary<string, string> options, string key, bool fallback)
     {
         if (!options.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw))
@@ -787,6 +944,26 @@ internal sealed class CliHost : IAsyncDisposable
             "no" => false,
             _ => fallback
         };
+    }
+
+    private static bool IsValidExitNodeFingerprint(string value)
+    {
+        if (value.Length != 40)
+        {
+            return false;
+        }
+
+        foreach (var c in value)
+        {
+            if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private static string ResolveVersion()
@@ -827,5 +1004,9 @@ internal sealed class CliHost : IAsyncDisposable
         string ProxyScope,
         string DnsProvider,
         bool UseOnionDnsProxy,
-        bool UseSnowflakeAmp);
+        bool UseSnowflakeAmp,
+        string ExitLocation,
+        string EntryLocation,
+        string? ExitNodeFingerprint,
+        bool StrictManualExitNodeFingerprint);
 }

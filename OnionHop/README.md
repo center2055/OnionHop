@@ -31,6 +31,8 @@ CLI quick start:
 
 ```powershell
 connect --smart on
+countries
+connect --smart off --exit us --entry nl
 status
 disconnect
 ```

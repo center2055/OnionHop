@@ -7,6 +7,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core.Dependencies;
+using OnionHopV2.Core.Models;
 using OnionHopV2.Core.Networking;
 using OnionHopV2.Core.Platform.Windows;
 using OnionHopV2.Core.Services;
@@ -117,6 +118,11 @@ public sealed class OnionHopClient : IDisposable
     public string? GetRecommendedBridgeType()
     {
         return _ptConfig?.RecommendedDefault;
+    }
+
+    public async Task<IReadOnlyList<TorCountryNodeStats>> GetCountryStatsAsync(CancellationToken token = default)
+    {
+        return await _nodeDatabaseService.GetCountryStatsAsync(RaiseLog, token).ConfigureAwait(false);
     }
 
     public async Task<(long BytesRead, long BytesWritten)?> TryGetTorTrafficBytesAsync(CancellationToken token = default)
@@ -427,6 +433,17 @@ public sealed class OnionHopClient : IDisposable
                     PublishStatus();
                     return;
                 }
+
+                if (!IPAddress.TryParse(_currentIp?.Trim(), out _))
+                {
+                    _currentIp = "--.--.--.--";
+                }
+                if (updateStatusMessage)
+                {
+                    _statusMessage = "Unable to refresh Tor exit IP right now.";
+                }
+                PublishStatus();
+                return;
             }
 
             ip = await IpLookupService.TryFetchDirectIpAsync(RaiseLog, cts.Token).ConfigureAwait(false);
