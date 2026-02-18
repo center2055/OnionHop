@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!-- Common -->
   <x:String x:Key="Common.Search">Suche</x:String>
@@ -21,6 +21,8 @@
   <x:String x:Key="Home.RefreshIp">IP aktualisieren</x:String>
   <x:String x:Key="Home.NewIdentity">Neue Identit&#228;t</x:String>
   <x:String x:Key="Home.Routing">Routing</x:String>
+  <x:String x:Key="Home.SmartConnect">Smart Connect (empfohlen)</x:String>
+  <x:String x:Key="Home.SmartConnectHint">W&#228;hlt automatisch die beste Tor-Verbindungsstrategie f&#252;r dein Netzwerk und L&#228;nderprofil. Wenn aktiviert, k&#246;nnen Bridge-/Zensur-Einstellungen &#252;berschrieben werden.</x:String>
   <x:String x:Key="Home.Mode">Modus</x:String>
   <x:String x:Key="Home.ModeProxy">Proxy-Modus (Empfohlen)</x:String>
   <x:String x:Key="Home.ModeTun">TUN/VPN-Modus (Admin)</x:String>
@@ -33,6 +35,7 @@
   <x:String x:Key="Home.HybridRouting">Hybrides Routing (Split-Tunneling)</x:String>
   <x:String x:Key="Home.KillSwitch">Kill-Switch (nur striktes TUN)</x:String>
   <x:String x:Key="Home.KillSwitchHint">Der Kill-Switch ben&#246;tigt Administratorrechte und ist im Hybridmodus deaktiviert.</x:String>
+  <x:String x:Key="Home.ConnectionElapsed">Verbunden seit</x:String>
   <x:String x:Key="Home.DownloadingComponents">Komponenten werden heruntergeladen...</x:String>
 
   <!-- Logs -->
@@ -106,7 +109,7 @@
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">Proxy-Modus</x:String>
   <x:String x:Key="Settings.ProxyScope">Proxy-Verhalten</x:String>
-  <x:String x:Key="Settings.ProxyScopeHint">System-Proxy aktualisiert die Windows-Proxy-Einstellungen f&#252;r alle Apps. Nur lokal bel&#228;sst die Einstellungen unver&#228;ndert, damit du Apps manuell konfigurierst.</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">System-Proxy (alle Apps) setzt HTTP/HTTPS + SOCKS. SOCKS Browser/.onion-Modus setzt nur SOCKS f&#252;r bessere .onion-Kompatibilit&#228;t in Browsern. Nur lokal bel&#228;sst die Windows-Einstellungen unver&#228;ndert f&#252;r manuelle App-Konfiguration.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Bevorzugter SOCKS-Port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Bevorzugter HTTP-Tunnel-Port</x:String>
 
@@ -167,6 +170,7 @@
   <x:String x:Key="BridgeSource.BridgeDbOnly">Nur BridgeDB</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Nur Offline</x:String>
   <x:String x:Key="ProxyScope.System">System-Proxy (alle Apps)</x:String>
+  <x:String x:Key="ProxyScope.SystemSocks">System-Proxy (SOCKS Browser/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Nur lokaler Proxy (manuelle Apps)</x:String>
 
   <!-- Language names -->

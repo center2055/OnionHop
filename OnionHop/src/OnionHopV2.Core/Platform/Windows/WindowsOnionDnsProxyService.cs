@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace OnionHopV2.Core.Platform.Windows;
 
-internal sealed class WindowsOnionDnsProxyService
+internal sealed class WindowsOnionDnsProxyService : IDnsProxyService
 {
     private const string RuleComment = "OnionHopV2-OnionDnsProxy";
 

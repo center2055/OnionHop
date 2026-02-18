@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core.Dependencies;
@@ -16,12 +16,6 @@ namespace OnionHopV2.Core;
 
 public sealed class OnionHopClient : IDisposable
 {
-    private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-?]*[ -/]*[@-~]", RegexOptions.Compiled);
-    private static readonly Regex SingBoxConnectionToRegex = new(@"connection to (?<dest>\S+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex SingBoxConnectionIdRegex = new(@"\[(?<id>\d+)\s", RegexOptions.Compiled);
-    private static readonly Regex SingBoxDirectOutboundDestRegex = new(@"outbound/direct\[[^\]]+\]: outbound connection to (?<dest>\S+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex SingBoxClosedConnectionDestRegex = new(@"->(?<dest>\[[^\]]+\]:\d+|[^:\s]+:\d+):", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
     public const int DefaultSocksPort = OnionHopConnectOptions.DefaultSocksPort;
     public const int DefaultHttpPort = OnionHopConnectOptions.DefaultHttpPort;
     public const int DefaultDnsPort = 53;
@@ -55,6 +49,7 @@ public sealed class OnionHopClient : IDisposable
     private readonly WindowsProxyService _proxyService = new();
     private readonly WindowsOnionDnsProxyService _onionDnsProxyService = new();
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
+    private readonly SingBoxLogProcessor _singBoxLogProcessor = new();
 
     private readonly TorService _torService;
     private readonly VpnService _vpnService;
@@ -85,14 +80,9 @@ public sealed class OnionHopClient : IDisposable
     private int? _activeDnsPort;
     private string? _activeDnsBindAddress;
 
-    private readonly object _singBoxLogLock = new();
-    private readonly Queue<string> _singBoxRecentLines = new();
-    private DateTime _lastVpnMessageUtc = DateTime.MinValue;
     private CancellationTokenSource? _adminVpnMonitorCts;
     private readonly object _bridgeFailureLock = new();
     private readonly Queue<DateTimeOffset> _recentTorProxyFailures = new();
-    private readonly HashSet<string> _webTunnelConnectionIds = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _webTunnelConnectionDestinations = new(StringComparer.Ordinal);
 
     public OnionHopClient(string? baseDirectory = null)
     {
@@ -107,6 +97,14 @@ public sealed class OnionHopClient : IDisposable
 
         _vpnService.OutputReceived += OnSingBoxDataReceived;
         _vpnService.Exited += OnSingBoxExited;
+
+        _singBoxLogProcessor.LogReceived += RaiseLog;
+        _singBoxLogProcessor.DnsLogReceived += RaiseDnsLog;
+        _singBoxLogProcessor.StatusMessageChanged += message =>
+        {
+            _statusMessage = message;
+            PublishStatus();
+        };
     }
 
     public string BaseDirectory => _baseDir;
@@ -324,7 +322,12 @@ public sealed class OnionHopClient : IDisposable
             {
                 if (UsesSystemProxyScope(resolvedOptions))
                 {
-                    _proxyService.ApplyTorProxy(_activeSocksPort, _activeHttpPort, RaiseLog);
+                    var systemHttpPort = UsesSocksOnlySystemProxyScope(resolvedOptions) ? null : _activeHttpPort;
+                    _proxyService.ApplyTorProxy(_activeSocksPort, systemHttpPort, RaiseLog);
+                    if (systemHttpPort is null)
+                    {
+                        RaiseLog($"System proxy SOCKS browser/.onion mode enabled (socks=127.0.0.1:{_activeSocksPort}).");
+                    }
                 }
                 else
                 {
@@ -499,8 +502,9 @@ public sealed class OnionHopClient : IDisposable
             _adminVpnMonitorCts?.Cancel();
             _adminVpnMonitorCts = null;
         }
-        catch
+        catch (Exception ex)
         {
+            StartupLogger.Write($"Dispose: failed to cancel VPN monitor: {ex.Message}");
         }
 
         try
@@ -510,32 +514,36 @@ public sealed class OnionHopClient : IDisposable
                 _proxyService.RestorePreviousProxy(RaiseLog);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            StartupLogger.Write($"Dispose: failed to restore proxy: {ex.Message}");
         }
 
         try
         {
             _onionDnsProxyService.Disable(RaiseLog);
         }
-        catch
+        catch (Exception ex)
         {
+            StartupLogger.Write($"Dispose: failed to disable DNS proxy: {ex.Message}");
         }
 
         try
         {
             StopSingBoxProcess();
         }
-        catch
+        catch (Exception ex)
         {
+            StartupLogger.Write($"Dispose: failed to stop sing-box: {ex.Message}");
         }
 
         try
         {
             StopTorProcess();
         }
-        catch
+        catch (Exception ex)
         {
+            StartupLogger.Write($"Dispose: failed to stop Tor: {ex.Message}");
         }
 
         try
@@ -545,8 +553,9 @@ public sealed class OnionHopClient : IDisposable
                 _adminHelper.ShutdownIfConnectedAsync().Wait(TimeSpan.FromSeconds(2));
             }
         }
-        catch
+        catch (Exception ex)
         {
+            StartupLogger.Write($"Dispose: failed to shutdown admin helper: {ex.Message}");
         }
 
         _adminHelper.Dispose();
@@ -782,46 +791,7 @@ public sealed class OnionHopClient : IDisposable
 
     private static OnionHopConnectOptions CloneOptionsWithBridgeType(OnionHopConnectOptions options, string bridgeType)
     {
-        return new OnionHopConnectOptions
-        {
-            SelectedLocation = options.SelectedLocation,
-            SelectedEntryLocation = options.SelectedEntryLocation,
-            ExitNodeFingerprint = options.ExitNodeFingerprint,
-            SelectedConnectionMode = options.SelectedConnectionMode,
-            UseHybridRouting = options.UseHybridRouting,
-            KillSwitchEnabled = options.KillSwitchEnabled,
-            UseTorBridges = options.UseTorBridges,
-            UseCensoredMode = options.UseCensoredMode,
-            SelectedBridgeType = bridgeType,
-            BridgeSourceMode = options.BridgeSourceMode,
-            CustomBridges = options.CustomBridges,
-            CustomSniHosts = options.CustomSniHosts,
-            UseSnowflakeAmp = options.UseSnowflakeAmp,
-            SnowflakeAmpCache = options.SnowflakeAmpCache,
-            TorIpv6Mode = options.TorIpv6Mode,
-            HardwareAccelerationMode = options.HardwareAccelerationMode,
-            ConnectionPaddingMode = options.ConnectionPaddingMode,
-            SelectedDnsProvider = options.SelectedDnsProvider,
-            CustomDohHost = options.CustomDohHost,
-            CustomDohPath = options.CustomDohPath,
-            ProxyScopeMode = options.ProxyScopeMode,
-            PreferredSocksPort = options.PreferredSocksPort,
-            PreferredHttpPort = options.PreferredHttpPort,
-            RestrictedFirewallMode = options.RestrictedFirewallMode,
-            AllowedPorts = options.AllowedPorts,
-            OnionDnsProxyEnabled = options.OnionDnsProxyEnabled,
-            StrictManualExitNodeFingerprint = options.StrictManualExitNodeFingerprint,
-            MaxCircuitInactivityMinutes = options.MaxCircuitInactivityMinutes,
-            OpenConnectedPageEnabled = options.OpenConnectedPageEnabled,
-            ConnectedPageUrl = options.ConnectedPageUrl,
-            OpenDisconnectedPageEnabled = options.OpenDisconnectedPageEnabled,
-            DisconnectedPageUrl = options.DisconnectedPageUrl,
-            EnableDiscordStatus = options.EnableDiscordStatus,
-            HybridRouteAllWebTraffic = options.HybridRouteAllWebTraffic,
-            HybridBlockQuicForTorApps = options.HybridBlockQuicForTorApps,
-            HybridTorApps = options.HybridTorApps,
-            HybridBypassApps = options.HybridBypassApps
-        };
+        return options with { SelectedBridgeType = bridgeType };
     }
 
     private async Task StartTorAsync(OnionHopConnectOptions options, CancellationToken token)
@@ -1009,99 +979,10 @@ public sealed class OnionHopClient : IDisposable
             .ToList();
     }
 
-    private static IReadOnlyList<string> ParseProcessNames(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return Array.Empty<string>();
-        }
+    private static IReadOnlyList<string> ParseProcessNames(string? text) => TorLogHelper.ParseProcessNames(text);
 
-        var results = new List<string>();
-        using var reader = new StringReader(text);
-        string? line;
-        while ((line = reader.ReadLine()) != null)
-        {
-            line = line.Trim();
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                continue;
-            }
-
-            if (line.StartsWith("#", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            foreach (var token in line.Split(new[] { ',', ';', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                var name = token.Trim().Trim('"');
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    continue;
-                }
-
-                if (name.Contains('\\') || name.Contains('/'))
-                {
-                    name = Path.GetFileName(name);
-                }
-
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    results.Add(name);
-                }
-            }
-        }
-
-        return results
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    private static bool? ParseToggleMode(string? mode)
-    {
-        if (string.IsNullOrWhiteSpace(mode))
-        {
-            return null;
-        }
-
-        if (string.Equals(mode, OnionHopConnectOptions.ToggleModeEnabled, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (string.Equals(mode, OnionHopConnectOptions.ToggleModeDisabled, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        return null;
-    }
-
-    private static string? ParseConnectionPaddingMode(string? mode)
-    {
-        if (string.IsNullOrWhiteSpace(mode))
-        {
-            return null;
-        }
-
-        if (string.Equals(mode, OnionHopConnectOptions.ConnectionPaddingAuto, StringComparison.OrdinalIgnoreCase))
-        {
-            return "auto";
-        }
-
-        if (string.Equals(mode, OnionHopConnectOptions.ConnectionPaddingEnabled, StringComparison.OrdinalIgnoreCase))
-        {
-            return "1";
-        }
-
-        if (string.Equals(mode, OnionHopConnectOptions.ConnectionPaddingDisabled, StringComparison.OrdinalIgnoreCase))
-        {
-            return "0";
-        }
-
-        return null;
-    }
+    private static bool? ParseToggleMode(string? mode) => TorLogHelper.ParseToggleMode(mode);
+    private static string? ParseConnectionPaddingMode(string? mode) => TorLogHelper.ParseConnectionPaddingMode(mode);
 
     private void StartAdminVpnMonitor(OnionHopConnectOptions options)
     {
@@ -1269,45 +1150,10 @@ public sealed class OnionHopClient : IDisposable
 
     private void ProcessSingBoxLogLine(string? data)
     {
-        if (string.IsNullOrWhiteSpace(data))
+        var line = _singBoxLogProcessor.ProcessLine(data);
+        if (line != null)
         {
-            return;
-        }
-
-        var line = AnsiEscapeRegex.Replace(data, string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return;
-        }
-
-        RaiseLog($"sing-box: {line}");
-        if (LooksLikeDnsLogLine(line))
-        {
-            RaiseDnsLog($"sing-box: {line}");
-        }
-
-        TrackWebTunnelBridgeHealthFromSingBoxLine(line);
-
-        lock (_singBoxLogLock)
-        {
-            _singBoxRecentLines.Enqueue(line);
-            while (_singBoxRecentLines.Count > 40)
-            {
-                _singBoxRecentLines.Dequeue();
-            }
-        }
-
-        if (line.Contains("socks5: request rejected", StringComparison.OrdinalIgnoreCase))
-        {
-            var destMatch = SingBoxConnectionToRegex.Match(line);
-            var dest = destMatch.Success ? destMatch.Groups["dest"].Value : "a destination";
-            var now = DateTime.UtcNow;
-            if (now - _lastVpnMessageUtc >= TimeSpan.FromSeconds(10))
-            {
-                _lastVpnMessageUtc = now;
-                _statusMessage = $"VPN tunnel: Tor rejected a connection to {dest}. Non-web ports are often blocked by Tor exits.";
-                PublishStatus();
-            }
+            _singBoxLogProcessor.TrackWebTunnelBridgeHealth(line, GetActiveBridgeTypeForRuntimeHealth, _bridgeManager, RaiseLog);
         }
     }
 
@@ -1340,13 +1186,7 @@ public sealed class OnionHopClient : IDisposable
 
         if (_isConnected && !_isDisconnecting)
         {
-            string lastLines;
-            lock (_singBoxLogLock)
-            {
-                lastLines = string.Join("\n", _singBoxRecentLines.Count > 6
-                    ? _singBoxRecentLines.Skip(Math.Max(0, _singBoxRecentLines.Count - 6))
-                    : _singBoxRecentLines);
-            }
+            var lastLines = string.Join("\n", _singBoxLogProcessor.GetRecentLines());
 
             _connectionStatus = "VPN stopped";
             _statusMessage = string.IsNullOrWhiteSpace(lastLines)
@@ -1371,23 +1211,17 @@ public sealed class OnionHopClient : IDisposable
     {
         _adminVpnMonitorCts?.Cancel();
         _adminVpnMonitorCts = null;
-        ClearRuntimeBridgeConnectionTracking();
+        _singBoxLogProcessor.ClearConnectionTracking();
 
         if (!WindowsAdmin.IsAdministrator())
         {
             _ = Task.Run(async () => await _adminHelper.StopVpnIfAvailableAsync().ConfigureAwait(false));
-            lock (_singBoxLogLock)
-            {
-                _singBoxRecentLines.Clear();
-            }
+            _singBoxLogProcessor.ClearRecentLines();
             return;
         }
 
         _vpnService.Stop();
-        lock (_singBoxLogLock)
-        {
-            _singBoxRecentLines.Clear();
-        }
+        _singBoxLogProcessor.ClearRecentLines();
     }
 
     private void StopTorProcess()
@@ -1396,41 +1230,9 @@ public sealed class OnionHopClient : IDisposable
         _lastNewnymUtc = DateTime.MinValue;
     }
 
-    private static bool LooksLikeDnsLogLine(string line)
-    {
-        return line.Contains("doh", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("dns", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("hijack-dns", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("[dns]", StringComparison.OrdinalIgnoreCase)
-               || line.Contains(" protocol=dns", StringComparison.OrdinalIgnoreCase)
-               || line.Contains(" protocol dns", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsFatalTorBootstrapLine(string line)
-    {
-        return line.Contains("no configured transport called", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("no such transport is supported", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("didn't launch any pluggable transport listeners", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("failed to bind", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("could not bind", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("address already in use", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("no such file or directory", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsTorProxyHandshakeFailureLine(string line)
-    {
-        return line.Contains("handshaking (proxy)", StringComparison.OrdinalIgnoreCase)
-               && line.Contains("general SOCKS server failure", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ShouldLogTorLine(string line)
-    {
-        return line.Contains("Failed", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("[warn]", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("[err]", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("warn", StringComparison.OrdinalIgnoreCase)
-               || line.Contains("error", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsFatalTorBootstrapLine(string line) => TorLogHelper.IsFatalTorBootstrapLine(line);
+    private static bool IsTorProxyHandshakeFailureLine(string line) => TorLogHelper.IsTorProxyHandshakeFailureLine(line);
+    private static bool ShouldLogTorLine(string line) => TorLogHelper.ShouldLogTorLine(line);
 
     private void ResetBridgeFailureTracking()
     {
@@ -1469,88 +1271,6 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
-    private void TrackWebTunnelBridgeHealthFromSingBoxLine(string line)
-    {
-        var id = TryExtractSingBoxConnectionId(line);
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            return;
-        }
-
-        if (line.Contains("router: found process path:", StringComparison.OrdinalIgnoreCase) &&
-            line.Contains("webtunnel-client.exe", StringComparison.OrdinalIgnoreCase))
-        {
-            lock (_bridgeFailureLock)
-            {
-                _webTunnelConnectionIds.Add(id);
-                if (_webTunnelConnectionIds.Count > 4096)
-                {
-                    _webTunnelConnectionIds.Clear();
-                    _webTunnelConnectionDestinations.Clear();
-                }
-            }
-
-            return;
-        }
-
-        if (line.Contains("outbound/direct", StringComparison.OrdinalIgnoreCase) &&
-            line.Contains("outbound connection to ", StringComparison.OrdinalIgnoreCase))
-        {
-            var destinationMatch = SingBoxDirectOutboundDestRegex.Match(line);
-            if (destinationMatch.Success)
-            {
-                lock (_bridgeFailureLock)
-                {
-                    if (_webTunnelConnectionIds.Contains(id))
-                    {
-                        _webTunnelConnectionDestinations[id] = destinationMatch.Groups["dest"].Value;
-                    }
-                }
-            }
-
-            return;
-        }
-
-        if (!line.Contains("connection download closed", StringComparison.OrdinalIgnoreCase) &&
-            !line.Contains("forcibly closed by the remote host", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        string? destinationFromMap;
-        bool wasTrackedWebTunnelConnection;
-        lock (_bridgeFailureLock)
-        {
-            wasTrackedWebTunnelConnection = _webTunnelConnectionIds.Contains(id) || _webTunnelConnectionDestinations.ContainsKey(id);
-            _webTunnelConnectionDestinations.TryGetValue(id, out destinationFromMap);
-            _webTunnelConnectionDestinations.Remove(id);
-            _webTunnelConnectionIds.Remove(id);
-        }
-
-        if (!wasTrackedWebTunnelConnection)
-        {
-            return;
-        }
-
-        var destinationMatchFromLine = SingBoxClosedConnectionDestRegex.Match(line);
-        var destination = destinationMatchFromLine.Success
-            ? destinationMatchFromLine.Groups["dest"].Value
-            : destinationFromMap;
-        if (string.IsNullOrWhiteSpace(destination))
-        {
-            return;
-        }
-
-        var activeBridgeType = GetActiveBridgeTypeForRuntimeHealth();
-        if (string.IsNullOrWhiteSpace(activeBridgeType) ||
-            !string.Equals(activeBridgeType, "webtunnel", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        _bridgeManager.ReportRuntimeBridgeFailure(activeBridgeType, destination, RaiseLog);
-    }
-
     private string? GetActiveBridgeTypeForRuntimeHealth()
     {
         var options = _activeOptions;
@@ -1562,77 +1282,11 @@ public sealed class OnionHopClient : IDisposable
         return options.SelectedBridgeType?.Trim();
     }
 
-    private void ClearRuntimeBridgeConnectionTracking()
-    {
-        lock (_bridgeFailureLock)
-        {
-            _webTunnelConnectionIds.Clear();
-            _webTunnelConnectionDestinations.Clear();
-        }
-    }
-
-    private static string? TryExtractSingBoxConnectionId(string line)
-    {
-        var match = SingBoxConnectionIdRegex.Match(line);
-        return match.Success ? match.Groups["id"].Value : null;
-    }
-
-    private static int ExtractProgress(string line)
-    {
-        var percentIndex = line.IndexOf('%');
-        if (percentIndex <= 0)
-        {
-            return 0;
-        }
-
-        var start = percentIndex - 1;
-        while (start >= 0 && char.IsDigit(line[start]))
-        {
-            start--;
-        }
-
-        var number = line.Substring(start + 1, percentIndex - start - 1);
-        return int.TryParse(number, out var value) ? value : 0;
-    }
-
-    private static string? ExtractBootstrapSummary(string line)
-    {
-        // Example: "Bootstrapped 25% (requesting_status): Asking for networkstatus consensus"
-        var colonIndex = line.IndexOf("):", StringComparison.Ordinal);
-        if (colonIndex < 0 || colonIndex + 2 >= line.Length)
-        {
-            return null;
-        }
-
-        var summary = line[(colonIndex + 2)..].Trim();
-        return string.IsNullOrWhiteSpace(summary) ? null : summary;
-    }
-
-    private static IReadOnlyList<int> ParseAllowedPorts(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return [80, 443];
-        }
-
-        var result = new List<int>();
-        foreach (var token in raw.Split([',', ';', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (int.TryParse(token, out var port) && port is >= 1 and <= 65535 && !result.Contains(port))
-            {
-                result.Add(port);
-            }
-        }
-
-        return result.Count == 0 ? [80, 443] : result;
-    }
-
-    private static int NormalizePreferredProxyPort(int preferredPort, int fallbackPort)
-    {
-        return preferredPort is >= 1 and <= 65535
-            ? preferredPort
-            : fallbackPort;
-    }
+    private static int ExtractProgress(string line) => TorLogHelper.ExtractProgress(line);
+    private static string? ExtractBootstrapSummary(string line) => TorLogHelper.ExtractBootstrapSummary(line);
+    private static IReadOnlyList<int> ParseAllowedPorts(string? raw) => TorLogHelper.ParseAllowedPorts(raw);
+    private static int NormalizePreferredProxyPort(int preferredPort, int fallbackPort) => TorLogHelper.NormalizePreferredProxyPort(preferredPort, fallbackPort);
+    private static string BuildManualProxyHint(int socksPort, int? httpPort) => TorLogHelper.BuildManualProxyHint(socksPort, httpPort);
 
     private static bool UsesSystemProxyScope(OnionHopConnectOptions options)
     {
@@ -1642,14 +1296,12 @@ public sealed class OnionHopClient : IDisposable
             StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string BuildManualProxyHint(int socksPort, int? httpPort)
+    private static bool UsesSocksOnlySystemProxyScope(OnionHopConnectOptions options)
     {
-        if (httpPort.HasValue)
-        {
-            return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}, HTTP 127.0.0.1:{httpPort.Value}).";
-        }
-
-        return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}).";
+        return string.Equals(
+            options.ProxyScopeMode,
+            OnionHopConnectOptions.ProxyScopeSystemSocks,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private static (string Address, int Port)? SelectOnionDnsEndpoint(out IReadOnlyList<string> attemptedCandidates)
@@ -1699,43 +1351,5 @@ public sealed class OnionHopClient : IDisposable
     }
 
     private static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, Action<string> log)
-    {
-        if (bridgeLines.Count == 0)
-        {
-            return bridgeLines;
-        }
-
-        var selected = new List<string>(Math.Min(MaxBridgeLinesForLaunch, bridgeLines.Count));
-        var totalChars = 0;
-
-        foreach (var line in bridgeLines)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                continue;
-            }
-
-            var trimmed = line.Trim();
-            var estimatedArgChars = trimmed.Length + 12; // --Bridge "..."
-            if (selected.Count >= MaxBridgeLinesForLaunch || totalChars + estimatedArgChars > MaxBridgeArgumentCharsForLaunch)
-            {
-                break;
-            }
-
-            selected.Add(trimmed);
-            totalChars += estimatedArgChars;
-        }
-
-        if (selected.Count == 0)
-        {
-            selected.Add(bridgeLines[0].Trim());
-        }
-
-        if (selected.Count < bridgeLines.Count)
-        {
-            log($"Using {selected.Count} of {bridgeLines.Count} bridge lines to avoid Windows command-line length limits.");
-        }
-
-        return selected;
-    }
+        => TorLogHelper.LimitBridgeLinesForLaunch(bridgeLines, MaxBridgeLinesForLaunch, MaxBridgeArgumentCharsForLaunch, log);
 }

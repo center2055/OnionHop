@@ -4,7 +4,7 @@ using Microsoft.Win32;
 
 namespace OnionHopV2.Core.Platform.Windows;
 
-internal sealed class WindowsProxyService
+internal sealed class WindowsProxyService : IProxyService
 {
     private const int INTERNET_OPTION_SETTINGS_CHANGED = 39;
     private const int INTERNET_OPTION_REFRESH = 37;

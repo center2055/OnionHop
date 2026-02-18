@@ -92,6 +92,7 @@ OnionHop stores settings here:
 ## Repository layout
 
 - `OnionHop/` - OnionHop V2 (Avalonia UI)
+- `OnionHop/src/OnionHopV2.Cli` - OnionHop V2 command-line interface
 
 ---
 
@@ -111,3 +112,42 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-v2
 
 Output:
 - `installer/output/OnionHop-Setup-<version>.exe`
+
+### Build the V2 portable ZIP (Windows)
+
+Build:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-v2.ps1
+```
+
+Output:
+- `installer/output/OnionHopV2-Portable-<version>-win-x64.zip`
+
+### Build the CLI installer (Windows)
+
+Build:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-cli.ps1
+```
+
+Output:
+- `installer/output/OnionHop-CLI-Setup-<version>.exe`
+
+### Build the CLI portable ZIP (Windows)
+
+Build:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-cli.ps1
+```
+
+Output:
+- `installer/output/OnionHopCLI-Portable-<version>-win-x64.zip`
+
+### Run CLI (Dev)
+
+```powershell
+dotnet run --project "OnionHop/src/OnionHopV2.Cli" -c Release
+```

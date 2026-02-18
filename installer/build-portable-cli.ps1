@@ -1,7 +1,7 @@
 param(
   [string]$Configuration = "Release",
   [string]$Runtime = "win-x64",
-  [switch]$SelfContained,
+  [switch]$FrameworkDependent,
   [switch]$SkipDependencies
 )
 
@@ -36,11 +36,11 @@ function Remove-PathWithRetry {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop"
-$projectDir = Join-Path $solutionRoot "src\OnionHopV2.App"
-$csproj = Join-Path $projectDir "OnionHopV2.App.csproj"
+$projectDir = Join-Path $solutionRoot "src\OnionHopV2.Cli"
+$csproj = Join-Path $projectDir "OnionHopV2.Cli.csproj"
 
 if (!(Test-Path $csproj)) {
-  throw "Could not find OnionHopV2.App.csproj at: $csproj"
+  throw "Could not find OnionHopV2.Cli.csproj at: $csproj"
 }
 
 $depsScript = Join-Path $repoRoot "download-deps.ps1"
@@ -54,9 +54,9 @@ if (-not $SkipDependencies) {
   if ($LASTEXITCODE -ne 0) {
     Write-Warning "Dependency download failed (exit code $LASTEXITCODE). Attempting to continue if dependencies are already present..."
 
-    $torExe = Join-Path $repoRoot "OnionHop\\tor\\tor.exe"
-    $singBoxExe = Join-Path $repoRoot "OnionHop\\vpn\\sing-box.exe"
-    $wintunDll = Join-Path $repoRoot "OnionHop\\vpn\\wintun.dll"
+    $torExe = Join-Path $repoRoot "OnionHop\tor\tor.exe"
+    $singBoxExe = Join-Path $repoRoot "OnionHop\vpn\sing-box.exe"
+    $wintunDll = Join-Path $repoRoot "OnionHop\vpn\wintun.dll"
 
     $missing = @()
     foreach ($p in @($torExe, $singBoxExe, $wintunDll)) {
@@ -71,12 +71,10 @@ if (-not $SkipDependencies) {
   }
 }
 
-$sc = "false"
-if ($SelfContained.IsPresent) { $sc = "true" }
+$sc = if ($FrameworkDependent.IsPresent) { "false" } else { "true" }
 
-Write-Host "Cleaning and Publishing OnionHop V2..." -ForegroundColor Cyan
+Write-Host "Publishing OnionHop CLI (portable package)..." -ForegroundColor Cyan
 
-# Remove old build artifacts to ensure a fresh publish
 Remove-PathWithRetry -Path "$projectDir\bin"
 Remove-PathWithRetry -Path "$projectDir\obj"
 
@@ -88,12 +86,7 @@ if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"
 }
 
-$iss = Join-Path $PSScriptRoot "OnionHopV2.iss"
-if (!(Test-Path $iss)) {
-  throw "Missing Inno Setup script: $iss"
-}
-
-$version = "2.4.0"
+$version = "0.0.0"
 try {
   $xml = [xml](Get-Content $csproj)
   $pv = $xml.Project.PropertyGroup.Version
@@ -101,18 +94,13 @@ try {
 } catch {
 }
 
-# Try to find ISCC.exe
-$possible = @(
-  "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-  "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
-)
+$outDir = Join-Path $PSScriptRoot "output"
+if (!(Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 
-$iscc = $possible | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $iscc) {
-  throw "Inno Setup not found. Install Inno Setup 6 and ensure ISCC.exe exists in Program Files."
-}
+$zipName = "OnionHopCLI-Portable-$version-$Runtime.zip"
+$zipPath = Join-Path $outDir $zipName
 
-Write-Host "Building installer with Inno Setup..." -ForegroundColor Cyan
-& $iscc $iss /DMyAppVersion=$version /DPubDir="$publishDir"
+if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $zipPath -Force
 
-Write-Host "Done. Installer is in: $PSScriptRoot\output" -ForegroundColor Green
+Write-Host "Done. Portable ZIP is in: $zipPath" -ForegroundColor Green

@@ -21,6 +21,8 @@
   <x:String x:Key="Home.RefreshIp">Refresh IP</x:String>
   <x:String x:Key="Home.NewIdentity">New Identity</x:String>
   <x:String x:Key="Home.Routing">Routing</x:String>
+  <x:String x:Key="Home.SmartConnect">Smart Connect (recommended)</x:String>
+  <x:String x:Key="Home.SmartConnectHint">Automatically picks the best Tor connection strategy for your network and country profile. When enabled, bridge/censorship settings may be overridden.</x:String>
   <x:String x:Key="Home.Mode">Mode</x:String>
   <x:String x:Key="Home.ModeProxy">Proxy Mode (Recommended)</x:String>
   <x:String x:Key="Home.ModeTun">TUN/VPN Mode (Admin)</x:String>
@@ -33,6 +35,7 @@
   <x:String x:Key="Home.HybridRouting">Hybrid routing (split tunneling)</x:String>
   <x:String x:Key="Home.KillSwitch">Kill switch (strict TUN only)</x:String>
   <x:String x:Key="Home.KillSwitchHint">Kill switch requires Administrator and is disabled in Hybrid mode.</x:String>
+  <x:String x:Key="Home.ConnectionElapsed">Connected for</x:String>
   <x:String x:Key="Home.DownloadingComponents">Downloading components...</x:String>
 
   <!-- Logs -->
@@ -106,7 +109,7 @@
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">Proxy Mode</x:String>
   <x:String x:Key="Settings.ProxyScope">Proxy behavior</x:String>
-  <x:String x:Key="Settings.ProxyScopeHint">System proxy updates Windows proxy for all apps. Local-only keeps settings untouched so you configure apps manually.</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">System proxy (all apps) sets HTTP/HTTPS + SOCKS. SOCKS browser/.onion mode sets SOCKS only for better .onion compatibility in browsers. Local-only keeps Windows settings untouched for manual app setup.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Preferred SOCKS port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Preferred HTTP tunnel port</x:String>
 
@@ -167,6 +170,7 @@
   <x:String x:Key="BridgeSource.BridgeDbOnly">BridgeDB only</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Offline only</x:String>
   <x:String x:Key="ProxyScope.System">System proxy (all apps)</x:String>
+  <x:String x:Key="ProxyScope.SystemSocks">System proxy (SOCKS browser/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Local proxy only (manual apps)</x:String>
 
   <!-- Language names -->

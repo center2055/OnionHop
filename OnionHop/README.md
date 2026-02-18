@@ -20,3 +20,37 @@ dotnet run --project "OnionHop/src/OnionHopV2.App" -c Release
 ```
 
 On first connect, the app will ensure Tor + sing-box/Wintun dependencies in its output directory (Windows).
+
+## Run CLI
+
+```powershell
+dotnet run --project "OnionHop/src/OnionHopV2.Cli" -c Release
+```
+
+CLI quick start:
+
+```powershell
+connect --smart on
+status
+disconnect
+```
+
+## Build CLI Installer (Windows)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-cli.ps1
+```
+
+## Build Portable Packages (Windows)
+
+GUI portable ZIP:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-v2.ps1
+```
+
+CLI portable ZIP:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-cli.ps1
+```

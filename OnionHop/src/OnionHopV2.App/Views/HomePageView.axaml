@@ -25,9 +25,24 @@
                   ColumnSpacing="18"
                   RowSpacing="10">
                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
-                    <TextBlock Text="{Binding State.ConnectionStatus}"
-                               FontSize="20"
-                               FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="{Binding State.ConnectionStatus}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding State.ShowConnectionElapsed}">
+                            <TextBlock Text="{DynamicResource Home.ConnectionElapsed}"
+                                       FontSize="14"
+                                       Opacity="0.65"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding State.ConnectionElapsed}"
+                                       FontSize="16"
+                                       Opacity="0.7"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
                     <TextBlock Text="{Binding State.StatusMessage}"
                                Opacity="0.85"
                                TextWrapping="Wrap" />
@@ -139,6 +154,11 @@
                     <TextBlock Text="{DynamicResource Home.Routing}"
                                FontSize="16"
                                FontWeight="SemiBold" />
+                    <ToggleSwitch Content="{DynamicResource Home.SmartConnect}"
+                                  IsChecked="{Binding State.SmartConnectEnabled}" />
+                    <TextBlock Text="{DynamicResource Home.SmartConnectHint}"
+                               Opacity="0.75"
+                               TextWrapping="Wrap" />
 
                     <StackPanel Spacing="6">
                         <TextBlock Text="{DynamicResource Home.Mode}" Opacity="0.75" />

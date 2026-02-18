@@ -36,11 +36,11 @@ function Remove-PathWithRetry {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop"
-$projectDir = Join-Path $solutionRoot "src\OnionHopV2.App"
-$csproj = Join-Path $projectDir "OnionHopV2.App.csproj"
+$projectDir = Join-Path $solutionRoot "src\OnionHopV2.Cli"
+$csproj = Join-Path $projectDir "OnionHopV2.Cli.csproj"
 
 if (!(Test-Path $csproj)) {
-  throw "Could not find OnionHopV2.App.csproj at: $csproj"
+  throw "Could not find OnionHopV2.Cli.csproj at: $csproj"
 }
 
 $depsScript = Join-Path $repoRoot "download-deps.ps1"
@@ -74,9 +74,8 @@ if (-not $SkipDependencies) {
 $sc = "false"
 if ($SelfContained.IsPresent) { $sc = "true" }
 
-Write-Host "Cleaning and Publishing OnionHop V2..." -ForegroundColor Cyan
+Write-Host "Cleaning and Publishing OnionHop CLI..." -ForegroundColor Cyan
 
-# Remove old build artifacts to ensure a fresh publish
 Remove-PathWithRetry -Path "$projectDir\bin"
 Remove-PathWithRetry -Path "$projectDir\obj"
 
@@ -88,7 +87,7 @@ if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"
 }
 
-$iss = Join-Path $PSScriptRoot "OnionHopV2.iss"
+$iss = Join-Path $PSScriptRoot "OnionHopV2.Cli.iss"
 if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
 }
@@ -101,7 +100,6 @@ try {
 } catch {
 }
 
-# Try to find ISCC.exe
 $possible = @(
   "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
   "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
@@ -112,7 +110,7 @@ if (-not $iscc) {
   throw "Inno Setup not found. Install Inno Setup 6 and ensure ISCC.exe exists in Program Files."
 }
 
-Write-Host "Building installer with Inno Setup..." -ForegroundColor Cyan
+Write-Host "Building CLI installer with Inno Setup..." -ForegroundColor Cyan
 & $iscc $iss /DMyAppVersion=$version /DPubDir="$publishDir"
 
-Write-Host "Done. Installer is in: $PSScriptRoot\output" -ForegroundColor Green
+Write-Host "Done. CLI installer is in: $PSScriptRoot\output" -ForegroundColor Green

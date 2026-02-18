@@ -17,6 +17,7 @@ public sealed class UserSettings
     public string? ExitNodeFingerprint { get; set; }
     public string? SelectedConnectionMode { get; set; }
     public bool UseHybridRouting { get; set; }
+    public bool? SmartConnectEnabled { get; set; }
     public bool UseTorBridges { get; set; }
     public bool UseCensoredMode { get; set; }
     public string? SelectedBridgeType { get; set; }

@@ -30,6 +30,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
     public const string ConnectionModeTun = "TUN/VPN Mode (Admin)";
     public const string ProxyScopeSystem = OnionHopConnectOptions.ProxyScopeSystem;
+    public const string ProxyScopeSystemSocks = OnionHopConnectOptions.ProxyScopeSystemSocks;
     public const string ProxyScopeLocalOnly = OnionHopConnectOptions.ProxyScopeLocalOnly;
     public const string AutoStartModeOff = "Off";
     public const string AutoStartModeOn = "On";
@@ -51,6 +52,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string BridgeSourceBridgeDbOnly = OnionHopConnectOptions.BridgeSourceBridgeDbOnly;
     public const string BridgeSourceOfflineOnly = OnionHopConnectOptions.BridgeSourceOfflineOnly;
     private static readonly Regex ExitFingerprintRegex = new("^[A-F0-9]{40}$", RegexOptions.Compiled);
+    /// <summary>
+    /// Maps runtime status text to localization resource keys.
+    /// Includes legacy/localized values so language switching can re-localize already-displayed text.
+    /// </summary>
     private static readonly Dictionary<string, string> RuntimeStatusResourceMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Disconnected"] = "Status.Disconnected",
@@ -94,6 +99,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(ExitNodeFingerprint),
         nameof(SelectedConnectionMode),
         nameof(UseHybridRouting),
+        nameof(SmartConnectEnabled),
         nameof(UseTorBridges),
         nameof(UseCensoredMode),
         nameof(SelectedBridgeType),
@@ -133,6 +139,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private readonly SettingsService _settingsService = new();
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly DiscordPresenceService _discordPresence = new();
+    private readonly SmartConnectAdvisor _smartConnectAdvisor = new();
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
     private bool _loadingSettings;
@@ -191,6 +198,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         ProxyScopeModes =
         [
             ProxyScopeSystem,
+            ProxyScopeSystemSocks,
             ProxyScopeLocalOnly
         ];
 
@@ -274,6 +282,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _uploadSpeed = "--";
     [ObservableProperty] private double _downloadSpeedGauge;
     [ObservableProperty] private double _uploadSpeedGauge;
+    [ObservableProperty] private string _connectionElapsed = string.Empty;
+    [ObservableProperty] private bool _showConnectionElapsed;
 
     [ObservableProperty] private bool _isConnecting;
     [ObservableProperty] private bool _isConnected;
@@ -284,6 +294,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _exitNodeFingerprint = string.Empty;
     [ObservableProperty] private string _selectedConnectionMode = ConnectionModeProxy;
     [ObservableProperty] private bool _useHybridRouting;
+    [ObservableProperty] private bool _smartConnectEnabled = true;
     [ObservableProperty] private bool _killSwitchEnabled;
 
     [ObservableProperty] private bool _useTorBridges;
@@ -359,6 +370,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     private DispatcherTimer? _speedTimer;
     private DispatcherTimer? _ipRefreshTimer;
+    private DispatcherTimer? _connectionElapsedTimer;
+    private DateTime? _connectionStartedUtc;
     private long _lastBytesReceived;
     private long _lastBytesSent;
     private DateTime _lastSpeedSampleUtc;
@@ -640,6 +653,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(ShowConnectButton));
         OnPropertyChanged(nameof(ShowDisconnectButton));
+
+        if (value)
+        {
+            StartConnectionElapsedTimer();
+        }
+        else
+        {
+            StopConnectionElapsedTimer();
+        }
     }
 
     partial void OnIsDisconnectingChanged(bool value)
@@ -929,6 +951,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         try
         {
+            StopConnectionElapsedTimer();
+        }
+        catch
+        {
+        }
+
+        try
+        {
             _connectCts?.Cancel();
             _connectCts?.Dispose();
             _connectCts = null;
@@ -984,39 +1014,59 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var options = BuildConnectOptions();
+        var baseOptions = BuildConnectOptions();
 
         try
         {
-            if (OperatingSystem.IsWindows() && OnionDnsProxyEnabled && !WindowsAdmin.IsAdministrator())
+            var strategies = await BuildConnectStrategiesAsync(baseOptions, _connectCts.Token);
+            for (var index = 0; index < strategies.Count; index++)
             {
-                StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
-                if (!WindowsUacHelper.TryElevate())
-                {
-                    StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
-                }
-                return;
-            }
+                _connectCts.Token.ThrowIfCancellationRequested();
 
-            // Only prompt for elevation when the user actually tries to connect in TUN mode.
-            if (OperatingSystem.IsWindows() && IsTunMode && !WindowsAdmin.IsAdministrator())
-            {
-                StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
-                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling EnsureAdminHelperAsync...");
-                
-                if (!await _client.EnsureAdminHelperAsync().ConfigureAwait(false))
+                var strategy = strategies[index];
+                var attemptOptions = strategy.Options;
+
+                if (SmartConnectEnabled &&
+                    OperatingSystem.IsWindows() &&
+                    attemptOptions.OnionDnsProxyEnabled &&
+                    !WindowsAdmin.IsAdministrator())
                 {
-                    OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync returned false");
-                    StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
+                    attemptOptions = attemptOptions with { OnionDnsProxyEnabled = false };
+                    AppendLog("Smart Connect: disabled .onion DNS proxy for this attempt because Administrator is required.");
+                }
+
+                if (SmartConnectEnabled)
+                {
+                    AppendLog($"Smart Connect attempt {index + 1}/{strategies.Count}: {strategy.Name} ({strategy.Reason})");
+                }
+
+                if (!await EnsureAdminRequirementsForConnectAsync(attemptOptions))
+                {
                     return;
                 }
-                
-                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync succeeded, calling ConnectAsync...");
+
+                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling _client.ConnectAsync...");
+                await _client.ConnectAsync(attemptOptions, _connectCts.Token);
+                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: _client.ConnectAsync completed");
+
+                if (IsConnected || index >= strategies.Count - 1)
+                {
+                    break;
+                }
+
+                if (!_connectCts.IsCancellationRequested)
+                {
+                    AppendLog("Smart Connect: attempt did not connect. Trying next strategy...");
+                }
             }
 
-            OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling _client.ConnectAsync...");
-            await _client.ConnectAsync(options, _connectCts.Token);
-            OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: _client.ConnectAsync completed");
+            if (SmartConnectEnabled && !IsConnected && !_connectCts.IsCancellationRequested)
+            {
+                StatusMessage = "Smart Connect exhausted all fallback strategies. Try manual settings if needed.";
+            }
+        }
+        catch (OperationCanceledException)
+        {
         }
         catch (Exception ex)
         {
@@ -1024,6 +1074,79 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             OnionHopV2.Core.Services.StartupLogger.Write($"Stack trace: {ex.StackTrace}");
             StatusMessage = $"Connection failed: {ex.Message}";
         }
+    }
+
+    private async Task<IReadOnlyList<SmartConnectAdvisor.Strategy>> BuildConnectStrategiesAsync(
+        OnionHopConnectOptions baseOptions,
+        CancellationToken token)
+    {
+        if (!SmartConnectEnabled)
+        {
+            return [new SmartConnectAdvisor.Strategy("manual", "Smart Connect disabled.", baseOptions)];
+        }
+
+        try
+        {
+            var plan = await _smartConnectAdvisor.BuildPlanAsync(baseOptions, AppendLog, token);
+            if (plan.Strategies.Count > 0)
+            {
+                return plan.Strategies;
+            }
+
+            AppendLog("Smart Connect planner returned no strategies. Falling back to generic profile.");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Smart Connect planner failed: {ex.Message}. Falling back to generic profile.");
+        }
+
+        var genericFallback = SmartConnectAdvisor.BuildStrategiesForRisk(baseOptions, SmartConnectAdvisor.RiskLevel.Unknown);
+        if (genericFallback.Count > 0)
+        {
+            return genericFallback;
+        }
+
+        return [new SmartConnectAdvisor.Strategy("manual", "Fallback to current settings.", baseOptions)];
+    }
+
+    private async Task<bool> EnsureAdminRequirementsForConnectAsync(OnionHopConnectOptions options)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+
+        if (options.OnionDnsProxyEnabled && !WindowsAdmin.IsAdministrator())
+        {
+            StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
+            if (!WindowsUacHelper.TryElevate())
+            {
+                StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
+            }
+
+            return false;
+        }
+
+        if (IsTunModeOption(options) && !WindowsAdmin.IsAdministrator())
+        {
+            StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
+            OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling EnsureAdminHelperAsync...");
+
+            if (!await _client.EnsureAdminHelperAsync())
+            {
+                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync returned false");
+                StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
+                return false;
+            }
+
+            OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync succeeded.");
+        }
+
+        return true;
     }
 
     [RelayCommand]
@@ -1075,6 +1198,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             KillSwitchEnabled = false;
             UseHybridRouting = false;
+            SmartConnectEnabled = true;
 
             SelectedLocation = AutomaticLocationLabel;
             SelectedEntryLocation = AutomaticLocationLabel;
@@ -1146,7 +1270,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         error = string.Empty;
 
-        if (IsManualExitNodeFingerprintSet && !ExitFingerprintRegex.IsMatch(ExitNodeFingerprint))
+        if (!SmartConnectEnabled && IsManualExitNodeFingerprintSet && !ExitFingerprintRegex.IsMatch(ExitNodeFingerprint))
         {
             error = "Manual exit fingerprint must be exactly 40 hexadecimal characters.";
             return false;
@@ -1237,6 +1361,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             HybridTorApps = HybridTorApps,
             HybridBypassApps = HybridBypassApps
         };
+    }
+
+    private static bool IsTunModeOption(OnionHopConnectOptions options)
+    {
+        return string.Equals(options.SelectedConnectionMode, ConnectionModeTun, StringComparison.Ordinal);
     }
 
     private void ApplyClientStatus(OnionHopClient.StatusUpdate update)
@@ -1373,6 +1502,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             }
 
             UseHybridRouting = settings.UseHybridRouting;
+            SmartConnectEnabled = settings.SmartConnectEnabled ?? true;
             UseTorBridges = settings.UseTorBridges;
             UseCensoredMode = settings.UseCensoredMode;
             SelectedBridgeType = string.IsNullOrWhiteSpace(settings.SelectedBridgeType)
@@ -1448,6 +1578,43 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private void StartConnectionElapsedTimer()
+    {
+        _connectionStartedUtc = DateTime.UtcNow;
+        ConnectionElapsed = "00:00:00";
+        ShowConnectionElapsed = true;
+
+        _connectionElapsedTimer?.Stop();
+        _connectionElapsedTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _connectionElapsedTimer.Tick += OnConnectionElapsedTimerTick;
+        _connectionElapsedTimer.Start();
+    }
+
+    private void StopConnectionElapsedTimer()
+    {
+        _connectionElapsedTimer?.Stop();
+        _connectionElapsedTimer = null;
+        _connectionStartedUtc = null;
+        ShowConnectionElapsed = false;
+        ConnectionElapsed = string.Empty;
+    }
+
+    private void OnConnectionElapsedTimerTick(object? sender, EventArgs e)
+    {
+        if (_connectionStartedUtc is null)
+        {
+            return;
+        }
+
+        var elapsed = DateTime.UtcNow - _connectionStartedUtc.Value;
+        ConnectionElapsed = elapsed.TotalHours >= 1
+            ? $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}"
+            : elapsed.ToString(@"mm\:ss");
+    }
+
     private void StartIpAutoRefresh()
     {
         _ipRefreshTimer?.Stop();
@@ -1512,6 +1679,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ExitNodeFingerprint = ExitNodeFingerprint,
             SelectedConnectionMode = SelectedConnectionMode,
             UseHybridRouting = UseHybridRouting,
+            SmartConnectEnabled = SmartConnectEnabled,
             UseTorBridges = UseTorBridges,
             UseCensoredMode = UseCensoredMode,
             SelectedBridgeType = SelectedBridgeType,
@@ -1832,6 +2000,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         return mode switch
         {
             ProxyScopeSystem => LocalizationService.Get("ProxyScope.System"),
+            ProxyScopeSystemSocks => LocalizationService.Get("ProxyScope.SystemSocks"),
             ProxyScopeLocalOnly => LocalizationService.Get("ProxyScope.LocalOnly"),
             _ => mode
         };
@@ -1870,6 +2039,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     private static string NormalizeProxyScopeMode(string? mode)
     {
+        if (string.Equals(mode, ProxyScopeSystemSocks, StringComparison.OrdinalIgnoreCase))
+        {
+            return ProxyScopeSystemSocks;
+        }
+
         if (string.Equals(mode, ProxyScopeLocalOnly, StringComparison.OrdinalIgnoreCase))
         {
             return ProxyScopeLocalOnly;
@@ -1901,9 +2075,22 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         var normalized = Regex.Replace(value, @"\s+", " ").Trim();
-        return RuntimeStatusResourceMap.TryGetValue(normalized, out var key)
-            ? LocalizationService.Get(key)
-            : value;
+        if (RuntimeStatusResourceMap.TryGetValue(normalized, out var key))
+        {
+            return LocalizationService.Get(key);
+        }
+
+        // Check if the value is already a localized string from a previous language switch.
+        // Reverse-lookup: find any resource key whose current localized value matches.
+        foreach (var entry in RuntimeStatusResourceMap.Values)
+        {
+            if (string.Equals(LocalizationService.Get(entry), normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return LocalizationService.Get(entry);
+            }
+        }
+
+        return value;
     }
 
     private void OpenLaunchPage(string? url)
@@ -1958,9 +2145,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         var toRemove = list.Count - max;
-        for (var i = 0; i < toRemove; i++)
+        var remaining = new List<string>(max);
+        for (var i = toRemove; i < list.Count; i++)
         {
-            list.RemoveAt(0);
+            remaining.Add(list[i]);
+        }
+
+        list.Clear();
+        foreach (var item in remaining)
+        {
+            list.Add(item);
         }
     }
 

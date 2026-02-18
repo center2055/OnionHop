@@ -1,12 +1,13 @@
 namespace OnionHopV2.Core;
 
-public sealed class OnionHopConnectOptions
+public sealed record OnionHopConnectOptions
 {
     public const string AutomaticLocationLabel = "Automatic";
 
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
     public const string ConnectionModeTun = "TUN/VPN Mode (Admin)";
     public const string ProxyScopeSystem = "System proxy (all apps)";
+    public const string ProxyScopeSystemSocks = "System proxy (SOCKS browser/.onion)";
     public const string ProxyScopeLocalOnly = "Local proxy only (manual apps)";
 
     public const string ToggleModeDefault = "Default";
