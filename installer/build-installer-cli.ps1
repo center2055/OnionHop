@@ -1,7 +1,7 @@
 param(
   [string]$Configuration = "Release",
   [string]$Runtime = "win-x64",
-  [switch]$SelfContained,
+  [switch]$FrameworkDependent,
   [switch]$SkipDependencies
 )
 
@@ -71,8 +71,7 @@ if (-not $SkipDependencies) {
   }
 }
 
-$sc = "false"
-if ($SelfContained.IsPresent) { $sc = "true" }
+$sc = if ($FrameworkDependent.IsPresent) { "false" } else { "true" }
 
 Write-Host "Cleaning and Publishing OnionHop CLI..." -ForegroundColor Cyan
 
