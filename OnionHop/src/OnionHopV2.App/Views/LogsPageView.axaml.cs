@@ -68,6 +68,24 @@ public partial class LogsPageView : UserControl
         await writer.WriteAsync(text);
     }
 
+    private void OnClearCurrentTabClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var state = State;
+        if (state == null)
+        {
+            return;
+        }
+
+        var tab = GetSelectedTabName();
+        if (string.Equals(tab, "DNS", StringComparison.OrdinalIgnoreCase))
+        {
+            state.ClearDnsLogs();
+            return;
+        }
+
+        state.ClearAppLogs();
+    }
+
     private string GetCurrentLogText()
     {
         var state = State;

@@ -127,20 +127,34 @@
 
                     <!-- Secondary actions -->
                     <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
-                                Spacing="10"
+                                Spacing="6"
                                 HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
+                                VerticalAlignment="Center"
+                                MaxWidth="480">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="10"
+                                    HorizontalAlignment="Right">
+                            <Button Classes="Flat"
+                                    MinWidth="145"
+                                    Height="38"
+                                    Command="{Binding State.RefreshIpCommand}"
+                                    Content="{DynamicResource Home.RefreshIp}" />
+                            <Button Classes="Flat"
+                                    MinWidth="145"
+                                    Height="38"
+                                    Command="{Binding State.ChangeIdentityCommand}"
+                                    Content="{DynamicResource Home.NewIdentity}" />
+                        </StackPanel>
                         <Button Classes="Flat"
-                                Width="150"
+                                MinWidth="300"
                                 Height="38"
-                                Command="{Binding State.RefreshIpCommand}"
-                                Content="{DynamicResource Home.RefreshIp}" />
-                        <Button Classes="Flat"
-                                Width="150"
-                                Height="38"
-                                Command="{Binding State.ChangeIdentityCommand}"
-                                Content="{DynamicResource Home.NewIdentity}" />
+                                HorizontalAlignment="Right"
+                                IsEnabled="{Binding State.CanUpdateBridgeDb}"
+                                Command="{Binding State.RefreshBridgeDbCommand}"
+                                Content="{DynamicResource Home.UpdateBridgeDb}" />
+                        <TextBlock Text="{Binding State.BridgeDbLastUpdateText}"
+                                   Opacity="0.65"
+                                   HorizontalAlignment="Right" />
                     </StackPanel>
                 </Grid>
             </Grid>

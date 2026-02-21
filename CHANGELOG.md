@@ -1,5 +1,24 @@
 ﻿# Changelog
 
+## v2.4.1 (2026-02-21)
+
+Additions
+- Added Update BridgeDB on Home to manually refresh bridge data after Tor is connected.
+- Added BridgeDB last-update timestamp display on Home.
+- Added Clear button in Logs with tab-aware behavior (App logs and DNS logs).
+
+Fixes
+- Improved BridgeDB refresh flow to force a fresh fetch (not stale runtime cache), with Tor-SOCKS routing when connected.
+- Improved Home action layout so secondary controls render correctly and the BridgeDB action has dedicated space.
+
+Packaging
+- Bumped app/CLI/installer versioning to 2.4.1.
+- Release assets include both GUI and CLI outputs so website latest-file lookup continues to work:
+- OnionHop-Setup-2.4.1.exe
+- OnionHop-CLI-Setup-2.4.1.exe
+- OnionHopV2-Portable-2.4.1-win-x64.zip
+- OnionHopCLI-Portable-2.4.1-win-x64.zip
+
 ## v2.4 (2026-02-18)
 
 Additions

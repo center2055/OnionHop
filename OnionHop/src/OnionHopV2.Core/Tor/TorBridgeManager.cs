@@ -69,6 +69,100 @@ internal sealed class TorBridgeManager
 
     public string? BridgeValidationMessage { get; private set; }
 
+    public readonly record struct BridgeDbRefreshSummary(
+        int AttemptedTypes,
+        int UpdatedTypes,
+        DateTimeOffset? LastUpdatedUtc);
+
+    public async Task<BridgeDbRefreshSummary> RefreshBridgeDbAsync(
+        IReadOnlyList<string> bridgeTypes,
+        Action<string> log,
+        CancellationToken token,
+        HttpClient? httpClient = null)
+    {
+        if (bridgeTypes.Count == 0)
+        {
+            return new BridgeDbRefreshSummary(0, 0, GetLatestBridgeCacheUpdateUtc());
+        }
+
+        var targets = bridgeTypes
+            .Where(type => !string.IsNullOrWhiteSpace(type))
+            .Select(NormalizeBridgeTypeKey)
+            .Where(type => !string.IsNullOrWhiteSpace(type))
+            .Where(type => !string.Equals(type, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase))
+            .Where(type => !string.Equals(type, "custom", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (targets.Count == 0)
+        {
+            return new BridgeDbRefreshSummary(0, 0, GetLatestBridgeCacheUpdateUtc());
+        }
+
+        var updated = 0;
+        foreach (var bridgeType in targets)
+        {
+            token.ThrowIfCancellationRequested();
+            var lines = await TryFetchBridgeLinesAsync(
+                bridgeType,
+                log,
+                token,
+                forceRefresh: true,
+                httpClientOverride: httpClient).ConfigureAwait(false);
+            if (lines.Count > 0)
+            {
+                updated++;
+            }
+        }
+
+        return new BridgeDbRefreshSummary(targets.Count, updated, GetLatestBridgeCacheUpdateUtc(targets));
+    }
+
+    public DateTimeOffset? GetLatestBridgeCacheUpdateUtc(IReadOnlyList<string>? bridgeTypes = null)
+    {
+        EnsureBridgeCacheLoaded();
+        if (_cacheStore?.Items == null || _cacheStore.Items.Count == 0)
+        {
+            return null;
+        }
+
+        DateTimeOffset latest = DateTimeOffset.MinValue;
+
+        if (bridgeTypes == null || bridgeTypes.Count == 0)
+        {
+            foreach (var entry in _cacheStore.Items.Values)
+            {
+                if (entry.Lines is not { Count: > 0 })
+                {
+                    continue;
+                }
+
+                if (entry.UpdatedUtc > latest)
+                {
+                    latest = entry.UpdatedUtc;
+                }
+            }
+        }
+        else
+        {
+            foreach (var bridgeType in bridgeTypes)
+            {
+                var updatedUtc = GetCachedBridgeUpdatedUtc(bridgeType);
+                if (!updatedUtc.HasValue)
+                {
+                    continue;
+                }
+
+                if (updatedUtc.Value > latest)
+                {
+                    latest = updatedUtc.Value;
+                }
+            }
+        }
+
+        return latest == DateTimeOffset.MinValue ? null : latest;
+    }
+
     public static bool IsPlaceholderBridgeLine(string line)
     {
         return IsExplicitPlaceholderBridgeLine(line);
@@ -469,86 +563,127 @@ internal sealed class TorBridgeManager
             .ToList();
     }
 
-    private async Task<IReadOnlyList<string>> TryFetchBridgeLinesAsync(string bridgeType, Action<string> log, CancellationToken token)
+    private async Task<IReadOnlyList<string>> TryFetchBridgeLinesAsync(
+        string bridgeType,
+        Action<string> log,
+        CancellationToken token,
+        bool forceRefresh = false,
+        HttpClient? httpClientOverride = null)
     {
         if (string.IsNullOrWhiteSpace(bridgeType) || string.Equals(bridgeType, "custom", StringComparison.OrdinalIgnoreCase))
         {
             return Array.Empty<string>();
         }
 
-        if (_runtimeFetchedBridges.TryGetValue(bridgeType, out var runtimeCached) && runtimeCached.Count > 0)
+        if (!forceRefresh &&
+            _runtimeFetchedBridges.TryGetValue(bridgeType, out var runtimeCached) &&
+            runtimeCached.Count > 0)
         {
             return runtimeCached;
         }
 
-        var diskCached = GetCachedBridgeLines(bridgeType);
-        if (diskCached.Count > 0)
+        if (!forceRefresh)
         {
-            _runtimeFetchedBridges[bridgeType] = diskCached;
-            log($"Loaded {diskCached.Count} cached {bridgeType} bridge lines.");
-            return diskCached;
-        }
-
-        if (_fetchAttempted.Contains(bridgeType))
-        {
-            return Array.Empty<string>();
-        }
-
-        await _bridgeFetchLock.WaitAsync(token).ConfigureAwait(false);
-        try
-        {
-            if (_runtimeFetchedBridges.TryGetValue(bridgeType, out runtimeCached) && runtimeCached.Count > 0)
+            var diskCached = GetCachedBridgeLines(bridgeType);
+            if (diskCached.Count > 0)
             {
-                return runtimeCached;
+                _runtimeFetchedBridges[bridgeType] = diskCached;
+                log($"Loaded {diskCached.Count} cached {bridgeType} bridge lines.");
+                return diskCached;
             }
 
             if (_fetchAttempted.Contains(bridgeType))
             {
                 return Array.Empty<string>();
             }
+        }
+
+        await _bridgeFetchLock.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (forceRefresh)
+            {
+                _runtimeFetchedBridges.Remove(bridgeType);
+                _fetchAttempted.Remove(bridgeType);
+            }
+            else
+            {
+                if (_runtimeFetchedBridges.TryGetValue(bridgeType, out runtimeCached) && runtimeCached.Count > 0)
+                {
+                    return runtimeCached;
+                }
+
+                var diskCached = GetCachedBridgeLines(bridgeType);
+                if (diskCached.Count > 0)
+                {
+                    _runtimeFetchedBridges[bridgeType] = diskCached;
+                    log($"Loaded {diskCached.Count} cached {bridgeType} bridge lines.");
+                    return diskCached;
+                }
+
+                if (_fetchAttempted.Contains(bridgeType))
+                {
+                    return Array.Empty<string>();
+                }
+            }
 
             _fetchAttempted.Add(bridgeType);
 
-            using var httpClient = new HttpClient
+            var ownsHttpClient = httpClientOverride == null;
+            var httpClient = httpClientOverride ?? new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(30)
             };
-            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHopV2/2.0");
 
-            var moatLines = await TryFetchBridgeLinesViaMoatAsync(httpClient, bridgeType, token).ConfigureAwait(false);
-            if (moatLines.Count > 0)
+            if (!httpClient.DefaultRequestHeaders.UserAgent.Any())
             {
-                _runtimeFetchedBridges[bridgeType] = moatLines;
-                SaveCachedBridgeLines(bridgeType, moatLines);
-                log($"Loaded {moatLines.Count} {bridgeType} bridges from Tor Moat (Ask Tor endpoint).");
-                return moatLines;
+                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHopV2/2.0");
             }
 
-            foreach (var sourceUrl in BuildBridgeSourceUrls(bridgeType))
+            try
             {
-                using var response = await httpClient.GetAsync(sourceUrl, token).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
+                var moatLines = await TryFetchBridgeLinesViaMoatAsync(httpClient, bridgeType, token).ConfigureAwait(false);
+                if (moatLines.Count > 0)
                 {
-                    log($"Bridge auto-fetch for {bridgeType} failed at {sourceUrl}: HTTP {(int)response.StatusCode}.");
-                    continue;
+                    _runtimeFetchedBridges[bridgeType] = moatLines;
+                    SaveCachedBridgeLines(bridgeType, moatLines);
+                    log($"Loaded {moatLines.Count} {bridgeType} bridges from Tor Moat (Ask Tor endpoint).");
+                    return moatLines;
                 }
 
-                var content = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
-                var lines = SanitizeBridgeLines(bridgeType, ExtractBridgeLinesFromSource(content, bridgeType));
-
-                if (lines.Count == 0)
+                foreach (var sourceUrl in BuildBridgeSourceUrls(bridgeType))
                 {
-                    continue;
+                    using var response = await httpClient.GetAsync(sourceUrl, token).ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        log($"Bridge auto-fetch for {bridgeType} failed at {sourceUrl}: HTTP {(int)response.StatusCode}.");
+                        continue;
+                    }
+
+                    var content = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+                    var lines = SanitizeBridgeLines(bridgeType, ExtractBridgeLinesFromSource(content, bridgeType));
+
+                    if (lines.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    _runtimeFetchedBridges[bridgeType] = lines;
+                    SaveCachedBridgeLines(bridgeType, lines);
+                    log($"Loaded {lines.Count} {bridgeType} bridges from BridgeDB.");
+                    return lines;
                 }
 
-                _runtimeFetchedBridges[bridgeType] = lines;
-                SaveCachedBridgeLines(bridgeType, lines);
-                log($"Loaded {lines.Count} {bridgeType} bridges from BridgeDB.");
-                return lines;
+                log($"Bridge auto-fetch for {bridgeType} returned no usable lines (BridgeDB may require CAPTCHA).");
+                return Array.Empty<string>();
             }
-
-            log($"Bridge auto-fetch for {bridgeType} returned no usable lines (BridgeDB may require CAPTCHA).");
-            return Array.Empty<string>();
+            finally
+            {
+                if (ownsHttpClient)
+                {
+                    httpClient.Dispose();
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -1712,6 +1847,29 @@ internal sealed class TorBridgeManager
         }
 
         return filtered;
+    }
+
+    private DateTimeOffset? GetCachedBridgeUpdatedUtc(string bridgeType)
+    {
+        if (string.IsNullOrWhiteSpace(bridgeType))
+        {
+            return null;
+        }
+
+        EnsureBridgeCacheLoaded();
+        if (_cacheStore?.Items == null)
+        {
+            return null;
+        }
+
+        var key = bridgeType.Trim().ToLowerInvariant();
+        if (!_cacheStore.Items.TryGetValue(key, out var entry) ||
+            entry.Lines is not { Count: > 0 })
+        {
+            return null;
+        }
+
+        return entry.UpdatedUtc;
     }
 
     private static bool IsReservedOrPlaceholderBridgeLine(string line)

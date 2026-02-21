@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core.Dependencies;
@@ -38,6 +39,11 @@ public sealed class OnionHopClient : IDisposable
         int? HttpPort);
 
     public readonly record struct DependencyUpdate(bool InProgress, string Status, double Progress);
+    public readonly record struct BridgeDbRefreshStatus(
+        bool UsedTorProxy,
+        int AttemptedTypes,
+        int UpdatedTypes,
+        DateTimeOffset? LastUpdatedUtc);
 
     public event EventHandler<string>? Log;
     public event EventHandler<string>? DnsLog;
@@ -118,6 +124,73 @@ public sealed class OnionHopClient : IDisposable
     public string? GetRecommendedBridgeType()
     {
         return _ptConfig?.RecommendedDefault;
+    }
+
+    public DateTimeOffset? GetLastBridgeDbUpdateUtc()
+    {
+        return _bridgeManager.GetLatestBridgeCacheUpdateUtc();
+    }
+
+    public async Task<BridgeDbRefreshStatus> RefreshBridgeDatabaseAsync(OnionHopConnectOptions options, CancellationToken token = default)
+    {
+        if (!await EnsureDependenciesAsync(token).ConfigureAwait(false))
+        {
+            RaiseLog("BridgeDB refresh skipped: dependencies are not available.");
+            return new BridgeDbRefreshStatus(
+                UsedTorProxy: false,
+                AttemptedTypes: 0,
+                UpdatedTypes: 0,
+                LastUpdatedUtc: _bridgeManager.GetLatestBridgeCacheUpdateUtc());
+        }
+
+        var bridgeTypes = ResolveBridgeDbRefreshTypes(options);
+        if (bridgeTypes.Count == 0)
+        {
+            RaiseLog("BridgeDB refresh skipped: no eligible bridge types were found.");
+            return new BridgeDbRefreshStatus(
+                UsedTorProxy: false,
+                AttemptedTypes: 0,
+                UpdatedTypes: 0,
+                LastUpdatedUtc: _bridgeManager.GetLatestBridgeCacheUpdateUtc());
+        }
+
+        var useTorProxy = _isConnected && _torService.IsRunning && _activeSocksPort > 0;
+        HttpClient? httpClient = null;
+        try
+        {
+            if (useTorProxy)
+            {
+                httpClient = Socks5HttpClient.Create("127.0.0.1", _activeSocksPort, TimeSpan.FromSeconds(35));
+                RaiseLog($"BridgeDB refresh: routing requests through Tor SOCKS 127.0.0.1:{_activeSocksPort}.");
+            }
+            else
+            {
+                RaiseLog("BridgeDB refresh: Tor is not active, using direct network access.");
+            }
+
+            var summary = await _bridgeManager
+                .RefreshBridgeDbAsync(bridgeTypes, RaiseLog, token, httpClient)
+                .ConfigureAwait(false);
+
+            if (summary.UpdatedTypes > 0)
+            {
+                RaiseLog($"BridgeDB refresh complete: {summary.UpdatedTypes}/{summary.AttemptedTypes} bridge type(s) updated.");
+            }
+            else
+            {
+                RaiseLog("BridgeDB refresh completed, but no new usable bridge lines were fetched.");
+            }
+
+            return new BridgeDbRefreshStatus(
+                UsedTorProxy: useTorProxy,
+                AttemptedTypes: summary.AttemptedTypes,
+                UpdatedTypes: summary.UpdatedTypes,
+                LastUpdatedUtc: summary.LastUpdatedUtc);
+        }
+        finally
+        {
+            httpClient?.Dispose();
+        }
     }
 
     public async Task<IReadOnlyList<TorCountryNodeStats>> GetCountryStatsAsync(CancellationToken token = default)
@@ -809,6 +882,63 @@ public sealed class OnionHopClient : IDisposable
     private static OnionHopConnectOptions CloneOptionsWithBridgeType(OnionHopConnectOptions options, string bridgeType)
     {
         return options with { SelectedBridgeType = bridgeType };
+    }
+
+    private IReadOnlyList<string> ResolveBridgeDbRefreshTypes(OnionHopConnectOptions options)
+    {
+        var ordered = new List<string>();
+        var availableTypes = new HashSet<string>(TorBridgeManager.GetBridgeTypeKeys(_ptConfig), StringComparer.OrdinalIgnoreCase);
+
+        static bool IsAlwaysExcluded(string bridgeType)
+        {
+            return string.Equals(bridgeType, TorBridgeManager.AutomaticBridgeType, StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(bridgeType, "custom", StringComparison.OrdinalIgnoreCase);
+        }
+
+        bool IsEligible(string bridgeType)
+        {
+            if (string.IsNullOrWhiteSpace(bridgeType) || IsAlwaysExcluded(bridgeType))
+            {
+                return false;
+            }
+
+            return availableTypes.Count == 0 || availableTypes.Contains(bridgeType);
+        }
+
+        var selectedBridgeType = options.SelectedBridgeType?.Trim();
+        if (TorBridgeManager.IsAutomaticBridgeType(selectedBridgeType))
+        {
+            foreach (var bridgeType in TorBridgeManager.BuildAutomaticBridgeFallbackOrder(options))
+            {
+                if (IsEligible(bridgeType))
+                {
+                    ordered.Add(bridgeType);
+                }
+            }
+        }
+        else if (IsEligible(selectedBridgeType ?? string.Empty))
+        {
+            ordered.Add(selectedBridgeType!);
+        }
+
+        foreach (var fallbackType in new[] { "webtunnel", "snowflake", "obfs4" })
+        {
+            if (IsEligible(fallbackType))
+            {
+                ordered.Add(fallbackType);
+            }
+        }
+
+        if (ordered.Count == 0)
+        {
+            ordered.AddRange(["webtunnel", "snowflake", "obfs4"]);
+        }
+
+        return ordered
+            .Where(type => !string.IsNullOrWhiteSpace(type))
+            .Select(type => type.Trim().ToLowerInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private async Task StartTorAsync(OnionHopConnectOptions options, CancellationToken token)

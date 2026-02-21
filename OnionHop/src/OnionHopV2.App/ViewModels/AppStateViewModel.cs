@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -239,6 +240,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         _client.DnsLog += (_, message) => Dispatcher.UIThread.Post(() => AppendDnsLog(message));
         _client.StatusUpdated += (_, update) => Dispatcher.UIThread.Post(() => ApplyClientStatus(update));
         _client.DependencyUpdated += (_, update) => Dispatcher.UIThread.Post(() => ApplyDependencyUpdate(update));
+        LastBridgeDbUpdateUtc = _client.GetLastBridgeDbUpdateUtc();
 
         LoadSettings();
         if (OperatingSystem.IsWindows() &&
@@ -367,6 +369,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isDependencyDownloadInProgress;
     [ObservableProperty] private double _dependencyDownloadProgress;
     [ObservableProperty] private string _dependencyDownloadStatus = string.Empty;
+    [ObservableProperty] private bool _isBridgeDbUpdateInProgress;
+    [ObservableProperty] private DateTimeOffset? _lastBridgeDbUpdateUtc;
 
     private DispatcherTimer? _speedTimer;
     private DispatcherTimer? _ipRefreshTimer;
@@ -382,6 +386,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool ShowConnectButton => !IsConnected && !IsConnecting;
     public bool ShowDisconnectButton => IsConnected && !IsConnecting && !IsDisconnecting;
     public bool ShowCancelButton => IsConnecting;
+    public bool CanUpdateBridgeDb => IsConnected && !IsConnecting && !IsDisconnecting && !IsBridgeDbUpdateInProgress;
 
     public bool IsTunMode => string.Equals(SelectedConnectionMode, ConnectionModeTun, StringComparison.Ordinal);
     public bool IsProxyMode => !IsTunMode;
@@ -397,6 +402,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool UseCustomChrome => !UseNativeTheme;
     public bool SupportsNativeWindowChrome => true;
     public bool CanConfigureSplitTunneling => IsTunMode && UseHybridRouting;
+    public string BridgeDbLastUpdateText
+    {
+        get
+        {
+            if (!LastBridgeDbUpdateUtc.HasValue || LastBridgeDbUpdateUtc.Value == DateTimeOffset.MinValue)
+            {
+                return LocalizationService.Get("Home.BridgeDbLastUpdateUnknown");
+            }
+
+            var localTime = LastBridgeDbUpdateUtc.Value.ToLocalTime();
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                LocalizationService.Get("Home.BridgeDbLastUpdateValue"),
+                localTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture));
+        }
+    }
+
     public sealed record LocalizedOption(string Value, string Label)
     {
         public override string ToString() => Label;
@@ -620,6 +642,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         ConnectionStatus = LocalizeRuntimeText(ConnectionStatus);
         StatusMessage = LocalizeRuntimeText(StatusMessage);
         DependencyDownloadStatus = LocalizeRuntimeText(DependencyDownloadStatus);
+        OnPropertyChanged(nameof(BridgeDbLastUpdateText));
     }
 
     partial void OnSelectedLanguageIndexChanged(int value)
@@ -647,12 +670,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowConnectButton));
         OnPropertyChanged(nameof(ShowDisconnectButton));
         OnPropertyChanged(nameof(ShowCancelButton));
+        OnPropertyChanged(nameof(CanUpdateBridgeDb));
     }
 
     partial void OnIsConnectedChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowConnectButton));
         OnPropertyChanged(nameof(ShowDisconnectButton));
+        OnPropertyChanged(nameof(CanUpdateBridgeDb));
 
         if (value)
         {
@@ -668,12 +693,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(ShowDisconnectButton));
+        OnPropertyChanged(nameof(CanUpdateBridgeDb));
     }
 
     partial void OnIsDependencyDownloadInProgressChanged(bool value)
     {
         OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(ShowConnectButton));
+    }
+
+    partial void OnIsBridgeDbUpdateInProgressChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+    }
+
+    partial void OnLastBridgeDbUpdateUtcChanged(DateTimeOffset? value)
+    {
+        OnPropertyChanged(nameof(BridgeDbLastUpdateText));
     }
 
     partial void OnSelectedConnectionModeChanged(string value)
@@ -1175,6 +1211,52 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    private async Task RefreshBridgeDbAsync()
+    {
+        if (_disposed || IsBridgeDbUpdateInProgress)
+        {
+            return;
+        }
+
+        if (!IsConnected)
+        {
+            StatusMessage = "Connect to Tor before updating BridgeDB.";
+            AppendLog("BridgeDB update skipped: connect to Tor first.");
+            return;
+        }
+
+        IsBridgeDbUpdateInProgress = true;
+        try
+        {
+            StatusMessage = "Updating BridgeDB...";
+            var result = await _client.RefreshBridgeDatabaseAsync(BuildConnectOptions(), CancellationToken.None);
+            LastBridgeDbUpdateUtc = result.LastUpdatedUtc;
+
+            if (result.UpdatedTypes > 0)
+            {
+                StatusMessage = "BridgeDB updated.";
+            }
+            else if (result.AttemptedTypes > 0)
+            {
+                StatusMessage = "BridgeDB update finished with no new usable bridges.";
+            }
+            else
+            {
+                StatusMessage = "BridgeDB update skipped.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"BridgeDB update failed: {ex.Message}");
+            StatusMessage = $"BridgeDB update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBridgeDbUpdateInProgress = false;
+        }
+    }
+
+    [RelayCommand]
     private async Task ChangeIdentityAsync()
     {
         await _client.ChangeIdentityAsync(CancellationToken.None);
@@ -1381,6 +1463,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         CurrentIp = update.CurrentIp;
         SocksProxyPort = update.SocksPort.ToString();
         HttpProxyPort = update.HttpPort.HasValue ? update.HttpPort.Value.ToString() : "--";
+        var latestBridgeDbUpdate = _client.GetLastBridgeDbUpdateUtc();
+        if (latestBridgeDbUpdate != LastBridgeDbUpdateUtc)
+        {
+            LastBridgeDbUpdateUtc = latestBridgeDbUpdate;
+        }
 
         _hasStatusSnapshot = true;
         _wasConnected = IsConnected;
@@ -2128,11 +2215,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         TrimLogs(LogLines);
     }
 
+    public void ClearAppLogs()
+    {
+        LogLines.Clear();
+        AppendLog("App logs cleared.");
+    }
+
     public void AppendDnsLog(string message)
     {
         var line = $"{DateTime.Now:HH:mm:ss} {message}";
         DnsLogLines.Add(line);
         TrimLogs(DnsLogLines);
+    }
+
+    public void ClearDnsLogs()
+    {
+        DnsLogLines.Clear();
+        AppendDnsLog("DNS logs cleared.");
     }
 
     private static void TrimLogs(ObservableCollection<string> list)

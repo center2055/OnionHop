@@ -47,6 +47,8 @@
                     Content="{DynamicResource Logs.Copy}" />
             <Button Classes="Flat" Click="OnExportCurrentTabClick"
                     Content="{DynamicResource Logs.Export}" />
+            <Button Classes="Flat" Click="OnClearCurrentTabClick"
+                    Content="{DynamicResource Logs.Clear}" />
             <TextBlock Text="{DynamicResource Logs.TipLocalOnly}"
                        Opacity="0.75"
                        VerticalAlignment="Center" />

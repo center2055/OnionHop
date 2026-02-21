@@ -20,6 +20,9 @@
   <x:String x:Key="Home.Cancel">Abbrechen</x:String>
   <x:String x:Key="Home.RefreshIp">IP aktualisieren</x:String>
   <x:String x:Key="Home.NewIdentity">Neue Identit&#228;t</x:String>
+  <x:String x:Key="Home.UpdateBridgeDb">BridgeDB aktualisieren</x:String>
+  <x:String x:Key="Home.BridgeDbLastUpdateUnknown">BridgeDB zuletzt aktualisiert: noch nicht aktualisiert.</x:String>
+  <x:String x:Key="Home.BridgeDbLastUpdateValue">BridgeDB zuletzt aktualisiert: {0}</x:String>
   <x:String x:Key="Home.Routing">Routing</x:String>
   <x:String x:Key="Home.SmartConnect">Smart Connect (empfohlen)</x:String>
   <x:String x:Key="Home.SmartConnectHint">W&#228;hlt automatisch die beste Tor-Verbindungsstrategie f&#252;r dein Netzwerk und L&#228;nderprofil. Wenn aktiviert, k&#246;nnen Bridge-/Zensur-Einstellungen &#252;berschrieben werden.</x:String>
@@ -44,6 +47,7 @@
   <x:String x:Key="Logs.TabDns">DNS</x:String>
   <x:String x:Key="Logs.Copy">Kopieren</x:String>
   <x:String x:Key="Logs.Export">Exportieren...</x:String>
+  <x:String x:Key="Logs.Clear">Leeren</x:String>
   <x:String x:Key="Logs.TipLocalOnly">Tipp: Protokolle bleiben lokal.</x:String>
 
   <!-- About -->
