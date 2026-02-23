@@ -35,6 +35,8 @@ public sealed class UserSettings
     public string? ProxyScopeMode { get; set; }
     public int? PreferredSocksPort { get; set; }
     public int? PreferredHttpPort { get; set; }
+    public bool AllowLanProxyAccess { get; set; }
+    public int? ConnectionTimeoutSeconds { get; set; }
     public bool RestrictedFirewallMode { get; set; }
     public string? AllowedPorts { get; set; }
     public bool OnionDnsProxyEnabled { get; set; }

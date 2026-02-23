@@ -1,4 +1,26 @@
-﻿# Changelog
+# Changelog
+
+## v2.4.2 (2026-02-23)
+
+Additions
+- Added optional LAN proxy access for Tor SOCKS/HTTP listeners (advanced setting, disabled by default).
+- Added configurable connection timeout (advanced setting): auto by default, custom seconds, or disable with `0`.
+- Added grouping and collapsible sections in Advanced settings for better readability.
+- Added localization keys for new advanced controls and manual exit fingerprint labels.
+
+Fixes
+- Improved local/manual proxy hint messaging when LAN bind mode is enabled.
+- Wired Tor launch arguments to support explicit SOCKS/HTTP bind addresses.
+- Updated settings persistence and connect-option plumbing for LAN access + timeout controls.
+- Added/updated tests for timeout resolution and settings round-trip coverage.
+
+Packaging
+- Bumped app/CLI/installer versioning to 2.4.2.
+- Release assets include GUI and CLI installers plus portable bundles:
+- OnionHop-Setup-2.4.2.exe
+- OnionHop-CLI-Setup-2.4.2.exe
+- OnionHopV2-Portable-2.4.2-win-x64.zip
+- OnionHopCLI-Portable-2.4.2-win-x64.zip
 
 ## v2.4.1 (2026-02-21)
 

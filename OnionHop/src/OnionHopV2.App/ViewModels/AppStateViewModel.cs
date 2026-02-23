@@ -118,6 +118,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(ProxyScopeMode),
         nameof(PreferredSocksPort),
         nameof(PreferredHttpPort),
+        nameof(AllowLanProxyAccess),
+        nameof(ConnectionTimeoutSeconds),
         nameof(RestrictedFirewallMode),
         nameof(AllowedPorts),
         nameof(OnionDnsProxyEnabled),
@@ -318,6 +320,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _proxyScopeMode = ProxyScopeSystem;
     [ObservableProperty] private string _preferredSocksPort = OnionHopConnectOptions.DefaultSocksPort.ToString();
     [ObservableProperty] private string _preferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
+    [ObservableProperty] private bool _allowLanProxyAccess;
+    [ObservableProperty] private string _connectionTimeoutSeconds = string.Empty;
     [ObservableProperty] private bool _restrictedFirewallMode;
     [ObservableProperty] private string _allowedPorts = DefaultAllowedPorts;
     [ObservableProperty] private bool _onionDnsProxyEnabled;
@@ -1306,6 +1310,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ProxyScopeMode = ProxyScopeSystem;
             PreferredSocksPort = OnionHopConnectOptions.DefaultSocksPort.ToString();
             PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
+            AllowLanProxyAccess = false;
+            ConnectionTimeoutSeconds = string.Empty;
             RestrictedFirewallMode = false;
             AllowedPorts = DefaultAllowedPorts;
             OnionDnsProxyEnabled = false;
@@ -1376,6 +1382,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return false;
         }
 
+        if (!TryParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds, out _))
+        {
+            error = "Connection timeout is invalid. Leave empty for automatic, use 0 to disable, or set 1-3600 seconds.";
+            return false;
+        }
+
         return true;
     }
 
@@ -1399,6 +1411,33 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private static int ParsePreferredProxyPort(string raw, int fallback)
     {
         return TryParsePreferredProxyPort(raw, out var port) ? port : fallback;
+    }
+
+    private static bool TryParseConnectionTimeoutSeconds(string raw, out int? seconds)
+    {
+        seconds = null;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return true;
+        }
+
+        if (!int.TryParse(raw, out var parsed))
+        {
+            return false;
+        }
+
+        if (parsed is < 0 or > 3600)
+        {
+            return false;
+        }
+
+        seconds = parsed;
+        return true;
+    }
+
+    private static int? ParseConnectionTimeoutSeconds(string raw)
+    {
+        return TryParseConnectionTimeoutSeconds(raw, out var seconds) ? seconds : null;
     }
 
     private OnionHopConnectOptions BuildConnectOptions()
@@ -1428,6 +1467,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ProxyScopeMode = ProxyScopeMode,
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
+            AllowLanProxyAccess = AllowLanProxyAccess,
+            ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
             OnionDnsProxyEnabled = OnionDnsProxyEnabled,
@@ -1640,6 +1681,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredHttpPort = (settings.PreferredHttpPort is >= 1 and <= 65535
                 ? settings.PreferredHttpPort.Value
                 : OnionHopConnectOptions.DefaultHttpPort).ToString();
+            AllowLanProxyAccess = settings.AllowLanProxyAccess;
+            ConnectionTimeoutSeconds = settings.ConnectionTimeoutSeconds switch
+            {
+                null => string.Empty,
+                < 0 => string.Empty,
+                > 3600 => "3600",
+                _ => settings.ConnectionTimeoutSeconds.Value.ToString(CultureInfo.InvariantCulture)
+            };
             RestrictedFirewallMode = settings.RestrictedFirewallMode;
             AllowedPorts = string.IsNullOrWhiteSpace(settings.AllowedPorts) ? DefaultAllowedPorts : settings.AllowedPorts;
             OnionDnsProxyEnabled = settings.OnionDnsProxyEnabled;
@@ -1784,6 +1833,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ProxyScopeMode = ProxyScopeMode,
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
+            AllowLanProxyAccess = AllowLanProxyAccess,
+            ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
             OnionDnsProxyEnabled = OnionDnsProxyEnabled,

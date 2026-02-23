@@ -138,6 +138,22 @@ internal static class TorLogHelper
             : fallbackPort;
     }
 
+    internal static TimeSpan? ResolveConnectTimeout(int? configuredSeconds, TimeSpan automaticTimeout)
+    {
+        if (!configuredSeconds.HasValue)
+        {
+            return automaticTimeout;
+        }
+
+        if (configuredSeconds.Value <= 0)
+        {
+            return null;
+        }
+
+        var clampedSeconds = Math.Clamp(configuredSeconds.Value, 10, 3600);
+        return TimeSpan.FromSeconds(clampedSeconds);
+    }
+
     internal static bool? ParseToggleMode(string? mode)
     {
         if (string.IsNullOrWhiteSpace(mode))
@@ -224,13 +240,21 @@ internal static class TorLogHelper
         return selected;
     }
 
-    internal static string BuildManualProxyHint(int socksPort, int? httpPort)
+    internal static string BuildManualProxyHint(string bindAddress, int socksPort, int? httpPort)
     {
+        var endpointHost = string.IsNullOrWhiteSpace(bindAddress) ? "127.0.0.1" : bindAddress.Trim();
+        var localHost = string.Equals(endpointHost, "0.0.0.0", StringComparison.Ordinal)
+            ? "127.0.0.1"
+            : endpointHost;
+        var lanNote = string.Equals(endpointHost, "0.0.0.0", StringComparison.Ordinal)
+            ? " LAN access is enabled; use this device's LAN IP from other devices."
+            : string.Empty;
+
         if (httpPort.HasValue)
         {
-            return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}, HTTP 127.0.0.1:{httpPort.Value}).";
+            return $"Local proxy mode: configure apps manually (SOCKS {localHost}:{socksPort}, HTTP {localHost}:{httpPort.Value}).{lanNote}";
         }
 
-        return $"Local proxy mode: configure apps manually (SOCKS 127.0.0.1:{socksPort}).";
+        return $"Local proxy mode: configure apps manually (SOCKS {localHost}:{socksPort}).{lanNote}";
     }
 }

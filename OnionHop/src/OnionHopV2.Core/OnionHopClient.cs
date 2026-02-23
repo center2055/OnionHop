@@ -84,6 +84,7 @@ public sealed class OnionHopClient : IDisposable
     private bool _snowflakeAmpHintShown;
     private int _activeSocksPort = DefaultSocksPort;
     private int? _activeHttpPort;
+    private string _activeProxyBindAddress = "127.0.0.1";
     private int? _activeDnsPort;
     private string? _activeDnsBindAddress;
 
@@ -326,6 +327,12 @@ public sealed class OnionHopClient : IDisposable
 
         _activeDnsPort = null;
         _activeDnsBindAddress = null;
+        _activeProxyBindAddress = options.AllowLanProxyAccess ? "0.0.0.0" : "127.0.0.1";
+        if (options.AllowLanProxyAccess)
+        {
+            RaiseLog("LAN proxy access enabled: SOCKS/HTTP listeners will accept connections from local network interfaces.");
+        }
+
         if (options.OnionDnsProxyEnabled)
         {
             var dnsEndpoint = SelectOnionDnsEndpoint(out var attemptedDnsCandidates);
@@ -347,13 +354,27 @@ public sealed class OnionHopClient : IDisposable
             }
         }
 
-        var connectTimeout = options.UseTorBridges
+        var automaticConnectTimeout = options.UseTorBridges
             ? TorBridgeManager.IsAutomaticBridgeType(options.SelectedBridgeType)
                 ? TimeSpan.FromSeconds(360)
                 : TimeSpan.FromSeconds(240)
             : TimeSpan.FromSeconds(60);
+
+        var connectTimeout = ResolveConnectTimeout(options.ConnectionTimeoutSeconds, automaticConnectTimeout);
+        if (connectTimeout.HasValue)
+        {
+            RaiseLog($"Connection timeout: {(int)connectTimeout.Value.TotalSeconds}s.");
+        }
+        else
+        {
+            RaiseLog("Connection timeout disabled: waiting until bootstrap succeeds or user cancels.");
+        }
+
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeoutCts.CancelAfter(connectTimeout);
+        if (connectTimeout.HasValue)
+        {
+            timeoutCts.CancelAfter(connectTimeout.Value);
+        }
 
         _activeOptions = options;
         _snowflakeAmpHintShown = false;
@@ -405,12 +426,12 @@ public sealed class OnionHopClient : IDisposable
                     _proxyService.ApplyTorProxy(_activeSocksPort, systemHttpPort, RaiseLog);
                     if (systemHttpPort is null)
                     {
-                        RaiseLog($"System proxy SOCKS browser/.onion mode enabled (socks=127.0.0.1:{_activeSocksPort}).");
+                        RaiseLog($"System proxy SOCKS browser/.onion mode enabled (socks={_activeProxyBindAddress}:{_activeSocksPort}).");
                     }
                 }
                 else
                 {
-                    RaiseLog(BuildManualProxyHint(_activeSocksPort, _activeHttpPort));
+                    RaiseLog(BuildManualProxyHint(_activeProxyBindAddress, _activeSocksPort, _activeHttpPort));
                 }
             }
 
@@ -430,14 +451,18 @@ public sealed class OnionHopClient : IDisposable
         }
         catch (OperationCanceledException)
         {
-            RaiseLog("Connect canceled or timed out.");
+            var canceledByUser = token.IsCancellationRequested;
+            var canceledMessage = canceledByUser || !connectTimeout.HasValue
+                ? "Connection canceled."
+                : "Connection canceled or timed out.";
+            RaiseLog(canceledMessage);
             await DisconnectCoreAsync(disableStatusUpdate: true).ConfigureAwait(false);
             SetStatus(
                 isConnecting: false,
                 isConnected: false,
                 isDisconnecting: false,
                 connectionStatus: "Disconnected",
-                statusMessage: "Connection canceled or timed out.",
+                statusMessage: canceledMessage,
                 progress: 0);
         }
         catch (Exception ex)
@@ -1019,7 +1044,9 @@ public sealed class OnionHopClient : IDisposable
         {
             TorPath = torPath,
             SocksPort = _activeSocksPort,
+            SocksListenAddress = _activeProxyBindAddress,
             HttpTunnelPort = _activeHttpPort,
+            HttpTunnelListenAddress = _activeProxyBindAddress,
             DnsPort = options.OnionDnsProxyEnabled ? _activeDnsPort : null,
             DnsListenAddress = _activeDnsBindAddress,
             GeoIpPath = geoIpPath,
@@ -1433,7 +1460,8 @@ public sealed class OnionHopClient : IDisposable
     private static string? ExtractBootstrapSummary(string line) => TorLogHelper.ExtractBootstrapSummary(line);
     private static IReadOnlyList<int> ParseAllowedPorts(string? raw) => TorLogHelper.ParseAllowedPorts(raw);
     private static int NormalizePreferredProxyPort(int preferredPort, int fallbackPort) => TorLogHelper.NormalizePreferredProxyPort(preferredPort, fallbackPort);
-    private static string BuildManualProxyHint(int socksPort, int? httpPort) => TorLogHelper.BuildManualProxyHint(socksPort, httpPort);
+    private static TimeSpan? ResolveConnectTimeout(int? configuredSeconds, TimeSpan automaticTimeout) => TorLogHelper.ResolveConnectTimeout(configuredSeconds, automaticTimeout);
+    private static string BuildManualProxyHint(string bindAddress, int socksPort, int? httpPort) => TorLogHelper.BuildManualProxyHint(bindAddress, socksPort, httpPort);
 
     private static bool UsesSystemProxyScope(OnionHopConnectOptions options)
     {

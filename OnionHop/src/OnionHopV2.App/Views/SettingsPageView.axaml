@@ -199,6 +199,12 @@
                                 </StackPanel>
                             </Grid>
 
+                            <ToggleSwitch Content="{DynamicResource Settings.AllowLanProxyAccess}"
+                                          IsChecked="{Binding State.AllowLanProxyAccess}" />
+                            <TextBlock Text="{DynamicResource Settings.AllowLanProxyAccessHint}"
+                                       Opacity="0.75"
+                                       TextWrapping="Wrap" />
+
                             <ToggleSwitch Content="{DynamicResource Settings.SecureDns}"
                                           IsChecked="{Binding State.UseCensoredMode}" />
 
@@ -245,10 +251,13 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="16" Margin="0,16,0,0">
                     <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
+                        <StackPanel Spacing="12">
                             <TextBlock Text="{DynamicResource Settings.TorAdvanced}"
                                        FontSize="16"
                                        FontWeight="SemiBold" />
+                            <TextBlock Text="{DynamicResource Settings.TorAdvancedHint}"
+                                       Opacity="0.7"
+                                       TextWrapping="Wrap" />
 
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{DynamicResource Settings.EntryNode}" Opacity="0.75" />
@@ -262,57 +271,90 @@
                                            IsVisible="{Binding State.UseTorBridges}" />
                             </StackPanel>
 
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.IPv6Support}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
-                                          SelectedItem="{Binding State.SelectedTorIpv6ModeOption}" />
-                            </StackPanel>
+                            <Expander Header="{DynamicResource Settings.AdvancedPerformanceSection}"
+                                      IsExpanded="True">
+                                <StackPanel Spacing="10" Margin="0,10,0,0">
+                                    <Grid ColumnDefinitions="*,*"
+                                          ColumnSpacing="10">
+                                        <StackPanel Grid.Column="0"
+                                                    Spacing="6">
+                                            <TextBlock Text="{DynamicResource Settings.IPv6Support}" Opacity="0.75" />
+                                            <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
+                                                      SelectedItem="{Binding State.SelectedTorIpv6ModeOption}" />
+                                        </StackPanel>
 
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.HardwareAccel}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
-                                          SelectedItem="{Binding State.SelectedHardwareAccelerationModeOption}" />
-                            </StackPanel>
+                                        <StackPanel Grid.Column="1"
+                                                    Spacing="6">
+                                            <TextBlock Text="{DynamicResource Settings.HardwareAccel}" Opacity="0.75" />
+                                            <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
+                                                      SelectedItem="{Binding State.SelectedHardwareAccelerationModeOption}" />
+                                        </StackPanel>
+                                    </Grid>
 
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.ConnectionPadding}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.ConnectionPaddingModeOptions}"
-                                          SelectedItem="{Binding State.SelectedConnectionPaddingModeOption}" />
-                            </StackPanel>
+                                    <Grid ColumnDefinitions="*,*"
+                                          ColumnSpacing="10">
+                                        <StackPanel Grid.Column="0"
+                                                    Spacing="6">
+                                            <TextBlock Text="{DynamicResource Settings.ConnectionPadding}" Opacity="0.75" />
+                                            <ComboBox ItemsSource="{Binding State.ConnectionPaddingModeOptions}"
+                                                      SelectedItem="{Binding State.SelectedConnectionPaddingModeOption}" />
+                                        </StackPanel>
 
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.MaxCircuitInactivity}" Opacity="0.75" />
-                                <TextBox Text="{Binding State.MaxCircuitInactivityMinutes}"
-                                         VerticalContentAlignment="Center" />
-                            </StackPanel>
+                                        <StackPanel Grid.Column="1"
+                                                    Spacing="6">
+                                            <TextBlock Text="{DynamicResource Settings.MaxCircuitInactivity}" Opacity="0.75" />
+                                            <TextBox Text="{Binding State.MaxCircuitInactivityMinutes}"
+                                                     VerticalContentAlignment="Center" />
+                                        </StackPanel>
+                                    </Grid>
 
-                            <ToggleSwitch Content="{DynamicResource Settings.RestrictedFirewallMode}"
-                                          IsChecked="{Binding State.RestrictedFirewallMode}" />
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="{DynamicResource Settings.ConnectionTimeoutSeconds}" Opacity="0.75" />
+                                        <TextBox Text="{Binding State.ConnectionTimeoutSeconds}"
+                                                 VerticalContentAlignment="Center"
+                                                 Watermark="{DynamicResource Settings.ConnectionTimeoutSecondsWatermark}" />
+                                        <TextBlock Text="{DynamicResource Settings.ConnectionTimeoutSecondsHint}"
+                                                   Opacity="0.75"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Expander>
 
-                            <StackPanel Spacing="6" IsVisible="{Binding State.RestrictedFirewallMode}">
-                                <TextBlock Text="{DynamicResource Settings.AllowedPorts}" Opacity="0.75" />
-                                <TextBox Text="{Binding State.AllowedPorts}"
-                                         VerticalContentAlignment="Center"
-                                         Watermark="{DynamicResource Settings.AllowedPortsWatermark}" />
-                            </StackPanel>
+                            <Expander Header="{DynamicResource Settings.AdvancedTrafficRulesSection}">
+                                <StackPanel Spacing="10" Margin="0,10,0,0">
+                                    <ToggleSwitch Content="{DynamicResource Settings.RestrictedFirewallMode}"
+                                                  IsChecked="{Binding State.RestrictedFirewallMode}" />
 
-                            <TextBlock Text="{DynamicResource Settings.EntryExitTip}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
+                                    <StackPanel Spacing="6" IsVisible="{Binding State.RestrictedFirewallMode}">
+                                        <TextBlock Text="{DynamicResource Settings.AllowedPorts}" Opacity="0.75" />
+                                        <TextBox Text="{Binding State.AllowedPorts}"
+                                                 VerticalContentAlignment="Center"
+                                                 Watermark="{DynamicResource Settings.AllowedPortsWatermark}" />
+                                    </StackPanel>
 
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="Manual Exit Node Fingerprint" Opacity="0.75" />
-                                <TextBox Text="{Binding State.ExitNodeFingerprint}"
-                                         VerticalContentAlignment="Center"
-                                         Watermark="Optional (e.g. $FINGERPRINT)" />
-                            </StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.EntryExitTip}"
+                                               Opacity="0.75"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Expander>
 
-                            <ToggleSwitch Content="{DynamicResource Settings.StrictManualExitFingerprint}"
-                                          IsChecked="{Binding State.StrictManualExitNodeFingerprint}"
-                                          IsEnabled="{Binding State.IsManualExitNodeFingerprintSet}" />
-                            <TextBlock Text="{DynamicResource Settings.StrictManualExitFingerprintHint}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
+                            <Expander Header="{DynamicResource Settings.AdvancedManualExitSection}">
+                                <StackPanel Spacing="10" Margin="0,10,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="{DynamicResource Settings.ManualExitFingerprint}" Opacity="0.75" />
+                                        <TextBox Text="{Binding State.ExitNodeFingerprint}"
+                                                 VerticalContentAlignment="Center"
+                                                 Watermark="{DynamicResource Settings.ManualExitFingerprintWatermark}" />
+                                    </StackPanel>
+
+                                    <ToggleSwitch Content="{DynamicResource Settings.StrictManualExitFingerprint}"
+                                                  IsChecked="{Binding State.StrictManualExitNodeFingerprint}"
+                                                  IsEnabled="{Binding State.IsManualExitNodeFingerprintSet}" />
+                                    <TextBlock Text="{DynamicResource Settings.StrictManualExitFingerprintHint}"
+                                               Opacity="0.75"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Expander>
                         </StackPanel>
                     </suki:GlassCard>
 

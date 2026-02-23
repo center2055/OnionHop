@@ -58,7 +58,9 @@ public sealed class SettingsServiceTests
                 SelectedBridgeType = "obfs4",
                 CustomBridges = "obfs4 1.2.3.4:1234 cert=abc",
                 SelectedDnsProvider = "Cloudflare (DoH)",
-                CustomDohHost = "https://example.com/dns-query"
+                CustomDohHost = "https://example.com/dns-query",
+                AllowLanProxyAccess = true,
+                ConnectionTimeoutSeconds = 0
             };
 
             service.Save(original);
@@ -70,6 +72,8 @@ public sealed class SettingsServiceTests
             Assert.Equal(original.SelectedLocation, loaded.SelectedLocation);
             Assert.Equal(original.CustomBridges, loaded.CustomBridges);
             Assert.Equal(original.CustomDohHost, loaded.CustomDohHost);
+            Assert.Equal(original.AllowLanProxyAccess, loaded.AllowLanProxyAccess);
+            Assert.Equal(original.ConnectionTimeoutSeconds, loaded.ConnectionTimeoutSeconds);
         }
         finally
         {

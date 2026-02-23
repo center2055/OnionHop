@@ -46,6 +46,8 @@ public sealed class UserSettingsTests
             ProxyScopeMode = OnionHopConnectOptions.ProxyScopeLocalOnly,
             PreferredSocksPort = 19050,
             PreferredHttpPort = 19080,
+            AllowLanProxyAccess = true,
+            ConnectionTimeoutSeconds = 0,
             StrictManualExitNodeFingerprint = false,
             ShowAdvancedHomeConnectionDetails = true,
             HybridRouteAllWebTraffic = true,
@@ -68,6 +70,8 @@ public sealed class UserSettingsTests
         Assert.Equal(original.ProxyScopeMode, deserialized.ProxyScopeMode);
         Assert.Equal(original.PreferredSocksPort, deserialized.PreferredSocksPort);
         Assert.Equal(original.PreferredHttpPort, deserialized.PreferredHttpPort);
+        Assert.Equal(original.AllowLanProxyAccess, deserialized.AllowLanProxyAccess);
+        Assert.Equal(original.ConnectionTimeoutSeconds, deserialized.ConnectionTimeoutSeconds);
         Assert.Equal(original.StrictManualExitNodeFingerprint, deserialized.StrictManualExitNodeFingerprint);
         Assert.Equal(original.ShowAdvancedHomeConnectionDetails, deserialized.ShowAdvancedHomeConnectionDetails);
         Assert.Equal(original.HybridTorApps, deserialized.HybridTorApps);

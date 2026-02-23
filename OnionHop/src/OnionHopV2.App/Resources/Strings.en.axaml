@@ -116,6 +116,8 @@
   <x:String x:Key="Settings.ProxyScopeHint">System proxy (all apps) sets HTTP/HTTPS + SOCKS. SOCKS browser/.onion mode sets SOCKS only for better .onion compatibility in browsers. Local-only keeps Windows settings untouched for manual app setup.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Preferred SOCKS port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Preferred HTTP tunnel port</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccess">Allow LAN proxy access</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccessHint">Exposes Tor proxy ports on local network interfaces so other devices can connect. Keep disabled unless you trust your LAN.</x:String>
 
   <x:String x:Key="Settings.SecureDns">Secure DNS (DoH) in VPN mode</x:String>
   <x:String x:Key="Settings.DnsProvider">DNS Provider</x:String>
@@ -128,6 +130,10 @@
   <x:String x:Key="Settings.OnionDnsProxyHint">When enabled and running as Administrator, Windows .onion DNS queries are routed through Tor.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor Advanced</x:String>
+  <x:String x:Key="Settings.TorAdvancedHint">Grouped controls help keep this section readable. Expand only what you need.</x:String>
+  <x:String x:Key="Settings.AdvancedPerformanceSection">Performance &amp; compatibility</x:String>
+  <x:String x:Key="Settings.AdvancedTrafficRulesSection">Traffic restrictions</x:String>
+  <x:String x:Key="Settings.AdvancedManualExitSection">Manual exit override</x:String>
   <x:String x:Key="Settings.EntryNode">Entry node (optional)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">Entry nodes can't be used together with bridges.</x:String>
   <x:String x:Key="Settings.IPv6Support">IPv6 support</x:String>
@@ -138,10 +144,15 @@
   <x:String x:Key="Settings.OptionDisabled">Disabled</x:String>
   <x:String x:Key="Settings.ConnectionPaddingAuto">Auto (recommended)</x:String>
   <x:String x:Key="Settings.MaxCircuitInactivity">Max circuit inactivity (minutes)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSeconds">Connection timeout (seconds)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">Empty = Auto, 0 = Disabled</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">Leave empty to use OnionHop defaults, set 0 to disable timeout, or enter 1-3600 for a fixed timeout.</x:String>
   <x:String x:Key="Settings.RestrictedFirewallMode">Restricted Firewall Mode</x:String>
   <x:String x:Key="Settings.AllowedPorts">Allowed ports</x:String>
   <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
   <x:String x:Key="Settings.EntryExitTip">Tip: restricting entry/exit nodes can reduce reliability and speed.</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprint">Manual Exit Node Fingerprint</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprintWatermark">Optional (e.g. $FINGERPRINT)</x:String>
   <x:String x:Key="Settings.StrictManualExitFingerprint">Strict manual exit fingerprint (fail if unavailable)</x:String>
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Disable this to allow fallback exits when the selected fingerprint is unavailable.</x:String>
 

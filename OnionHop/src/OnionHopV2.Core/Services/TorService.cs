@@ -356,25 +356,14 @@ internal sealed class TorService : IDisposable
     {
         var sb = new StringBuilder();
 
-        sb.Append($"--SocksPort {config.SocksPort} ");
+        sb.Append($"--SocksPort {FormatPortEndpoint(config.SocksListenAddress, config.SocksPort, "127.0.0.1")} ");
         if (config.HttpTunnelPort.HasValue)
         {
-            sb.Append($"--HTTPTunnelPort {config.HttpTunnelPort.Value} ");
+            sb.Append($"--HTTPTunnelPort {FormatPortEndpoint(config.HttpTunnelListenAddress, config.HttpTunnelPort.Value, "127.0.0.1")} ");
         }
         if (config.DnsPort.HasValue)
         {
-            var dnsListenAddress = string.IsNullOrWhiteSpace(config.DnsListenAddress)
-                ? "127.0.0.1"
-                : config.DnsListenAddress.Trim();
-            var dnsEndpointAddress = dnsListenAddress;
-            if (IPAddress.TryParse(dnsListenAddress, out var dnsIpAddress) &&
-                dnsIpAddress.AddressFamily == AddressFamily.InterNetworkV6 &&
-                !dnsListenAddress.StartsWith("[", StringComparison.Ordinal))
-            {
-                dnsEndpointAddress = $"[{dnsListenAddress}]";
-            }
-
-            sb.Append($"--DNSPort {dnsEndpointAddress}:{config.DnsPort.Value} ");
+            sb.Append($"--DNSPort {FormatPortEndpoint(config.DnsListenAddress, config.DnsPort.Value, "127.0.0.1")} ");
         }
         sb.Append($"--DataDirectory \"{dataDirectory}\" ");
         sb.Append($"--GeoIPFile \"{config.GeoIpPath}\" ");
@@ -492,6 +481,22 @@ internal sealed class TorService : IDisposable
         return sb.ToString().Trim();
     }
 
+    private static string FormatPortEndpoint(string? listenAddress, int port, string defaultAddress)
+    {
+        var host = string.IsNullOrWhiteSpace(listenAddress)
+            ? defaultAddress
+            : listenAddress.Trim();
+
+        if (IPAddress.TryParse(host, out var ipAddress) &&
+            ipAddress.AddressFamily == AddressFamily.InterNetworkV6 &&
+            !host.StartsWith("[", StringComparison.Ordinal))
+        {
+            host = $"[{host}]";
+        }
+
+        return $"{host}:{port}";
+    }
+
     private static int? ParsePortFromFile(string? content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -537,7 +542,9 @@ internal sealed class TorLaunchConfig
 {
     public string TorPath { get; init; } = string.Empty;
     public int SocksPort { get; init; }
+    public string? SocksListenAddress { get; init; }
     public int? HttpTunnelPort { get; init; }
+    public string? HttpTunnelListenAddress { get; init; }
     public int? DnsPort { get; init; }
     public string? DnsListenAddress { get; init; }
     public string? DataDirectory { get; init; }

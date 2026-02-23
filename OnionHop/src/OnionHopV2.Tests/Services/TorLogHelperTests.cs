@@ -1,3 +1,4 @@
+using System;
 using OnionHopV2.Core.Services;
 using Xunit;
 
@@ -145,6 +146,25 @@ public sealed class TorLogHelperTests
     }
 
     [Theory]
+    [InlineData(null, 60, 60)]
+    [InlineData(0, 60, null)]
+    [InlineData(-1, 60, null)]
+    [InlineData(15, 60, 15)]
+    [InlineData(5000, 60, 3600)]
+    public void ResolveConnectTimeout_ReturnsExpectedSeconds(int? configured, int automaticSeconds, int? expectedSeconds)
+    {
+        var resolved = TorLogHelper.ResolveConnectTimeout(configured, TimeSpan.FromSeconds(automaticSeconds));
+        if (expectedSeconds.HasValue)
+        {
+            Assert.Equal(TimeSpan.FromSeconds(expectedSeconds.Value), resolved);
+        }
+        else
+        {
+            Assert.Null(resolved);
+        }
+    }
+
+    [Theory]
     [InlineData(null, null)]
     [InlineData("Default", null)]
     [InlineData("Enabled", true)]
@@ -196,7 +216,7 @@ public sealed class TorLogHelperTests
     [Fact]
     public void BuildManualProxyHint_WithHttpPort()
     {
-        var hint = TorLogHelper.BuildManualProxyHint(9050, 9080);
+        var hint = TorLogHelper.BuildManualProxyHint("127.0.0.1", 9050, 9080);
         Assert.Contains("SOCKS 127.0.0.1:9050", hint);
         Assert.Contains("HTTP 127.0.0.1:9080", hint);
     }
@@ -204,8 +224,17 @@ public sealed class TorLogHelperTests
     [Fact]
     public void BuildManualProxyHint_WithoutHttpPort()
     {
-        var hint = TorLogHelper.BuildManualProxyHint(9050, null);
+        var hint = TorLogHelper.BuildManualProxyHint("127.0.0.1", 9050, null);
         Assert.Contains("SOCKS 127.0.0.1:9050", hint);
         Assert.DoesNotContain("HTTP", hint);
+    }
+
+    [Fact]
+    public void BuildManualProxyHint_UsesProvidedBindAddress()
+    {
+        var hint = TorLogHelper.BuildManualProxyHint("0.0.0.0", 9050, 9080);
+        Assert.Contains("SOCKS 127.0.0.1:9050", hint);
+        Assert.Contains("HTTP 127.0.0.1:9080", hint);
+        Assert.Contains("LAN access is enabled", hint);
     }
 }

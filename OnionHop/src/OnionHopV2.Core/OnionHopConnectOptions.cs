@@ -61,6 +61,8 @@ public sealed record OnionHopConnectOptions
     public string ProxyScopeMode { get; init; } = ProxyScopeSystem;
     public int PreferredSocksPort { get; init; } = DefaultSocksPort;
     public int PreferredHttpPort { get; init; } = DefaultHttpPort;
+    public bool AllowLanProxyAccess { get; init; }
+    public int? ConnectionTimeoutSeconds { get; init; }
 
     public bool RestrictedFirewallMode { get; init; }
     public string? AllowedPorts { get; init; }

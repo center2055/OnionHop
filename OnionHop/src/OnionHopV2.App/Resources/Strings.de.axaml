@@ -116,6 +116,8 @@
   <x:String x:Key="Settings.ProxyScopeHint">System-Proxy (alle Apps) setzt HTTP/HTTPS + SOCKS. SOCKS Browser/.onion-Modus setzt nur SOCKS f&#252;r bessere .onion-Kompatibilit&#228;t in Browsern. Nur lokal bel&#228;sst die Windows-Einstellungen unver&#228;ndert f&#252;r manuelle App-Konfiguration.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Bevorzugter SOCKS-Port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Bevorzugter HTTP-Tunnel-Port</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccess">LAN-Proxyzugriff erlauben</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccessHint">Stellt Tor-Proxy-Ports auf lokalen Netzwerkschnittstellen bereit, damit andere Ger&#228;te verbinden k&#246;nnen. Nur aktivieren, wenn dein LAN vertrauensw&#252;rdig ist.</x:String>
 
   <x:String x:Key="Settings.SecureDns">Sicheres DNS (DoH) im VPN-Modus</x:String>
   <x:String x:Key="Settings.DnsProvider">DNS-Anbieter</x:String>
@@ -128,6 +130,10 @@
   <x:String x:Key="Settings.OnionDnsProxyHint">Wenn aktiviert und als Administrator ausgef&#252;hrt, werden Windows-.onion-DNS-Anfragen &#252;ber Tor geleitet.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor - Erweitert</x:String>
+  <x:String x:Key="Settings.TorAdvancedHint">Gruppierte Steuerelemente halten diesen Bereich &#252;bersichtlich. Nur die ben&#246;tigten Abschnitte aufklappen.</x:String>
+  <x:String x:Key="Settings.AdvancedPerformanceSection">Leistung &amp; Kompatibilit&#228;t</x:String>
+  <x:String x:Key="Settings.AdvancedTrafficRulesSection">Verkehrsbeschr&#228;nkungen</x:String>
+  <x:String x:Key="Settings.AdvancedManualExitSection">Manuelle Exit-&#220;berschreibung</x:String>
   <x:String x:Key="Settings.EntryNode">Einstiegsknoten (optional)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">Einstiegsknoten k&#246;nnen nicht zusammen mit Bridges verwendet werden.</x:String>
   <x:String x:Key="Settings.IPv6Support">IPv6-Unterst&#252;tzung</x:String>
@@ -138,10 +144,15 @@
   <x:String x:Key="Settings.OptionDisabled">Deaktiviert</x:String>
   <x:String x:Key="Settings.ConnectionPaddingAuto">Automatisch (empfohlen)</x:String>
   <x:String x:Key="Settings.MaxCircuitInactivity">Maximale Circuit-Inaktivit&#228;t (Minuten)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSeconds">Verbindungs-Timeout (Sekunden)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">Leer = Auto, 0 = Deaktiviert</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">Leer lassen f&#252;r OnionHop-Standard, 0 zum Deaktivieren oder 1-3600 f&#252;r ein festes Timeout.</x:String>
   <x:String x:Key="Settings.RestrictedFirewallMode">Restriktiver Firewall-Modus</x:String>
   <x:String x:Key="Settings.AllowedPorts">Erlaubte Ports</x:String>
   <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
   <x:String x:Key="Settings.EntryExitTip">Tipp: Einschr&#228;nkung von Ein-/Austrittsknoten kann Zuverl&#228;ssigkeit und Geschwindigkeit verringern.</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprint">Manueller Exit-Node-Fingerprint</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprintWatermark">Optional (z. B. $FINGERPRINT)</x:String>
   <x:String x:Key="Settings.StrictManualExitFingerprint">Strikter manueller Exit-Fingerprint (Fehler bei Nichtverf&#252;gbarkeit)</x:String>
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Deaktivieren, um auf andere Exits zur&#252;ckzufallen, wenn der gew&#228;hlte Fingerprint nicht verf&#252;gbar ist.</x:String>
 
