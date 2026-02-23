@@ -12,6 +12,9 @@
   <a href="https://github.com/center2055/OnionHop/releases">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge&logo=github" alt="Download Latest Release"/>
   </a>
+  <a href="https://ko-fi.com/center2055">
+    <img src="https://img.shields.io/badge/Support-Ko--Fi-ff5f5f?style=for-the-badge&logo=kofi&logoColor=white" alt="Support on Ko-Fi"/>
+  </a>
 </div>
 
 **OnionHop V2** is a modern Windows app that routes your traffic through **Tor** using either:

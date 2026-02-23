@@ -8,6 +8,7 @@ namespace OnionHopV2.App.Views;
 public partial class AboutPageView : UserControl
 {
     private static readonly Uri DiscordUri = new("https://discord.gg/y3MVspPzKQ");
+    private static readonly Uri KoFiUri = new("https://ko-fi.com/center2055");
 
     public AboutPageView()
     {
@@ -22,6 +23,11 @@ public partial class AboutPageView : UserControl
     private void OnOpenDiscordClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         OpenUri(DiscordUri);
+    }
+
+    private void OnOpenKoFiClick(object? sender, RoutedEventArgs e)
+    {
+        OpenUri(KoFiUri);
     }
 
     private static void OpenUri(Uri uri)

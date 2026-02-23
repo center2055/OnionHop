@@ -55,6 +55,7 @@
   <x:String x:Key="About.Links">Links</x:String>
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
+  <x:String x:Key="About.KoFi">Ko-Fi</x:String>
   <x:String x:Key="About.Changelog">Changelog</x:String>
   <x:String x:Key="About.Refresh">Refresh</x:String>
   <x:String x:Key="About.ChangelogDetails">Details</x:String>
