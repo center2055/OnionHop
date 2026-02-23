@@ -62,7 +62,10 @@ internal sealed class VpnService : IDisposable
             config.BlockQuicForTorApps,
             config.DohServer,
             config.DohServerPort,
-            config.DohPath);
+            config.DohPath,
+            config.TunStack,
+            config.TunMtu,
+            config.TunStrictRoute);
         await File.WriteAllTextAsync(configPath, configJson, token);
 
         _log($"Starting sing-box with config: {configPath}");
@@ -176,6 +179,9 @@ internal sealed class VpnLaunchConfig
     public string DohPath { get; init; } = "/dns-query";
     public bool RouteAllWebTrafficThroughTor { get; init; } = true;
     public bool BlockQuicForTorApps { get; init; } = true;
+    public string TunStack { get; init; } = "mixed";
+    public int? TunMtu { get; init; }
+    public bool TunStrictRoute { get; init; } = true;
     public IReadOnlyList<string> TorAppProcessNames { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> BypassAppProcessNames { get; init; } = Array.Empty<string>();
     [JsonIgnore]

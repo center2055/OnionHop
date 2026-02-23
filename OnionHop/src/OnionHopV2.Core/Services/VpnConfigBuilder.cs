@@ -20,7 +20,10 @@ internal static class VpnConfigBuilder
         bool blockQuicForTorApps,
         string? dohServer,
         int dohServerPort,
-        string? dohPath)
+        string? dohPath,
+        string? tunStack,
+        int? tunMtu,
+        bool tunStrictRoute)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -82,6 +85,23 @@ internal static class VpnConfigBuilder
         }
 
         var resolvedDohPort = dohServerPort is > 0 and <= 65535 ? dohServerPort : 443;
+        var resolvedTunStack = NormalizeTunStack(tunStack);
+        var resolvedTunMtu = tunMtu is >= 576 and <= 9000 ? tunMtu : null;
+
+        var tunInbound = new Dictionary<string, object?>
+        {
+            ["type"] = "tun",
+            ["tag"] = "tun-in",
+            ["interface_name"] = "OnionHop",
+            ["address"] = new[] { "172.19.0.1/30" },
+            ["auto_route"] = true,
+            ["strict_route"] = tunStrictRoute,
+            ["stack"] = resolvedTunStack
+        };
+        if (resolvedTunMtu.HasValue)
+        {
+            tunInbound["mtu"] = resolvedTunMtu.Value;
+        }
 
         // sing-box requires a domain resolver when a server is specified by hostname (e.g. cloudflare-dns.com).
         // Provide a bootstrap resolver and set route.default_domain_resolver to avoid startup failures.
@@ -163,15 +183,7 @@ internal static class VpnConfigBuilder
             },
             inbounds = new object[]
             {
-                new
-                {
-                    type = "tun",
-                    tag = "tun-in",
-                    interface_name = "OnionHop",
-                    address = new[] { "172.19.0.1/30" },
-                    auto_route = true,
-                    strict_route = true
-                }
+                tunInbound
             },
             outbounds = new object[]
             {
@@ -204,5 +216,20 @@ internal static class VpnConfigBuilder
         };
 
         return JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string NormalizeTunStack(string? stack)
+    {
+        if (string.Equals(stack, "system", StringComparison.OrdinalIgnoreCase))
+        {
+            return "system";
+        }
+
+        if (string.Equals(stack, "gvisor", StringComparison.OrdinalIgnoreCase))
+        {
+            return "gvisor";
+        }
+
+        return "mixed";
     }
 }

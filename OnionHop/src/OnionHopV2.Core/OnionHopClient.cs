@@ -55,6 +55,7 @@ public sealed class OnionHopClient : IDisposable
     private readonly TorBridgeManager _bridgeManager;
     private readonly WindowsProxyService _proxyService = new();
     private readonly WindowsOnionDnsProxyService _onionDnsProxyService = new();
+    private readonly HttpProxyBridgeService _httpProxyBridgeService;
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly SingBoxLogProcessor _singBoxLogProcessor = new();
 
@@ -99,6 +100,7 @@ public sealed class OnionHopClient : IDisposable
 
         _torService = new TorService(RaiseLog);
         _vpnService = new VpnService(RaiseLog);
+        _httpProxyBridgeService = new HttpProxyBridgeService(RaiseLog);
 
         _torService.OutputReceived += OnTorDataReceived;
         _torService.Exited += OnTorExited;
@@ -418,7 +420,13 @@ public sealed class OnionHopClient : IDisposable
 
                 await StartSingBoxVpnAsync(resolvedOptions, timeoutCts.Token).ConfigureAwait(false);
             }
-            else
+
+            if (_activeHttpPort.HasValue)
+            {
+                await StartHttpProxyBridgeAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+
+            if (!IsTunMode(resolvedOptions))
             {
                 if (UsesSystemProxyScope(resolvedOptions))
                 {
@@ -645,6 +653,15 @@ public sealed class OnionHopClient : IDisposable
 
         try
         {
+            _httpProxyBridgeService.Stop();
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"Dispose: failed to stop HTTP proxy bridge: {ex.Message}");
+        }
+
+        try
+        {
             StopSingBoxProcess();
         }
         catch (Exception ex)
@@ -705,6 +722,7 @@ public sealed class OnionHopClient : IDisposable
     {
         try
         {
+            _httpProxyBridgeService.Stop();
             StopSingBoxProcess();
 
             if (KillSwitchService.IsEmergencyBlockActive())
@@ -1045,8 +1063,8 @@ public sealed class OnionHopClient : IDisposable
             TorPath = torPath,
             SocksPort = _activeSocksPort,
             SocksListenAddress = _activeProxyBindAddress,
-            HttpTunnelPort = _activeHttpPort,
-            HttpTunnelListenAddress = _activeProxyBindAddress,
+            HttpTunnelPort = null,
+            HttpTunnelListenAddress = null,
             DnsPort = options.OnionDnsProxyEnabled ? _activeDnsPort : null,
             DnsListenAddress = _activeDnsBindAddress,
             GeoIpPath = geoIpPath,
@@ -1066,6 +1084,33 @@ public sealed class OnionHopClient : IDisposable
 
         await _torService.StartAsync(config, token).ConfigureAwait(false);
         await _bootstrapSource.Task.ConfigureAwait(false);
+    }
+
+    private async Task StartHttpProxyBridgeAsync(CancellationToken token)
+    {
+        if (!_activeHttpPort.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            await _httpProxyBridgeService.StartAsync(new HttpProxyBridgeConfig
+            {
+                ListenAddress = _activeProxyBindAddress,
+                ListenPort = _activeHttpPort.Value,
+                SocksProxyHost = "127.0.0.1",
+                SocksProxyPort = _activeSocksPort
+            }, token).ConfigureAwait(false);
+
+            RaiseLog($"HTTP proxy bridge enabled on {_activeProxyBindAddress}:{_activeHttpPort.Value} (upstream SOCKS 127.0.0.1:{_activeSocksPort}).");
+            RaiseLog("HTTP proxy note: HTTP/HTTPS traffic is proxied through SOCKS; ICMP ping is not supported.");
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"HTTP proxy bridge failed to start: {ex.Message}. Falling back to SOCKS-only.");
+            _activeHttpPort = null;
+        }
     }
 
     private async Task StartSingBoxVpnAsync(OnionHopConnectOptions options, CancellationToken token)
@@ -1097,7 +1142,10 @@ public sealed class OnionHopClient : IDisposable
             TorAppProcessNames = ResolveHybridTorApps(options),
             BypassAppProcessNames = ParseProcessNames(options.HybridBypassApps),
             RouteAllWebTrafficThroughTor = options.HybridRouteAllWebTraffic,
-            BlockQuicForTorApps = options.HybridBlockQuicForTorApps
+            BlockQuicForTorApps = options.HybridBlockQuicForTorApps,
+            TunStack = NormalizeTunStackModeForSingBox(options.TunStackMode),
+            TunMtu = options.TunMtu,
+            TunStrictRoute = options.TunStrictRoute
         };
 
         RaiseLog($"StartSingBoxVpnAsync: IsAdmin={WindowsAdmin.IsAdministrator()}, SingBoxPath={singBoxPath}");
@@ -1157,6 +1205,7 @@ public sealed class OnionHopClient : IDisposable
 
     private static bool? ParseToggleMode(string? mode) => TorLogHelper.ParseToggleMode(mode);
     private static string? ParseConnectionPaddingMode(string? mode) => TorLogHelper.ParseConnectionPaddingMode(mode);
+    private static string NormalizeTunStackModeForSingBox(string? mode) => TorLogHelper.NormalizeTunStackModeForSingBox(mode);
 
     private void StartAdminVpnMonitor(OnionHopConnectOptions options)
     {

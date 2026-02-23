@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using OnionHopV2.Core;
 using OnionHopV2.Core.Models;
 using OnionHopV2.Core.Services;
 using Xunit;
@@ -60,6 +61,9 @@ public sealed class SettingsServiceTests
                 SelectedDnsProvider = "Cloudflare (DoH)",
                 CustomDohHost = "https://example.com/dns-query",
                 AllowLanProxyAccess = true,
+                TunStackMode = OnionHopConnectOptions.TunStackSystem,
+                TunMtu = 1400,
+                TunStrictRoute = false,
                 ConnectionTimeoutSeconds = 0
             };
 
@@ -73,6 +77,9 @@ public sealed class SettingsServiceTests
             Assert.Equal(original.CustomBridges, loaded.CustomBridges);
             Assert.Equal(original.CustomDohHost, loaded.CustomDohHost);
             Assert.Equal(original.AllowLanProxyAccess, loaded.AllowLanProxyAccess);
+            Assert.Equal(original.TunStackMode, loaded.TunStackMode);
+            Assert.Equal(original.TunMtu, loaded.TunMtu);
+            Assert.Equal(original.TunStrictRoute, loaded.TunStrictRoute);
             Assert.Equal(original.ConnectionTimeoutSeconds, loaded.ConnectionTimeoutSeconds);
         }
         finally

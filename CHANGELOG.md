@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.4.3 (2026-02-23)
+
+Additions
+- Added new TUN Engine section in Advanced settings (issue #31) with stack selection, optional MTU, and strict-route control.
+- Added localization keys (EN/DE) for the new TUN controls and stack labels.
+- Kept the Home card focused on routing controls only for a cleaner default layout.
+
+Fixes
+- Reworked HTTP proxy handling for LAN/local clients (issue #28): OnionHop now runs an internal HTTP proxy bridge over Tor SOCKS for better client compatibility.
+- HTTP proxy startup now logs explicit status and falls back to SOCKS-only mode if HTTP bridge startup fails.
+- Extended settings/connect-option persistence and VPN config generation to include TUN stack/MTU/strict-route options.
+- Added test coverage for TUN option parsing/serialization and VPN config output.
+
+Packaging
+- Bumped app/CLI/installer versioning to 2.4.3.
+- Release assets should include GUI + CLI installers and both portable bundles:
+- OnionHop-Setup-2.4.3.exe
+- OnionHop-CLI-Setup-2.4.3.exe
+- OnionHopV2-Portable-2.4.3-win-x64.zip
+- OnionHopCLI-Portable-2.4.3-win-x64.zip
+
 ## v2.4.2 (2026-02-23)
 
 Additions

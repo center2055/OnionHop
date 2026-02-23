@@ -33,6 +33,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string ProxyScopeSystem = OnionHopConnectOptions.ProxyScopeSystem;
     public const string ProxyScopeSystemSocks = OnionHopConnectOptions.ProxyScopeSystemSocks;
     public const string ProxyScopeLocalOnly = OnionHopConnectOptions.ProxyScopeLocalOnly;
+    public const string TunStackMixed = OnionHopConnectOptions.TunStackMixed;
+    public const string TunStackSystem = OnionHopConnectOptions.TunStackSystem;
+    public const string TunStackGvisor = OnionHopConnectOptions.TunStackGvisor;
     public const string AutoStartModeOff = "Off";
     public const string AutoStartModeOn = "On";
     public const string AutoStartModeMinimized = "On (Minimized)";
@@ -119,6 +122,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(PreferredSocksPort),
         nameof(PreferredHttpPort),
         nameof(AllowLanProxyAccess),
+        nameof(TunStackMode),
+        nameof(TunMtu),
+        nameof(TunStrictRoute),
         nameof(ConnectionTimeoutSeconds),
         nameof(RestrictedFirewallMode),
         nameof(AllowedPorts),
@@ -205,6 +211,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ProxyScopeLocalOnly
         ];
 
+        TunStackModes =
+        [
+            TunStackMixed,
+            TunStackSystem,
+            TunStackGvisor
+        ];
+
         TorOptionModes =
         [
             OnionHopConnectOptions.ToggleModeDefault,
@@ -273,6 +286,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> DnsProviders { get; }
     public ObservableCollection<string> ProxyScopeModes { get; }
     public ObservableCollection<LocalizedOption> ProxyScopeModeOptions { get; } = [];
+    public ObservableCollection<string> TunStackModes { get; }
+    public ObservableCollection<LocalizedOption> TunStackModeOptions { get; } = [];
     public ObservableCollection<string> TorOptionModes { get; }
     public ObservableCollection<string> ConnectionPaddingModes { get; }
     public ObservableCollection<LocalizedOption> LanguageOptions { get; } = [];
@@ -321,6 +336,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _preferredSocksPort = OnionHopConnectOptions.DefaultSocksPort.ToString();
     [ObservableProperty] private string _preferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
     [ObservableProperty] private bool _allowLanProxyAccess;
+    [ObservableProperty] private string _tunStackMode = TunStackMixed;
+    [ObservableProperty] private string _tunMtu = string.Empty;
+    [ObservableProperty] private bool _tunStrictRoute = true;
     [ObservableProperty] private string _connectionTimeoutSeconds = string.Empty;
     [ObservableProperty] private bool _restrictedFirewallMode;
     [ObservableProperty] private string _allowedPorts = DefaultAllowedPorts;
@@ -341,6 +359,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private LocalizedOption? _selectedBridgeTypeOption;
     [ObservableProperty] private LocalizedOption? _selectedBridgeSourceModeOption;
     [ObservableProperty] private LocalizedOption? _selectedProxyScopeModeOption;
+    [ObservableProperty] private LocalizedOption? _selectedTunStackModeOption;
     [ObservableProperty] private LocalizedOption? _selectedLanguageOption;
     [ObservableProperty] private LocalizedOption? _selectedAutoStartModeOption;
     [ObservableProperty] private LocalizedOption? _selectedThemeModeOption;
@@ -572,6 +591,32 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (!string.Equals(ProxyScopeMode, value.Value, StringComparison.Ordinal))
         {
             ProxyScopeMode = value.Value;
+        }
+    }
+
+    partial void OnTunStackModeChanged(string value)
+    {
+        var normalized = NormalizeTunStackMode(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            TunStackMode = normalized;
+            return;
+        }
+
+        SelectedTunStackModeOption = TunStackModeOptions
+            .FirstOrDefault(option => string.Equals(option.Value, normalized, StringComparison.Ordinal));
+    }
+
+    partial void OnSelectedTunStackModeOptionChanged(LocalizedOption? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(TunStackMode, value.Value, StringComparison.Ordinal))
+        {
+            TunStackMode = value.Value;
         }
     }
 
@@ -1311,6 +1356,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredSocksPort = OnionHopConnectOptions.DefaultSocksPort.ToString();
             PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
             AllowLanProxyAccess = false;
+            TunStackMode = TunStackMixed;
+            TunMtu = string.Empty;
+            TunStrictRoute = true;
             ConnectionTimeoutSeconds = string.Empty;
             RestrictedFirewallMode = false;
             AllowedPorts = DefaultAllowedPorts;
@@ -1382,6 +1430,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return false;
         }
 
+        if (!TryParseTunMtu(TunMtu, out _))
+        {
+            error = "TUN MTU is invalid. Leave empty for default, or set a value between 576 and 9000.";
+            return false;
+        }
+
         if (!TryParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds, out _))
         {
             error = "Connection timeout is invalid. Leave empty for automatic, use 0 to disable, or set 1-3600 seconds.";
@@ -1411,6 +1465,33 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private static int ParsePreferredProxyPort(string raw, int fallback)
     {
         return TryParsePreferredProxyPort(raw, out var port) ? port : fallback;
+    }
+
+    private static bool TryParseTunMtu(string raw, out int? mtu)
+    {
+        mtu = null;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return true;
+        }
+
+        if (!int.TryParse(raw, out var parsed))
+        {
+            return false;
+        }
+
+        if (parsed is < 576 or > 9000)
+        {
+            return false;
+        }
+
+        mtu = parsed;
+        return true;
+    }
+
+    private static int? ParseTunMtu(string raw)
+    {
+        return TryParseTunMtu(raw, out var mtu) ? mtu : null;
     }
 
     private static bool TryParseConnectionTimeoutSeconds(string raw, out int? seconds)
@@ -1468,6 +1549,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             AllowLanProxyAccess = AllowLanProxyAccess,
+            TunStackMode = TunStackMode,
+            TunMtu = ParseTunMtu(TunMtu),
+            TunStrictRoute = TunStrictRoute,
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
@@ -1682,6 +1766,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 ? settings.PreferredHttpPort.Value
                 : OnionHopConnectOptions.DefaultHttpPort).ToString();
             AllowLanProxyAccess = settings.AllowLanProxyAccess;
+            TunStackMode = NormalizeTunStackMode(settings.TunStackMode);
+            TunMtu = settings.TunMtu is >= 576 and <= 9000
+                ? settings.TunMtu.Value.ToString(CultureInfo.InvariantCulture)
+                : string.Empty;
+            TunStrictRoute = settings.TunStrictRoute ?? true;
             ConnectionTimeoutSeconds = settings.ConnectionTimeoutSeconds switch
             {
                 null => string.Empty,
@@ -1834,6 +1923,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             AllowLanProxyAccess = AllowLanProxyAccess,
+            TunStackMode = TunStackMode,
+            TunMtu = ParseTunMtu(TunMtu),
+            TunStrictRoute = TunStrictRoute,
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
@@ -1929,6 +2021,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         SelectedConnectionModeOption = ConnectionModeOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedConnectionMode, StringComparison.Ordinal))
                                      ?? ConnectionModeOptions.FirstOrDefault();
         RefreshProxyScopeOptions();
+        RefreshTunStackOptions();
 
         LocationOptions.Clear();
         foreach (var location in Locations)
@@ -1980,6 +2073,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         SelectedProxyScopeModeOption = ProxyScopeModeOptions.FirstOrDefault(option => string.Equals(option.Value, ProxyScopeMode, StringComparison.Ordinal))
                                    ?? ProxyScopeModeOptions.FirstOrDefault();
+    }
+
+    private void RefreshTunStackOptions()
+    {
+        TunStackModeOptions.Clear();
+        foreach (var mode in TunStackModes)
+        {
+            TunStackModeOptions.Add(new LocalizedOption(mode, LocalizeTunStackMode(mode)));
+        }
+
+        SelectedTunStackModeOption = TunStackModeOptions.FirstOrDefault(option => string.Equals(option.Value, TunStackMode, StringComparison.Ordinal))
+                                  ?? TunStackModeOptions.FirstOrDefault();
     }
 
     private void RefreshAutoStartModeOptions()
@@ -2144,6 +2249,17 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         };
     }
 
+    private static string LocalizeTunStackMode(string mode)
+    {
+        return mode switch
+        {
+            TunStackMixed => LocalizationService.Get("TunStack.Mixed"),
+            TunStackSystem => LocalizationService.Get("TunStack.System"),
+            TunStackGvisor => LocalizationService.Get("TunStack.Gvisor"),
+            _ => mode
+        };
+    }
+
     private static string LocalizeThemeMode(string mode)
     {
         return NormalizeThemeMode(mode) switch
@@ -2188,6 +2304,21 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return ProxyScopeSystem;
+    }
+
+    private static string NormalizeTunStackMode(string? mode)
+    {
+        if (string.Equals(mode, TunStackSystem, StringComparison.OrdinalIgnoreCase))
+        {
+            return TunStackSystem;
+        }
+
+        if (string.Equals(mode, TunStackGvisor, StringComparison.OrdinalIgnoreCase))
+        {
+            return TunStackGvisor;
+        }
+
+        return TunStackMixed;
     }
 
     private static string NormalizeThemeMode(string? mode)

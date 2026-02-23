@@ -199,6 +199,21 @@ internal static class TorLogHelper
         return null;
     }
 
+    internal static string NormalizeTunStackModeForSingBox(string? mode)
+    {
+        if (string.Equals(mode, OnionHopConnectOptions.TunStackSystem, StringComparison.OrdinalIgnoreCase))
+        {
+            return "system";
+        }
+
+        if (string.Equals(mode, OnionHopConnectOptions.TunStackGvisor, StringComparison.OrdinalIgnoreCase))
+        {
+            return "gvisor";
+        }
+
+        return "mixed";
+    }
+
     internal static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, int maxLines, int maxChars, Action<string> log)
     {
         if (bridgeLines.Count == 0)

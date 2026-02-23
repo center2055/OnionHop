@@ -20,7 +20,10 @@ public sealed class VpnConfigBuilderTests
             blockQuicForTorApps: false,
             dohServer: null,
             dohServerPort: 443,
-            dohPath: null);
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
 
         var doc = JsonDocument.Parse(json);
         var route = doc.RootElement.GetProperty("route");
@@ -60,7 +63,10 @@ public sealed class VpnConfigBuilderTests
             blockQuicForTorApps: false,
             dohServer: null,
             dohServerPort: 443,
-            dohPath: null);
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
 
         var doc = JsonDocument.Parse(json);
         var route = doc.RootElement.GetProperty("route");
@@ -94,7 +100,10 @@ public sealed class VpnConfigBuilderTests
             blockQuicForTorApps: false,
             dohServer: null,
             dohServerPort: 443,
-            dohPath: null);
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
 
         var doc = JsonDocument.Parse(json);
         var final = doc.RootElement.GetProperty("route").GetProperty("final").GetString();
@@ -114,7 +123,10 @@ public sealed class VpnConfigBuilderTests
             blockQuicForTorApps: false,
             dohServer: null,
             dohServerPort: 443,
-            dohPath: null);
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
 
         var doc = JsonDocument.Parse(json);
         var final = doc.RootElement.GetProperty("route").GetProperty("final").GetString();
@@ -134,7 +146,10 @@ public sealed class VpnConfigBuilderTests
             blockQuicForTorApps: true,
             dohServer: null,
             dohServerPort: 443,
-            dohPath: null);
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
 
         var doc = JsonDocument.Parse(json);
         var rules = doc.RootElement.GetProperty("route").GetProperty("rules");
@@ -167,7 +182,10 @@ public sealed class VpnConfigBuilderTests
             blockQuicForTorApps: false,
             dohServer: null,
             dohServerPort: 443,
-            dohPath: null);
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
 
         var doc = JsonDocument.Parse(json);
         var rules = doc.RootElement.GetProperty("route").GetProperty("rules");
@@ -187,5 +205,55 @@ public sealed class VpnConfigBuilderTests
         }
 
         Assert.True(hasWebTrafficRule, "Config should route TCP 80/443 through Tor when RouteAllWebTrafficThroughTor is enabled.");
+    }
+
+    [Fact]
+    public void TunOptions_are_applied_to_tun_inbound()
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: false,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "system",
+            tunMtu: 1420,
+            tunStrictRoute: false);
+
+        var doc = JsonDocument.Parse(json);
+        var tunInbound = doc.RootElement.GetProperty("inbounds")[0];
+        Assert.Equal("system", tunInbound.GetProperty("stack").GetString());
+        Assert.Equal(1420, tunInbound.GetProperty("mtu").GetInt32());
+        Assert.False(tunInbound.GetProperty("strict_route").GetBoolean());
+    }
+
+    [Fact]
+    public void Invalid_tun_options_fallback_to_safe_defaults()
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: false,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "invalid",
+            tunMtu: 120,
+            tunStrictRoute: true);
+
+        var doc = JsonDocument.Parse(json);
+        var tunInbound = doc.RootElement.GetProperty("inbounds")[0];
+        Assert.Equal("mixed", tunInbound.GetProperty("stack").GetString());
+        Assert.True(tunInbound.GetProperty("strict_route").GetBoolean());
+        Assert.False(tunInbound.TryGetProperty("mtu", out _));
     }
 }

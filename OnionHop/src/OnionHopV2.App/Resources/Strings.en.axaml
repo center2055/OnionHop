@@ -133,6 +133,13 @@
   <x:String x:Key="Settings.TorAdvanced">Tor Advanced</x:String>
   <x:String x:Key="Settings.TorAdvancedHint">Grouped controls help keep this section readable. Expand only what you need.</x:String>
   <x:String x:Key="Settings.AdvancedPerformanceSection">Performance &amp; compatibility</x:String>
+  <x:String x:Key="Settings.AdvancedTunSection">TUN engine</x:String>
+  <x:String x:Key="Settings.AdvancedTunSectionHint">Applies only in TUN/VPN mode. Use defaults unless you need compatibility tuning.</x:String>
+  <x:String x:Key="Settings.TunStack">TUN stack</x:String>
+  <x:String x:Key="Settings.TunMtu">TUN MTU (optional)</x:String>
+  <x:String x:Key="Settings.TunMtuWatermark">Empty = default (auto)</x:String>
+  <x:String x:Key="Settings.TunStrictRoute">Strict route</x:String>
+  <x:String x:Key="Settings.TunStrictRouteHint">When enabled, routes must stay in the TUN path. Disable only for troubleshooting difficult networks.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">Traffic restrictions</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">Manual exit override</x:String>
   <x:String x:Key="Settings.EntryNode">Entry node (optional)</x:String>
@@ -188,6 +195,9 @@
   <x:String x:Key="ProxyScope.System">System proxy (all apps)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">System proxy (SOCKS browser/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Local proxy only (manual apps)</x:String>
+  <x:String x:Key="TunStack.Mixed">Mixed (recommended)</x:String>
+  <x:String x:Key="TunStack.System">System</x:String>
+  <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
 
   <!-- Language names -->
   <x:String x:Key="Language.English">English</x:String>

@@ -186,6 +186,17 @@ public sealed class TorLogHelperTests
         Assert.Equal(expected, TorLogHelper.ParseConnectionPaddingMode(mode));
     }
 
+    [Theory]
+    [InlineData(null, "mixed")]
+    [InlineData("Mixed (recommended)", "mixed")]
+    [InlineData("System", "system")]
+    [InlineData("gVisor", "gvisor")]
+    [InlineData("invalid", "mixed")]
+    public void NormalizeTunStackModeForSingBox_ParsesCorrectly(string? mode, string expected)
+    {
+        Assert.Equal(expected, TorLogHelper.NormalizeTunStackModeForSingBox(mode));
+    }
+
     [Fact]
     public void LimitBridgeLinesForLaunch_ReturnsAllWhenUnderLimit()
     {
