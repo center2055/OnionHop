@@ -135,6 +135,7 @@
   <x:String x:Key="Settings.AdvancedPerformanceSection">Leistung &amp; Kompatibilit&#228;t</x:String>
   <x:String x:Key="Settings.AdvancedTunSection">TUN-Engine</x:String>
   <x:String x:Key="Settings.AdvancedTunSectionHint">Gilt nur im TUN/VPN-Modus. Standardwerte nutzen, au&#223;er du brauchst spezielle Kompatibilit&#228;t.</x:String>
+  <x:String x:Key="Settings.TunCore">TUN-Core</x:String>
   <x:String x:Key="Settings.TunStack">TUN-Stack</x:String>
   <x:String x:Key="Settings.TunMtu">TUN-MTU (optional)</x:String>
   <x:String x:Key="Settings.TunMtuWatermark">Leer = Standard (automatisch)</x:String>
@@ -198,6 +199,8 @@
   <x:String x:Key="TunStack.Mixed">Gemischt (empfohlen)</x:String>
   <x:String x:Key="TunStack.System">System</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunCore.SingBox">sing-box (empfohlen)</x:String>
+  <x:String x:Key="TunCore.Xray">xray (experimentell)</x:String>
 
   <!-- Language names -->
   <x:String x:Key="Language.English">Englisch</x:String>

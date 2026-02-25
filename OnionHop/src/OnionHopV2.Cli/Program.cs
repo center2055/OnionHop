@@ -129,6 +129,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine("  --bridges <on|off>           Force bridges in manual mode", ConsoleColor.Gray);
         WriteLine("  --bridge-type <type>         automatic, obfs4, snowflake, webtunnel, conjure, meek-azure, custom", ConsoleColor.Gray);
         WriteLine("  --censored <on|off>          Enable censored mode in manual mode", ConsoleColor.Gray);
+        WriteLine("  --tun-core <sing-box|xray>   TUN core backend (default: sing-box)", ConsoleColor.Gray);
         WriteLine("  --proxy-scope <system|socks|local>", ConsoleColor.Gray);
         WriteLine("  --exit <auto|cc|country>     Exit location (e.g. us, de, \"United States\")", ConsoleColor.Gray);
         WriteLine("  --entry <auto|cc|country>    Entry location (ignored when bridges are on)", ConsoleColor.Gray);
@@ -541,6 +542,7 @@ internal sealed class CliHost : IAsyncDisposable
         {
             SelectedConnectionMode = mode,
             ProxyScopeMode = proxyScope,
+            TunCoreMode = NormalizeTunCoreMode(request.TunCore),
             SelectedLocation = request.ExitLocation,
             SelectedEntryLocation = request.EntryLocation,
             ExitNodeFingerprint = request.ExitNodeFingerprint,
@@ -589,6 +591,16 @@ internal sealed class CliHost : IAsyncDisposable
             "google" => OnionHopConnectOptions.DnsProviderGoogle,
             "custom" => OnionHopConnectOptions.DnsProviderCustom,
             _ => OnionHopConnectOptions.DnsProviderAuto
+        };
+    }
+
+    private static string NormalizeTunCoreMode(string value)
+    {
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "xray" => OnionHopConnectOptions.TunCoreXray,
+            "singbox" => OnionHopConnectOptions.TunCoreSingBox,
+            _ => OnionHopConnectOptions.TunCoreSingBox
         };
     }
 
@@ -730,6 +742,7 @@ internal sealed class CliHost : IAsyncDisposable
         var bridgeTypeProvided = parsed.Options.ContainsKey("bridge-type");
         var bridgeType = GetOption(parsed.Options, "bridge-type", "automatic");
         var useCensoredMode = GetNullableBooleanOption(parsed.Options, "censored");
+        var tunCore = GetOption(parsed.Options, "tun-core", "sing-box");
         var proxyScope = GetOption(parsed.Options, "proxy-scope", "socks");
         var dnsProvider = GetOption(parsed.Options, "dns", "auto");
         var onionDnsProxy = GetBooleanOption(parsed.Options, "onion-dns-proxy", false);
@@ -761,6 +774,7 @@ internal sealed class CliHost : IAsyncDisposable
             BridgeType: bridgeType,
             BridgeTypeProvided: bridgeTypeProvided,
             UseCensoredMode: useCensoredMode,
+            TunCore: tunCore,
             ProxyScope: proxyScope,
             DnsProvider: dnsProvider,
             UseOnionDnsProxy: onionDnsProxy,
@@ -1001,6 +1015,7 @@ internal sealed class CliHost : IAsyncDisposable
         string BridgeType,
         bool BridgeTypeProvided,
         bool? UseCensoredMode,
+        string TunCore,
         string ProxyScope,
         string DnsProvider,
         bool UseOnionDnsProxy,

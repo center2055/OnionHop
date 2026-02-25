@@ -21,6 +21,7 @@ internal sealed class DependencyManager
     private const string TorBaseUrl = "https://dist.torproject.org/torbrowser";
     private const string TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser";
     private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest";
+    private const string XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/latest";
     private const string WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip";
 
     public sealed record DependencyUpdate(bool InProgress, string Status, double Progress);
@@ -46,13 +47,15 @@ internal sealed class DependencyManager
         var ptDir = Path.Combine(torDir, "pluggable_transports");
 
         var singBoxExe = Path.Combine(vpnDir, "sing-box.exe");
+        var xrayExe = Path.Combine(vpnDir, "xray.exe");
         var wintunDll = Path.Combine(vpnDir, "wintun.dll");
 
         var needsTor = !File.Exists(torExe) || !File.Exists(torGenCert) || !File.Exists(geoip) || !File.Exists(geoip6) || !Directory.Exists(ptDir);
         var needsSingBox = !File.Exists(singBoxExe);
+        var needsXray = !File.Exists(xrayExe);
         var needsWintun = !File.Exists(wintunDll);
 
-        if (!needsTor && !needsSingBox && !needsWintun)
+        if (!needsTor && !needsSingBox && !needsXray && !needsWintun)
         {
             var ptConfigPath = Path.Combine(ptDir, "pt_config.json");
             EnsurePluggableTransportConfig(ptConfigPath, log);
@@ -79,6 +82,10 @@ internal sealed class DependencyManager
             if (needsSingBox)
             {
                 steps.Add(("Downloading sing-box...", () => DownloadSingBoxAsync(client, tempRoot, singBoxExe)));
+            }
+            if (needsXray)
+            {
+                steps.Add(("Downloading xray...", () => DownloadXrayAsync(client, tempRoot, xrayExe)));
             }
             if (needsWintun)
             {
@@ -304,6 +311,47 @@ internal sealed class DependencyManager
 
             Directory.CreateDirectory(Path.GetDirectoryName(singBoxPath) ?? AppContext.BaseDirectory);
             File.Copy(exePath, singBoxPath, true);
+        }).ConfigureAwait(false);
+    }
+
+    private static async Task DownloadXrayAsync(HttpClient client, string tempRoot, string xrayPath)
+    {
+        using var response = await client.GetAsync(XrayApiUrl).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException("Failed to query xray releases.");
+        }
+
+        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var release = JsonSerializer.Deserialize<GitHubRelease>(json);
+        var asset = release?.Assets?.FirstOrDefault(a => a.Name != null
+                                                        && (a.Name.Contains("windows-64.zip", StringComparison.OrdinalIgnoreCase)
+                                                            || a.Name.Contains("win7-64.zip", StringComparison.OrdinalIgnoreCase)));
+        if (string.IsNullOrWhiteSpace(asset?.BrowserDownloadUrl))
+        {
+            throw new InvalidOperationException("No xray windows-64 asset found.");
+        }
+
+        var zipPath = Path.Combine(tempRoot, "xray.zip");
+        await DownloadToFileAsync(client, asset.BrowserDownloadUrl, zipPath).ConfigureAwait(false);
+
+        await Task.Run(() =>
+        {
+            var extractDir = Path.Combine(tempRoot, "xray");
+            if (Directory.Exists(extractDir))
+            {
+                Directory.Delete(extractDir, true);
+            }
+            ZipFile.ExtractToDirectory(zipPath, extractDir, true);
+
+            var exePath = Directory.GetFiles(extractDir, "xray.exe", SearchOption.AllDirectories).FirstOrDefault();
+            if (exePath == null)
+            {
+                throw new FileNotFoundException("xray.exe not found in archive.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(xrayPath) ?? AppContext.BaseDirectory);
+            File.Copy(exePath, xrayPath, true);
         }).ConfigureAwait(false);
     }
 

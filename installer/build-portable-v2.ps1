@@ -56,10 +56,11 @@ if (-not $SkipDependencies) {
 
     $torExe = Join-Path $repoRoot "OnionHop\\tor\\tor.exe"
     $singBoxExe = Join-Path $repoRoot "OnionHop\\vpn\\sing-box.exe"
+    $xrayExe = Join-Path $repoRoot "OnionHop\\vpn\\xray.exe"
     $wintunDll = Join-Path $repoRoot "OnionHop\\vpn\\wintun.dll"
 
     $missing = @()
-    foreach ($p in @($torExe, $singBoxExe, $wintunDll)) {
+    foreach ($p in @($torExe, $singBoxExe, $xrayExe, $wintunDll)) {
       if (!(Test-Path $p)) { $missing += $p }
     }
 

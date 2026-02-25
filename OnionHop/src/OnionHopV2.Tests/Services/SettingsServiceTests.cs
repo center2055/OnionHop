@@ -61,6 +61,7 @@ public sealed class SettingsServiceTests
                 SelectedDnsProvider = "Cloudflare (DoH)",
                 CustomDohHost = "https://example.com/dns-query",
                 AllowLanProxyAccess = true,
+                TunCoreMode = OnionHopConnectOptions.TunCoreXray,
                 TunStackMode = OnionHopConnectOptions.TunStackSystem,
                 TunMtu = 1400,
                 TunStrictRoute = false,
@@ -77,6 +78,7 @@ public sealed class SettingsServiceTests
             Assert.Equal(original.CustomBridges, loaded.CustomBridges);
             Assert.Equal(original.CustomDohHost, loaded.CustomDohHost);
             Assert.Equal(original.AllowLanProxyAccess, loaded.AllowLanProxyAccess);
+            Assert.Equal(original.TunCoreMode, loaded.TunCoreMode);
             Assert.Equal(original.TunStackMode, loaded.TunStackMode);
             Assert.Equal(original.TunMtu, loaded.TunMtu);
             Assert.Equal(original.TunStrictRoute, loaded.TunStrictRoute);

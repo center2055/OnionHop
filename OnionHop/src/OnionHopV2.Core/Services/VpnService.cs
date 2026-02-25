@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV2.Core;
 
 namespace OnionHopV2.Core.Services;
 
@@ -37,9 +38,17 @@ internal sealed class VpnService : IDisposable
         Stop();
         token.ThrowIfCancellationRequested();
 
-        if (!File.Exists(config.SingBoxPath))
+        var vpnCoreMode = NormalizeTunCoreMode(config.VpnCoreMode);
+        var vpnCorePath = string.Equals(vpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
+            ? config.XrayPath
+            : config.SingBoxPath;
+        var vpnCoreLabel = string.Equals(vpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
+            ? "xray"
+            : "sing-box";
+
+        if (!File.Exists(vpnCorePath))
         {
-            throw new FileNotFoundException("VPN component missing: vpn\\sing-box.exe", config.SingBoxPath);
+            throw new FileNotFoundException($"VPN component missing: vpn\\{vpnCoreLabel}.exe", vpnCorePath);
         }
 
         if (!File.Exists(config.WintunPath))
@@ -47,30 +56,43 @@ internal sealed class VpnService : IDisposable
             throw new FileNotFoundException("VPN component missing: vpn\\wintun.dll", config.WintunPath);
         }
 
-        var workDir = Path.GetDirectoryName(config.SingBoxPath) ?? AppContext.BaseDirectory;
-        var configDir = Path.Combine(Path.GetTempPath(), "OnionHop", "sing-box");
+        var workDir = Path.GetDirectoryName(vpnCorePath) ?? AppContext.BaseDirectory;
+        var configDir = Path.Combine(Path.GetTempPath(), "OnionHop", vpnCoreLabel);
         Directory.CreateDirectory(configDir);
-        var configPath = Path.Combine(configDir, "sing-box.json");
+        var configPath = Path.Combine(configDir, $"{vpnCoreLabel}.json");
 
-        var configJson = VpnConfigBuilder.BuildJson(
-            config.HybridRouting,
-            config.SecureDns,
-            config.SocksPort,
-            config.TorAppProcessNames,
-            config.BypassAppProcessNames,
-            config.RouteAllWebTrafficThroughTor,
-            config.BlockQuicForTorApps,
-            config.DohServer,
-            config.DohServerPort,
-            config.DohPath,
-            config.TunStack,
-            config.TunMtu,
-            config.TunStrictRoute);
+        var configJson = string.Equals(vpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
+            ? XrayConfigBuilder.BuildJson(
+                config.HybridRouting,
+                config.SecureDns,
+                config.SocksPort,
+                config.TorAppProcessNames,
+                config.BypassAppProcessNames,
+                config.RouteAllWebTrafficThroughTor,
+                config.BlockQuicForTorApps,
+                config.DohServer,
+                config.DohServerPort,
+                config.DohPath,
+                config.TunMtu)
+            : VpnConfigBuilder.BuildJson(
+                config.HybridRouting,
+                config.SecureDns,
+                config.SocksPort,
+                config.TorAppProcessNames,
+                config.BypassAppProcessNames,
+                config.RouteAllWebTrafficThroughTor,
+                config.BlockQuicForTorApps,
+                config.DohServer,
+                config.DohServerPort,
+                config.DohPath,
+                config.TunStack,
+                config.TunMtu,
+                config.TunStrictRoute);
         await File.WriteAllTextAsync(configPath, configJson, token);
 
-        _log($"Starting sing-box with config: {configPath}");
+        _log($"Starting {vpnCoreLabel} with config: {configPath}");
 
-        var psi = new ProcessStartInfo(config.SingBoxPath, $"run -c \"{configPath}\"")
+        var psi = new ProcessStartInfo(vpnCorePath, $"run -c \"{configPath}\"")
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -91,7 +113,7 @@ internal sealed class VpnService : IDisposable
 
         if (!_process.Start())
         {
-            throw new InvalidOperationException("Unable to launch sing-box.exe");
+            throw new InvalidOperationException($"Unable to launch {vpnCoreLabel}.exe");
         }
 
         config.ProcessStarted?.Invoke(_process);
@@ -102,7 +124,7 @@ internal sealed class VpnService : IDisposable
         await Task.Delay(750, token);
         if (_process.HasExited)
         {
-            throw new InvalidOperationException("sing-box exited unexpectedly during startup.");
+            throw new InvalidOperationException($"{vpnCoreLabel} exited unexpectedly during startup.");
         }
     }
 
@@ -132,7 +154,7 @@ internal sealed class VpnService : IDisposable
         }
         catch (Exception ex)
         {
-            _log($"Failed to stop sing-box: {ex.Message}");
+            _log($"Failed to stop VPN core: {ex.Message}");
         }
         finally
         {
@@ -165,12 +187,21 @@ internal sealed class VpnService : IDisposable
     {
         OutputReceived?.Invoke(sender, e);
     }
+
+    private static string NormalizeTunCoreMode(string? value)
+    {
+        return string.Equals(value, OnionHopConnectOptions.TunCoreXray, StringComparison.OrdinalIgnoreCase)
+            ? OnionHopConnectOptions.TunCoreXray
+            : OnionHopConnectOptions.TunCoreSingBox;
+    }
 }
 
 internal sealed class VpnLaunchConfig
 {
     public string SingBoxPath { get; init; } = string.Empty;
+    public string XrayPath { get; init; } = string.Empty;
     public string WintunPath { get; init; } = string.Empty;
+    public string VpnCoreMode { get; init; } = OnionHopConnectOptions.TunCoreSingBox;
     public bool HybridRouting { get; init; }
     public bool SecureDns { get; init; }
     public int SocksPort { get; init; }

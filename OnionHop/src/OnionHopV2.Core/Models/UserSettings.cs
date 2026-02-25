@@ -36,6 +36,7 @@ public sealed class UserSettings
     public int? PreferredSocksPort { get; set; }
     public int? PreferredHttpPort { get; set; }
     public bool AllowLanProxyAccess { get; set; }
+    public string? TunCoreMode { get; set; }
     public string? TunStackMode { get; set; }
     public int? TunMtu { get; set; }
     public bool? TunStrictRoute { get; set; }

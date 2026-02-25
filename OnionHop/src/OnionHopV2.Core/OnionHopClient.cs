@@ -88,6 +88,7 @@ public sealed class OnionHopClient : IDisposable
     private string _activeProxyBindAddress = "127.0.0.1";
     private int? _activeDnsPort;
     private string? _activeDnsBindAddress;
+    private string _activeVpnCoreMode = OnionHopConnectOptions.TunCoreSingBox;
 
     private CancellationTokenSource? _adminVpnMonitorCts;
     private readonly object _bridgeFailureLock = new();
@@ -108,6 +109,7 @@ public sealed class OnionHopClient : IDisposable
         _vpnService.OutputReceived += OnSingBoxDataReceived;
         _vpnService.Exited += OnSingBoxExited;
 
+        _singBoxLogProcessor.SetSourceLabel(_activeVpnCoreMode);
         _singBoxLogProcessor.LogReceived += RaiseLog;
         _singBoxLogProcessor.DnsLogReceived += RaiseDnsLog;
         _singBoxLogProcessor.StatusMessageChanged += message =>
@@ -666,7 +668,7 @@ public sealed class OnionHopClient : IDisposable
         }
         catch (Exception ex)
         {
-            StartupLogger.Write($"Dispose: failed to stop sing-box: {ex.Message}");
+            StartupLogger.Write($"Dispose: failed to stop VPN core: {ex.Message}");
         }
 
         try
@@ -761,6 +763,8 @@ public sealed class OnionHopClient : IDisposable
             _activeHttpPort = null;
             _activeDnsPort = null;
             _activeDnsBindAddress = null;
+            _activeVpnCoreMode = OnionHopConnectOptions.TunCoreSingBox;
+            _singBoxLogProcessor.SetSourceLabel(_activeVpnCoreMode);
 
             if (!disableStatusUpdate)
             {
@@ -1118,8 +1122,18 @@ public sealed class OnionHopClient : IDisposable
         RaiseLog("StartSingBoxVpnAsync: Starting VPN setup...");
         StopSingBoxProcess();
 
+        var tunCoreMode = NormalizeTunCoreMode(options.TunCoreMode);
+        _activeVpnCoreMode = tunCoreMode;
+        _singBoxLogProcessor.SetSourceLabel(tunCoreMode);
+        if (string.Equals(tunCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal) &&
+            (!string.Equals(options.TunStackMode, OnionHopConnectOptions.TunStackMixed, StringComparison.OrdinalIgnoreCase) || !options.TunStrictRoute))
+        {
+            RaiseLog("xray currently ignores TUN stack and strict-route tuning; using xray defaults.");
+        }
+
         var vpnDir = Path.Combine(_baseDir, "vpn");
         var singBoxPath = Path.Combine(vpnDir, "sing-box.exe");
+        var xrayPath = Path.Combine(vpnDir, "xray.exe");
         var wintunPath = Path.Combine(vpnDir, "wintun.dll");
         var doh = DohSettingsResolver.Resolve(options);
         if (options.UseCensoredMode &&
@@ -1132,7 +1146,9 @@ public sealed class OnionHopClient : IDisposable
         var config = new VpnLaunchConfig
         {
             SingBoxPath = singBoxPath,
+            XrayPath = xrayPath,
             WintunPath = wintunPath,
+            VpnCoreMode = tunCoreMode,
             HybridRouting = options.UseHybridRouting,
             SecureDns = options.UseCensoredMode,
             SocksPort = _activeSocksPort,
@@ -1148,7 +1164,10 @@ public sealed class OnionHopClient : IDisposable
             TunStrictRoute = options.TunStrictRoute
         };
 
-        RaiseLog($"StartSingBoxVpnAsync: IsAdmin={WindowsAdmin.IsAdministrator()}, SingBoxPath={singBoxPath}");
+        var selectedCorePath = string.Equals(tunCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
+            ? xrayPath
+            : singBoxPath;
+        RaiseLog($"StartSingBoxVpnAsync: IsAdmin={WindowsAdmin.IsAdministrator()}, Core={tunCoreMode}, CorePath={selectedCorePath}");
 
         if (!WindowsAdmin.IsAdministrator())
         {
@@ -1205,6 +1224,9 @@ public sealed class OnionHopClient : IDisposable
 
     private static bool? ParseToggleMode(string? mode) => TorLogHelper.ParseToggleMode(mode);
     private static string? ParseConnectionPaddingMode(string? mode) => TorLogHelper.ParseConnectionPaddingMode(mode);
+    private static string NormalizeTunCoreMode(string? mode) => string.Equals(mode, OnionHopConnectOptions.TunCoreXray, StringComparison.OrdinalIgnoreCase)
+        ? OnionHopConnectOptions.TunCoreXray
+        : OnionHopConnectOptions.TunCoreSingBox;
     private static string NormalizeTunStackModeForSingBox(string? mode) => TorLogHelper.NormalizeTunStackModeForSingBox(mode);
 
     private void StartAdminVpnMonitor(OnionHopConnectOptions options)
@@ -1383,7 +1405,7 @@ public sealed class OnionHopClient : IDisposable
     private void OnSingBoxExited(object? sender, EventArgs e)
     {
         var exitCode = _vpnService.ExitCode ?? 0;
-        RaiseLog($"sing-box exited with code {exitCode}.");
+        RaiseLog($"{_activeVpnCoreMode} exited with code {exitCode}.");
 
         if (_isConnected && _activeOptions is { } options && IsTunMode(options) && options.KillSwitchEnabled && !options.UseHybridRouting && !_isDisconnecting)
         {

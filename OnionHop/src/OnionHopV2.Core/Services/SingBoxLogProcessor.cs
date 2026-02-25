@@ -19,10 +19,18 @@ internal sealed class SingBoxLogProcessor
     private readonly HashSet<string> _webTunnelConnectionIds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _webTunnelConnectionDestinations = new(StringComparer.Ordinal);
     private DateTime _lastVpnMessageUtc = DateTime.MinValue;
+    private string _sourceLabel = "sing-box";
 
     public event Action<string>? LogReceived;
     public event Action<string>? DnsLogReceived;
     public event Action<string>? StatusMessageChanged;
+
+    public void SetSourceLabel(string? sourceLabel)
+    {
+        _sourceLabel = string.IsNullOrWhiteSpace(sourceLabel)
+            ? "vpn"
+            : sourceLabel.Trim();
+    }
 
     public string? ProcessLine(string? data)
     {
@@ -37,10 +45,10 @@ internal sealed class SingBoxLogProcessor
             return null;
         }
 
-        LogReceived?.Invoke($"sing-box: {line}");
+        LogReceived?.Invoke($"{_sourceLabel}: {line}");
         if (LooksLikeDnsLogLine(line))
         {
-            DnsLogReceived?.Invoke($"sing-box: {line}");
+            DnsLogReceived?.Invoke($"{_sourceLabel}: {line}");
         }
 
         lock (_logLock)

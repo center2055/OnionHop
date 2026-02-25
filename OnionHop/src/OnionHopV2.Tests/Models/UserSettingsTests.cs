@@ -47,6 +47,7 @@ public sealed class UserSettingsTests
             PreferredSocksPort = 19050,
             PreferredHttpPort = 19080,
             AllowLanProxyAccess = true,
+            TunCoreMode = OnionHopConnectOptions.TunCoreXray,
             TunStackMode = OnionHopConnectOptions.TunStackGvisor,
             TunMtu = 1420,
             TunStrictRoute = false,
@@ -74,6 +75,7 @@ public sealed class UserSettingsTests
         Assert.Equal(original.PreferredSocksPort, deserialized.PreferredSocksPort);
         Assert.Equal(original.PreferredHttpPort, deserialized.PreferredHttpPort);
         Assert.Equal(original.AllowLanProxyAccess, deserialized.AllowLanProxyAccess);
+        Assert.Equal(original.TunCoreMode, deserialized.TunCoreMode);
         Assert.Equal(original.TunStackMode, deserialized.TunStackMode);
         Assert.Equal(original.TunMtu, deserialized.TunMtu);
         Assert.Equal(original.TunStrictRoute, deserialized.TunStrictRoute);

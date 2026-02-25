@@ -20,6 +20,8 @@ public sealed record OnionHopConnectOptions
     public const string TunStackMixed = "Mixed (recommended)";
     public const string TunStackSystem = "System";
     public const string TunStackGvisor = "gVisor";
+    public const string TunCoreSingBox = "sing-box";
+    public const string TunCoreXray = "xray";
     public const string BridgeSourceAuto = "Auto (BridgeDB -> Offline)";
     public const string BridgeSourceBridgeDbOnly = "BridgeDB only";
     public const string BridgeSourceOfflineOnly = "Offline only";
@@ -65,6 +67,7 @@ public sealed record OnionHopConnectOptions
     public int PreferredSocksPort { get; init; } = DefaultSocksPort;
     public int PreferredHttpPort { get; init; } = DefaultHttpPort;
     public bool AllowLanProxyAccess { get; init; }
+    public string TunCoreMode { get; init; } = TunCoreSingBox;
     public string TunStackMode { get; init; } = TunStackMixed;
     public int? TunMtu { get; init; }
     public bool TunStrictRoute { get; init; } = true;

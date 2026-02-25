@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV2.Core;
 
 namespace OnionHopV2.Core.Services;
 
@@ -166,7 +167,10 @@ public sealed class AdminHelperServer
                         return Fail(request, "Invalid VPN configuration.");
                     }
 
-                    StartupLogger.Write($"HandleRequestAsync: Starting VPN. SingBoxPath={config.SingBoxPath}");
+                    var corePath = string.Equals(config.VpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.OrdinalIgnoreCase)
+                        ? config.XrayPath
+                        : config.SingBoxPath;
+                    StartupLogger.Write($"HandleRequestAsync: Starting VPN. Core={config.VpnCoreMode}, CorePath={corePath}");
                     _isStopping = false;
                     await _vpnService.StartAsync(config, default).ConfigureAwait(false);
                     StartupLogger.Write("HandleRequestAsync: VPN started successfully");

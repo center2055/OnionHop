@@ -16,6 +16,7 @@ $TorFallbackVersion = "15.0.5"
 $TorBaseUrl = "https://dist.torproject.org/torbrowser"
 $TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser"
 $SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest"
+$XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
 $WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip"
 # Known SHA256 checksum for Wintun 0.14.1
 $WintunExpectedHash = "07C256185D6EE3652E09FA55C0B673E2624B565E02C4B9091C79CA7D2F24EF51"
@@ -433,25 +434,37 @@ try {
         Write-Host "Updated pt_config.json for webtunnel-client."
     }
 
-    # --- 3 & 4. Sing-box and Wintun (parallel download) ---
-    Write-Host "`n[3-4/4] Downloading Sing-box and Wintun in parallel..."
+    # --- 3-5. Sing-box, xray and Wintun (parallel download) ---
+    Write-Host "`n[3-5/5] Downloading Sing-box, xray and Wintun in parallel..."
     
     # Get sing-box URL first (API call)
     $SbRelease = Invoke-RestMethod -Uri $SingBoxApiUrl
     $SbAsset = $SbRelease.assets | Where-Object { $_.name -like "*windows-amd64.zip" } | Select-Object -First 1
     if (-not $SbAsset) { throw "No windows-amd64 asset found." }
     $SbUrl = $SbAsset.browser_download_url
+
+    # Get xray URL
+    $XrayRelease = Invoke-RestMethod -Uri $XrayApiUrl
+    $XrayAsset = $XrayRelease.assets | Where-Object { $_.name -like "*windows-64.zip" -or $_.name -like "*win7-64.zip" } | Select-Object -First 1
+    if (-not $XrayAsset) { throw "No xray windows-64 asset found." }
+    $XrayUrl = $XrayAsset.browser_download_url
     
     $SbArchive = Join-Path $TempDir "sing-box.zip"
+    $XrayArchive = Join-Path $TempDir "xray.zip"
     $WintunArchive = Join-Path $TempDir "wintun.zip"
     
-    # Download both files in parallel using background jobs
+    # Download all archives in parallel using background jobs
     Write-Host "  Starting parallel downloads..."
     $downloadJobs = @(
         Start-Job -ScriptBlock {
             param($url, $outFile)
             Invoke-WebRequest -Uri $url -OutFile $outFile
         } -ArgumentList $SbUrl, $SbArchive
+
+        Start-Job -ScriptBlock {
+            param($url, $outFile)
+            Invoke-WebRequest -Uri $url -OutFile $outFile
+        } -ArgumentList $XrayUrl, $XrayArchive
         
         Start-Job -ScriptBlock {
             param($url, $outFile)
@@ -484,6 +497,13 @@ try {
     Expand-Archive -Path $SbArchive -DestinationPath $TempDir -Force
     $SbExtractedDir = Get-ChildItem -Path $TempDir -Directory | Where-Object { $_.Name -like "sing-box-*" } | Select-Object -First 1
     Copy-Item (Join-Path $SbExtractedDir.FullName "sing-box.exe") $VpnDir -Force
+
+    Write-Host "Extracting xray..."
+    $XrayExtractDir = Join-Path $TempDir "xray"
+    Expand-Archive -Path $XrayArchive -DestinationPath $XrayExtractDir -Force
+    $XrayExe = Get-ChildItem -Path $XrayExtractDir -Recurse -Filter "xray.exe" | Select-Object -First 1
+    if (-not $XrayExe) { throw "xray.exe not found in downloaded archive." }
+    Copy-Item $XrayExe.FullName $VpnDir -Force
     
     Write-Host "Extracting Wintun..."
     Expand-Archive -Path $WintunArchive -DestinationPath (Join-Path $TempDir "wintun") -Force

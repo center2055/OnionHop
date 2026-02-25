@@ -135,6 +135,7 @@
   <x:String x:Key="Settings.AdvancedPerformanceSection">Performance &amp; compatibility</x:String>
   <x:String x:Key="Settings.AdvancedTunSection">TUN engine</x:String>
   <x:String x:Key="Settings.AdvancedTunSectionHint">Applies only in TUN/VPN mode. Use defaults unless you need compatibility tuning.</x:String>
+  <x:String x:Key="Settings.TunCore">TUN core</x:String>
   <x:String x:Key="Settings.TunStack">TUN stack</x:String>
   <x:String x:Key="Settings.TunMtu">TUN MTU (optional)</x:String>
   <x:String x:Key="Settings.TunMtuWatermark">Empty = default (auto)</x:String>
@@ -198,6 +199,8 @@
   <x:String x:Key="TunStack.Mixed">Mixed (recommended)</x:String>
   <x:String x:Key="TunStack.System">System</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunCore.SingBox">sing-box (recommended)</x:String>
+  <x:String x:Key="TunCore.Xray">xray (experimental)</x:String>
 
   <!-- Language names -->
   <x:String x:Key="Language.English">English</x:String>

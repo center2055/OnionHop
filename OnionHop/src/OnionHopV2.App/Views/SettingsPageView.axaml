@@ -326,6 +326,12 @@
                                                Opacity="0.75"
                                                TextWrapping="Wrap" />
 
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="{DynamicResource Settings.TunCore}" Opacity="0.75" />
+                                        <ComboBox ItemsSource="{Binding State.TunCoreModeOptions}"
+                                                  SelectedItem="{Binding State.SelectedTunCoreModeOption}" />
+                                    </StackPanel>
+
                                     <Grid ColumnDefinitions="*,*"
                                           ColumnSpacing="10">
                                         <StackPanel Grid.Column="0"
