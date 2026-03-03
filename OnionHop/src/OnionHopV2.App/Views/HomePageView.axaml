@@ -14,10 +14,23 @@
           RowDefinitions="Auto,Auto,Auto,Auto,Auto"
           RowSpacing="14">
 
-        <TextBlock Grid.Row="0"
-                   Text="{DynamicResource Home.Title}"
-                   FontSize="28"
-                   FontWeight="SemiBold" />
+        <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    VerticalAlignment="Center">
+            <TextBlock Text="{DynamicResource Home.Title}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+            <Button Classes="Flat"
+                    Height="30"
+                    Padding="12,4"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding State.ShowUpdateBadge}"
+                    IsEnabled="{Binding State.CanOpenUpdatePage}"
+                    Command="{Binding State.OpenLatestReleasePageCommand}"
+                    ToolTip.Tip="{DynamicResource Home.UpdateBadgeTooltip}"
+                    Content="{Binding State.UpdateBadgeText}" />
+        </StackPanel>
 
         <suki:GlassCard Grid.Row="1" Padding="18" CornerRadius="18">
             <Grid ColumnDefinitions="*,Auto"

@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private const string DefaultAllowedPorts = "80,443";
     private const string DefaultConnectedPageUrl = "https://check.torproject.org/";
     private const string DefaultDisconnectedPageUrl = "https://support.torproject.org/";
+    private const string UpdateApiUrl = "https://api.github.com/repos/center2055/OnionHop/releases/latest";
+    private const string UpdateReleasesPageUrl = "https://github.com/center2055/OnionHop/releases/latest";
 
     public const string AutomaticLocationLabel = "Automatic";
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
@@ -152,6 +155,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly DiscordPresenceService _discordPresence = new();
     private readonly SmartConnectAdvisor _smartConnectAdvisor = new();
+    private readonly UpdateService _updateService = new();
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
     private bool _loadingSettings;
@@ -405,6 +409,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isDependencyDownloadInProgress;
     [ObservableProperty] private double _dependencyDownloadProgress;
     [ObservableProperty] private string _dependencyDownloadStatus = string.Empty;
+    [ObservableProperty] private bool _isCheckingUpdates;
+    [ObservableProperty] private bool _isUpdateAvailable;
+    [ObservableProperty] private string _availableUpdateVersion = string.Empty;
+    [ObservableProperty] private string _availableUpdateUrl = string.Empty;
     [ObservableProperty] private bool _isBridgeDbUpdateInProgress;
     [ObservableProperty] private DateTimeOffset? _lastBridgeDbUpdateUtc;
 
@@ -418,6 +426,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private bool _speedUpdateInProgress;
 
     public bool IsBusy => IsConnecting || IsDisconnecting || IsDependencyDownloadInProgress;
+    public bool ShowUpdateBadge => IsUpdateAvailable;
+    public bool CanOpenUpdatePage => IsUpdateAvailable && !string.IsNullOrWhiteSpace(AvailableUpdateUrl);
+    public string UpdateBadgeText => string.IsNullOrWhiteSpace(AvailableUpdateVersion)
+        ? LocalizationService.Get("Home.UpdateBadge")
+        : string.Format(CultureInfo.CurrentCulture, LocalizationService.Get("Home.UpdateBadgeVersion"), AvailableUpdateVersion);
 
     public bool ShowConnectButton => !IsConnected && !IsConnecting;
     public bool ShowDisconnectButton => IsConnected && !IsConnecting && !IsDisconnecting;
@@ -731,6 +744,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         StatusMessage = LocalizeRuntimeText(StatusMessage);
         DependencyDownloadStatus = LocalizeRuntimeText(DependencyDownloadStatus);
         OnPropertyChanged(nameof(BridgeDbLastUpdateText));
+        OnPropertyChanged(nameof(UpdateBadgeText));
     }
 
     partial void OnSelectedLanguageIndexChanged(int value)
@@ -936,6 +950,41 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(UseCustomChrome));
     }
 
+    partial void OnAutoUpdateChanged(bool value)
+    {
+        if (_loadingSettings || _disposed)
+        {
+            return;
+        }
+
+        if (value)
+        {
+            _ = CheckForUpdatesAsync(silentWhenNoUpdate: true);
+            return;
+        }
+
+        IsUpdateAvailable = false;
+        AvailableUpdateVersion = string.Empty;
+        AvailableUpdateUrl = string.Empty;
+    }
+
+    partial void OnIsUpdateAvailableChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowUpdateBadge));
+        OnPropertyChanged(nameof(CanOpenUpdatePage));
+        OnPropertyChanged(nameof(UpdateBadgeText));
+    }
+
+    partial void OnAvailableUpdateVersionChanged(string value)
+    {
+        OnPropertyChanged(nameof(UpdateBadgeText));
+    }
+
+    partial void OnAvailableUpdateUrlChanged(string value)
+    {
+        OnPropertyChanged(nameof(CanOpenUpdatePage));
+    }
+
     partial void OnAutoStartModeChanged(string value)
     {
         SelectedAutoStartModeOption = AutoStartModeOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.OrdinalIgnoreCase))
@@ -965,6 +1014,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         Dispatcher.UIThread.Post(StartIpAutoRefresh);
 
         CurrentIp = LocalizationService.Get("Status.Resolving");
+        if (AutoUpdate)
+        {
+            _ = CheckForUpdatesAsync(silentWhenNoUpdate: true);
+        }
+
         _ = Task.Run(async () =>
         {
             try
@@ -1345,6 +1399,82 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    private void OpenLatestReleasePage()
+    {
+        var url = string.IsNullOrWhiteSpace(AvailableUpdateUrl) ? UpdateReleasesPageUrl : AvailableUpdateUrl;
+        OpenLaunchPage(url);
+    }
+
+    private async Task CheckForUpdatesAsync(bool silentWhenNoUpdate)
+    {
+        if (_disposed || IsCheckingUpdates || !AutoUpdate)
+        {
+            return;
+        }
+
+        IsCheckingUpdates = true;
+        try
+        {
+            var latest = await _updateService.GetLatestReleaseAsync(UpdateApiUrl).ConfigureAwait(false);
+            if (latest == null)
+            {
+                if (!silentWhenNoUpdate)
+                {
+                    Dispatcher.UIThread.Post(() => AppendLog("Update check failed."));
+                }
+
+                return;
+            }
+
+            var currentVersion = GetCurrentAppVersion();
+            var latestVersionText = FormatVersion(latest.Version);
+            var currentVersionText = FormatVersion(currentVersion);
+            var updateUrl = !string.IsNullOrWhiteSpace(latest.HtmlUrl)
+                ? latest.HtmlUrl!
+                : !string.IsNullOrWhiteSpace(latest.DownloadUrl)
+                    ? latest.DownloadUrl!
+                    : UpdateReleasesPageUrl;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (IsVersionNewer(latest.Version, currentVersion))
+                {
+                    var sameVersionAlreadyShown = IsUpdateAvailable &&
+                        string.Equals(AvailableUpdateVersion, latestVersionText, StringComparison.OrdinalIgnoreCase);
+
+                    IsUpdateAvailable = true;
+                    AvailableUpdateVersion = latestVersionText;
+                    AvailableUpdateUrl = updateUrl;
+
+                    if (!sameVersionAlreadyShown)
+                    {
+                        AppendLog($"Update available: v{latestVersionText} (current v{currentVersionText}).");
+                    }
+
+                    return;
+                }
+
+                IsUpdateAvailable = false;
+                AvailableUpdateVersion = string.Empty;
+                AvailableUpdateUrl = string.Empty;
+
+                if (!silentWhenNoUpdate)
+                {
+                    AppendLog($"No updates available (current v{currentVersionText}).");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.UIThread.Post(() => AppendLog($"Update check failed: {ex.Message}"));
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() => IsCheckingUpdates = false);
+        }
+    }
+
+    [RelayCommand]
     private async Task ChangeIdentityAsync()
     {
         await _client.ChangeIdentityAsync(CancellationToken.None);
@@ -1697,7 +1827,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             try
             {
                 await Task.Delay(500, token).ConfigureAwait(false);
-                SaveSettings();
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        SaveSettings();
+                    }
+                });
             }
             catch (OperationCanceledException)
             {
@@ -2436,6 +2572,92 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         return value;
     }
+
+    private static Version GetCurrentAppVersion()
+    {
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        var semanticVersion = informationalVersion?
+            .Split('+', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+
+        var parsedVersion = UpdateService.ParseVersionFromTag(semanticVersion);
+        if (HasKnownVersion(parsedVersion))
+        {
+            return parsedVersion;
+        }
+
+        var assemblyVersion = assembly.GetName().Version;
+        if (assemblyVersion != null && HasKnownVersion(assemblyVersion))
+        {
+            return assemblyVersion;
+        }
+
+        return new Version(0, 0, 0);
+    }
+
+    private static bool IsVersionNewer(Version latest, Version current)
+    {
+        var latestParts = new[]
+        {
+            GetVersionPart(latest.Major),
+            GetVersionPart(latest.Minor),
+            GetVersionPart(latest.Build),
+            GetVersionPart(latest.Revision)
+        };
+        var currentParts = new[]
+        {
+            GetVersionPart(current.Major),
+            GetVersionPart(current.Minor),
+            GetVersionPart(current.Build),
+            GetVersionPart(current.Revision)
+        };
+
+        for (var index = 0; index < latestParts.Length; index++)
+        {
+            if (latestParts[index] > currentParts[index])
+            {
+                return true;
+            }
+
+            if (latestParts[index] < currentParts[index])
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasKnownVersion(Version version)
+    {
+        return GetVersionPart(version.Major) > 0
+               || GetVersionPart(version.Minor) > 0
+               || GetVersionPart(version.Build) > 0
+               || GetVersionPart(version.Revision) > 0;
+    }
+
+    private static string FormatVersion(Version version)
+    {
+        var major = GetVersionPart(version.Major);
+        var minor = GetVersionPart(version.Minor);
+
+        if (version.Revision >= 0)
+        {
+            return $"{major}.{minor}.{GetVersionPart(version.Build)}.{version.Revision}";
+        }
+
+        if (version.Build >= 0)
+        {
+            return $"{major}.{minor}.{GetVersionPart(version.Build)}";
+        }
+
+        return $"{major}.{minor}";
+    }
+
+    private static int GetVersionPart(int value) => value < 0 ? 0 : value;
 
     private void OpenLaunchPage(string? url)
     {

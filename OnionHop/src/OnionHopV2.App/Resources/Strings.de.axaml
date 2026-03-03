@@ -40,6 +40,9 @@
   <x:String x:Key="Home.KillSwitchHint">Der Kill-Switch ben&#246;tigt Administratorrechte und ist im Hybridmodus deaktiviert.</x:String>
   <x:String x:Key="Home.ConnectionElapsed">Verbunden seit</x:String>
   <x:String x:Key="Home.DownloadingComponents">Komponenten werden heruntergeladen...</x:String>
+  <x:String x:Key="Home.UpdateBadge">Update verf&#252;gbar</x:String>
+  <x:String x:Key="Home.UpdateBadgeVersion">Update verf&#252;gbar: v{0}</x:String>
+  <x:String x:Key="Home.UpdateBadgeTooltip">Release-Seite &#246;ffnen</x:String>
 
   <!-- Logs -->
   <x:String x:Key="Logs.Title">Protokolle</x:String>

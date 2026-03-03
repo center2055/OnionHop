@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>OnionHopV2.Cli</AssemblyName>
-    <Version>2.4.3</Version>
+    <Version>2.4.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

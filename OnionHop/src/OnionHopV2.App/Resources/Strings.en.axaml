@@ -40,6 +40,9 @@
   <x:String x:Key="Home.KillSwitchHint">Kill switch requires Administrator and is disabled in Hybrid mode.</x:String>
   <x:String x:Key="Home.ConnectionElapsed">Connected for</x:String>
   <x:String x:Key="Home.DownloadingComponents">Downloading components...</x:String>
+  <x:String x:Key="Home.UpdateBadge">Update available</x:String>
+  <x:String x:Key="Home.UpdateBadgeVersion">Update available: v{0}</x:String>
+  <x:String x:Key="Home.UpdateBadgeTooltip">Open release page</x:String>
 
   <!-- Logs -->
   <x:String x:Key="Logs.Title">Logs</x:String>

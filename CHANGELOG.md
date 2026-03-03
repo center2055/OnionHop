@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.4.4 (2026-03-03)
+
+Additions
+- Added startup update checks when `Check for updates` is enabled.
+- Added a Home header update badge with direct link to the latest OnionHop release page.
+- Added EN/DE localization keys for update badge text and tooltip.
+
+Fixes
+- Fixed settings autosave threading (`Call from invalid thread`) by marshalling debounced saves back to Avalonia UI thread.
+- Improved update detection state handling so turning update checks off clears pending badge state immediately.
+
+Packaging
+- Bumped app/CLI/installer versioning to 2.4.4.
+- Release assets include GUI and CLI installers plus both portable bundles:
+- OnionHop-Setup-2.4.4.exe
+- OnionHop-CLI-Setup-2.4.4.exe
+- OnionHopV2-Portable-2.4.4-win-x64.zip
+- OnionHopCLI-Portable-2.4.4-win-x64.zip
+
 ## v2.4.3 (2026-02-23)
 
 Additions
