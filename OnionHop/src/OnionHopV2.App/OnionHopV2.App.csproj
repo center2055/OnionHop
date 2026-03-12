@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AssemblyName>OnionHopV2</AssemblyName>
-    <Version>2.4.4</Version>
+    <Version>2.5</Version>
     <ApplicationIcon>Assets\OnionHop.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -47,4 +47,10 @@
   <ItemGroup>
     <ProjectReference Include="..\OnionHopV2.Core\OnionHopV2.Core.csproj" />
   </ItemGroup>
+
+  <!-- macOS: remove quarantine extended attributes from build output so Gatekeeper
+       does not block the app on first launch. Runs automatically after every build. -->
+  <Target Name="RemoveMacOSQuarantine" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Exec Command="xattr -cr &quot;$(OutputPath)&quot;" IgnoreExitCode="true" />
+  </Target>
 </Project>

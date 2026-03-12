@@ -4,8 +4,10 @@ This is the **V2 UI** for OnionHop, rebuilt with **Avalonia** + **SukiUI** for a
 
 ## Status
 
-- UI: **Windows / Linux / macOS compatible**
-- Networking/routing: **Windows-only for now** (Linux/macOS integration will be added later)
+- GUI releases: **Windows + macOS**
+- Windows: **GUI + CLI**
+- macOS: **GUI release available** (no CLI package yet)
+- Linux: **source/build support is present**, packaged release still pending
 
 ## Build
 
@@ -19,7 +21,7 @@ dotnet build "OnionHop/OnionHopV2.sln" -c Release
 dotnet run --project "OnionHop/src/OnionHopV2.App" -c Release
 ```
 
-On first connect, the app will ensure Tor + sing-box/Wintun dependencies in its output directory (Windows).
+On first connect, the app will ensure the required Tor/VPN dependencies are available for the active platform.
 
 ## Run CLI
 

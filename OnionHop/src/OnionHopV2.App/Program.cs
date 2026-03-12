@@ -6,6 +6,12 @@ namespace OnionHopV2.App;
 
 sealed class Program
 {
+    /// <summary>
+    /// When the app is relaunched as root on macOS, the original user's base directory
+    /// is passed via --basedir so the root instance uses the same tor/geoip data.
+    /// </summary>
+    internal static string? OverrideBaseDirectory { get; private set; }
+
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
@@ -16,6 +22,16 @@ sealed class Program
         {
             AdminHelperServer.Run(args);
             return;
+        }
+
+        // Parse --basedir argument (used when relaunched as root on macOS).
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], "--basedir", StringComparison.OrdinalIgnoreCase))
+            {
+                OverrideBaseDirectory = args[i + 1];
+                break;
+            }
         }
 
         var instanceMutex = SingleInstanceIpc.AcquireMutex(out var isPrimary);

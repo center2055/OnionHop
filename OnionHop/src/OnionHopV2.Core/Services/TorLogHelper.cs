@@ -115,7 +115,10 @@ internal static class TorLogHelper
 
                 if (name.Contains('\\') || name.Contains('/'))
                 {
-                    name = Path.GetFileName(name);
+                    // Path.GetFileName doesn't handle backslashes on Unix,
+                    // so extract the filename manually for Windows-style paths.
+                    var lastSep = Math.Max(name.LastIndexOf('\\'), name.LastIndexOf('/'));
+                    name = lastSep >= 0 ? name[(lastSep + 1)..] : name;
                 }
 
                 if (!string.IsNullOrWhiteSpace(name))
@@ -249,7 +252,7 @@ internal static class TorLogHelper
 
         if (selected.Count < bridgeLines.Count)
         {
-            log($"Using {selected.Count} of {bridgeLines.Count} bridge lines to avoid Windows command-line length limits.");
+            log($"Using {selected.Count} of {bridgeLines.Count} bridge lines to avoid command-line length limits.");
         }
 
         return selected;

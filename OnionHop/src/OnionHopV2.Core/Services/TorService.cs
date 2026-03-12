@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +15,9 @@ internal sealed class TorService : IDisposable
 {
     private const string ControlPortFileName = "control_port.txt";
     private const string ControlAuthCookieFileName = "control_auth_cookie";
+    private const int RecentOutputCapacity = 20;
     private readonly Action<string> _log;
+    private readonly Queue<string> _recentOutputLines = new();
     private Process? _process;
     private string? _dataDirectory;
     private int? _controlPort;
@@ -30,6 +33,17 @@ internal sealed class TorService : IDisposable
 
     public bool IsRunning => _process != null && !_process.HasExited;
     public int? ExitCode => _process?.HasExited == true ? _process.ExitCode : null;
+
+    public string RecentOutput
+    {
+        get
+        {
+            lock (_recentOutputLines)
+            {
+                return string.Join(Environment.NewLine, _recentOutputLines);
+            }
+        }
+    }
 
     public Task StartAsync(TorLaunchConfig config, CancellationToken token)
     {
@@ -54,13 +68,14 @@ internal sealed class TorService : IDisposable
         _dataDirectory = string.IsNullOrWhiteSpace(config.DataDirectory)
             ? Path.Combine(Path.GetTempPath(), "OnionHop", "tor-data")
             : config.DataDirectory;
-        Directory.CreateDirectory(_dataDirectory);
+        _dataDirectory = EnsureWritableDataDirectory(_dataDirectory);
 
         _controlPort = null;
         TryDeleteFile(Path.Combine(_dataDirectory, ControlPortFileName));
         TryDeleteFile(Path.Combine(_dataDirectory, ControlAuthCookieFileName));
 
         var args = BuildArguments(config, _dataDirectory);
+        _log($"Tor arguments: {args}");
         var psi = new ProcessStartInfo(config.TorPath, args)
         {
             UseShellExecute = false,
@@ -84,7 +99,7 @@ internal sealed class TorService : IDisposable
 
         if (!_process.Start())
         {
-            throw new InvalidOperationException("Unable to launch tor.exe");
+            throw new InvalidOperationException("Unable to launch Tor.");
         }
 
         config.ProcessStarted?.Invoke(_process);
@@ -520,8 +535,158 @@ internal sealed class TorService : IDisposable
 
     private void HandleOutput(object sender, DataReceivedEventArgs e)
     {
+        if (!string.IsNullOrEmpty(e.Data))
+        {
+            lock (_recentOutputLines)
+            {
+                if (_recentOutputLines.Count >= RecentOutputCapacity)
+                {
+                    _recentOutputLines.Dequeue();
+                }
+                _recentOutputLines.Enqueue(e.Data);
+            }
+        }
         OutputReceived?.Invoke(sender, e);
     }
+
+    private string EnsureWritableDataDirectory(string path)
+    {
+        // On macOS/Linux, Tor strictly requires the data directory to be owned by the
+        // current user. When switching between proxy mode (normal user) and TUN/VPN mode
+        // (root), ownership mismatches in both directions.
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            path = EnsureWritableDataDirectoryUnix(path);
+        }
+        else
+        {
+            Directory.CreateDirectory(path);
+        }
+
+        return path;
+    }
+
+    private string EnsureWritableDataDirectoryUnix(string path)
+    {
+        var uid = geteuid();
+        var gid = getegid();
+
+        // Try the requested path first, then a temp-based fallback.
+        var candidates = new[]
+        {
+            path,
+            Path.Combine(Path.GetTempPath(), "OnionHop", $"tor-data-{uid}")
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (TryPrepareDataDirectory(candidate, uid, gid))
+            {
+                return candidate;
+            }
+        }
+
+        // Last resort: fresh unique temp directory (always writable by current user).
+        var fallback = Path.Combine(Path.GetTempPath(), $"OnionHop-tor-{uid}-{Environment.ProcessId}");
+        _log($"All data directory candidates failed. Using unique fallback: {fallback}");
+        Directory.CreateDirectory(fallback);
+        return fallback;
+    }
+
+    private bool TryPrepareDataDirectory(string path, uint uid, uint gid)
+    {
+        try
+        {
+            Directory.CreateDirectory(path);
+        }
+        catch (Exception ex)
+        {
+            _log($"Cannot create directory '{path}': {ex.Message}");
+            return false;
+        }
+
+        // Test actual write access — Directory.CreateDirectory succeeds on existing dirs
+        // even without write permission.
+        var testFile = Path.Combine(path, ".write-test");
+        try
+        {
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+        }
+        catch
+        {
+            _log($"Directory '{path}' is not writable by current user (uid={uid}). Attempting fix...");
+
+            // Try to chown the directory.
+            try
+            {
+                RecursiveChown(path, uid, gid);
+            }
+            catch
+            {
+                // chown failed — try deleting and recreating.
+                _log($"chown failed on '{path}'. Attempting delete and recreate...");
+                try
+                {
+                    Directory.Delete(path, recursive: true);
+                    Directory.CreateDirectory(path);
+                }
+                catch (Exception delEx)
+                {
+                    _log($"Cannot reclaim '{path}': {delEx.Message}");
+                    return false;
+                }
+            }
+
+            // Verify write access after fix attempt.
+            try
+            {
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+            }
+            catch
+            {
+                _log($"Directory '{path}' still not writable after fix attempt.");
+                return false;
+            }
+        }
+
+        // Ensure ownership is correct (Tor checks this).
+        try
+        {
+            RecursiveChown(path, uid, gid);
+        }
+        catch
+        {
+            // If we can write but can't chown, it's likely already owned by us.
+        }
+
+        return true;
+    }
+
+    private static void RecursiveChown(string path, uint uid, uint gid)
+    {
+        if (chown(path, uid, gid) != 0)
+            throw new IOException($"chown failed on '{path}'");
+
+        foreach (var dir in Directory.GetDirectories(path))
+            RecursiveChown(dir, uid, gid);
+
+        foreach (var file in Directory.GetFiles(path))
+        {
+            if (chown(file, uid, gid) != 0)
+                throw new IOException($"chown failed on '{file}'");
+        }
+    }
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int chown(string pathname, uint owner, uint group);
+
+    [DllImport("libc")]
+    private static extern uint geteuid();
+
+    [DllImport("libc")]
+    private static extern uint getegid();
 
     private static void TryDeleteFile(string path)
     {

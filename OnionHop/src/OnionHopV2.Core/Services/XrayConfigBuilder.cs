@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using OnionHopV2.Core.Platform;
 
 namespace OnionHopV2.Core.Services;
 
@@ -10,6 +11,19 @@ namespace OnionHopV2.Core.Services;
 /// </summary>
 internal static class XrayConfigBuilder
 {
+    private static readonly string[] PrivateNetworkCidrs =
+    {
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",
+        "100.64.0.0/10",
+        "fc00::/7",
+        "fe80::/10",
+        "::1/128"
+    };
+
     public static string BuildJson(
         bool hybridRouting,
         bool secureDns,
@@ -21,18 +35,11 @@ internal static class XrayConfigBuilder
         string? dohServer,
         int dohServerPort,
         string? dohPath,
-        int? tunMtu)
+        int? tunMtu,
+        string? directOutboundSourceAddress)
     {
         // Keep Tor bootstrap/pluggable transport traffic out of the tunnel path.
-        var torRelatedProcessNames = new[]
-        {
-            "tor.exe",
-            "snowflake-client.exe",
-            "lyrebird.exe",
-            "obfs4proxy.exe",
-            "conjure-client.exe",
-            "webtunnel-client.exe"
-        };
+        var torRelatedProcessNames = BuildTorRelatedProcessNames();
 
         var effectiveTorApps = MergeProcessNames(torRelatedProcessNames, torAppProcessNames);
         var effectiveBypassApps = NormalizeProcessNames(bypassAppProcessNames);
@@ -42,13 +49,19 @@ internal static class XrayConfigBuilder
             new
             {
                 type = "field",
+                process = new[] { "self/", "xray/" },
+                outboundTag = "direct"
+            },
+            new
+            {
+                type = "field",
                 process = torRelatedProcessNames,
                 outboundTag = "direct"
             },
             new
             {
                 type = "field",
-                ip = new[] { "geoip:private" },
+                ip = PrivateNetworkCidrs,
                 outboundTag = "direct"
             }
         };
@@ -120,6 +133,13 @@ internal static class XrayConfigBuilder
                 rules.Add(new
                 {
                     type = "field",
+                    network = "udp",
+                    port = "443",
+                    outboundTag = "block"
+                });
+                rules.Add(new
+                {
+                    type = "field",
                     network = "tcp",
                     port = "80,443",
                     outboundTag = "tor"
@@ -128,76 +148,44 @@ internal static class XrayConfigBuilder
         }
 
         var resolvedTunMtu = tunMtu is >= 576 and <= 9000 ? tunMtu : null;
+        // Xray TUN inbound uses different field names from sing-box.
+        // Only "name" and "MTU" (uppercase) are recognized by xray-core.
         var tunSettings = new Dictionary<string, object?>
         {
-            ["name"] = "OnionHop"
+            ["name"] = OperatingSystem.IsMacOS() ? "utun99" : "OnionHop"
         };
         if (resolvedTunMtu.HasValue)
         {
-            tunSettings["mtu"] = resolvedTunMtu.Value;
+            tunSettings["MTU"] = resolvedTunMtu.Value;
         }
 
-        var dnsServers = BuildDnsServers(secureDns, dohServer, dohServerPort, dohPath);
+        var dnsServers = BuildDnsServers(secureDns, socksPort, hybridRouting, dohServer, dohServerPort, dohPath);
 
-        var outbounds = hybridRouting
-            ? new object[]
+        // Detect the default network interface so xray can bind outbound sockets to it
+        // via IP_BOUND_IF, preventing a routing loop when TUN routes capture all traffic.
+        var defaultInterface = DetectDefaultInterface();
+
+        var directOutbound = BuildDirectOutbound(directOutboundSourceAddress, defaultInterface);
+        var torOutbound = new Dictionary<string, object?>
+        {
+            ["protocol"] = "socks",
+            ["tag"] = "tor",
+            ["settings"] = new
             {
-                new
+                servers = new[]
                 {
-                    protocol = "freedom",
-                    tag = "direct"
-                },
-                new
-                {
-                    protocol = "socks",
-                    tag = "tor",
-                    settings = new
-                    {
-                        servers = new[]
-                        {
-                            new
-                            {
-                                address = "127.0.0.1",
-                                port = socksPort
-                            }
-                        }
-                    }
-                },
-                new
-                {
-                    protocol = "blackhole",
-                    tag = "block"
+                    new { address = "127.0.0.1", port = socksPort }
                 }
             }
-            : new object[]
-            {
-                new
-                {
-                    protocol = "socks",
-                    tag = "tor",
-                    settings = new
-                    {
-                        servers = new[]
-                        {
-                            new
-                            {
-                                address = "127.0.0.1",
-                                port = socksPort
-                            }
-                        }
-                    }
-                },
-                new
-                {
-                    protocol = "freedom",
-                    tag = "direct"
-                },
-                new
-                {
-                    protocol = "blackhole",
-                    tag = "block"
-                }
-            };
+        };
+        var blockOutbound = new Dictionary<string, object?> { ["protocol"] = "blackhole", ["tag"] = "block" };
+
+        // Bind only the "direct" outbound to the real network interface (e.g. en0) via IP_BOUND_IF.
+        // This prevents xray's direct outbound traffic from being captured by the TUN routes.
+        // Do NOT bind "tor" — it connects to 127.0.0.1 which is only reachable via loopback.
+        var outbounds = hybridRouting
+            ? new object[] { directOutbound, torOutbound, blockOutbound }
+            : new object[] { torOutbound, directOutbound, blockOutbound };
 
         var config = new
         {
@@ -234,6 +222,27 @@ internal static class XrayConfigBuilder
         return JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
     }
 
+    private static Dictionary<string, object?> BuildDirectOutbound(string? sourceAddress, string? defaultInterface)
+    {
+        var outbound = new Dictionary<string, object?>
+        {
+            ["protocol"] = "freedom",
+            ["tag"] = "direct"
+        };
+
+        if (!string.IsNullOrWhiteSpace(sourceAddress))
+        {
+            outbound["sendThrough"] = sourceAddress.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(defaultInterface))
+        {
+            outbound["streamSettings"] = new { sockopt = new { @interface = defaultInterface } };
+        }
+
+        return outbound;
+    }
+
     private static IReadOnlyList<string> MergeProcessNames(IEnumerable<string> baseline, IReadOnlyList<string> additional)
     {
         var merged = new List<string>();
@@ -251,11 +260,11 @@ internal static class XrayConfigBuilder
             .ToList();
     }
 
-    private static IReadOnlyList<string> BuildDnsServers(bool secureDns, string? dohServer, int dohServerPort, string? dohPath)
+    private static IReadOnlyList<object> BuildDnsServers(bool secureDns, int socksPort, bool hybridRouting, string? dohServer, int dohServerPort, string? dohPath)
     {
         if (!secureDns)
         {
-            return new[] { "1.1.1.1", "8.8.8.8" };
+            return new object[] { "1.1.1.1", "8.8.8.8" };
         }
 
         var resolvedHost = string.IsNullOrWhiteSpace(dohServer) ? "cloudflare-dns.com" : dohServer.Trim();
@@ -265,17 +274,113 @@ internal static class XrayConfigBuilder
             resolvedPath = "/" + resolvedPath;
         }
 
+        string dohUrl;
         if (resolvedHost.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { resolvedHost };
+            dohUrl = resolvedHost;
         }
-
-        if (resolvedHost.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        else if (resolvedHost.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { "https://" + resolvedHost.Substring("http://".Length) };
+            dohUrl = "https://" + resolvedHost.Substring("http://".Length);
+        }
+        else
+        {
+            var resolvedPort = dohServerPort is > 0 and <= 65535 ? dohServerPort : 443;
+            dohUrl = $"https://{resolvedHost}:{resolvedPort}{resolvedPath}";
         }
 
-        var resolvedPort = dohServerPort is > 0 and <= 65535 ? dohServerPort : 443;
-        return new[] { $"https://{resolvedHost}:{resolvedPort}{resolvedPath}" };
+        var servers = new List<object>();
+
+        // Xray needs a bootstrap plaintext DNS to resolve the DoH hostname.
+        // Without this, xray crashes when the DoH server is a hostname (e.g. cloudflare-dns.com)
+        // because it has no way to resolve the initial DNS connection, especially with bridges.
+        var hostIsIp = System.Net.IPAddress.TryParse(resolvedHost, out _);
+        if (!hostIsIp)
+        {
+            servers.Add(new
+            {
+                address = "1.1.1.1",
+                domains = new[] { resolvedHost }
+            });
+        }
+
+        servers.Add(dohUrl);
+
+        return servers;
+    }
+
+    private static string? DetectDefaultInterface()
+    {
+        try
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                var output = PlatformHelper.RunCommand("route", "-n get default");
+                if (output != null)
+                {
+                    foreach (var line in output.Split('\n'))
+                    {
+                        var trimmed = line.Trim();
+                        if (trimmed.StartsWith("interface:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var iface = trimmed.Substring("interface:".Length).Trim();
+                            if (!string.IsNullOrEmpty(iface))
+                            {
+                                return iface;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                var output = PlatformHelper.RunCommand("ip", "route show default");
+                if (output != null)
+                {
+                    // "default via X.X.X.X dev eth0 ..."
+                    var parts = output.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    for (var i = 0; i < parts.Length - 1; i++)
+                    {
+                        if (string.Equals(parts[i], "dev", StringComparison.Ordinal))
+                        {
+                            return parts[i + 1];
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private static string[] BuildTorRelatedProcessNames()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return
+            [
+                "tor.exe",
+                "xray.exe",
+                "snowflake-client.exe",
+                "lyrebird.exe",
+                "obfs4proxy.exe",
+                "conjure-client.exe",
+                "webtunnel-client.exe"
+            ];
+        }
+
+        return
+        [
+            "tor",
+            "xray",
+            "snowflake-client",
+            "lyrebird",
+            "obfs4proxy",
+            "conjure-client",
+            "webtunnel-client"
+        ];
     }
 }

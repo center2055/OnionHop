@@ -5,11 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core.Dependencies;
 using OnionHopV2.Core.Models;
 using OnionHopV2.Core.Networking;
+using OnionHopV2.Core.Platform;
+using OnionHopV2.Core.Platform.MacOS;
 using OnionHopV2.Core.Platform.Windows;
 using OnionHopV2.Core.Services;
 using OnionHopV2.Core.Tor;
@@ -47,14 +50,16 @@ public sealed class OnionHopClient : IDisposable
 
     public event EventHandler<string>? Log;
     public event EventHandler<string>? DnsLog;
+    public event EventHandler<string>? VpnLog;
     public event EventHandler<StatusUpdate>? StatusUpdated;
     public event EventHandler<DependencyUpdate>? DependencyUpdated;
 
     private readonly string _baseDir;
     private readonly DependencyManager _deps = new();
     private readonly TorBridgeManager _bridgeManager;
-    private readonly WindowsProxyService _proxyService = new();
-    private readonly WindowsOnionDnsProxyService _onionDnsProxyService = new();
+    private readonly IProxyService _proxyService = PlatformHelper.CreateProxyService();
+    private readonly IDnsProxyService _onionDnsProxyService = PlatformHelper.CreateDnsProxyService();
+    private readonly IKillSwitchService _killSwitchService = PlatformHelper.CreateKillSwitchService();
     private readonly HttpProxyBridgeService _httpProxyBridgeService;
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly SingBoxLogProcessor _singBoxLogProcessor = new();
@@ -63,7 +68,9 @@ public sealed class OnionHopClient : IDisposable
     private readonly VpnService _vpnService;
     private readonly AdminHelperClient _adminHelper = new();
 
-    private Task<bool>? _dependencyEnsureTask;
+    private Task<bool>? _torDependencyEnsureTask;
+    private Task<bool>? _fullDependencyEnsureTask;
+    private readonly object _dependencyEnsureLock = new();
     private PluggableTransportConfig? _ptConfig;
 
     private TaskCompletionSource<bool>? _bootstrapSource;
@@ -89,6 +96,8 @@ public sealed class OnionHopClient : IDisposable
     private int? _activeDnsPort;
     private string? _activeDnsBindAddress;
     private string _activeVpnCoreMode = OnionHopConnectOptions.TunCoreSingBox;
+    private bool _macNetworkExtensionActive;
+    private VpnLaunchConfig? _preparedMacVpnLaunchConfig;
 
     private CancellationTokenSource? _adminVpnMonitorCts;
     private readonly object _bridgeFailureLock = new();
@@ -96,7 +105,7 @@ public sealed class OnionHopClient : IDisposable
 
     public OnionHopClient(string? baseDirectory = null)
     {
-        _baseDir = string.IsNullOrWhiteSpace(baseDirectory) ? AppContext.BaseDirectory : baseDirectory!;
+        _baseDir = string.IsNullOrWhiteSpace(baseDirectory) ? ResolveDefaultBaseDirectory() : baseDirectory!;
         _bridgeManager = new TorBridgeManager(_baseDir);
 
         _torService = new TorService(RaiseLog);
@@ -106,11 +115,12 @@ public sealed class OnionHopClient : IDisposable
         _torService.OutputReceived += OnTorDataReceived;
         _torService.Exited += OnTorExited;
 
-        _vpnService.OutputReceived += OnSingBoxDataReceived;
+        _vpnService.OutputLineReceived += OnVpnOutputLine;
         _vpnService.Exited += OnSingBoxExited;
 
         _singBoxLogProcessor.SetSourceLabel(_activeVpnCoreMode);
         _singBoxLogProcessor.LogReceived += RaiseLog;
+        _singBoxLogProcessor.LogReceived += RaiseVpnLog;
         _singBoxLogProcessor.DnsLogReceived += RaiseDnsLog;
         _singBoxLogProcessor.StatusMessageChanged += message =>
         {
@@ -119,7 +129,69 @@ public sealed class OnionHopClient : IDisposable
         };
     }
 
+    private static string ResolveDefaultBaseDirectory()
+    {
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                var runtimeDir = Path.Combine(localAppData, "OnionHop");
+                Directory.CreateDirectory(runtimeDir);
+                return runtimeDir;
+            }
+        }
+        catch
+        {
+        }
+
+        return AppContext.BaseDirectory;
+    }
+
     public string BaseDirectory => _baseDir;
+
+    private void EnsureGeoIpFile(string targetPath, string fileName)
+    {
+        if (File.Exists(targetPath))
+        {
+            return;
+        }
+
+        // Look for the file next to the application binary (app bundle).
+        var bundlePath = Path.Combine(AppContext.BaseDirectory, fileName);
+        RaiseLog($"GeoIP check: target={targetPath} exists={File.Exists(targetPath)}, bundle={bundlePath} exists={File.Exists(bundlePath)}, BaseDir={AppContext.BaseDirectory}");
+
+        // Also try the executable's actual directory (for macOS .app bundles)
+        var exePath = Environment.ProcessPath;
+        var exeDir = exePath != null ? Path.GetDirectoryName(exePath) : null;
+        if (exeDir != null && !string.Equals(exeDir, AppContext.BaseDirectory, StringComparison.Ordinal))
+        {
+            var exeDirPath = Path.Combine(exeDir, fileName);
+            RaiseLog($"GeoIP check (exe dir): {exeDirPath} exists={File.Exists(exeDirPath)}");
+            if (File.Exists(exeDirPath))
+            {
+                bundlePath = exeDirPath;
+            }
+        }
+
+        if (File.Exists(bundlePath))
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+                File.Copy(bundlePath, targetPath, true);
+                RaiseLog($"Copied {fileName} from app bundle to {targetPath}");
+            }
+            catch (Exception ex)
+            {
+                RaiseLog($"Warning: Failed to copy {fileName}: {ex.Message}");
+            }
+        }
+        else
+        {
+            RaiseLog($"Warning: {fileName} not found at {targetPath} or {bundlePath}. Exit country selection will not work.");
+        }
+    }
 
     public IReadOnlyList<string> GetBridgeTypes()
     {
@@ -136,9 +208,14 @@ public sealed class OnionHopClient : IDisposable
         return _bridgeManager.GetLatestBridgeCacheUpdateUtc();
     }
 
+    public bool CanUseMacNetworkExtension()
+    {
+        return MacNetworkExtensionService.IsConfigured();
+    }
+
     public async Task<BridgeDbRefreshStatus> RefreshBridgeDatabaseAsync(OnionHopConnectOptions options, CancellationToken token = default)
     {
-        if (!await EnsureDependenciesAsync(token).ConfigureAwait(false))
+        if (!await EnsureTorDependenciesAsync(token).ConfigureAwait(false))
         {
             RaiseLog("BridgeDB refresh skipped: dependencies are not available.");
             return new BridgeDbRefreshStatus(
@@ -220,9 +297,93 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
-    public async Task<bool> EnsureDependenciesAsync(CancellationToken token = default)
+    public Task<bool> EnsureDependenciesAsync(CancellationToken token = default)
+        => EnsureDependenciesAsync(requireVpnDependencies: true, token);
+
+    public Task<bool> EnsureTorDependenciesAsync(CancellationToken token = default)
+        => EnsureDependenciesAsync(requireVpnDependencies: false, token);
+
+    private async Task<bool> EnsureDependenciesAsync(bool requireVpnDependencies, CancellationToken token)
     {
-        return await (_dependencyEnsureTask ??= EnsureDependenciesCoreAsync(token)).ConfigureAwait(false);
+        var task = GetOrCreateDependencyEnsureTask(requireVpnDependencies, token);
+        try
+        {
+            var success = await task.ConfigureAwait(false);
+            if (!success)
+            {
+                ClearDependencyEnsureTask(task);
+                return false;
+            }
+
+            if (requireVpnDependencies)
+            {
+                PromoteTorDependencyTask(task);
+            }
+
+            return true;
+        }
+        catch
+        {
+            ClearDependencyEnsureTask(task);
+            throw;
+        }
+    }
+
+    private Task<bool> GetOrCreateDependencyEnsureTask(bool requireVpnDependencies, CancellationToken token)
+    {
+        lock (_dependencyEnsureLock)
+        {
+            // A full dependency check also satisfies tor-only requirements.
+            if (!requireVpnDependencies && _fullDependencyEnsureTask != null)
+            {
+                return _fullDependencyEnsureTask;
+            }
+
+            var cached = requireVpnDependencies ? _fullDependencyEnsureTask : _torDependencyEnsureTask;
+            if (cached != null)
+            {
+                return cached;
+            }
+
+            var created = EnsureDependenciesCoreAsync(requireVpnDependencies, token);
+            if (requireVpnDependencies)
+            {
+                _fullDependencyEnsureTask = created;
+            }
+            else
+            {
+                _torDependencyEnsureTask = created;
+            }
+
+            return created;
+        }
+    }
+
+    private void PromoteTorDependencyTask(Task<bool> task)
+    {
+        lock (_dependencyEnsureLock)
+        {
+            if (ReferenceEquals(_fullDependencyEnsureTask, task))
+            {
+                _torDependencyEnsureTask = task;
+            }
+        }
+    }
+
+    private void ClearDependencyEnsureTask(Task<bool> task)
+    {
+        lock (_dependencyEnsureLock)
+        {
+            if (ReferenceEquals(_torDependencyEnsureTask, task))
+            {
+                _torDependencyEnsureTask = null;
+            }
+
+            if (ReferenceEquals(_fullDependencyEnsureTask, task))
+            {
+                _fullDependencyEnsureTask = null;
+            }
+        }
     }
 
     public async Task<bool> EnsureAdminHelperAsync()
@@ -264,18 +425,7 @@ public sealed class OnionHopClient : IDisposable
             return;
         }
 
-        if (!OperatingSystem.IsWindows())
-        {
-            StartupLogger.Write("OnionHopClient.ConnectAsync: Not Windows");
-            SetStatus(
-                isConnecting: false,
-                isConnected: false,
-                isDisconnecting: false,
-                connectionStatus: "Unavailable",
-                statusMessage: "Windows-only for now. Linux/macOS integration will be added later.",
-                progress: 0);
-            return;
-        }
+        ClearPreparedMacVpnLaunchConfig();
 
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking internet connectivity...");
         var connectivity = await InternetConnectivityProbe.CheckAsync(token).ConfigureAwait(false);
@@ -298,15 +448,22 @@ public sealed class OnionHopClient : IDisposable
         }
 
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking dependencies...");
-        if (!await EnsureDependenciesAsync(token).ConfigureAwait(false))
+        var requiresVpnDependencies = IsTunMode(options);
+        var dependenciesReady = requiresVpnDependencies
+            ? await EnsureDependenciesAsync(token).ConfigureAwait(false)
+            : await EnsureTorDependenciesAsync(token).ConfigureAwait(false);
+        if (!dependenciesReady)
         {
             StartupLogger.Write("OnionHopClient.ConnectAsync: Dependencies check failed!");
+            var dependencyStatus = string.IsNullOrWhiteSpace(_dependencyDownloadStatus)
+                ? "Failed to verify or download required components."
+                : _dependencyDownloadStatus;
             SetStatus(
                 isConnecting: false,
                 isConnected: false,
                 isDisconnecting: false,
                 connectionStatus: "Disconnected",
-                statusMessage: "Failed to verify or download required components.",
+                statusMessage: dependencyStatus,
                 progress: 0);
             return;
         }
@@ -395,6 +552,7 @@ public sealed class OnionHopClient : IDisposable
 
         try
         {
+            var xrayTunCompatibilityProxyApplied = false;
             RaiseLog($"Connecting. Mode={options.SelectedConnectionMode}, Hybrid={options.UseHybridRouting}, Exit={options.SelectedLocation}, Bridges={(options.UseTorBridges ? options.SelectedBridgeType : "off")}");
 
             var resolvedOptions = await StartTorWithBridgeFallbackAsync(options, timeoutCts.Token).ConfigureAwait(false);
@@ -402,9 +560,9 @@ public sealed class OnionHopClient : IDisposable
 
             if (resolvedOptions.OnionDnsProxyEnabled)
             {
-                if (!WindowsAdmin.IsAdministrator())
+                if (ShouldManageOnionDnsInsideMacTun(resolvedOptions))
                 {
-                    RaiseLog(".onion DNS proxying requires Administrator; skipping.");
+                    RaiseLog(".onion DNS proxying will be managed by the macOS tunnel session.");
                 }
                 else if (_activeDnsPort == DefaultDnsPort && !string.IsNullOrWhiteSpace(_activeDnsBindAddress))
                 {
@@ -426,6 +584,16 @@ public sealed class OnionHopClient : IDisposable
             if (_activeHttpPort.HasValue)
             {
                 await StartHttpProxyBridgeAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+
+            if (IsTunMode(resolvedOptions) &&
+                string.Equals(_activeVpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal))
+            {
+                _proxyService.ApplyTorProxy(_activeSocksPort, _activeHttpPort, RaiseLog);
+                xrayTunCompatibilityProxyApplied = true;
+                RaiseLog(_activeHttpPort.HasValue
+                    ? "xray compatibility mode: system HTTP/SOCKS proxy fallback enabled to ensure browser traffic uses Tor."
+                    : "xray compatibility mode: system SOCKS proxy fallback enabled to ensure browser traffic uses Tor.");
             }
 
             if (!IsTunMode(resolvedOptions))
@@ -451,6 +619,8 @@ public sealed class OnionHopClient : IDisposable
             _statusMessage = IsTunMode(resolvedOptions)
                 ? (resolvedOptions.UseHybridRouting
                     ? "Tor is running. Hybrid routing is active (browser via Tor)."
+                    : xrayTunCompatibilityProxyApplied
+                        ? "Tor is running. xray compatibility proxy is active (browser traffic via Tor)."
                     : "Tor is running. VPN tunnel is active (all traffic via Tor).")
                 : UsesSystemProxyScope(resolvedOptions)
                     ? "Tor is running. System proxy mode is active."
@@ -521,6 +691,7 @@ public sealed class OnionHopClient : IDisposable
     public async Task RefreshIpAsync(bool updateStatusMessage, CancellationToken token)
     {
         var torFirst = _isConnected && _torService.IsRunning;
+        RaiseLog($"IP check: torFirst={torFirst}, isConnected={_isConnected}, torRunning={_torService.IsRunning}, socksPort={_activeSocksPort}");
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         cts.CancelAfter(TimeSpan.FromSeconds(18));
 
@@ -531,6 +702,7 @@ public sealed class OnionHopClient : IDisposable
             if (torFirst)
             {
                 ip = await IpLookupService.TryFetchTorExitIpAsync(_activeSocksPort, RaiseLog, cts.Token).ConfigureAwait(false);
+                RaiseLog($"IP check via SOCKS: result='{ip}'");
                 if (!string.IsNullOrWhiteSpace(ip))
                 {
                     _currentIp = ip;
@@ -555,6 +727,7 @@ public sealed class OnionHopClient : IDisposable
             }
 
             ip = await IpLookupService.TryFetchDirectIpAsync(RaiseLog, cts.Token).ConfigureAwait(false);
+            RaiseLog($"IP check via DIRECT (not through Tor): result='{ip}'");
             if (!string.IsNullOrWhiteSpace(ip))
             {
                 _currentIp = ip;
@@ -617,6 +790,37 @@ public sealed class OnionHopClient : IDisposable
 
         _lastNewnymUtc = DateTime.UtcNow;
         await Task.Delay(1200, token).ConfigureAwait(false);
+        await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+    }
+
+    public async Task ChangeExitCountryAsync(string? countryCode, CancellationToken token)
+    {
+        if (!_isConnected || !_torService.IsRunning)
+        {
+            return;
+        }
+
+        var exitNodesValue = string.IsNullOrWhiteSpace(countryCode)
+            ? ""
+            : $"{{{countryCode}}}";
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+
+        var strictCmd = string.IsNullOrWhiteSpace(countryCode)
+            ? "SETCONF StrictNodes=0"
+            : "SETCONF StrictNodes=1";
+
+        await _torService.SendControlSignalAsync($"SETCONF ExitNodes=\"{exitNodesValue}\"", cts.Token).ConfigureAwait(false);
+        await _torService.SendControlSignalAsync(strictCmd, cts.Token).ConfigureAwait(false);
+        await _torService.SendControlSignalAsync("SIGNAL NEWNYM", cts.Token).ConfigureAwait(false);
+
+        RaiseLog(string.IsNullOrWhiteSpace(countryCode)
+            ? "Exit country cleared (Automatic). Requesting new circuit..."
+            : $"Exit country changed to {{{countryCode}}}. Requesting new circuit...");
+
+        _lastNewnymUtc = DateTime.UtcNow;
+        await Task.Delay(1500, token).ConfigureAwait(false);
         await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
     }
 
@@ -697,7 +901,7 @@ public sealed class OnionHopClient : IDisposable
         _torService.Dispose();
     }
 
-    private async Task<bool> EnsureDependenciesCoreAsync(CancellationToken token)
+    private async Task<bool> EnsureDependenciesCoreAsync(bool requireVpnDependencies, CancellationToken token)
     {
         StartupLogger.Write("EnsureDependenciesCoreAsync: Starting dependency check...");
         
@@ -709,16 +913,244 @@ public sealed class OnionHopClient : IDisposable
             PublishDependency();
         }
 
-        var success = await _deps.EnsureAsync(_baseDir, Progress, RaiseLog, token).ConfigureAwait(false);
+        var success = await _deps.EnsureAsync(_baseDir, requireVpnDependencies, Progress, RaiseLog, token).ConfigureAwait(false);
         StartupLogger.Write($"EnsureDependenciesCoreAsync: _deps.EnsureAsync returned {success}");
         if (!success)
         {
             return false;
         }
 
+        FixBaseDirectoryPermissions();
+
         _ptConfig = DependencyManager.TryLoadPluggableTransportConfig(_baseDir, RaiseLog);
         return true;
     }
+
+    private void FixBaseDirectoryPermissions()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || geteuid() == 0)
+        {
+            return;
+        }
+
+        // Check if any subdirectories are inaccessible (root-owned from a previous TUN session).
+        var dirsToFix = new List<string>();
+        foreach (var subDir in new[] { "tor", "vpn", "tor-data" })
+        {
+            var dirPath = Path.Combine(_baseDir, subDir);
+            if (!Directory.Exists(dirPath))
+            {
+                continue;
+            }
+
+            var testFile = Path.Combine(dirPath, ".write-test");
+            try
+            {
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+            }
+            catch
+            {
+                dirsToFix.Add(dirPath);
+            }
+        }
+
+        if (dirsToFix.Count == 0)
+        {
+            return;
+        }
+
+        RaiseLog($"Detected {dirsToFix.Count} directory(ies) with wrong ownership. Requesting admin privileges to fix...");
+
+        // Use macOS osascript to prompt for admin password and fix permissions.
+        if (OperatingSystem.IsMacOS())
+        {
+            try
+            {
+                var uid = geteuid();
+                var userName = Environment.UserName;
+                var dirs = string.Join(" ", dirsToFix.Select(d => $"\\\"{d}\\\""));
+                var script = $"do shell script \"chown -R {userName}:staff {dirs} && chmod -R u+rwX {dirs}\" with administrator privileges";
+
+                var psi = new ProcessStartInfo("osascript", $"-e '{script}'")
+                {
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var proc = Process.Start(psi);
+                proc?.WaitForExit(30000);
+
+                if (proc?.ExitCode == 0)
+                {
+                    RaiseLog("Successfully fixed directory permissions.");
+                }
+                else
+                {
+                    var err = proc?.StandardError.ReadToEnd();
+                    RaiseLog($"Permission fix was declined or failed: {err}");
+                }
+            }
+            catch (Exception ex)
+            {
+                RaiseLog($"Failed to request permission fix: {ex.Message}");
+            }
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            // On Linux, try pkexec for a graphical sudo prompt.
+            try
+            {
+                var userName = Environment.UserName;
+                var dirs = string.Join(" ", dirsToFix.Select(d => $"\"{d}\""));
+                var psi = new ProcessStartInfo("pkexec", $"sh -c \"chown -R {userName} {dirs} && chmod -R u+rwX {dirs}\"")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var proc = Process.Start(psi);
+                proc?.WaitForExit(30000);
+
+                if (proc?.ExitCode == 0)
+                {
+                    RaiseLog("Successfully fixed directory permissions.");
+                }
+                else
+                {
+                    RaiseLog("Permission fix was declined or failed.");
+                }
+            }
+            catch (Exception ex)
+            {
+                RaiseLog($"Failed to request permission fix: {ex.Message}");
+            }
+        }
+    }
+
+    private void FixBaseDirectoryOwnershipForNonRoot()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return;
+        }
+
+        if (geteuid() != 0)
+        {
+            return; // Only makes sense when running as root.
+        }
+
+        // Determine the real user's uid/gid so we can restore ownership.
+        // Avoid P/Invoke stat() — the struct layout varies across OS/arch and causes crashes.
+        uint targetUid;
+        uint targetGid;
+        try
+        {
+            // Try stat via shell command — safe across all platforms.
+            if (OperatingSystem.IsMacOS())
+            {
+                // macOS stat: -f "%u %g" prints uid and gid
+                var output = PlatformHelper.RunCommand("stat", $"-f \"%u %g\" \"{_baseDir}\"");
+                var parts = output?.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts?.Length >= 2 && uint.TryParse(parts[0], out targetUid) && uint.TryParse(parts[1], out targetGid))
+                {
+                    // Successfully parsed uid/gid from stat
+                }
+                else
+                {
+                    targetUid = 0;
+                    targetGid = 0;
+                }
+            }
+            else
+            {
+                // Linux stat: -c "%u %g" prints uid and gid
+                var output = PlatformHelper.RunCommand("stat", $"-c \"%u %g\" \"{_baseDir}\"");
+                var parts = output?.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts?.Length >= 2 && uint.TryParse(parts[0], out targetUid) && uint.TryParse(parts[1], out targetGid))
+                {
+                    // Successfully parsed uid/gid from stat
+                }
+                else
+                {
+                    targetUid = 0;
+                    targetGid = 0;
+                }
+            }
+
+            // Fallback: use SUDO_UID/SUDO_GID environment variables
+            if (targetUid == 0)
+            {
+                var sudoUid = Environment.GetEnvironmentVariable("SUDO_UID");
+                var sudoGid = Environment.GetEnvironmentVariable("SUDO_GID");
+                if (sudoUid == null || !uint.TryParse(sudoUid, out targetUid))
+                {
+                    return;
+                }
+                targetGid = sudoGid != null && uint.TryParse(sudoGid, out var gid) ? gid : targetUid;
+            }
+        }
+        catch
+        {
+            return;
+        }
+
+        if (targetUid == 0)
+        {
+            return; // Base dir is also root-owned; no user to restore to.
+        }
+
+        RaiseLog($"Fixing ownership of base directory subdirectories to uid={targetUid} gid={targetGid}");
+
+        foreach (var subDir in new[] { "tor", "vpn", "tor-data" })
+        {
+            var dirPath = Path.Combine(_baseDir, subDir);
+            if (!Directory.Exists(dirPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                RecursiveChmodAndChown(dirPath, targetUid, targetGid);
+            }
+            catch (Exception ex)
+            {
+                RaiseLog($"Warning: could not fix permissions on '{dirPath}': {ex.Message}");
+            }
+        }
+    }
+
+    private static void RecursiveChmodAndChown(string path, uint uid, uint gid)
+    {
+        chmod(path, 0b111_101_101); // 0755
+        chown(path, uid, gid);
+
+        foreach (var file in Directory.GetFiles(path))
+        {
+            var isExecutable = !Path.HasExtension(file)
+                || file.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase)
+                || file.EndsWith(".so", StringComparison.OrdinalIgnoreCase);
+            chmod(file, isExecutable ? 0b111_101_101u : 0b110_100_100u); // 0755 or 0644
+            chown(file, uid, gid);
+        }
+
+        foreach (var dir in Directory.GetDirectories(path))
+        {
+            RecursiveChmodAndChown(dir, uid, gid);
+        }
+    }
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int chmod(string pathname, uint mode);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int chown(string pathname, uint owner, uint group);
+
+    [DllImport("libc")]
+    private static extern uint geteuid();
 
     private async Task DisconnectCoreAsync(bool disableStatusUpdate)
     {
@@ -727,13 +1159,17 @@ public sealed class OnionHopClient : IDisposable
             _httpProxyBridgeService.Stop();
             StopSingBoxProcess();
 
-            if (KillSwitchService.IsEmergencyBlockActive())
+            if (_killSwitchService.IsEmergencyBlockActive())
             {
-                if (WindowsAdmin.IsAdministrator())
+                if (PlatformHelper.IsAdministrator())
                 {
-                    KillSwitchService.DisableEmergencyBlock(RaiseLog);
+                    _killSwitchService.DisableEmergencyBlock(RaiseLog);
                 }
-                else
+                else if (OperatingSystem.IsMacOS())
+                {
+                    _killSwitchService.DisableEmergencyBlock(RaiseLog);
+                }
+                else if (OperatingSystem.IsWindows())
                 {
                     _ = Task.Run(async () => await _adminHelper.DisableKillSwitchIfAvailableAsync().ConfigureAwait(false));
                 }
@@ -751,6 +1187,10 @@ public sealed class OnionHopClient : IDisposable
 
             StopTorProcess();
             await Task.Delay(250).ConfigureAwait(false);
+
+            // When disconnecting as root, fix ownership so the next non-root session
+            // can access tor binaries, libraries, and data files.
+            FixBaseDirectoryOwnershipForNonRoot();
         }
         finally
         {
@@ -764,6 +1204,8 @@ public sealed class OnionHopClient : IDisposable
             _activeDnsPort = null;
             _activeDnsBindAddress = null;
             _activeVpnCoreMode = OnionHopConnectOptions.TunCoreSingBox;
+            _macNetworkExtensionActive = false;
+            ClearPreparedMacVpnLaunchConfig();
             _singBoxLogProcessor.SetSourceLabel(_activeVpnCoreMode);
 
             if (!disableStatusUpdate)
@@ -833,6 +1275,11 @@ public sealed class OnionHopClient : IDisposable
     private void RaiseDnsLog(string message)
     {
         DnsLog?.Invoke(this, message);
+    }
+
+    private void RaiseVpnLog(string message)
+    {
+        VpnLog?.Invoke(this, message);
     }
 
     private async Task<OnionHopConnectOptions> StartTorWithBridgeFallbackAsync(OnionHopConnectOptions options, CancellationToken token)
@@ -994,9 +1441,17 @@ public sealed class OnionHopClient : IDisposable
         using var registration = token.Register(() => _bootstrapSource.TrySetCanceled(token));
 
         var torDir = Path.Combine(_baseDir, "tor");
-        var torPath = Path.Combine(torDir, "tor.exe");
+        var torPath = Path.Combine(torDir, PlatformHelper.TorBinaryName);
         var geoIpPath = Path.Combine(torDir, "geoip");
         var geoIp6Path = Path.Combine(torDir, "geoip6");
+
+        StartupLogger.Write($"StartTorAsync: torPath={torPath}, exists={File.Exists(torPath)}, baseDir={_baseDir}");
+        RaiseLog($"Paths: baseDir={_baseDir}, torPath={torPath} (exists={File.Exists(torPath)}), geoip exists={File.Exists(geoIpPath)}, geoip6 exists={File.Exists(geoIp6Path)}, AppBaseDir={AppContext.BaseDirectory}");
+
+        // Ensure GeoIP files exist — copy from app bundle directory if missing.
+        // Without these files Tor cannot map relays to countries, making ExitNodes useless.
+        EnsureGeoIpFile(geoIpPath, "geoip");
+        EnsureGeoIpFile(geoIp6Path, "geoip6");
 
         IReadOnlyList<string>? bridgeLines = null;
         List<string>? normalizedPlugins = null;
@@ -1035,6 +1490,12 @@ public sealed class OnionHopClient : IDisposable
         var countries = await _nodeDatabaseService.GetCountryStatsAsync(RaiseLog, token).ConfigureAwait(false);
         var countryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedLocation, countries);
         var entryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedEntryLocation, countries);
+
+        RaiseLog($"Exit selection: SelectedLocation='{options.SelectedLocation}', resolved countryCode='{countryCode}', countries fetched={countries.Count}");
+        if (!string.IsNullOrWhiteSpace(entryCode))
+        {
+            RaiseLog($"Entry selection: SelectedEntryLocation='{options.SelectedEntryLocation}', resolved entryCode='{entryCode}'");
+        }
 
         if (countries.Count > 0 &&
             !string.IsNullOrWhiteSpace(countryCode) &&
@@ -1083,7 +1544,8 @@ public sealed class OnionHopClient : IDisposable
             EntryCountryCode = entryCode,
             ClientUseIpv6 = ParseToggleMode(options.TorIpv6Mode),
             HardwareAccel = ParseToggleMode(options.HardwareAccelerationMode),
-            ConnectionPadding = ParseConnectionPaddingMode(options.ConnectionPaddingMode)
+            ConnectionPadding = ParseConnectionPaddingMode(options.ConnectionPaddingMode),
+            DataDirectory = Path.Combine(_baseDir, "tor-data")
         };
 
         await _torService.StartAsync(config, token).ConfigureAwait(false);
@@ -1119,8 +1581,12 @@ public sealed class OnionHopClient : IDisposable
 
     private async Task StartSingBoxVpnAsync(OnionHopConnectOptions options, CancellationToken token)
     {
+        StartupLogger.Write($"StartSingBoxVpnAsync: VPN mode, isAdmin={PlatformHelper.IsAdministrator()}");
         RaiseLog("StartSingBoxVpnAsync: Starting VPN setup...");
-        StopSingBoxProcess();
+        if (!ShouldPrepareMacPrivilegedTunnel(options))
+        {
+            StopSingBoxProcess();
+        }
 
         var tunCoreMode = NormalizeTunCoreMode(options.TunCoreMode);
         _activeVpnCoreMode = tunCoreMode;
@@ -1131,10 +1597,106 @@ public sealed class OnionHopClient : IDisposable
             RaiseLog("xray currently ignores TUN stack and strict-route tuning; using xray defaults.");
         }
 
+        VpnLaunchConfig config;
+        if (ShouldPrepareMacPrivilegedTunnel(options) && _preparedMacVpnLaunchConfig != null)
+        {
+            RaiseLog("StartSingBoxVpnAsync: Reusing prepared macOS VPN launch config.");
+            config = _preparedMacVpnLaunchConfig;
+        }
+        else
+        {
+            config = await BuildVpnLaunchConfigAsync(options, token).ConfigureAwait(false);
+        }
+
+        // Verify Tor's SOCKS port is actually accepting connections before starting the VPN engine.
+        // With bridges, Tor may report 100% bootstrap but need a moment for the SOCKS listener.
+        if (!await WaitForSocksPortReadyAsync(_activeSocksPort, token).ConfigureAwait(false))
+        {
+            RaiseLog($"Warning: Tor SOCKS port {_activeSocksPort} not responding after bootstrap. Proceeding anyway.");
+        }
+
+        var selectedCorePath = string.Equals(tunCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
+            ? config.XrayPath
+            : config.SingBoxPath;
+        var isAdmin = PlatformHelper.IsAdministrator();
+        RaiseLog($"StartSingBoxVpnAsync: IsAdmin={isAdmin}, Core={tunCoreMode}, CorePath={selectedCorePath}");
+
+        if (OperatingSystem.IsWindows() && !isAdmin)
+        {
+            RaiseLog("StartSingBoxVpnAsync: Calling TryStartVpnAsync via admin helper...");
+            var result = await _adminHelper.TryStartVpnAsync(config).ConfigureAwait(false);
+            RaiseLog($"StartSingBoxVpnAsync: TryStartVpnAsync returned Success={result.Success}, Error={result.Error ?? "none"}");
+            if (!result.Success)
+            {
+                var drained = await _adminHelper.DrainLogsAsync().ConfigureAwait(false);
+                foreach (var logLine in drained)
+                {
+                    ProcessSingBoxLogLine(logLine);
+                }
+
+                var details = string.IsNullOrWhiteSpace(result.Error) ? "Unknown error." : result.Error;
+
+                throw new InvalidOperationException($"Unable to start elevated VPN helper: {details}");
+            }
+
+            StartAdminVpnMonitor(options);
+            return;
+        }
+
+        if (OperatingSystem.IsMacOS() && !isAdmin)
+        {
+            if (MacNetworkExtensionService.IsConfigured(RaiseLog))
+            {
+                RaiseLog($"StartSingBoxVpnAsync: Starting macOS Network Extension tunnel '{MacNetworkExtensionService.ServiceName}'...");
+                if (!MacNetworkExtensionService.TryStart(RaiseLog))
+                {
+                    throw new InvalidOperationException(
+                        $"Unable to start macOS Network Extension tunnel '{MacNetworkExtensionService.ServiceName}'.");
+                }
+
+                _macNetworkExtensionActive = true;
+                return;
+            }
+
+            RaiseLog(_preparedMacVpnLaunchConfig != null
+                ? "StartSingBoxVpnAsync: Reusing prepared macOS administrator tunnel session."
+                : "StartSingBoxVpnAsync: macOS will request administrator privileges for tunnel setup.");
+        }
+
+        if (!isAdmin && !OperatingSystem.IsMacOS())
+        {
+            throw new InvalidOperationException("TUN/VPN mode requires elevated privileges (run as Administrator/root).");
+        }
+
+        await _vpnService.StartAsync(config, token).ConfigureAwait(false);
+    }
+
+    private async Task PrepareMacPrivilegedTunnelAsync(OnionHopConnectOptions options, CancellationToken token)
+    {
+        if (!ShouldPrepareMacPrivilegedTunnel(options))
+        {
+            return;
+        }
+
+        var config = await BuildVpnLaunchConfigAsync(options, token).ConfigureAwait(false);
+        await _vpnService.PrepareMacPrivilegedTunnelAsync(config, token).ConfigureAwait(false);
+        _preparedMacVpnLaunchConfig = config;
+    }
+
+    private void ClearPreparedMacVpnLaunchConfig()
+    {
+        _preparedMacVpnLaunchConfig = null;
+    }
+
+    private async Task<VpnLaunchConfig> BuildVpnLaunchConfigAsync(OnionHopConnectOptions options, CancellationToken token)
+    {
+        var tunCoreMode = NormalizeTunCoreMode(options.TunCoreMode);
         var vpnDir = Path.Combine(_baseDir, "vpn");
-        var singBoxPath = Path.Combine(vpnDir, "sing-box.exe");
-        var xrayPath = Path.Combine(vpnDir, "xray.exe");
-        var wintunPath = Path.Combine(vpnDir, "wintun.dll");
+        var singBoxPath = Path.Combine(vpnDir, PlatformHelper.SingBoxBinaryName);
+        var xrayPath = Path.Combine(vpnDir, PlatformHelper.XrayBinaryName);
+        var wintunPath = PlatformHelper.NeedsWintun
+            ? Path.Combine(vpnDir, PlatformHelper.WintunLibraryName)
+            : null;
         var doh = DohSettingsResolver.Resolve(options);
         if (options.UseCensoredMode &&
             string.Equals(options.SelectedDnsProvider, OnionHopConnectOptions.DnsProviderAuto, StringComparison.Ordinal))
@@ -1143,7 +1705,7 @@ public sealed class OnionHopClient : IDisposable
             doh = dohResolution.Settings;
         }
 
-        var config = new VpnLaunchConfig
+        return new VpnLaunchConfig
         {
             SingBoxPath = singBoxPath,
             XrayPath = xrayPath,
@@ -1161,57 +1723,31 @@ public sealed class OnionHopClient : IDisposable
             BlockQuicForTorApps = options.HybridBlockQuicForTorApps,
             TunStack = NormalizeTunStackModeForSingBox(options.TunStackMode),
             TunMtu = options.TunMtu,
-            TunStrictRoute = options.TunStrictRoute
+            TunStrictRoute = options.TunStrictRoute,
+            ManageOnionResolver = ShouldManageOnionDnsInsideMacTun(options),
+            OnionDnsNameServer = _activeDnsBindAddress
         };
-
-        var selectedCorePath = string.Equals(tunCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
-            ? xrayPath
-            : singBoxPath;
-        RaiseLog($"StartSingBoxVpnAsync: IsAdmin={WindowsAdmin.IsAdministrator()}, Core={tunCoreMode}, CorePath={selectedCorePath}");
-
-        if (!WindowsAdmin.IsAdministrator())
-        {
-            RaiseLog("StartSingBoxVpnAsync: Calling TryStartVpnAsync via admin helper...");
-            var result = await _adminHelper.TryStartVpnAsync(config).ConfigureAwait(false);
-            RaiseLog($"StartSingBoxVpnAsync: TryStartVpnAsync returned Success={result.Success}, Error={result.Error ?? "none"}");
-            if (!result.Success)
-            {
-                var drained = await _adminHelper.DrainLogsAsync().ConfigureAwait(false);
-                foreach (var logLine in drained)
-                {
-                    ProcessSingBoxLogLine(logLine);
-                }
-
-                var lastLines = string.Join("\n", drained.Count > 8
-                    ? drained.Skip(Math.Max(0, drained.Count - 8))
-                    : drained);
-
-                var details = string.IsNullOrWhiteSpace(result.Error) ? "Unknown error." : result.Error;
-                if (!string.IsNullOrWhiteSpace(lastLines))
-                {
-                    details += "\nLast logs:\n" + lastLines;
-                }
-
-                throw new InvalidOperationException($"Unable to start elevated VPN helper: {details}");
-            }
-
-            StartAdminVpnMonitor(options);
-            return;
-        }
-
-        await _vpnService.StartAsync(config, token).ConfigureAwait(false);
     }
 
-    private static readonly string[] BrowserProcessNames =
-    [
-        "firefox.exe",
-        "chrome.exe",
-        "msedge.exe"
-    ];
+    private static bool ShouldManageOnionDnsInsideMacTun(OnionHopConnectOptions options)
+    {
+        return options.OnionDnsProxyEnabled &&
+               OperatingSystem.IsMacOS() &&
+               IsTunMode(options) &&
+               !MacNetworkExtensionService.IsConfigured();
+    }
+
+    private static bool ShouldPrepareMacPrivilegedTunnel(OnionHopConnectOptions options)
+    {
+        return OperatingSystem.IsMacOS() &&
+               IsTunMode(options) &&
+               !PlatformHelper.IsAdministrator() &&
+               !MacNetworkExtensionService.IsConfigured();
+    }
 
     private static IReadOnlyList<string> ResolveHybridTorApps(OnionHopConnectOptions options)
     {
-        var apps = new List<string>(BrowserProcessNames);
+        var apps = new List<string>(PlatformHelper.DefaultBrowserProcessNames);
         apps.AddRange(ParseProcessNames(options.HybridTorApps));
 
         return apps
@@ -1228,6 +1764,27 @@ public sealed class OnionHopClient : IDisposable
         ? OnionHopConnectOptions.TunCoreXray
         : OnionHopConnectOptions.TunCoreSingBox;
     private static string NormalizeTunStackModeForSingBox(string? mode) => TorLogHelper.NormalizeTunStackModeForSingBox(mode);
+
+    private static async Task<bool> WaitForSocksPortReadyAsync(int port, CancellationToken token, int maxWaitMs = 5000)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.ElapsedMilliseconds < maxWaitMs)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                using var client = new System.Net.Sockets.TcpClient();
+                await client.ConnectAsync(System.Net.IPAddress.Loopback, port, token).ConfigureAwait(false);
+                return true;
+            }
+            catch (System.Net.Sockets.SocketException)
+            {
+                await Task.Delay(250, token).ConfigureAwait(false);
+            }
+        }
+
+        return false;
+    }
 
     private void StartAdminVpnMonitor(OnionHopConnectOptions options)
     {
@@ -1301,12 +1858,22 @@ public sealed class OnionHopClient : IDisposable
         }
 
         var exitCode = _torService.ExitCode ?? 0;
+        var recentOutput = _torService.RecentOutput;
         RaiseLog($"Tor exited with code {exitCode}.");
+        if (!string.IsNullOrWhiteSpace(recentOutput))
+        {
+            RaiseLog($"Tor recent output:\n{recentOutput}");
+        }
 
         // If Tor dies while we're connecting, fail fast instead of waiting for the connect timeout.
         if (_isConnecting)
         {
-            _bootstrapSource?.TrySetException(new InvalidOperationException($"Tor exited with code {exitCode}."));
+            var message = $"Tor exited with code {exitCode}.";
+            if (!string.IsNullOrWhiteSpace(recentOutput))
+            {
+                message += $"\n\nTor output:\n{recentOutput}";
+            }
+            _bootstrapSource?.TrySetException(new InvalidOperationException(message));
             return;
         }
 
@@ -1376,7 +1943,8 @@ public sealed class OnionHopClient : IDisposable
                 && !_snowflakeAmpHintShown
                 && _activeOptions is { UseTorBridges: true, UseSnowflakeAmp: false } options
                 && string.Equals(options.SelectedBridgeType, "snowflake", StringComparison.OrdinalIgnoreCase)
-                && line.Contains("snowflake-client.exe", StringComparison.OrdinalIgnoreCase)
+                && (line.Contains(PlatformHelper.SnowflakeClientBinaryName, StringComparison.OrdinalIgnoreCase)
+                    || line.Contains(PlatformHelper.LyrebirdBinaryName, StringComparison.OrdinalIgnoreCase))
                 && line.Contains("broker failure", StringComparison.OrdinalIgnoreCase))
             {
                 _snowflakeAmpHintShown = true;
@@ -1388,9 +1956,9 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
-    private void OnSingBoxDataReceived(object sender, DataReceivedEventArgs e)
+    private void OnVpnOutputLine(string line)
     {
-        ProcessSingBoxLogLine(e.Data);
+        ProcessSingBoxLogLine(line);
     }
 
     private void ProcessSingBoxLogLine(string? data)
@@ -1404,16 +1972,25 @@ public sealed class OnionHopClient : IDisposable
 
     private void OnSingBoxExited(object? sender, EventArgs e)
     {
-        var exitCode = _vpnService.ExitCode ?? 0;
+        int exitCode;
+        try
+        {
+            exitCode = _vpnService.ExitCode ?? 0;
+        }
+        catch
+        {
+            exitCode = -1;
+        }
+
         RaiseLog($"{_activeVpnCoreMode} exited with code {exitCode}.");
 
         if (_isConnected && _activeOptions is { } options && IsTunMode(options) && options.KillSwitchEnabled && !options.UseHybridRouting && !_isDisconnecting)
         {
-            if (WindowsAdmin.IsAdministrator())
+            if (PlatformHelper.IsAdministrator())
             {
-                KillSwitchService.EnableEmergencyBlock(RaiseLog);
+                _killSwitchService.EnableEmergencyBlock(RaiseLog);
             }
-            else
+            else if (OperatingSystem.IsWindows())
             {
                 _ = Task.Run(async () =>
                 {
@@ -1427,16 +2004,26 @@ public sealed class OnionHopClient : IDisposable
                     }
                 });
             }
+            else if (OperatingSystem.IsMacOS())
+            {
+                _killSwitchService.EnableEmergencyBlock(RaiseLog);
+            }
+            else
+            {
+                RaiseLog("Kill switch could not be enabled: elevated privileges are required.");
+            }
         }
 
         if (_isConnected && !_isDisconnecting)
         {
             var lastLines = string.Join("\n", _singBoxLogProcessor.GetRecentLines());
+            if (!string.IsNullOrWhiteSpace(lastLines))
+            {
+                RaiseLog($"VPN last logs before exit:\n{lastLines}");
+            }
 
             _connectionStatus = "VPN stopped";
-            _statusMessage = string.IsNullOrWhiteSpace(lastLines)
-                ? $"VPN tunnel stopped unexpectedly (exit code {exitCode}). Disconnecting..."
-                : $"VPN tunnel stopped unexpectedly (exit code {exitCode}). Last logs:\n{lastLines}";
+            _statusMessage = $"VPN tunnel stopped unexpectedly (exit code {exitCode}). Disconnecting...";
             PublishStatus();
 
             _ = Task.Run(async () =>
@@ -1458,7 +2045,19 @@ public sealed class OnionHopClient : IDisposable
         _adminVpnMonitorCts = null;
         _singBoxLogProcessor.ClearConnectionTracking();
 
-        if (!WindowsAdmin.IsAdministrator())
+        if (OperatingSystem.IsMacOS() && _macNetworkExtensionActive)
+        {
+            if (!MacNetworkExtensionService.TryStop(RaiseLog))
+            {
+                RaiseLog("Failed to stop macOS Network Extension tunnel cleanly.");
+            }
+
+            _macNetworkExtensionActive = false;
+            _singBoxLogProcessor.ClearRecentLines();
+            return;
+        }
+
+        if (OperatingSystem.IsWindows() && !WindowsAdmin.IsAdministrator())
         {
             _ = Task.Run(async () => await _adminHelper.StopVpnIfAvailableAsync().ConfigureAwait(false));
             _singBoxLogProcessor.ClearRecentLines();

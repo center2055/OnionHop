@@ -17,6 +17,9 @@ using CommunityToolkit.Mvvm.Input;
 using OnionHopV2.App.Services;
 using OnionHopV2.Core;
 using OnionHopV2.Core.Models;
+using OnionHopV2.Core.Platform;
+using OnionHopV2.Core.Platform.Linux;
+using OnionHopV2.Core.Platform.MacOS;
 using OnionHopV2.Core.Platform.Windows;
 using OnionHopV2.Core.Services;
 
@@ -29,6 +32,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private const string DefaultDisconnectedPageUrl = "https://support.torproject.org/";
     private const string UpdateApiUrl = "https://api.github.com/repos/center2055/OnionHop/releases/latest";
     private const string UpdateReleasesPageUrl = "https://github.com/center2055/OnionHop/releases/latest";
+    private const int MaxBufferedLogEntries = 6000;
+    private const int LogFlushBatchPerQueue = 200;
 
     public const string AutomaticLocationLabel = "Automatic";
     public const string ConnectionModeProxy = "Proxy Mode (Recommended)";
@@ -151,11 +156,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     };
 
     private readonly OnionHopClient _client;
-    private readonly SettingsService _settingsService = new();
+    private readonly SettingsService _settingsService;
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly DiscordPresenceService _discordPresence = new();
     private readonly SmartConnectAdvisor _smartConnectAdvisor = new();
-    private readonly UpdateService _updateService = new();
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
     private bool _loadingSettings;
@@ -163,6 +167,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private bool _hasStatusSnapshot;
     private bool _wasConnected;
     private Dictionary<string, TorCountryNodeStats> _countryStatsByCode = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _pendingLogsLock = new();
+    private readonly Queue<string> _pendingAppLogs = new();
+    private readonly Queue<string> _pendingDnsLogs = new();
+    private readonly Queue<string> _pendingXrayLogs = new();
+    private int _droppedAppLogLines;
+    private int _droppedDnsLogLines;
+    private int _droppedXrayLogLines;
 
     public AppStateViewModel()
     {
@@ -218,11 +229,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ProxyScopeLocalOnly
         ];
 
-        TunCoreModes =
-        [
-            TunCoreSingBox,
-            TunCoreXray
-        ];
+        // Xray TUN is not supported on macOS: xray-core lacks process-name matching on macOS
+        // (no find_process_darwin.go), so routing rules can't distinguish tor's traffic from
+        // regular traffic, causing routing loops that kill all internet connectivity.
+        TunCoreModes = OperatingSystem.IsMacOS()
+            ? [TunCoreSingBox]
+            : [TunCoreSingBox, TunCoreXray];
 
         TunStackModes =
         [
@@ -263,18 +275,20 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         BridgeTypes.Add("webtunnel");
         BridgeTypes.Add("custom");
 
-        _client = new OnionHopClient();
-        _client.Log += (_, message) => Dispatcher.UIThread.Post(() => AppendLog(message));
-        _client.DnsLog += (_, message) => Dispatcher.UIThread.Post(() => AppendDnsLog(message));
+        _settingsService = new SettingsService(Program.OverrideBaseDirectory);
+        _client = new OnionHopClient(Program.OverrideBaseDirectory);
+        _client.Log += (_, message) => EnqueueClientLog(message);
+        _client.DnsLog += (_, message) => EnqueueDnsLog(message);
+        _client.VpnLog += (_, message) => Dispatcher.UIThread.Post(() => AppendVpnLog(message));
         _client.StatusUpdated += (_, update) => Dispatcher.UIThread.Post(() => ApplyClientStatus(update));
         _client.DependencyUpdated += (_, update) => Dispatcher.UIThread.Post(() => ApplyDependencyUpdate(update));
+        StartLogPump();
         LastBridgeDbUpdateUtc = _client.GetLastBridgeDbUpdateUtc();
 
         LoadSettings();
-        if (OperatingSystem.IsWindows() &&
-            !string.Equals(AutoStartMode, AutoStartModeOff, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(AutoStartMode, AutoStartModeOff, StringComparison.OrdinalIgnoreCase))
         {
-            WindowsAutoStartService.Update(StartWithWindows, StartMinimized, AppendLog);
+            UpdateAutoStartRegistration();
         }
         ApplyTheme();
         ConnectionStatus = LocalizationService.Get("Status.Disconnected");
@@ -311,6 +325,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     public ObservableCollection<string> LogLines { get; } = [];
     public ObservableCollection<string> DnsLogLines { get; } = [];
+    public ObservableCollection<string> XrayLogLines { get; } = [];
+    public string TunEngineLogTabHeader => string.Equals(
+            NormalizeTunCoreMode(TunCoreMode),
+            TunCoreXray,
+            StringComparison.Ordinal)
+        ? LocalizationService.Get("Logs.TabXray")
+        : LocalizationService.Get("Logs.TabSingBox");
+    public ObservableCollection<string> VpnLogLines { get; } = [];
 
     [ObservableProperty] private string _downloadSpeed = "--";
     [ObservableProperty] private string _uploadSpeed = "--";
@@ -397,9 +419,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _autoUpdate;
     [ObservableProperty] private string _themeMode = ThemeModeSystem;
     [ObservableProperty] private bool _isDarkMode;
-    [ObservableProperty] private bool _useNativeTheme;
+    [ObservableProperty] private bool _useNativeTheme = true;
 
     [ObservableProperty] private string _statusMessage = string.Empty;
+    [ObservableProperty] private string _sidebarStatusMessage = string.Empty;
     [ObservableProperty] private string _connectionStatus = string.Empty;
     [ObservableProperty] private string _currentIp = "--.--.--.--";
     [ObservableProperty] private string _socksProxyPort = OnionHopClient.DefaultSocksPort.ToString();
@@ -409,16 +432,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isDependencyDownloadInProgress;
     [ObservableProperty] private double _dependencyDownloadProgress;
     [ObservableProperty] private string _dependencyDownloadStatus = string.Empty;
-    [ObservableProperty] private bool _isCheckingUpdates;
-    [ObservableProperty] private bool _isUpdateAvailable;
-    [ObservableProperty] private string _availableUpdateVersion = string.Empty;
-    [ObservableProperty] private string _availableUpdateUrl = string.Empty;
     [ObservableProperty] private bool _isBridgeDbUpdateInProgress;
     [ObservableProperty] private DateTimeOffset? _lastBridgeDbUpdateUtc;
 
     private DispatcherTimer? _speedTimer;
     private DispatcherTimer? _ipRefreshTimer;
     private DispatcherTimer? _connectionElapsedTimer;
+    private DispatcherTimer? _logFlushTimer;
     private DateTime? _connectionStartedUtc;
     private long _lastBytesReceived;
     private long _lastBytesSent;
@@ -426,11 +446,6 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private bool _speedUpdateInProgress;
 
     public bool IsBusy => IsConnecting || IsDisconnecting || IsDependencyDownloadInProgress;
-    public bool ShowUpdateBadge => IsUpdateAvailable;
-    public bool CanOpenUpdatePage => IsUpdateAvailable && !string.IsNullOrWhiteSpace(AvailableUpdateUrl);
-    public string UpdateBadgeText => string.IsNullOrWhiteSpace(AvailableUpdateVersion)
-        ? LocalizationService.Get("Home.UpdateBadge")
-        : string.Format(CultureInfo.CurrentCulture, LocalizationService.Get("Home.UpdateBadgeVersion"), AvailableUpdateVersion);
 
     public bool ShowConnectButton => !IsConnected && !IsConnecting;
     public bool ShowDisconnectButton => IsConnected && !IsConnecting && !IsDisconnecting;
@@ -446,9 +461,17 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool IsCustomDoh => string.Equals(SelectedDnsProvider, DnsProviderCustom, StringComparison.Ordinal);
     public bool UseCustomBridges => string.Equals(SelectedBridgeType, "custom", StringComparison.OrdinalIgnoreCase);
     public bool IsSnowflakeBridgeSelected => string.Equals(SelectedBridgeType, "snowflake", StringComparison.OrdinalIgnoreCase);
-    public bool CanUseOnionDnsProxy => OperatingSystem.IsWindows() && WindowsAdmin.IsAdministrator();
+    public bool IsWindows => OperatingSystem.IsWindows();
+    public bool IsLinux => OperatingSystem.IsLinux();
+    public bool IsMacOS => OperatingSystem.IsMacOS();
+    public bool ShowWindowsOnlySettings => IsWindows;
+    public bool ShowMacOnlySettings => IsMacOS;
+    public bool ShowTunStackOptions => !IsMacOS;
+    public string VpnLogTabHeader => TunEngineLogTabHeader;
+    public bool CanUseOnionDnsProxy => OperatingSystem.IsMacOS() || PlatformHelper.IsAdministrator();
     public string ManualExitFingerprintSummary => BuildFingerprintSummary(ExitNodeFingerprint);
     public bool UseCustomChrome => !UseNativeTheme;
+    public bool UseNativeMacChrome => IsMacOS && UseNativeTheme;
     public bool SupportsNativeWindowChrome => true;
     public bool CanConfigureSplitTunneling => IsTunMode && UseHybridRouting;
     public string BridgeDbLastUpdateText
@@ -471,6 +494,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public sealed record LocalizedOption(string Value, string Label)
     {
         public override string ToString() => Label;
+    }
+
+    partial void OnStatusMessageChanged(string value)
+    {
+        SidebarStatusMessage = BuildSidebarStatusMessage(value);
     }
 
     partial void OnSelectedLanguageOptionChanged(LocalizedOption? value)
@@ -631,6 +659,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         SelectedTunCoreModeOption = TunCoreModeOptions
             .FirstOrDefault(option => string.Equals(option.Value, normalized, StringComparison.Ordinal));
+        OnPropertyChanged(nameof(TunEngineLogTabHeader));
+        OnPropertyChanged(nameof(VpnLogTabHeader));
     }
 
     partial void OnSelectedTunCoreModeOptionChanged(LocalizedOption? value)
@@ -744,7 +774,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         StatusMessage = LocalizeRuntimeText(StatusMessage);
         DependencyDownloadStatus = LocalizeRuntimeText(DependencyDownloadStatus);
         OnPropertyChanged(nameof(BridgeDbLastUpdateText));
-        OnPropertyChanged(nameof(UpdateBadgeText));
+        OnPropertyChanged(nameof(TunEngineLogTabHeader));
+        OnPropertyChanged(nameof(VpnLogTabHeader));
     }
 
     partial void OnSelectedLanguageIndexChanged(int value)
@@ -833,6 +864,25 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         SelectedLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal));
+
+        // Live-update exit country via Tor control port when already connected
+        if (IsConnected)
+        {
+            var countryCode = string.Equals(value, AutomaticLocationLabel, StringComparison.Ordinal)
+                ? null
+                : value;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _client.ChangeExitCountryAsync(countryCode, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Failed to change exit country: {ex.Message}");
+                }
+            });
+        }
     }
 
     partial void OnSelectedEntryLocationChanged(string value)
@@ -948,41 +998,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     partial void OnUseNativeThemeChanged(bool value)
     {
         OnPropertyChanged(nameof(UseCustomChrome));
-    }
-
-    partial void OnAutoUpdateChanged(bool value)
-    {
-        if (_loadingSettings || _disposed)
-        {
-            return;
-        }
-
-        if (value)
-        {
-            _ = CheckForUpdatesAsync(silentWhenNoUpdate: true);
-            return;
-        }
-
-        IsUpdateAvailable = false;
-        AvailableUpdateVersion = string.Empty;
-        AvailableUpdateUrl = string.Empty;
-    }
-
-    partial void OnIsUpdateAvailableChanged(bool value)
-    {
-        OnPropertyChanged(nameof(ShowUpdateBadge));
-        OnPropertyChanged(nameof(CanOpenUpdatePage));
-        OnPropertyChanged(nameof(UpdateBadgeText));
-    }
-
-    partial void OnAvailableUpdateVersionChanged(string value)
-    {
-        OnPropertyChanged(nameof(UpdateBadgeText));
-    }
-
-    partial void OnAvailableUpdateUrlChanged(string value)
-    {
-        OnPropertyChanged(nameof(CanOpenUpdatePage));
+        OnPropertyChanged(nameof(UseNativeMacChrome));
     }
 
     partial void OnAutoStartModeChanged(string value)
@@ -997,10 +1013,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (OperatingSystem.IsWindows())
-        {
-            WindowsAutoStartService.Update(StartWithWindows, StartMinimized, AppendLog);
-        }
+        UpdateAutoStartRegistration();
     }
 
     public Task InitializeAsync()
@@ -1014,11 +1027,6 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         Dispatcher.UIThread.Post(StartIpAutoRefresh);
 
         CurrentIp = LocalizationService.Get("Status.Resolving");
-        if (AutoUpdate)
-        {
-            _ = CheckForUpdatesAsync(silentWhenNoUpdate: true);
-        }
-
         _ = Task.Run(async () =>
         {
             try
@@ -1048,7 +1056,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             try
             {
-                await _client.EnsureDependenciesAsync().ConfigureAwait(false);
+                await _client.EnsureTorDependenciesAsync().ConfigureAwait(false);
                 var bridgeTypes = _client.GetBridgeTypes();
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -1121,6 +1129,19 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             {
                 _ipRefreshTimer.Stop();
                 _ipRefreshTimer = null;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            if (_logFlushTimer != null)
+            {
+                _logFlushTimer.Stop();
+                _logFlushTimer.Tick -= OnLogFlushTimerTick;
+                _logFlushTimer = null;
             }
         }
         catch
@@ -1205,12 +1226,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 var attemptOptions = strategy.Options;
 
                 if (SmartConnectEnabled &&
-                    OperatingSystem.IsWindows() &&
                     attemptOptions.OnionDnsProxyEnabled &&
-                    !WindowsAdmin.IsAdministrator())
+                    !PlatformHelper.IsAdministrator() &&
+                    !OperatingSystem.IsWindows() &&
+                    !OperatingSystem.IsMacOS())
                 {
                     attemptOptions = attemptOptions with { OnionDnsProxyEnabled = false };
-                    AppendLog("Smart Connect: disabled .onion DNS proxy for this attempt because Administrator is required.");
+                    AppendLog("Smart Connect: disabled .onion DNS proxy for this attempt because elevated privileges are required.");
                 }
 
                 if (SmartConnectEnabled)
@@ -1293,38 +1315,66 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     private async Task<bool> EnsureAdminRequirementsForConnectAsync(OnionHopConnectOptions options)
     {
-        if (!OperatingSystem.IsWindows())
+        var needsAdmin = options.OnionDnsProxyEnabled || IsTunModeOption(options);
+        if (!needsAdmin || PlatformHelper.IsAdministrator())
         {
             return true;
         }
 
-        if (options.OnionDnsProxyEnabled && !WindowsAdmin.IsAdministrator())
+        if (OperatingSystem.IsWindows())
         {
             StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
-            if (!WindowsUacHelper.TryElevate())
+
+            if (options.OnionDnsProxyEnabled && !WindowsUacHelper.TryElevate())
             {
-                StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
-            }
-
-            return false;
-        }
-
-        if (IsTunModeOption(options) && !WindowsAdmin.IsAdministrator())
-        {
-            StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
-            OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling EnsureAdminHelperAsync...");
-
-            if (!await _client.EnsureAdminHelperAsync())
-            {
-                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync returned false");
                 StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
                 return false;
             }
 
-            OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync succeeded.");
+            if (IsTunModeOption(options))
+            {
+                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling EnsureAdminHelperAsync...");
+                if (!await _client.EnsureAdminHelperAsync())
+                {
+                    OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync returned false");
+                    StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
+                    return false;
+                }
+
+                OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: EnsureAdminHelperAsync succeeded.");
+            }
+
+            return true;
         }
 
-        return true;
+        if (OperatingSystem.IsMacOS())
+        {
+            var usesTunMode = IsTunModeOption(options);
+            var usesNetworkExtension = usesTunMode && _client.CanUseMacNetworkExtension();
+            var needsMacAdmin = options.OnionDnsProxyEnabled || (usesTunMode && !usesNetworkExtension);
+
+            if (!needsMacAdmin)
+            {
+                if (usesNetworkExtension)
+                {
+                    AppendLog("Using configured macOS Network Extension profile for TUN mode (no admin prompt required before connect).");
+                }
+
+                return true;
+            }
+
+            var adminReason = usesTunMode && options.OnionDnsProxyEnabled
+                ? "tunnel and .onion DNS setup"
+                : usesTunMode
+                    ? "tunnel setup"
+                    : ".onion DNS setup";
+
+            AppendLog($"macOS will request administrator privileges before starting {adminReason}. The GUI stays in the normal user session.");
+            return true;
+        }
+
+        StatusMessage = "This mode requires root privileges on this platform. Please relaunch OnionHop with elevated permissions.";
+        return false;
     }
 
     [RelayCommand]
@@ -1399,82 +1449,6 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private void OpenLatestReleasePage()
-    {
-        var url = string.IsNullOrWhiteSpace(AvailableUpdateUrl) ? UpdateReleasesPageUrl : AvailableUpdateUrl;
-        OpenLaunchPage(url);
-    }
-
-    private async Task CheckForUpdatesAsync(bool silentWhenNoUpdate)
-    {
-        if (_disposed || IsCheckingUpdates || !AutoUpdate)
-        {
-            return;
-        }
-
-        IsCheckingUpdates = true;
-        try
-        {
-            var latest = await _updateService.GetLatestReleaseAsync(UpdateApiUrl).ConfigureAwait(false);
-            if (latest == null)
-            {
-                if (!silentWhenNoUpdate)
-                {
-                    Dispatcher.UIThread.Post(() => AppendLog("Update check failed."));
-                }
-
-                return;
-            }
-
-            var currentVersion = GetCurrentAppVersion();
-            var latestVersionText = FormatVersion(latest.Version);
-            var currentVersionText = FormatVersion(currentVersion);
-            var updateUrl = !string.IsNullOrWhiteSpace(latest.HtmlUrl)
-                ? latest.HtmlUrl!
-                : !string.IsNullOrWhiteSpace(latest.DownloadUrl)
-                    ? latest.DownloadUrl!
-                    : UpdateReleasesPageUrl;
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                if (IsVersionNewer(latest.Version, currentVersion))
-                {
-                    var sameVersionAlreadyShown = IsUpdateAvailable &&
-                        string.Equals(AvailableUpdateVersion, latestVersionText, StringComparison.OrdinalIgnoreCase);
-
-                    IsUpdateAvailable = true;
-                    AvailableUpdateVersion = latestVersionText;
-                    AvailableUpdateUrl = updateUrl;
-
-                    if (!sameVersionAlreadyShown)
-                    {
-                        AppendLog($"Update available: v{latestVersionText} (current v{currentVersionText}).");
-                    }
-
-                    return;
-                }
-
-                IsUpdateAvailable = false;
-                AvailableUpdateVersion = string.Empty;
-                AvailableUpdateUrl = string.Empty;
-
-                if (!silentWhenNoUpdate)
-                {
-                    AppendLog($"No updates available (current v{currentVersionText}).");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            Dispatcher.UIThread.Post(() => AppendLog($"Update check failed: {ex.Message}"));
-        }
-        finally
-        {
-            Dispatcher.UIThread.Post(() => IsCheckingUpdates = false);
-        }
-    }
-
-    [RelayCommand]
     private async Task ChangeIdentityAsync()
     {
         await _client.ChangeIdentityAsync(CancellationToken.None);
@@ -1526,7 +1500,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
             AllowLanProxyAccess = false;
             TunCoreMode = TunCoreSingBox;
-            TunStackMode = TunStackMixed;
+            TunStackMode = IsMacOS ? TunStackSystem : TunStackMixed;
             TunMtu = string.Empty;
             TunStrictRoute = true;
             ConnectionTimeoutSeconds = string.Empty;
@@ -1548,24 +1522,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             HybridBypassApps = string.Empty;
 
             ThemeMode = ThemeModeSystem;
-            UseNativeTheme = false;
+            UseNativeTheme = true;
         }
         finally
         {
             _loadingSettings = false;
         }
 
-        if (OperatingSystem.IsWindows())
-        {
-            try
-            {
-                WindowsAutoStartService.Update(StartWithWindows, StartMinimized, AppendLog);
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"Failed to update Windows startup after reset: {ex.Message}");
-            }
-        }
+        UpdateAutoStartRegistration();
 
         ApplyTheme();
         SaveSettings();
@@ -1613,6 +1577,33 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return true;
+    }
+
+    private void UpdateAutoStartRegistration()
+    {
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                WindowsAutoStartService.Update(StartWithWindows, StartMinimized, AppendLog);
+                return;
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                LinuxAutoStartService.Update(StartWithWindows, StartMinimized, AppendLog);
+                return;
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                MacAutoStartService.Update(StartWithWindows, StartMinimized, AppendLog);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Failed to update startup registration: {ex.Message}");
+        }
     }
 
     private static bool TryParsePreferredProxyPort(string raw, out int port)
@@ -1720,7 +1711,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             AllowLanProxyAccess = AllowLanProxyAccess,
             TunCoreMode = TunCoreMode,
-            TunStackMode = TunStackMode,
+            TunStackMode = IsMacOS ? TunStackSystem : TunStackMode,
             TunMtu = ParseTunMtu(TunMtu),
             TunStrictRoute = TunStrictRoute,
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
@@ -1827,13 +1818,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             try
             {
                 await Task.Delay(500, token).ConfigureAwait(false);
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    if (!token.IsCancellationRequested)
-                    {
-                        SaveSettings();
-                    }
-                });
+                SaveSettings();
             }
             catch (OperationCanceledException)
             {
@@ -1945,6 +1930,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             AllowLanProxyAccess = settings.AllowLanProxyAccess;
             TunCoreMode = NormalizeTunCoreMode(settings.TunCoreMode);
             TunStackMode = NormalizeTunStackMode(settings.TunStackMode);
+            if (IsMacOS)
+            {
+                TunStackMode = TunStackSystem;
+            }
             TunMtu = settings.TunMtu is >= 576 and <= 9000
                 ? settings.TunMtu.Value.ToString(CultureInfo.InvariantCulture)
                 : string.Empty;
@@ -2102,7 +2091,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             AllowLanProxyAccess = AllowLanProxyAccess,
             TunCoreMode = TunCoreMode,
-            TunStackMode = TunStackMode,
+            TunStackMode = IsMacOS ? TunStackSystem : TunStackMode,
             TunMtu = ParseTunMtu(TunMtu),
             TunStrictRoute = TunStrictRoute,
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
@@ -2509,6 +2498,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     private static string NormalizeTunCoreMode(string? mode)
     {
+        // Xray TUN is not supported on macOS (no process matching → routing loops).
+        if (OperatingSystem.IsMacOS())
+        {
+            return TunCoreSingBox;
+        }
+
         if (string.Equals(mode, TunCoreXray, StringComparison.OrdinalIgnoreCase))
         {
             return TunCoreXray;
@@ -2571,6 +2566,32 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return value;
+    }
+
+    private static string BuildSidebarStatusMessage(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
+
+        var lastLogsIndex = normalized.IndexOf("\nLast logs:", StringComparison.OrdinalIgnoreCase);
+        if (lastLogsIndex >= 0)
+        {
+            normalized = normalized[..lastLogsIndex];
+        }
+
+        normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+        if (normalized.Length <= 180)
+        {
+            return normalized;
+        }
+
+        return normalized[..180].TrimEnd() + "...";
     }
 
     private static Version GetCurrentAppVersion()
@@ -2658,7 +2679,6 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     }
 
     private static int GetVersionPart(int value) => value < 0 ? 0 : value;
-
     private void OpenLaunchPage(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -2689,28 +2709,114 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     public void AppendLog(string message)
     {
-        var line = $"{DateTime.Now:HH:mm:ss} {message}";
-        LogLines.Add(line);
-        TrimLogs(LogLines);
+        if (_disposed || string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            lock (_pendingLogsLock)
+            {
+                EnqueueWithLimit(_pendingAppLogs, message, ref _droppedAppLogLines);
+            }
+
+            return;
+        }
+
+        AppendRawLogLine(LogLines, message);
     }
 
     public void ClearAppLogs()
     {
+        lock (_pendingLogsLock)
+        {
+            _pendingAppLogs.Clear();
+            _droppedAppLogLines = 0;
+        }
+
         LogLines.Clear();
-        AppendLog("App logs cleared.");
+        AppendRawLogLine(LogLines, "App logs cleared.");
     }
 
     public void AppendDnsLog(string message)
     {
-        var line = $"{DateTime.Now:HH:mm:ss} {message}";
-        DnsLogLines.Add(line);
-        TrimLogs(DnsLogLines);
+        if (_disposed || string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            lock (_pendingLogsLock)
+            {
+                EnqueueWithLimit(_pendingDnsLogs, message, ref _droppedDnsLogLines);
+            }
+
+            return;
+        }
+
+        AppendRawLogLine(DnsLogLines, message);
     }
 
     public void ClearDnsLogs()
     {
+        lock (_pendingLogsLock)
+        {
+            _pendingDnsLogs.Clear();
+            _droppedDnsLogLines = 0;
+        }
+
         DnsLogLines.Clear();
-        AppendDnsLog("DNS logs cleared.");
+        AppendRawLogLine(DnsLogLines, "DNS logs cleared.");
+    }
+
+    public void AppendXrayLog(string message)
+    {
+        if (_disposed || string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            lock (_pendingLogsLock)
+            {
+                EnqueueWithLimit(_pendingXrayLogs, message, ref _droppedXrayLogLines);
+            }
+
+            return;
+        }
+
+        AppendRawLogLine(XrayLogLines, message);
+    }
+
+    public void ClearXrayLogs()
+    {
+        lock (_pendingLogsLock)
+        {
+            _pendingXrayLogs.Clear();
+            _droppedXrayLogLines = 0;
+        }
+
+        XrayLogLines.Clear();
+        var sourceName = string.Equals(NormalizeTunCoreMode(TunCoreMode), TunCoreXray, StringComparison.Ordinal)
+            ? "Xray"
+            : "sing-box";
+        AppendRawLogLine(XrayLogLines, $"{sourceName} logs cleared.");
+    }
+
+    public void AppendVpnLog(string message)
+    {
+        var line = $"{DateTime.Now:HH:mm:ss} {message}";
+        VpnLogLines.Add(line);
+        TrimLogs(VpnLogLines);
+    }
+
+    public void ClearVpnLogs()
+    {
+        VpnLogLines.Clear();
+        AppendVpnLog("VPN engine logs cleared.");
     }
 
     private static void TrimLogs(ObservableCollection<string> list)
@@ -2734,6 +2840,174 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             list.Add(item);
         }
+    }
+
+    private void StartLogPump()
+    {
+        _logFlushTimer ??= new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(120)
+        };
+
+        _logFlushTimer.Tick -= OnLogFlushTimerTick;
+        _logFlushTimer.Tick += OnLogFlushTimerTick;
+        _logFlushTimer.Start();
+    }
+
+    private void OnLogFlushTimerTick(object? sender, EventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            FlushQueuedLogs();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                AppendRawLogLine(LogLines, $"Log pump error: {ex.Message}");
+            }
+            catch
+            {
+                // Last-resort guard: never crash the UI loop because logging failed.
+            }
+        }
+    }
+
+    private void FlushQueuedLogs()
+    {
+        List<string> appBatch = [];
+        List<string> dnsBatch = [];
+        List<string> xrayBatch = [];
+        var droppedApp = 0;
+        var droppedDns = 0;
+        var droppedXray = 0;
+
+        lock (_pendingLogsLock)
+        {
+            droppedApp = _droppedAppLogLines;
+            droppedDns = _droppedDnsLogLines;
+            droppedXray = _droppedXrayLogLines;
+            _droppedAppLogLines = 0;
+            _droppedDnsLogLines = 0;
+            _droppedXrayLogLines = 0;
+
+            DrainQueue(_pendingAppLogs, appBatch, LogFlushBatchPerQueue);
+            DrainQueue(_pendingDnsLogs, dnsBatch, LogFlushBatchPerQueue);
+            DrainQueue(_pendingXrayLogs, xrayBatch, LogFlushBatchPerQueue);
+        }
+
+        if (droppedApp > 0)
+        {
+            AppendRawLogLine(LogLines, $"Dropped {droppedApp} app log lines to keep the UI responsive.");
+        }
+
+        if (droppedDns > 0)
+        {
+            AppendRawLogLine(DnsLogLines, $"Dropped {droppedDns} DNS log lines to keep the UI responsive.");
+        }
+
+        if (droppedXray > 0)
+        {
+            AppendRawLogLine(XrayLogLines, $"Dropped {droppedXray} Xray log lines to keep the UI responsive.");
+        }
+
+        foreach (var line in appBatch)
+        {
+            AppendRawLogLine(LogLines, line);
+        }
+
+        foreach (var line in dnsBatch)
+        {
+            AppendRawLogLine(DnsLogLines, line);
+        }
+
+        foreach (var line in xrayBatch)
+        {
+            AppendRawLogLine(XrayLogLines, line);
+        }
+    }
+
+    private void EnqueueClientLog(string message)
+    {
+        if (_disposed || string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        lock (_pendingLogsLock)
+        {
+            if (IsXrayLogLine(message))
+            {
+                EnqueueWithLimit(_pendingXrayLogs, message, ref _droppedXrayLogLines);
+                if (IsImportantXrayLogLine(message))
+                {
+                    EnqueueWithLimit(_pendingAppLogs, message, ref _droppedAppLogLines);
+                }
+
+                return;
+            }
+
+            EnqueueWithLimit(_pendingAppLogs, message, ref _droppedAppLogLines);
+        }
+    }
+
+    private void EnqueueDnsLog(string message)
+    {
+        if (_disposed || string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        lock (_pendingLogsLock)
+        {
+            EnqueueWithLimit(_pendingDnsLogs, message, ref _droppedDnsLogLines);
+        }
+    }
+
+    private static void EnqueueWithLimit(Queue<string> queue, string message, ref int droppedCounter)
+    {
+        if (queue.Count >= MaxBufferedLogEntries)
+        {
+            queue.Dequeue();
+            droppedCounter++;
+        }
+
+        queue.Enqueue(message);
+    }
+
+    private static void DrainQueue(Queue<string> source, List<string> destination, int maxLines)
+    {
+        while (source.Count > 0 && destination.Count < maxLines)
+        {
+            destination.Add(source.Dequeue());
+        }
+    }
+
+    private static bool IsXrayLogLine(string message)
+    {
+        return message.StartsWith("xray:", StringComparison.OrdinalIgnoreCase)
+               || message.StartsWith("sing-box:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsImportantXrayLogLine(string message)
+    {
+        return message.Contains("[warn", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("[error", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("failed", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("panic", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("fatal", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AppendRawLogLine(ObservableCollection<string> target, string message)
+    {
+        var line = $"{DateTime.Now:HH:mm:ss} {message}";
+        target.Add(line);
+        TrimLogs(target);
     }
 
     private void StartSpeedMonitor()

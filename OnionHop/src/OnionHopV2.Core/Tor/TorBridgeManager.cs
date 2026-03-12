@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV2.Core.Platform;
 
 namespace OnionHopV2.Core.Tor;
 
@@ -30,7 +31,6 @@ internal sealed class TorBridgeManager
     private const string Obfs4BridgeType = "obfs4";
     private const string ConjureBridgeType = "conjure";
     private static readonly string[] AutomaticBridgeFallbackChain = [WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType];
-    private const string WebTunnelClientFileName = "webtunnel-client.exe";
     private const string BundledBridgeFilePrefix = "bridges-";
     private const string CommunityBridgeFilePrefix = "bridges-community-";
     private const string BundledBridgeFileExtension = ".txt";
@@ -68,6 +68,9 @@ internal sealed class TorBridgeManager
     }
 
     public string? BridgeValidationMessage { get; private set; }
+    private static string WebTunnelClientFileName => PlatformHelper.WebTunnelClientBinaryName;
+    private static string LyrebirdFileName => PlatformHelper.LyrebirdBinaryName;
+    private static string SnowflakeClientFileName => PlatformHelper.SnowflakeClientBinaryName;
 
     public readonly record struct BridgeDbRefreshSummary(
         int AttemptedTypes,
@@ -270,14 +273,14 @@ internal sealed class TorBridgeManager
             .ToList()
             ?? [];
 
-        if (!bridgeKeys.Any(key => string.Equals(key, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase)))
-        {
-            bridgeKeys.Add(AutomaticBridgeType);
-        }
-
         if (bridgeKeys.Count == 0)
         {
-            bridgeKeys.AddRange([AutomaticBridgeType, Obfs4BridgeType, SnowflakeBridgeType, ConjureBridgeType, "meek-azure"]);
+            bridgeKeys.AddRange([Obfs4BridgeType, SnowflakeBridgeType, ConjureBridgeType, "meek-azure"]);
+        }
+
+        if (!bridgeKeys.Any(key => string.Equals(key, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase)))
+        {
+            bridgeKeys.Insert(0, AutomaticBridgeType);
         }
 
         if (!bridgeKeys.Any(key => string.Equals(key, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase)))
@@ -1099,8 +1102,10 @@ internal sealed class TorBridgeManager
         Action<string> log)
     {
         var ptPath = Path.Combine(torDir, "pluggable_transports");
-        var ptRelativePath = "pluggable_transports";
-        var ptRelativePathWithSlash = ptRelativePath + Path.DirectorySeparatorChar;
+        // Use absolute paths so pluggable transports are found regardless of
+        // working directory (critical when relaunched as root for TUN mode).
+        var ptRelativePath = ptPath;
+        var ptRelativePathWithSlash = ptPath + Path.DirectorySeparatorChar;
 
         var needed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var line in bridgeLines)
@@ -1145,7 +1150,7 @@ internal sealed class TorBridgeManager
                     continue;
                 }
 
-                pluginLines.Add($"ClientTransportPlugin {transport} exec {Path.Combine(ptRelativePath, "lyrebird.exe")}");
+                pluginLines.Add($"ClientTransportPlugin {transport} exec {Path.Combine(ptRelativePath, LyrebirdFileName)}");
             }
 
             return ApplySnowflakeOptions(options, pluginLines, ptRelativePath, log)
@@ -1206,13 +1211,16 @@ internal sealed class TorBridgeManager
 
     private static string EnsureSnowflakeClientPlugin(string pluginLine, string ptRelativePath)
     {
-        if (pluginLine.Contains("snowflake-client.exe", StringComparison.OrdinalIgnoreCase))
+        // Lyrebird 0.8+ natively supports the snowflake transport — no separate
+        // snowflake-client binary is needed.  Accept either lyrebird or snowflake-client.
+        if (pluginLine.Contains(LyrebirdFileName, StringComparison.OrdinalIgnoreCase) ||
+            pluginLine.Contains(SnowflakeClientFileName, StringComparison.OrdinalIgnoreCase))
         {
             return pluginLine;
         }
 
-        // Some bundled pt_config.json files incorrectly map snowflake to lyrebird.exe. Override safely.
-        return $"ClientTransportPlugin snowflake exec {Path.Combine(ptRelativePath, "snowflake-client.exe")}";
+        // Fallback: use lyrebird for the snowflake transport.
+        return $"ClientTransportPlugin snowflake exec {Path.Combine(ptRelativePath, LyrebirdFileName)}";
     }
 
     private static string ApplySnowflakeAmpCache(OnionHopConnectOptions options, string pluginLine, Action<string> log)
@@ -1265,11 +1273,11 @@ internal sealed class TorBridgeManager
 
             if (string.Equals(transport, "snowflake", StringComparison.OrdinalIgnoreCase))
             {
-                plugins.Add($"ClientTransportPlugin snowflake exec {Path.Combine(ptRelativePath, "snowflake-client.exe")}");
+                plugins.Add($"ClientTransportPlugin snowflake exec {Path.Combine(ptRelativePath, LyrebirdFileName)}");
                 continue;
             }
 
-            plugins.Add($"ClientTransportPlugin {transport} exec {Path.Combine(ptRelativePath, "lyrebird.exe")}");
+            plugins.Add($"ClientTransportPlugin {transport} exec {Path.Combine(ptRelativePath, LyrebirdFileName)}");
         }
 
         return plugins.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -1440,22 +1448,17 @@ internal sealed class TorBridgeManager
 
         if (!File.Exists(clientPath))
         {
-            BridgeValidationMessage = $"Webtunnel client is missing ({WebTunnelClientFileName}). Install Tor Browser and copy it into tor\\pluggable_transports.";
+            BridgeValidationMessage = $"Webtunnel client is missing ({WebTunnelClientFileName}). Install Tor Browser and copy it into tor/pluggable_transports.";
             return false;
         }
 
-        pluginLine = $"ClientTransportPlugin webtunnel exec {Path.Combine("pluggable_transports", WebTunnelClientFileName)}";
+        pluginLine = $"ClientTransportPlugin webtunnel exec {Path.Combine(ptPath, WebTunnelClientFileName)}";
         return true;
     }
 
     private static string? FindWebTunnelClientInTorBrowser()
     {
-        var candidates = new[]
-        {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tor Browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Tor Browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Tor Browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName)
-        };
+        var candidates = BuildTorBrowserPtCandidates();
 
         foreach (var candidate in candidates)
         {
@@ -1466,6 +1469,34 @@ internal sealed class TorBridgeManager
         }
 
         return null;
+    }
+
+    private static IReadOnlyList<string> BuildTorBrowserPtCandidates()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return
+            [
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tor Browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Tor Browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Tor Browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName)
+            ];
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return
+            [
+                Path.Combine("/Applications", "Tor Browser.app", "Contents", "Resources", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications", "Tor Browser.app", "Contents", "Resources", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName)
+            ];
+        }
+
+        return
+        [
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "tor-browser", "Browser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName),
+            Path.Combine("/usr", "share", "torbrowser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName)
+        ];
     }
 
     private static List<string> ExtractBridgeLines(string? text)

@@ -27,15 +27,7 @@ internal static class VpnConfigBuilder
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
-        var torRelatedProcessNames = new[]
-        {
-            "tor.exe",
-            "snowflake-client.exe",
-            "lyrebird.exe",
-            "obfs4proxy.exe",
-            "conjure-client.exe",
-            "webtunnel-client.exe"
-        };
+        var torRelatedProcessNames = BuildTorRelatedProcessNames();
 
         var rules = new List<object>
         {
@@ -83,7 +75,6 @@ internal static class VpnConfigBuilder
         {
             resolvedDohPath = "/" + resolvedDohPath;
         }
-
         var resolvedDohPort = dohServerPort is > 0 and <= 65535 ? dohServerPort : 443;
         var resolvedTunStack = NormalizeTunStack(tunStack);
         var resolvedTunMtu = tunMtu is >= 576 and <= 9000 ? tunMtu : null;
@@ -92,8 +83,8 @@ internal static class VpnConfigBuilder
         {
             ["type"] = "tun",
             ["tag"] = "tun-in",
-            ["interface_name"] = "OnionHop",
-            ["address"] = new[] { "172.19.0.1/30" },
+            ["interface_name"] = OperatingSystem.IsMacOS() ? "utun99" : "OnionHop",
+            ["address"] = new[] { "172.19.0.1/30", "fdfe:dcba:9876::1/126" },
             ["auto_route"] = true,
             ["strict_route"] = tunStrictRoute,
             ["stack"] = resolvedTunStack
@@ -231,5 +222,31 @@ internal static class VpnConfigBuilder
         }
 
         return "mixed";
+    }
+
+    private static string[] BuildTorRelatedProcessNames()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return
+            [
+                "tor.exe",
+                "snowflake-client.exe",
+                "lyrebird.exe",
+                "obfs4proxy.exe",
+                "conjure-client.exe",
+                "webtunnel-client.exe"
+            ];
+        }
+
+        return
+        [
+            "tor",
+            "snowflake-client",
+            "lyrebird",
+            "obfs4proxy",
+            "conjure-client",
+            "webtunnel-client"
+        ];
     }
 }

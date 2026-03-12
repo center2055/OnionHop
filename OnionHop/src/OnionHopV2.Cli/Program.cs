@@ -2,7 +2,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using OnionHopV2.Core;
-using OnionHopV2.Core.Platform.Windows;
+using OnionHopV2.Core.Platform;
 using OnionHopV2.Core.Services;
 
 namespace OnionHopV2.Cli;
@@ -340,12 +340,6 @@ internal sealed class CliHost : IAsyncDisposable
             return false;
         }
 
-        if (!OperatingSystem.IsWindows())
-        {
-            WriteWarning("OnionHop CLI network routing is currently Windows-only.");
-            return false;
-        }
-
         var baseOptions = BuildBaseOptions(request);
         IReadOnlyList<SmartConnectAdvisor.Strategy> strategies;
         if (request.SmartConnect)
@@ -393,10 +387,10 @@ internal sealed class CliHost : IAsyncDisposable
 
             var strategy = strategies[i];
             var attemptOptions = strategy.Options;
-            if (attemptOptions.OnionDnsProxyEnabled && !WindowsAdmin.IsAdministrator())
+            if (attemptOptions.OnionDnsProxyEnabled && !PlatformHelper.IsAdministrator())
             {
                 attemptOptions = attemptOptions with { OnionDnsProxyEnabled = false };
-                WriteWarning(".onion DNS proxy requires Administrator; continuing without it.");
+                WriteWarning(".onion DNS proxy requires elevated privileges; continuing without it.");
             }
 
             if (request.SmartConnect)
@@ -450,18 +444,40 @@ internal sealed class CliHost : IAsyncDisposable
     private async Task<bool> EnsureAdminRequirementsForConnectAsync(OnionHopConnectOptions options, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (!OperatingSystem.IsWindows())
+        var isTun = string.Equals(options.SelectedConnectionMode, OnionHopConnectOptions.ConnectionModeTun, StringComparison.Ordinal);
+        var isAdmin = PlatformHelper.IsAdministrator();
+
+        if (options.OnionDnsProxyEnabled && !isAdmin)
         {
-            return true;
+            WriteWarning(".onion DNS proxy requires elevated privileges.");
+            return false;
         }
 
-        if (string.Equals(options.SelectedConnectionMode, OnionHopConnectOptions.ConnectionModeTun, StringComparison.Ordinal) &&
-            !WindowsAdmin.IsAdministrator())
+        if (isTun && !isAdmin)
         {
-            WriteInfo("TUN mode selected. Verifying elevated helper access...");
-            if (!await _client.EnsureAdminHelperAsync())
+            if (OperatingSystem.IsWindows())
             {
-                WriteWarning("Administrator helper is not available. Start the terminal as Administrator for strict TUN mode.");
+                WriteInfo("TUN mode selected. Verifying elevated helper access...");
+                if (!await _client.EnsureAdminHelperAsync())
+                {
+                    WriteWarning("Administrator helper is not available. Start the terminal as Administrator for strict TUN mode.");
+                    return false;
+                }
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                if (_client.CanUseMacNetworkExtension())
+                {
+                    WriteInfo("Using configured macOS Network Extension profile for TUN mode (no sudo launch required).");
+                    return true;
+                }
+
+                WriteWarning("TUN mode on macOS requires root privileges or a configured Network Extension profile.");
+                return false;
+            }
+            else
+            {
+                WriteWarning("TUN mode requires root privileges on this platform. Re-run with sudo.");
                 return false;
             }
         }

@@ -40,14 +40,13 @@
   <x:String x:Key="Home.KillSwitchHint">Der Kill-Switch ben&#246;tigt Administratorrechte und ist im Hybridmodus deaktiviert.</x:String>
   <x:String x:Key="Home.ConnectionElapsed">Verbunden seit</x:String>
   <x:String x:Key="Home.DownloadingComponents">Komponenten werden heruntergeladen...</x:String>
-  <x:String x:Key="Home.UpdateBadge">Update verf&#252;gbar</x:String>
-  <x:String x:Key="Home.UpdateBadgeVersion">Update verf&#252;gbar: v{0}</x:String>
-  <x:String x:Key="Home.UpdateBadgeTooltip">Release-Seite &#246;ffnen</x:String>
 
   <!-- Logs -->
   <x:String x:Key="Logs.Title">Protokolle</x:String>
   <x:String x:Key="Logs.TabApp">App</x:String>
   <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.TabXray">Xray</x:String>
+  <x:String x:Key="Logs.TabSingBox">Sing-box</x:String>
   <x:String x:Key="Logs.Copy">Kopieren</x:String>
   <x:String x:Key="Logs.Export">Exportieren...</x:String>
   <x:String x:Key="Logs.Clear">Leeren</x:String>
@@ -117,7 +116,7 @@
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">Proxy-Modus</x:String>
   <x:String x:Key="Settings.ProxyScope">Proxy-Verhalten</x:String>
-  <x:String x:Key="Settings.ProxyScopeHint">System-Proxy (alle Apps) setzt HTTP/HTTPS + SOCKS. SOCKS Browser/.onion-Modus setzt nur SOCKS f&#252;r bessere .onion-Kompatibilit&#228;t in Browsern. Nur lokal bel&#228;sst die Windows-Einstellungen unver&#228;ndert f&#252;r manuelle App-Konfiguration.</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">System-Proxy (alle Apps) setzt HTTP/HTTPS + SOCKS. SOCKS Browser/.onion-Modus setzt nur SOCKS f&#252;r bessere .onion-Kompatibilit&#228;t in Browsern. Nur lokal bel&#228;sst die System-Proxy-Einstellungen unver&#228;ndert f&#252;r manuelle App-Konfiguration.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Bevorzugter SOCKS-Port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Bevorzugter HTTP-Tunnel-Port</x:String>
   <x:String x:Key="Settings.AllowLanProxyAccess">LAN-Proxyzugriff erlauben</x:String>
@@ -131,7 +130,7 @@
   <x:String x:Key="Settings.CustomDohPath">Eigener DoH-Pfad</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
   <x:String x:Key="Settings.OnionDnsProxy">.onion-DNS &#252;ber Tor weiterleiten (Admin)</x:String>
-  <x:String x:Key="Settings.OnionDnsProxyHint">Wenn aktiviert und als Administrator ausgef&#252;hrt, werden Windows-.onion-DNS-Anfragen &#252;ber Tor geleitet.</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">Wenn aktiviert und mit erh&#246;hten Rechten ausgef&#252;hrt, werden .onion-DNS-Anfragen &#252;ber Tor geleitet.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor - Erweitert</x:String>
   <x:String x:Key="Settings.TorAdvancedHint">Gruppierte Steuerelemente halten diesen Bereich &#252;bersichtlich. Nur die ben&#246;tigten Abschnitte aufklappen.</x:String>
@@ -169,13 +168,13 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Deaktivieren, um auf andere Exits zur&#252;ckzufallen, wenn der gew&#228;hlte Fingerprint nicht verf&#252;gbar ist.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split-Tunneling (Hybridmodus)</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">Im Hybridmodus kannst du w&#228;hlen, welche Apps Tor nutzen und welche direkt gehen. Ein Prozessname pro Zeile (z. B. chrome.exe).</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">Im Hybridmodus kannst du w&#228;hlen, welche Apps Tor nutzen und welche direkt gehen. Ein Prozessname pro Zeile (z. B. chrome unter Linux/macOS, chrome.exe unter Windows).</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Gesamten Web-Traffic (Ports 80/443) &#252;ber Tor leiten</x:String>
   <x:String x:Key="Settings.BlockQuic">QUIC/UDP f&#252;r Tor-Apps blockieren (verhindert Umgehungs-Leaks)</x:String>
   <x:String x:Key="Settings.TorApps">Apps &#252;ber Tor (Hybridmodus)</x:String>
-  <x:String x:Key="Settings.TorAppsWatermark">firefox.exe&#10;chrome.exe&#10;msedge.exe</x:String>
+  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
   <x:String x:Key="Settings.BypassApps">Apps, die Tor umgehen (optional)</x:String>
-  <x:String x:Key="Settings.BypassAppsWatermark">steam.exe&#10;discord.exe</x:String>
+  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
   <x:String x:Key="Settings.SplitTunnelingEnableHint">Aktiviere TUN/VPN-Modus + Hybrid-Routing auf der Startseite, um Split-Tunneling zu nutzen.</x:String>
 
   <x:String x:Key="Settings.AutomationTitle">Automatisierung</x:String>

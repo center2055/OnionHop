@@ -96,9 +96,12 @@
                 <StackPanel Margin="14,0,14,14" Spacing="8">
                     <TextBlock Text="{Binding State.ConnectionStatus}"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding State.StatusMessage}"
-                               Opacity="0.85"
-                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding State.SidebarStatusMessage}"
+                                Opacity="0.85"
+                               MaxWidth="220"
+                               MaxLines="6"
+                               TextWrapping="WrapWithOverflow"
+                               TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </suki:SukiSideMenu.FooterContent>
         </suki:SukiSideMenu>

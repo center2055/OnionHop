@@ -123,6 +123,7 @@ public partial class MainWindow : SukiWindow
         }
 
         UpdateCustomChromeCornerRadius();
+        ApplyMacNativeFullScreenCapability();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -138,6 +139,7 @@ public partial class MainWindow : SukiWindow
     {
         base.OnOpened(e);
         UpdateCustomChromeCornerRadius();
+        ApplyMacNativeFullScreenCapability();
     }
 
     private void OnStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -146,6 +148,7 @@ public partial class MainWindow : SukiWindow
             e.PropertyName == nameof(AppStateViewModel.UseCustomChrome))
         {
             UpdateCustomChromeCornerRadius();
+            ApplyMacNativeFullScreenCapability();
         }
     }
 
@@ -181,6 +184,87 @@ public partial class MainWindow : SukiWindow
         _ = DwmSetWindowAttribute(handle.Handle, DWMWA_BORDER_COLOR, ref borderColor, sizeof(uint));
     }
 
+    private System.Threading.Timer? _macFullScreenWiringTimer;
+
+    private void ApplyMacNativeFullScreenCapability()
+    {
+        _macFullScreenWiringTimer?.Dispose();
+        _macFullScreenWiringTimer = null;
+
+        if (!OperatingSystem.IsMacOS() ||
+            DataContext is not ShellViewModel { State.UseNativeTheme: true })
+        {
+            return;
+        }
+
+        // Defer the wiring so it runs AFTER SukiUI/Avalonia have finished their
+        // own window setup (which can reset the zoom button's action/target).
+        // We wire multiple times with increasing delays to ensure we win the race.
+        var attempt = 0;
+        _macFullScreenWiringTimer = new System.Threading.Timer(_ =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => WireMacFullScreenButton());
+            if (++attempt >= 5)
+            {
+                _macFullScreenWiringTimer?.Dispose();
+                _macFullScreenWiringTimer = null;
+            }
+        }, null, 200, 500);
+    }
+
+    private void WireMacFullScreenButton()
+    {
+        var handle = TryGetPlatformHandle();
+        if (handle == null || handle.Handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var nsWindow = ResolveMacWindowHandle(handle);
+        if (nsWindow == IntPtr.Zero)
+        {
+            return;
+        }
+
+        // Enable fullscreen capability via collection behavior.
+        const nuint fullScreenPrimary = 1u << 7;
+        var collectionBehaviorSelector = sel_registerName("collectionBehavior");
+        var setCollectionBehaviorSelector = sel_registerName("setCollectionBehavior:");
+        var collectionBehavior = nuint_objc_msgSend(nsWindow, collectionBehaviorSelector);
+        var updatedBehavior = collectionBehavior | fullScreenPrimary;
+        if (updatedBehavior != collectionBehavior)
+        {
+            void_objc_msgSend_nuint(nsWindow, setCollectionBehaviorSelector, updatedBehavior);
+        }
+
+        // Wire the green (zoom) button directly to toggleFullScreen:.
+        // Avalonia/SukiUI intercepts the default zoom: action, preventing the native
+        // fullscreen button from working on click. By re-targeting the button, we
+        // bypass the interception.
+        var zoomButton = IntPtr_objc_msgSend_long(nsWindow, sel_registerName("standardWindowButton:"), 2); // NSWindowZoomButton = 2
+        if (zoomButton != IntPtr.Zero)
+        {
+            void_objc_msgSend_IntPtr(zoomButton, sel_registerName("setAction:"), sel_registerName("toggleFullScreen:"));
+            void_objc_msgSend_IntPtr(zoomButton, sel_registerName("setTarget:"), nsWindow);
+        }
+    }
+
+    private static IntPtr ResolveMacWindowHandle(IPlatformHandle handle)
+    {
+        if (string.Equals(handle.HandleDescriptor, "NSWindow", StringComparison.OrdinalIgnoreCase))
+        {
+            return handle.Handle;
+        }
+
+        if (!string.Equals(handle.HandleDescriptor, "NSView", StringComparison.OrdinalIgnoreCase))
+        {
+            return IntPtr.Zero;
+        }
+
+        var windowSelector = sel_registerName("window");
+        return IntPtr_objc_msgSend(handle.Handle, windowSelector);
+    }
+
     private static bool IsInteractivePointerSource(object? source)
     {
         for (var visual = source as Visual; visual != null; visual = visual.GetVisualParent())
@@ -212,4 +296,22 @@ public partial class MainWindow : SukiWindow
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref uint pvAttribute, int cbAttribute);
+
+    [DllImport("/usr/lib/libobjc.A.dylib")]
+    private static extern IntPtr sel_registerName(string name);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern IntPtr IntPtr_objc_msgSend(IntPtr receiver, IntPtr selector);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern nuint nuint_objc_msgSend(IntPtr receiver, IntPtr selector);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern void void_objc_msgSend_nuint(IntPtr receiver, IntPtr selector, nuint value);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern IntPtr IntPtr_objc_msgSend_long(IntPtr receiver, IntPtr selector, long arg);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern void void_objc_msgSend_IntPtr(IntPtr receiver, IntPtr selector, IntPtr arg);
 }

@@ -103,15 +103,27 @@ public partial class App : Application
         if (useNativeChrome)
         {
             window.SystemDecorations = SystemDecorations.Full;
-            window.ExtendClientAreaToDecorationsHint = false;
-            window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.Default;
-            window.ExtendClientAreaTitleBarHeightHint = 0;
+
+            if (OperatingSystem.IsMacOS())
+            {
+                window.ExtendClientAreaToDecorationsHint = false;
+                window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.Default;
+                window.ExtendClientAreaTitleBarHeightHint = -1;
+            }
+            else
+            {
+                window.ExtendClientAreaToDecorationsHint = false;
+                window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.Default;
+                window.ExtendClientAreaTitleBarHeightHint = -1;
+            }
 
             if (window is SukiWindow sukiWindow)
             {
                 sukiWindow.IsTitleBarVisible = false;
                 sukiWindow.ShowTitlebarBackground = false;
-                sukiWindow.CanFullScreen = false;
+                sukiWindow.TitleBarVisibilityOnFullScreen = SukiWindow.TitleBarVisibilityMode.Unchanged;
+                sukiWindow.CanFullScreen = OperatingSystem.IsMacOS();
+                sukiWindow.CanMove = true;
                 sukiWindow.CanPin = false;
             }
 

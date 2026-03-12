@@ -24,8 +24,8 @@
                                       "snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://1098762253.rsc.cdn77.org/ fronts=app.datapacket.com,www.datapacket.com ice=stun:stun.epygi.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.mixvoip.com:3478,stun:stun.nextcloud.com:3478,stun:stun.bethesda.net:3478,stun:stun.nextcloud.com:443 utls-imitate=hellorandomizedalpn"
                                   ],
                     "webtunnel":  [
-                                      "webtunnel [2001:db8:8d16:cb5b:d7f5:504b:8768:bdd3]:443 570FEB15763CC623146E8433ACA751948A6756D4 url=https://pl.808.re/SDglNGoixITem7ZHxQKXSscK ver=0.0.2",
-                                      "webtunnel [2001:db8:ec38:ad64:f0fb:d7c2:2e26:4c4a]:443 5FC9FFCBA10611A1C17851A4B0BE1352FBC8909F url=https://redstarsl.cc/cme9f87hmdc8s7dychbsm897xy ver=0.0.1"
+                                      "webtunnel [2001:db8:fbfa:48b4:5520:53e6:24b4:eca0]:443 93807A85521915D7D2BA17725C08AC39035D1741 url=https://web.localenby.is/HmlgNcBbNgRJw862bJVxZRes ver=0.0.3",
+                                      "webtunnel [2001:db8:63b4:6bd7:a357:7858:898e:718c]:443 059AEB126918A33B8246E8136D565FF57753D5CF url=https://alwaysnewbie.eu.org/homesweethome ver=0.0.3"
                                   ]
                 }
 }

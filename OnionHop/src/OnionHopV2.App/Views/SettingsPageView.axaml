@@ -30,6 +30,16 @@
                                           SelectedItem="{Binding State.SelectedAutoStartModeOption}" />
                             </StackPanel>
 
+                            <TextBlock IsVisible="{Binding State.ShowWindowsOnlySettings}"
+                                       Text="Windows-only: UAC helper can elevate TUN startup automatically."
+                                       Opacity="0.65"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock IsVisible="{Binding State.ShowMacOnlySettings}"
+                                       Text="macOS: OnionHop now requests administrator permission only when TUN, kill switch, or .onion DNS setup needs it."
+                                       Opacity="0.65"
+                                       TextWrapping="Wrap" />
+
                             <ToggleSwitch Content="{DynamicResource Settings.MinimizeToTray}"
                                           IsChecked="{Binding State.MinimizeToTray}" />
 
@@ -235,7 +245,8 @@
                                 </StackPanel>
 
                                 <ToggleSwitch Content="{DynamicResource Settings.OnionDnsProxy}"
-                                              IsChecked="{Binding State.OnionDnsProxyEnabled}" />
+                                              IsChecked="{Binding State.OnionDnsProxyEnabled}"
+                                              IsEnabled="{Binding State.CanUseOnionDnsProxy}" />
                                 <TextBlock Text="{DynamicResource Settings.OnionDnsProxyHint}"
                                            Opacity="0.75"
                                            TextWrapping="Wrap" />
@@ -333,7 +344,8 @@
                                     </StackPanel>
 
                                     <Grid ColumnDefinitions="*,*"
-                                          ColumnSpacing="10">
+                                          ColumnSpacing="10"
+                                          IsVisible="{Binding State.ShowTunStackOptions}">
                                         <StackPanel Grid.Column="0"
                                                     Spacing="6">
                                             <TextBlock Text="{DynamicResource Settings.TunStack}" Opacity="0.75" />
@@ -349,6 +361,14 @@
                                                      Watermark="{DynamicResource Settings.TunMtuWatermark}" />
                                         </StackPanel>
                                     </Grid>
+
+                                    <StackPanel Spacing="6"
+                                                IsVisible="{Binding !State.ShowTunStackOptions}">
+                                        <TextBlock Text="{DynamicResource Settings.TunMtu}" Opacity="0.75" />
+                                        <TextBox Text="{Binding State.TunMtu}"
+                                                 VerticalContentAlignment="Center"
+                                                 Watermark="{DynamicResource Settings.TunMtuWatermark}" />
+                                    </StackPanel>
 
                                     <ToggleSwitch Content="{DynamicResource Settings.TunStrictRoute}"
                                                   IsChecked="{Binding State.TunStrictRoute}" />

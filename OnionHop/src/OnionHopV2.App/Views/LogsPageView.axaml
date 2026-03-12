@@ -39,6 +39,17 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </TabItem>
+                <TabItem Header="{Binding State.VpnLogTabHeader}">
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding State.VpnLogLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="12" Margin="12,6" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </TabItem>
             </TabControl>
         </suki:GlassCard>
 

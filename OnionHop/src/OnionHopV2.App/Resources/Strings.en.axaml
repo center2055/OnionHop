@@ -40,14 +40,13 @@
   <x:String x:Key="Home.KillSwitchHint">Kill switch requires Administrator and is disabled in Hybrid mode.</x:String>
   <x:String x:Key="Home.ConnectionElapsed">Connected for</x:String>
   <x:String x:Key="Home.DownloadingComponents">Downloading components...</x:String>
-  <x:String x:Key="Home.UpdateBadge">Update available</x:String>
-  <x:String x:Key="Home.UpdateBadgeVersion">Update available: v{0}</x:String>
-  <x:String x:Key="Home.UpdateBadgeTooltip">Open release page</x:String>
 
   <!-- Logs -->
   <x:String x:Key="Logs.Title">Logs</x:String>
   <x:String x:Key="Logs.TabApp">App</x:String>
   <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.TabXray">Xray</x:String>
+  <x:String x:Key="Logs.TabSingBox">Sing-box</x:String>
   <x:String x:Key="Logs.Copy">Copy</x:String>
   <x:String x:Key="Logs.Export">Export...</x:String>
   <x:String x:Key="Logs.Clear">Clear</x:String>
@@ -117,7 +116,7 @@
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">Proxy Mode</x:String>
   <x:String x:Key="Settings.ProxyScope">Proxy behavior</x:String>
-  <x:String x:Key="Settings.ProxyScopeHint">System proxy (all apps) sets HTTP/HTTPS + SOCKS. SOCKS browser/.onion mode sets SOCKS only for better .onion compatibility in browsers. Local-only keeps Windows settings untouched for manual app setup.</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">System proxy (all apps) sets HTTP/HTTPS + SOCKS. SOCKS browser/.onion mode sets SOCKS only for better .onion compatibility in browsers. Local-only keeps system proxy settings untouched for manual app setup.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Preferred SOCKS port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Preferred HTTP tunnel port</x:String>
   <x:String x:Key="Settings.AllowLanProxyAccess">Allow LAN proxy access</x:String>
@@ -131,7 +130,7 @@
   <x:String x:Key="Settings.CustomDohPath">Custom DoH path</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
   <x:String x:Key="Settings.OnionDnsProxy">Proxy .onion DNS via Tor (Admin)</x:String>
-  <x:String x:Key="Settings.OnionDnsProxyHint">When enabled and running as Administrator, Windows .onion DNS queries are routed through Tor.</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">When enabled and running with elevated privileges, .onion DNS queries are routed through Tor.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor Advanced</x:String>
   <x:String x:Key="Settings.TorAdvancedHint">Grouped controls help keep this section readable. Expand only what you need.</x:String>
@@ -169,13 +168,13 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Disable this to allow fallback exits when the selected fingerprint is unavailable.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split Tunneling (Hybrid mode)</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, you can choose which apps use Tor and which go direct. One process name per line (example: chrome.exe).</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, you can choose which apps use Tor and which go direct. One process name per line (example: chrome on Linux/macOS, chrome.exe on Windows).</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Route all web traffic (ports 80/443) through Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">Block QUIC/UDP for Tor apps (prevents bypass leaks)</x:String>
   <x:String x:Key="Settings.TorApps">Apps routed through Tor (Hybrid mode)</x:String>
-  <x:String x:Key="Settings.TorAppsWatermark">firefox.exe&#10;chrome.exe&#10;msedge.exe</x:String>
+  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
   <x:String x:Key="Settings.BypassApps">Apps bypassing Tor (optional)</x:String>
-  <x:String x:Key="Settings.BypassAppsWatermark">steam.exe&#10;discord.exe</x:String>
+  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
   <x:String x:Key="Settings.SplitTunnelingEnableHint">Enable TUN/VPN mode + Hybrid routing on the Home page to use split tunneling.</x:String>
 
   <x:String x:Key="Settings.AutomationTitle">Automation</x:String>

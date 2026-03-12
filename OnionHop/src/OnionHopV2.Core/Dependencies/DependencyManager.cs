@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core.Models;
+using OnionHopV2.Core.Platform;
 using OnionHopV2.Core.Services;
 using OnionHopV2.Core.Tor;
 
@@ -17,7 +18,7 @@ namespace OnionHopV2.Core.Dependencies;
 
 internal sealed class DependencyManager
 {
-    private const string TorFallbackVersion = "15.0.5";
+    private const string TorFallbackVersion = "15.0.7";
     private const string TorBaseUrl = "https://dist.torproject.org/torbrowser";
     private const string TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser";
     private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest";
@@ -28,32 +29,29 @@ internal sealed class DependencyManager
 
     public async Task<bool> EnsureAsync(
         string baseDir,
+        bool requireVpnDependencies,
         Action<DependencyUpdate> progress,
         Action<string> log,
         CancellationToken token)
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return true;
-        }
-
         var torDir = Path.Combine(baseDir, "tor");
         var vpnDir = Path.Combine(baseDir, "vpn");
-
-        var torExe = Path.Combine(torDir, "tor.exe");
-        var torGenCert = Path.Combine(torDir, "tor-gencert.exe");
-        var geoip = Path.Combine(torDir, "geoip");
-        var geoip6 = Path.Combine(torDir, "geoip6");
         var ptDir = Path.Combine(torDir, "pluggable_transports");
 
-        var singBoxExe = Path.Combine(vpnDir, "sing-box.exe");
-        var xrayExe = Path.Combine(vpnDir, "xray.exe");
-        var wintunDll = Path.Combine(vpnDir, "wintun.dll");
+        var torPath = Path.Combine(torDir, PlatformHelper.TorBinaryName);
+        var geoip = Path.Combine(torDir, "geoip");
+        var geoip6 = Path.Combine(torDir, "geoip6");
 
-        var needsTor = !File.Exists(torExe) || !File.Exists(torGenCert) || !File.Exists(geoip) || !File.Exists(geoip6) || !Directory.Exists(ptDir);
-        var needsSingBox = !File.Exists(singBoxExe);
-        var needsXray = !File.Exists(xrayExe);
-        var needsWintun = !File.Exists(wintunDll);
+        var singBoxPath = Path.Combine(vpnDir, PlatformHelper.SingBoxBinaryName);
+        var xrayPath = Path.Combine(vpnDir, PlatformHelper.XrayBinaryName);
+        var wintunPath = Path.Combine(vpnDir, PlatformHelper.WintunLibraryName);
+
+        // Recent Tor expert bundles on macOS do not always include tor-gencert.
+        // tor-gencert is optional for runtime, so do not block dependency readiness on it.
+        var needsTor = !File.Exists(torPath) || !File.Exists(geoip) || !File.Exists(geoip6) || !Directory.Exists(ptDir);
+        var needsSingBox = requireVpnDependencies && !File.Exists(singBoxPath);
+        var needsXray = requireVpnDependencies && !File.Exists(xrayPath);
+        var needsWintun = requireVpnDependencies && PlatformHelper.NeedsWintun && !File.Exists(wintunPath);
 
         if (!needsTor && !needsSingBox && !needsXray && !needsWintun)
         {
@@ -64,8 +62,9 @@ internal sealed class DependencyManager
 
         progress(new DependencyUpdate(true, "Preparing downloads...", 0));
 
-        var succeeded = false;
-        var tempRoot = Path.Combine(Path.GetTempPath(), "OnionHop", "deps");
+        // Use a unique temp directory per run to avoid permission conflicts when the
+        // app relaunches as root (root-owned leftovers would block the normal user).
+        var tempRoot = Path.Combine(Path.GetTempPath(), "OnionHop", $"deps-{Environment.ProcessId}");
         try
         {
             Directory.CreateDirectory(tempRoot);
@@ -75,21 +74,25 @@ internal sealed class DependencyManager
 
             var client = HttpClientFactory.LongTimeout;
             var steps = new List<(string Label, Func<Task> Action)>();
+
             if (needsTor)
             {
-                steps.Add(("Downloading Tor...", () => DownloadTorAsync(client, tempRoot, torExe, ptDir, baseDir)));
+                steps.Add(("Downloading Tor...", () => DownloadTorAsync(client, tempRoot, torDir, ptDir, log)));
             }
+
             if (needsSingBox)
             {
-                steps.Add(("Downloading sing-box...", () => DownloadSingBoxAsync(client, tempRoot, singBoxExe)));
+                steps.Add(("Downloading sing-box...", () => DownloadSingBoxAsync(client, tempRoot, singBoxPath)));
             }
+
             if (needsXray)
             {
-                steps.Add(("Downloading xray...", () => DownloadXrayAsync(client, tempRoot, xrayExe)));
+                steps.Add(("Downloading xray...", () => DownloadXrayAsync(client, tempRoot, xrayPath)));
             }
+
             if (needsWintun)
             {
-                steps.Add(("Downloading Wintun...", () => DownloadWintunAsync(client, tempRoot, wintunDll)));
+                steps.Add(("Downloading Wintun...", () => DownloadWintunAsync(client, tempRoot, wintunPath)));
             }
 
             for (var i = 0; i < steps.Count; i++)
@@ -103,7 +106,6 @@ internal sealed class DependencyManager
             var ptConfigPath = Path.Combine(ptDir, "pt_config.json");
             EnsurePluggableTransportConfig(ptConfigPath, log);
 
-            succeeded = true;
             progress(new DependencyUpdate(false, "Components ready.", 1));
             return true;
         }
@@ -115,11 +117,6 @@ internal sealed class DependencyManager
         }
         finally
         {
-            if (!succeeded)
-            {
-                progress(new DependencyUpdate(false, "Dependency download failed.", 0));
-            }
-
             try
             {
                 if (Directory.Exists(tempRoot))
@@ -175,30 +172,48 @@ internal sealed class DependencyManager
                 return;
             }
 
+            var lyrebirdName = PlatformHelper.LyrebirdBinaryName;
+            var snowflakeName = PlatformHelper.SnowflakeClientBinaryName;
+            var webtunnelName = PlatformHelper.WebTunnelClientBinaryName;
+
             var updated = false;
             config.PluggableTransports ??= new Dictionary<string, string>();
 
-            if (!config.PluggableTransports.ContainsKey("lyrebird"))
+            if (!config.PluggableTransports.TryGetValue("lyrebird", out var lyrebirdLine)
+                || string.IsNullOrWhiteSpace(lyrebirdLine)
+                || !lyrebirdLine.Contains(lyrebirdName, StringComparison.OrdinalIgnoreCase))
             {
                 config.PluggableTransports["lyrebird"] =
-                    "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec ${pt_path}lyrebird.exe";
+                    $"ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec ${{pt_path}}{lyrebirdName}";
                 updated = true;
             }
 
             if (!config.PluggableTransports.TryGetValue("conjure", out var conjureLine)
-                || string.IsNullOrWhiteSpace(conjureLine))
+                || string.IsNullOrWhiteSpace(conjureLine)
+                || !conjureLine.Contains(lyrebirdName, StringComparison.OrdinalIgnoreCase))
             {
                 config.PluggableTransports["conjure"] =
-                    "ClientTransportPlugin conjure exec ${pt_path}lyrebird.exe";
+                    $"ClientTransportPlugin conjure exec ${{pt_path}}{lyrebirdName}";
                 updated = true;
             }
 
             if (!config.PluggableTransports.TryGetValue("snowflake", out var snowflakeLine)
                 || string.IsNullOrWhiteSpace(snowflakeLine)
-                || !snowflakeLine.Contains("snowflake-client.exe", StringComparison.OrdinalIgnoreCase))
+                || (!snowflakeLine.Contains(lyrebirdName, StringComparison.OrdinalIgnoreCase)
+                    && !snowflakeLine.Contains(snowflakeName, StringComparison.OrdinalIgnoreCase)))
             {
+                // Lyrebird 0.8+ natively supports the snowflake transport.
                 config.PluggableTransports["snowflake"] =
-                    "ClientTransportPlugin snowflake exec ${pt_path}snowflake-client.exe";
+                    $"ClientTransportPlugin snowflake exec ${{pt_path}}{lyrebirdName}";
+                updated = true;
+            }
+
+            if (!config.PluggableTransports.TryGetValue("webtunnel", out var webTunnelLine)
+                || string.IsNullOrWhiteSpace(webTunnelLine)
+                || !webTunnelLine.Contains(webtunnelName, StringComparison.OrdinalIgnoreCase))
+            {
+                config.PluggableTransports["webtunnel"] =
+                    $"ClientTransportPlugin webtunnel exec ${{pt_path}}{webtunnelName}";
                 updated = true;
             }
 
@@ -215,13 +230,40 @@ internal sealed class DependencyManager
         }
     }
 
-    private static async Task DownloadTorAsync(HttpClient client, string tempRoot, string torExePath, string ptDir, string baseDir)
+    private static async Task DownloadTorAsync(HttpClient client, string tempRoot, string torDir, string ptDir, Action<string> log)
     {
-        var version = await GetLatestTorVersionAsync(client).ConfigureAwait(false);
+        var torPath = Path.Combine(torDir, PlatformHelper.TorBinaryName);
+        var torGenCertPath = Path.Combine(torDir, PlatformHelper.TorGenCertBinaryName);
         var torArchivePath = Path.Combine(tempRoot, "tor.tar.gz");
-        var candidates = await ResolveTorDownloadCandidatesAsync(client, version).ConfigureAwait(false);
+        var versionCandidates = await GetTorVersionCandidatesAsync(client).ConfigureAwait(false);
+        var suffixCandidates = GetTorSuffixCandidates();
 
-        await DownloadWithFallbackAsync(client, candidates, torArchivePath).ConfigureAwait(false);
+        Exception? lastVersionError = null;
+        string? resolvedVersion = null;
+        foreach (var version in versionCandidates)
+        {
+            try
+            {
+                var candidates = await ResolveTorDownloadCandidatesAsync(client, version, suffixCandidates).ConfigureAwait(false);
+                log($"Tor download: trying version {version} with {candidates.Count} candidate URL(s).");
+                await DownloadWithFallbackAsync(client, candidates, torArchivePath).ConfigureAwait(false);
+                resolvedVersion = version;
+                break;
+            }
+            catch (Exception ex)
+            {
+                lastVersionError = ex;
+                log($"Tor download attempt failed for version {version}: {ex.Message}");
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(resolvedVersion))
+        {
+            throw new InvalidOperationException(
+                $"Tor download failed for all version candidates ({string.Join(", ", versionCandidates)}). Last error: {lastVersionError?.Message}");
+        }
+
+        log($"Tor download: using version {resolvedVersion}.");
 
         await Task.Run(() =>
         {
@@ -233,43 +275,78 @@ internal sealed class DependencyManager
             Directory.CreateDirectory(extractRoot);
             ExtractTarGz(torArchivePath, extractRoot);
 
-            var extractedTorRoot = Path.Combine(extractRoot, "tor");
-            if (!Directory.Exists(extractedTorRoot))
+            var extractedTorPath = FindFirstFileByName(extractRoot, PlatformHelper.TorBinaryName);
+            var extractedTorGenCertPath = FindFirstFileByName(extractRoot, PlatformHelper.TorGenCertBinaryName);
+            if (string.IsNullOrWhiteSpace(extractedTorPath))
             {
                 throw new InvalidOperationException("Tor extraction failed or unexpected structure.");
             }
 
-            var torDir = Path.GetDirectoryName(torExePath) ?? baseDir;
-            var torGenCertPath = Path.Combine(torDir, "tor-gencert.exe");
-            var geoipPath = Path.Combine(torDir, "geoip");
-            var geoip6Path = Path.Combine(torDir, "geoip6");
-
-            File.Copy(Path.Combine(extractedTorRoot, "tor.exe"), torExePath, true);
-            File.Copy(Path.Combine(extractedTorRoot, "tor-gencert.exe"), torGenCertPath, true);
-
-            var dataRoot = Path.Combine(extractRoot, "data");
-            var geoipSource = Path.Combine(dataRoot, "geoip");
-            var geoip6Source = Path.Combine(dataRoot, "geoip6");
-            if (File.Exists(geoipSource))
+            File.Copy(extractedTorPath, torPath, true);
+            if (!string.IsNullOrWhiteSpace(extractedTorGenCertPath))
             {
-                File.Copy(geoipSource, geoipPath, true);
-            }
-            if (File.Exists(geoip6Source))
-            {
-                File.Copy(geoip6Source, geoip6Path, true);
+                File.Copy(extractedTorGenCertPath, torGenCertPath, true);
             }
 
-            var extractedPtDir = Path.Combine(extractedTorRoot, "pluggable_transports");
-            if (Directory.Exists(extractedPtDir))
+            // Copy shared libraries (e.g. libevent) that live alongside the tor binary
+            var torSourceDir = Path.GetDirectoryName(extractedTorPath);
+            if (torSourceDir != null)
+            {
+                foreach (var dylib in Directory.GetFiles(torSourceDir, "*.dylib"))
+                {
+                    File.Copy(dylib, Path.Combine(torDir, Path.GetFileName(dylib)), true);
+                }
+                foreach (var soFile in Directory.GetFiles(torSourceDir, "*.so*"))
+                {
+                    File.Copy(soFile, Path.Combine(torDir, Path.GetFileName(soFile)), true);
+                }
+            }
+
+            var geoipSource = FindFirstFileByName(extractRoot, "geoip");
+            var geoip6Source = FindFirstFileByName(extractRoot, "geoip6");
+            if (geoipSource != null)
+            {
+                File.Copy(geoipSource, Path.Combine(torDir, "geoip"), true);
+            }
+
+            if (geoip6Source != null)
+            {
+                File.Copy(geoip6Source, Path.Combine(torDir, "geoip6"), true);
+            }
+
+            var extractedPtDir = FindDirectoryByName(extractRoot, "pluggable_transports");
+            if (!string.IsNullOrWhiteSpace(extractedPtDir))
             {
                 CopyDirectory(extractedPtDir, ptDir, overwrite: true, preserveFileName: "pt_config.json");
             }
 
-            var obfs4proxy = Path.Combine(ptDir, "obfs4proxy.exe");
-            var lyrebird = Path.Combine(ptDir, "lyrebird.exe");
-            if (!File.Exists(lyrebird) && File.Exists(obfs4proxy))
+            var obfs4ProxyPath = Path.Combine(ptDir, PlatformHelper.Obfs4ProxyBinaryName);
+            var lyrebirdPath = Path.Combine(ptDir, PlatformHelper.LyrebirdBinaryName);
+            if (!File.Exists(lyrebirdPath) && File.Exists(obfs4ProxyPath))
             {
-                File.Move(obfs4proxy, lyrebird);
+                File.Move(obfs4ProxyPath, lyrebirdPath);
+            }
+
+            EnsureUnixExecutable(torPath);
+            EnsureUnixExecutable(torGenCertPath);
+            EnsureUnixExecutable(Path.Combine(ptDir, PlatformHelper.LyrebirdBinaryName));
+            EnsureUnixExecutable(Path.Combine(ptDir, PlatformHelper.SnowflakeClientBinaryName));
+            EnsureUnixExecutable(Path.Combine(ptDir, PlatformHelper.WebTunnelClientBinaryName));
+            EnsureUnixExecutable(Path.Combine(ptDir, "conjure-client"));
+
+            // On macOS, remove quarantine attributes and ad-hoc codesign downloaded
+            // binaries so Gatekeeper allows execution without manual xattr -cr.
+            PlatformHelper.RemoveQuarantineOnMacOS(torDir);
+            PlatformHelper.RemoveQuarantineOnMacOS(ptDir);
+            AdHocCodesignOnMacOS(torPath);
+            AdHocCodesignOnMacOS(torGenCertPath);
+            AdHocCodesignOnMacOS(Path.Combine(ptDir, PlatformHelper.LyrebirdBinaryName));
+            AdHocCodesignOnMacOS(Path.Combine(ptDir, PlatformHelper.SnowflakeClientBinaryName));
+            AdHocCodesignOnMacOS(Path.Combine(ptDir, PlatformHelper.WebTunnelClientBinaryName));
+            AdHocCodesignOnMacOS(Path.Combine(ptDir, "conjure-client"));
+            foreach (var lib in Directory.GetFiles(torDir, "*.dylib"))
+            {
+                AdHocCodesignOnMacOS(lib);
             }
         }).ConfigureAwait(false);
     }
@@ -285,33 +362,15 @@ internal sealed class DependencyManager
         var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var release = JsonSerializer.Deserialize<GitHubRelease>(json);
         var asset = release?.Assets?.FirstOrDefault(a => a.Name != null
-                                                        && a.Name.Contains("windows-amd64.zip", StringComparison.OrdinalIgnoreCase));
-        if (string.IsNullOrWhiteSpace(asset?.BrowserDownloadUrl))
+            && a.Name.Contains(PlatformHelper.SingBoxPlatformAssetFilter, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(asset?.BrowserDownloadUrl) || string.IsNullOrWhiteSpace(asset.Name))
         {
-            throw new InvalidOperationException("No sing-box windows-amd64 asset found.");
+            throw new InvalidOperationException($"No sing-box asset found for {PlatformHelper.SingBoxPlatformAssetFilter}.");
         }
 
-        var zipPath = Path.Combine(tempRoot, "sing-box.zip");
-        await DownloadToFileAsync(client, asset.BrowserDownloadUrl, zipPath).ConfigureAwait(false);
-
-        await Task.Run(() =>
-        {
-            var extractDir = Path.Combine(tempRoot, "sing-box");
-            if (Directory.Exists(extractDir))
-            {
-                Directory.Delete(extractDir, true);
-            }
-            ZipFile.ExtractToDirectory(zipPath, extractDir, true);
-
-            var exePath = Directory.GetFiles(extractDir, "sing-box.exe", SearchOption.AllDirectories).FirstOrDefault();
-            if (exePath == null)
-            {
-                throw new FileNotFoundException("sing-box.exe not found in archive.");
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(singBoxPath) ?? AppContext.BaseDirectory);
-            File.Copy(exePath, singBoxPath, true);
-        }).ConfigureAwait(false);
+        var archivePath = Path.Combine(tempRoot, asset.Name);
+        await DownloadToFileAsync(client, asset.BrowserDownloadUrl, archivePath).ConfigureAwait(false);
+        await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.SingBoxBinaryName, singBoxPath).ConfigureAwait(false);
     }
 
     private static async Task DownloadXrayAsync(HttpClient client, string tempRoot, string xrayPath)
@@ -324,35 +383,19 @@ internal sealed class DependencyManager
 
         var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var release = JsonSerializer.Deserialize<GitHubRelease>(json);
-        var asset = release?.Assets?.FirstOrDefault(a => a.Name != null
-                                                        && (a.Name.Contains("windows-64.zip", StringComparison.OrdinalIgnoreCase)
-                                                            || a.Name.Contains("win7-64.zip", StringComparison.OrdinalIgnoreCase)));
-        if (string.IsNullOrWhiteSpace(asset?.BrowserDownloadUrl))
+        var hints = PlatformHelper.XrayAssetNameHints;
+        var asset = release?.Assets?
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name) && !string.IsNullOrWhiteSpace(a.BrowserDownloadUrl))
+            .FirstOrDefault(a => hints.All(hint => a.Name!.Contains(hint, StringComparison.OrdinalIgnoreCase)));
+
+        if (asset == null)
         {
-            throw new InvalidOperationException("No xray windows-64 asset found.");
+            throw new InvalidOperationException($"No xray asset found for {string.Join(", ", hints)}.");
         }
 
-        var zipPath = Path.Combine(tempRoot, "xray.zip");
-        await DownloadToFileAsync(client, asset.BrowserDownloadUrl, zipPath).ConfigureAwait(false);
-
-        await Task.Run(() =>
-        {
-            var extractDir = Path.Combine(tempRoot, "xray");
-            if (Directory.Exists(extractDir))
-            {
-                Directory.Delete(extractDir, true);
-            }
-            ZipFile.ExtractToDirectory(zipPath, extractDir, true);
-
-            var exePath = Directory.GetFiles(extractDir, "xray.exe", SearchOption.AllDirectories).FirstOrDefault();
-            if (exePath == null)
-            {
-                throw new FileNotFoundException("xray.exe not found in archive.");
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(xrayPath) ?? AppContext.BaseDirectory);
-            File.Copy(exePath, xrayPath, true);
-        }).ConfigureAwait(false);
+        var archivePath = Path.Combine(tempRoot, asset.Name!);
+        await DownloadToFileAsync(client, asset.BrowserDownloadUrl!, archivePath).ConfigureAwait(false);
+        await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.XrayBinaryName, xrayPath).ConfigureAwait(false);
     }
 
     private static async Task DownloadWintunAsync(HttpClient client, string tempRoot, string wintunPath)
@@ -380,6 +423,44 @@ internal sealed class DependencyManager
         }).ConfigureAwait(false);
     }
 
+    private static async Task ExtractAndCopyBinaryAsync(string tempRoot, string archivePath, string binaryName, string destinationPath)
+    {
+        await Task.Run(() =>
+        {
+            var extractDir = Path.Combine(tempRoot, Path.GetFileNameWithoutExtension(Path.GetRandomFileName()));
+            if (Directory.Exists(extractDir))
+            {
+                Directory.Delete(extractDir, true);
+            }
+            Directory.CreateDirectory(extractDir);
+
+            if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                ZipFile.ExtractToDirectory(archivePath, extractDir, true);
+            }
+            else if (archivePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) || archivePath.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractTarGz(archivePath, extractDir);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unsupported archive format: {archivePath}");
+            }
+
+            var binaryPath = FindFirstFileByName(extractDir, binaryName);
+            if (string.IsNullOrWhiteSpace(binaryPath))
+            {
+                throw new FileNotFoundException($"{binaryName} not found in archive.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? AppContext.BaseDirectory);
+            File.Copy(binaryPath, destinationPath, true);
+            EnsureUnixExecutable(destinationPath);
+            PlatformHelper.RemoveQuarantineOnMacOS(destinationPath);
+            AdHocCodesignOnMacOS(destinationPath);
+        }).ConfigureAwait(false);
+    }
+
     private static async Task DownloadToFileAsync(HttpClient client, string url, string targetPath)
     {
         using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
@@ -393,8 +474,11 @@ internal sealed class DependencyManager
     private static async Task DownloadWithFallbackAsync(HttpClient client, IEnumerable<string> urls, string targetPath)
     {
         Exception? lastError = null;
+        string? lastUrl = null;
+        var attemptCount = 0;
         foreach (var url in urls)
         {
+            attemptCount++;
             try
             {
                 await DownloadToFileAsync(client, url, targetPath).ConfigureAwait(false);
@@ -402,6 +486,7 @@ internal sealed class DependencyManager
             }
             catch (Exception ex)
             {
+                lastUrl = url;
                 lastError = ex;
                 if (File.Exists(targetPath))
                 {
@@ -410,11 +495,13 @@ internal sealed class DependencyManager
             }
         }
 
-        throw new InvalidOperationException($"Tor download failed: {lastError?.Message}");
+        throw new InvalidOperationException(
+            $"Tor download failed after {attemptCount} URL attempt(s). Last URL: {lastUrl ?? "n/a"}. Error: {lastError?.Message}");
     }
 
-    private static async Task<string> GetLatestTorVersionAsync(HttpClient client)
+    private static async Task<IReadOnlyList<string>> GetTorVersionCandidatesAsync(HttpClient client)
     {
+        var versionCandidates = new List<string>();
         try
         {
             var html = await client.GetStringAsync(TorBaseUrl).ConfigureAwait(false);
@@ -430,7 +517,12 @@ internal sealed class DependencyManager
 
             if (versions.Count > 0)
             {
-                return versions.OrderByDescending(v => v).First().ToString();
+                versionCandidates.AddRange(
+                    versions
+                        .OrderByDescending(v => v)
+                        .Distinct()
+                        .Take(10)
+                        .Select(v => v.ToString()));
             }
         }
         catch (Exception ex)
@@ -438,28 +530,73 @@ internal sealed class DependencyManager
             StartupLogger.Write($"Failed to fetch latest Tor version: {ex.Message}. Using fallback.");
         }
 
-        return TorFallbackVersion;
+        if (!versionCandidates.Contains(TorFallbackVersion, StringComparer.OrdinalIgnoreCase))
+        {
+            versionCandidates.Add(TorFallbackVersion);
+        }
+
+        return versionCandidates
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
-    private static async Task<IReadOnlyList<string>> ResolveTorDownloadCandidatesAsync(HttpClient client, string version)
+    private static IReadOnlyList<string> GetTorSuffixCandidates()
+    {
+        var suffixes = new List<string> { PlatformHelper.TorExpertBundlePlatformSuffix };
+        if (OperatingSystem.IsMacOS())
+        {
+            if (suffixes.Any(s => s.Contains("aarch64", StringComparison.OrdinalIgnoreCase)))
+            {
+                suffixes.Add("macos-arm64");
+            }
+            else if (suffixes.Any(s => s.Contains("x86_64", StringComparison.OrdinalIgnoreCase)))
+            {
+                suffixes.Add("macos-amd64");
+            }
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            if (suffixes.Any(s => s.Contains("aarch64", StringComparison.OrdinalIgnoreCase)))
+            {
+                suffixes.Add("linux-arm64");
+            }
+            else if (suffixes.Any(s => s.Contains("x86_64", StringComparison.OrdinalIgnoreCase)))
+            {
+                suffixes.Add("linux-amd64");
+            }
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            suffixes.Add("windows-amd64");
+        }
+
+        return suffixes
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static async Task<IReadOnlyList<string>> ResolveTorDownloadCandidatesAsync(HttpClient client, string version, IReadOnlyList<string> suffixes)
     {
         var candidates = new List<string>();
-        var fileName = $"tor-expert-bundle-windows-x86_64-{version}.tar.gz";
         var bases = new[]
         {
             $"{TorBaseUrl}/{version}",
             $"{TorArchiveBaseUrl}/{version}"
         };
 
-        foreach (var baseUrl in bases)
+        foreach (var suffix in suffixes)
         {
-            candidates.Add($"{baseUrl}/{fileName}");
+            var fileName = $"tor-expert-bundle-{suffix}-{version}.tar.gz";
+            foreach (var baseUrl in bases)
+            {
+                candidates.Add($"{baseUrl}/{fileName}");
+            }
         }
 
         foreach (var baseUrl in bases)
         {
-            var indexedFile = await GetTorBundleFileNameFromIndexAsync(client, baseUrl).ConfigureAwait(false);
-            if (!string.IsNullOrWhiteSpace(indexedFile))
+            var indexedFiles = await GetTorBundleFileNamesFromIndexAsync(client, baseUrl, suffixes).ConfigureAwait(false);
+            foreach (var indexedFile in indexedFiles)
             {
                 candidates.Add($"{baseUrl}/{indexedFile}");
             }
@@ -470,15 +607,23 @@ internal sealed class DependencyManager
             .ToList();
     }
 
-    private static async Task<string?> GetTorBundleFileNameFromIndexAsync(HttpClient client, string versionBaseUrl)
+    private static async Task<IReadOnlyList<string>> GetTorBundleFileNamesFromIndexAsync(HttpClient client, string versionBaseUrl, IReadOnlyList<string> suffixes)
     {
         try
         {
             var html = await client.GetStringAsync(versionBaseUrl.TrimEnd('/') + "/").ConfigureAwait(false);
-            var matches = Regex.Matches(
-                html,
-                "href\\s*=\\s*[\"'](?<file>tor-expert-bundle-windows-[^/\"']+\\.tar\\.gz)[\"']",
-                RegexOptions.IgnoreCase);
+            var escapedSuffixes = suffixes
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(Regex.Escape)
+                .ToList();
+            if (escapedSuffixes.Count == 0)
+            {
+                return [];
+            }
+
+            var suffixPattern = string.Join("|", escapedSuffixes);
+            var pattern = $"href\\s*=\\s*[\"'](?<file>tor-expert-bundle-(?:{suffixPattern})[^/\"']*\\.tar\\.gz)[\"']";
+            var matches = Regex.Matches(html, pattern, RegexOptions.IgnoreCase);
 
             var files = matches
                 .Select(match => match.Groups["file"].Value)
@@ -488,18 +633,26 @@ internal sealed class DependencyManager
 
             if (files.Count == 0)
             {
-                return null;
+                return [];
             }
 
             var preferred = files.FirstOrDefault(file =>
                 file.Contains("x86_64", StringComparison.OrdinalIgnoreCase)
-                || file.Contains("amd64", StringComparison.OrdinalIgnoreCase));
+                || file.Contains("amd64", StringComparison.OrdinalIgnoreCase)
+                || file.Contains("aarch64", StringComparison.OrdinalIgnoreCase)
+                || file.Contains("arm64", StringComparison.OrdinalIgnoreCase));
 
-            return preferred ?? files[0];
+            if (!string.IsNullOrWhiteSpace(preferred))
+            {
+                files.RemoveAll(file => string.Equals(file, preferred, StringComparison.OrdinalIgnoreCase));
+                files.Insert(0, preferred);
+            }
+
+            return files;
         }
         catch
         {
-            return null;
+            return [];
         }
     }
 
@@ -508,6 +661,47 @@ internal sealed class DependencyManager
         using var file = File.OpenRead(archivePath);
         using var gzip = new GZipStream(file, CompressionMode.Decompress);
         TarFile.ExtractToDirectory(gzip, destination, overwriteFiles: true);
+    }
+
+    private static void EnsureUnixExecutable(string path)
+    {
+        if (OperatingSystem.IsWindows() || !File.Exists(path))
+        {
+            return;
+        }
+
+        PlatformHelper.RunCommandSuccess("chmod", $"+x \"{path}\"");
+    }
+
+    private static void AdHocCodesignOnMacOS(string path)
+    {
+        if (!OperatingSystem.IsMacOS() || !File.Exists(path))
+        {
+            return;
+        }
+
+        try
+        {
+            PlatformHelper.RunCommandSuccess("codesign", $"--force --sign - \"{path}\"");
+        }
+        catch
+        {
+            // Best-effort: codesign may not be available or may fail on some files
+        }
+    }
+
+    private static string? FindFirstFileByName(string root, string fileName)
+    {
+        return Directory
+            .GetFiles(root, fileName, SearchOption.AllDirectories)
+            .FirstOrDefault();
+    }
+
+    private static string? FindDirectoryByName(string root, string directoryName)
+    {
+        return Directory
+            .GetDirectories(root, directoryName, SearchOption.AllDirectories)
+            .FirstOrDefault();
     }
 
     private static void CopyDirectory(string sourceDir, string destinationDir, bool overwrite, string? preserveFileName = null)
@@ -533,6 +727,7 @@ internal sealed class DependencyManager
             {
                 Directory.CreateDirectory(destFolder);
             }
+
             File.Copy(filePath, destPath, overwrite);
         }
     }

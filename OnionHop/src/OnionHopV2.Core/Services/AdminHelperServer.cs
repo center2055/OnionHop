@@ -23,7 +23,7 @@ public sealed class AdminHelperServer
 
     public AdminHelperServer()
     {
-        _vpnService = new VpnService(_ => { });
+        _vpnService = new VpnService(LogVpnHelperLine);
         _vpnService.OutputReceived += OnVpnOutput;
         _vpnService.Exited += OnVpnExited;
     }
@@ -275,9 +275,24 @@ public sealed class AdminHelperServer
             return;
         }
 
+        AppendVpnLogLine(e.Data);
+    }
+
+    private void LogVpnHelperLine(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        AppendVpnLogLine($"vpn-helper: {message}");
+    }
+
+    private void AppendVpnLogLine(string line)
+    {
         lock (_vpnLogLock)
         {
-            _vpnLogLines.Enqueue(e.Data);
+            _vpnLogLines.Enqueue(line);
             while (_vpnLogLines.Count > MaxBufferedLogLines)
             {
                 _vpnLogLines.Dequeue();

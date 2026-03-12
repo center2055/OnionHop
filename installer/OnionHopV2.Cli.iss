@@ -37,7 +37,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ChangesEnvironment=yes
 PrivilegesRequired=lowest
 CloseApplications=yes
-CloseApplicationsFilter={#MyAppExeName}
+; Include helper binaries so updates can replace tor/vpn files without scheduling reboot.
+CloseApplicationsFilter={#MyAppExeName},tor.exe,sing-box.exe,xray.exe,conjure-client.exe,lyrebird.exe,snowflake-client.exe,webtunnel-client.exe
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]

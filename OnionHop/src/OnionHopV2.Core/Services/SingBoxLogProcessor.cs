@@ -50,7 +50,6 @@ internal sealed class SingBoxLogProcessor
         {
             DnsLogReceived?.Invoke($"{_sourceLabel}: {line}");
         }
-
         lock (_logLock)
         {
             _recentLines.Enqueue(line);
@@ -84,7 +83,8 @@ internal sealed class SingBoxLogProcessor
         }
 
         if (line.Contains("router: found process path:", StringComparison.OrdinalIgnoreCase) &&
-            line.Contains("webtunnel-client.exe", StringComparison.OrdinalIgnoreCase))
+            (line.Contains("webtunnel-client.exe", StringComparison.OrdinalIgnoreCase) ||
+             line.Contains("webtunnel-client", StringComparison.OrdinalIgnoreCase)))
         {
             lock (_bridgeFailureLock)
             {
