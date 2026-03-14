@@ -17,10 +17,10 @@
   </a>
 </div>
 
-**OnionHop V2** is a modern Windows app that routes your traffic through **Tor** using either:
+**OnionHop V2** is a modern desktop app for **Windows + macOS** that routes your traffic through **Tor** using either:
 
-- **Proxy Mode (recommended):** sets the Windows proxy to Tor's local SOCKS5 endpoint.
-- **TUN/VPN Mode (Admin):** starts a system-wide tunnel via **sing-box + Wintun**.
+- **Proxy Mode (recommended):** starts Tor locally and sets the system proxy to Tor's local SOCKS5 endpoint.
+- **TUN/VPN Mode (Admin):** starts a system-wide tunnel via **sing-box** (and **Wintun** on Windows).
 
 V2 adds a redesigned UI and stronger routing controls (including **per-app split tunneling** in Hybrid mode).
 
@@ -34,10 +34,11 @@ V2 adds a redesigned UI and stronger routing controls (including **per-app split
 1) Install  
    - Download the latest release from [Releases](https://github.com/center2055/OnionHop/releases).
    - Run the Windows installer (`OnionHop-Setup-<version>.exe`).
+   - On macOS, open the DMG and move `OnionHop.app` to `/Applications`, or install with `brew install --cask center2055/onionhop/onionhop`.
 
 2) Choose a mode  
    - **Proxy Mode (no admin):** Best compatibility for proxy-aware apps.  
-   - **TUN/VPN Mode (admin):** System-wide routing via sing-box + Wintun; needed for apps that ignore proxy settings.
+   - **TUN/VPN Mode (admin):** System-wide routing via sing-box; on Windows this uses Wintun. Needed for apps that ignore proxy settings.
 
 3) Connect  
    - Optionally choose an **Exit Location** (and optional **Entry Node** in Advanced settings).
@@ -50,11 +51,32 @@ Notes
 
 ---
 
+## Startup activity and permissions
+
+OnionHop performs a few background tasks before you click **Connect** so the UI can show status immediately and the app is ready when you do connect.
+
+On startup, OnionHop may:
+
+- look up your current public IP status
+- refresh the Tor relay country list from Onionoo
+- fetch GitHub release/changelog metadata for update and About-page surfaces
+- ensure Tor/pluggable transport dependencies exist; on first run this can download Tor components
+
+### What permissions are needed?
+
+- **Network access:** used for IP checks, Onionoo country data, GitHub release metadata, and dependency downloads
+- **Administrator / system password:** only needed for features that change system networking, such as **TUN/VPN mode**, **kill switch**, or system **DNS/proxy** changes
+- **Folder access:** used to store settings, startup logs, runtime data, downloaded Tor/VPN binaries, bridge cache files, and any log export location you explicitly choose
+
+In normal use, OnionHop mainly works inside its own application-data/runtime folders plus any destination you choose when exporting logs.
+
+---
+
 ## Features (Core)
 
 - Tor routing (SOCKS5)
 - System proxy mode (no admin required)
-- TUN/VPN mode via sing-box + Wintun (admin required)
+- TUN/VPN mode via sing-box (Wintun on Windows; admin required)
 - Hybrid routing + split tunneling (Hybrid mode)
 - Tor bridges / pluggable transports (automatic, obfs4, snowflake, conjure, meek-azure, webtunnel, custom)
 - Kill Switch (strict TUN only)
@@ -74,9 +96,9 @@ Notes
 - No admin required.
 
 ### 2) TUN/VPN Mode (Admin)
-- Starts Tor + sing-box + Wintun.
+- Starts Tor + sing-box.
 - Routes traffic at OS level.
-- Requires Administrator.
+- Requires Administrator / root.
 
 ### Hybrid (Split tunneling)
 - Only applies in **TUN/VPN Mode**.
@@ -86,9 +108,14 @@ Notes
 
 ## Settings storage
 
-OnionHop stores settings here:
+OnionHop stores settings and runtime data in the OS application-data folders.
+
+Examples:
 
 - `%AppData%\\OnionHop\\settings.json`
+- `%LocalAppData%\\OnionHop\\startup.log`
+
+On macOS, the same files live under the user's Library application-data directories.
 
 ---
 
@@ -96,6 +123,7 @@ OnionHop stores settings here:
 
 - `OnionHop/` - OnionHop V2 (Avalonia UI)
 - `OnionHop/src/OnionHopV2.Cli` - OnionHop V2 command-line interface
+- `onionhop-dynamic-wallpaper/` - OnionHop Dynamic Wallpaper (Tauri 2 + Rust + Vite)
 
 ---
 
