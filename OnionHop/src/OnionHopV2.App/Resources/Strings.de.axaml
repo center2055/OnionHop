@@ -221,8 +221,8 @@
   <x:String x:Key="Status.ReadyToRoute">Bereit, den Datenverkehr &#252;ber Tor zu leiten.</x:String>
   <x:String x:Key="Status.Resolving">Wird aufgel&#246;st...</x:String>
   <x:String x:Key="Status.DownloadingComponentsWait">Komponenten werden heruntergeladen. Bitte warten.</x:String>
-  <x:String x:Key="Status.AdminRequiredRequesting">TUN/VPN-Modus ben&#246;tigt Administratorrechte. Erh&#246;he Berechtigungen...</x:String>
-  <x:String x:Key="Status.AdminRequiredCanceled">Administratorrechte sind f&#252;r den TUN/VPN-Modus erforderlich. Verbindung abgebrochen.</x:String>
+  <x:String x:Key="Status.AdminRequiredRequesting">Windows-Netzwerk&#228;nderungen ben&#246;tigen Administratorrechte. Privilegierter Helfer wird gestartet...</x:String>
+  <x:String x:Key="Status.AdminRequiredCanceled">Administratorrechte sind f&#252;r diese Windows-Netzwerkfunktion erforderlich. Verbindung abgebrochen.</x:String>
   <x:String x:Key="Status.CancelingConnect">Verbindungsaufbau wird abgebrochen...</x:String>
   <x:String x:Key="Status.DefaultsRestored">Standardeinstellungen wiederhergestellt.</x:String>
   <x:String x:Key="Status.CheckingComponents">Komponenten werden gepr&#252;ft...</x:String>

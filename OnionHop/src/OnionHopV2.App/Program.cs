@@ -18,7 +18,7 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        if (AdminHelperServer.IsHelperMode(args))
+        if (OperatingSystem.IsWindows() && (AdminHelperServer.IsHelperMode(args) || AdminHelperServer.IsDaemonMode(args)))
         {
             AdminHelperServer.Run(args);
             return;

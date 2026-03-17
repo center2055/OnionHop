@@ -4,14 +4,23 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV2.Core.Platform.Windows;
 
 namespace OnionHopV2.Core.Services;
+
+internal enum AdminHelperConnectionKind
+{
+    None,
+    TransientHelper,
+    PersistentDaemon
+}
 
 internal sealed class AdminHelperClient : IDisposable
 {
@@ -20,18 +29,43 @@ internal sealed class AdminHelperClient : IDisposable
     private StreamWriter? _writer;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly SemaphoreSlim _connectLock = new(1, 1);
+    private AdminHelperConnectionKind _connectionKind;
+    private bool _persistentInstallAttempted;
     private bool _disposed;
 
     public bool IsConnected => _pipe?.IsConnected == true;
 
-    public Task<bool> TryConnectWithoutStartAsync()
+    public async Task<bool> TryConnectWithoutStartAsync()
     {
         if (_disposed)
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        return Task.FromResult(_pipe?.IsConnected == true);
+        if (_pipe?.IsConnected == true && _reader != null && _writer != null)
+        {
+            return true;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
+        await _connectLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_pipe?.IsConnected == true && _reader != null && _writer != null)
+            {
+                return true;
+            }
+
+            return await TryConnectToPersistentHelperAsync(startIfNeeded: false).ConfigureAwait(false);
+        }
+        finally
+        {
+            _connectLock.Release();
+        }
     }
 
     public async Task<bool> EnsureConnectedAsync()
@@ -62,6 +96,12 @@ internal sealed class AdminHelperClient : IDisposable
             if (_pipe?.IsConnected == true && (_reader == null || _writer == null))
             {
                 StartupLogger.Write("AdminHelperClient.EnsureConnectedAsync: Pipe was connected but streams were null. Resetting.");
+            }
+
+            if (await TryConnectToPersistentHelperAsync(startIfNeeded: true).ConfigureAwait(false))
+            {
+                StartupLogger.Write("AdminHelperClient.EnsureConnectedAsync: using persistent helper.");
+                return true;
             }
 
             // IMPORTANT: run the IPC server in the non-elevated app and have the elevated helper connect as the client.
@@ -111,6 +151,7 @@ internal sealed class AdminHelperClient : IDisposable
                 _pipe = server;
                 _reader = reader;
                 _writer = writer;
+                _connectionKind = AdminHelperConnectionKind.TransientHelper;
 
                 // Prevent disposal in the failure path now that the pipe is owned by this instance.
                 server = null;
@@ -199,6 +240,31 @@ internal sealed class AdminHelperClient : IDisposable
         return response?.Success == true;
     }
 
+    public async Task<bool> EnableOnionDnsProxyAsync(string? nameServerAddress)
+    {
+        var response = await SendAsync(
+            "EnableOnionDnsProxy",
+            new AdminHelperDnsProxyRequest { NameServerAddress = nameServerAddress }).ConfigureAwait(false);
+        return response?.Success == true;
+    }
+
+    public async Task<bool> DisableOnionDnsProxyAsync()
+    {
+        var response = await SendAsync("DisableOnionDnsProxy", null).ConfigureAwait(false);
+        return response?.Success == true;
+    }
+
+    public async Task<bool> DisableOnionDnsProxyIfAvailableAsync()
+    {
+        if (!await TryConnectWithoutStartAsync().ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        var response = await SendIfConnectedAsync("DisableOnionDnsProxy", null).ConfigureAwait(false);
+        return response?.Success == true;
+    }
+
     public async Task<AdminHelperStatus?> GetStatusAsync()
     {
         // Don't start helper just to check status - use existing connection only
@@ -249,6 +315,12 @@ internal sealed class AdminHelperClient : IDisposable
 
     public async Task<bool> ShutdownAsync()
     {
+        if (_connectionKind == AdminHelperConnectionKind.PersistentDaemon)
+        {
+            ResetPipe();
+            return true;
+        }
+
         var response = await SendAsync("Shutdown", null).ConfigureAwait(false);
         ResetPipe();
         return response?.Success == true;
@@ -256,6 +328,12 @@ internal sealed class AdminHelperClient : IDisposable
 
     public async Task<bool> ShutdownIfConnectedAsync()
     {
+        if (_connectionKind == AdminHelperConnectionKind.PersistentDaemon)
+        {
+            ResetPipe();
+            return true;
+        }
+
         var response = await SendIfConnectedAsync("Shutdown", null).ConfigureAwait(false);
         ResetPipe();
         return response?.Success == true;
@@ -266,6 +344,12 @@ internal sealed class AdminHelperClient : IDisposable
         if (!await TryConnectWithoutStartAsync().ConfigureAwait(false))
         {
             return false;
+        }
+
+        if (_connectionKind == AdminHelperConnectionKind.PersistentDaemon)
+        {
+            ResetPipe();
+            return true;
         }
 
         var response = await SendIfConnectedAsync("Shutdown", null).ConfigureAwait(false);
@@ -284,6 +368,159 @@ internal sealed class AdminHelperClient : IDisposable
         ResetPipe();
         _lock.Dispose();
         _connectLock.Dispose();
+    }
+
+    private async Task<bool> TryConnectToPersistentHelperAsync(bool startIfNeeded)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
+        if (await TryOpenPersistentPipeAsync(TimeSpan.FromMilliseconds(350)).ConfigureAwait(false))
+        {
+            return true;
+        }
+
+        if (!startIfNeeded)
+        {
+            return false;
+        }
+
+        if (!WindowsPersistentAdminHelper.TryStartForCurrentUser(message => StartupLogger.Write(message)))
+        {
+            return false;
+        }
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(8);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await TryOpenPersistentPipeAsync(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false))
+            {
+                return true;
+            }
+
+            await Task.Delay(250).ConfigureAwait(false);
+        }
+
+        return false;
+    }
+
+    private async Task<bool> TryOpenPersistentPipeAsync(TimeSpan timeout)
+    {
+        NamedPipeClientStream? client = null;
+        try
+        {
+            client = new NamedPipeClientStream(
+                ".",
+                AdminHelperProtocol.PipeName,
+                PipeDirection.InOut,
+                PipeOptions.Asynchronous);
+
+            using var timeoutCts = new CancellationTokenSource(timeout);
+            await client.ConnectAsync(timeoutCts.Token).ConfigureAwait(false);
+            if (!client.IsConnected)
+            {
+                client.Dispose();
+                return false;
+            }
+
+            var reader = new StreamReader(
+                client,
+                AdminHelperProtocol.PipeTextEncoding,
+                detectEncodingFromByteOrderMarks: false,
+                bufferSize: AdminHelperProtocol.PipeTextBufferSize,
+                leaveOpen: true);
+            var writer = new StreamWriter(
+                client,
+                AdminHelperProtocol.PipeTextEncoding,
+                bufferSize: AdminHelperProtocol.PipeTextBufferSize,
+                leaveOpen: true);
+
+            ResetPipe();
+            _pipe = client;
+            _reader = reader;
+            _writer = writer;
+            _connectionKind = AdminHelperConnectionKind.PersistentDaemon;
+            client = null;
+
+            var status = await GetStatusAsync().ConfigureAwait(false);
+            if (status?.IsAdministrator == true && string.Equals(status.Mode, "persistent", StringComparison.OrdinalIgnoreCase))
+            {
+                StartupLogger.Write("AdminHelperClient: connected to persistent admin helper.");
+                return true;
+            }
+
+            StartupLogger.Write("AdminHelperClient: persistent helper connection was not elevated; falling back.");
+            ResetPipe();
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            try { client?.Dispose(); } catch { }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"AdminHelperClient: persistent helper connect failed: {ex.Message}");
+            try { client?.Dispose(); } catch { }
+            return false;
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private async Task TryInstallPersistentHelperInlineAsync()
+    {
+        if (_connectionKind != AdminHelperConnectionKind.TransientHelper || _persistentInstallAttempted)
+        {
+            StartupLogger.Write($"AdminHelperClient: skipping persistent helper bootstrap. ConnectionKind={_connectionKind}, Attempted={_persistentInstallAttempted}");
+            return;
+        }
+
+        _persistentInstallAttempted = true;
+
+        var processPath = Environment.ProcessPath;
+        if (!WindowsPersistentAdminHelper.IsEligibleInstallationPath(processPath))
+        {
+            StartupLogger.Write($"AdminHelperClient: persistent helper bootstrap skipped because install path was not eligible. ProcessPath={processPath ?? "<null>"}");
+            return;
+        }
+
+        string? userSid = null;
+        string? userName = null;
+        try
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            userSid = identity.User?.Value;
+            userName = identity.Name;
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write("AdminHelperClient: failed to resolve current user identity for persistent helper install.", ex);
+        }
+
+        if (string.IsNullOrWhiteSpace(userSid) || string.IsNullOrWhiteSpace(userName))
+        {
+            StartupLogger.Write("AdminHelperClient: persistent helper bootstrap skipped because user identity was incomplete.");
+            return;
+        }
+
+        var response = await SendCoreWithoutLockAsync(
+            "EnsurePersistentHelper",
+            new PersistentAdminHelperRequest
+            {
+                UserSid = userSid,
+                UserName = userName
+            }).ConfigureAwait(false);
+
+        if (response?.Success == true)
+        {
+            StartupLogger.Write("AdminHelperClient: persistent admin helper installed or refreshed.");
+        }
+        else if (!string.IsNullOrWhiteSpace(response?.Error))
+        {
+            StartupLogger.Write($"AdminHelperClient: persistent admin helper install skipped: {response.Error}");
+        }
     }
 
     private async Task<HelperResponse?> SendAsync(string command, object? payload)
@@ -322,28 +559,17 @@ internal sealed class AdminHelperClient : IDisposable
                 return null;
             }
 
-            var request = new HelperRequest
+            var response = await SendCoreWithoutLockAsync(command, payload).ConfigureAwait(false);
+            if (response != null
+                && ensureConnected
+                && !string.Equals(command, "EnsurePersistentHelper", StringComparison.Ordinal)
+                && _connectionKind == AdminHelperConnectionKind.TransientHelper
+                && !_persistentInstallAttempted)
             {
-                RequestId = Guid.NewGuid().ToString("N"),
-                Command = command,
-                Payload = payload
-            };
-
-            var json = JsonSerializer.Serialize(request, AdminHelperProtocol.JsonOptions);
-            StartupLogger.Write($"SendCoreAsync: Sending JSON ({json.Length} chars)...");
-            await _writer.WriteLineAsync(json).ConfigureAwait(false);
-            await _writer.FlushAsync().ConfigureAwait(false);
-            StartupLogger.Write("SendCoreAsync: Waiting for response...");
-
-            var responseLine = await _reader.ReadLineAsync().ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(responseLine))
-            {
-                StartupLogger.Write("SendCoreAsync: Empty response received");
-                return null;
+                await TryInstallPersistentHelperInlineAsync().ConfigureAwait(false);
             }
 
-            StartupLogger.Write($"SendCoreAsync: Response received ({responseLine.Length} chars)");
-            return JsonSerializer.Deserialize<HelperResponse>(responseLine, AdminHelperProtocol.JsonOptions);
+            return response;
         }
         catch (Exception ex)
         {
@@ -355,6 +581,38 @@ internal sealed class AdminHelperClient : IDisposable
         {
             _lock.Release();
         }
+    }
+
+    private async Task<HelperResponse?> SendCoreWithoutLockAsync(string command, object? payload)
+    {
+        if (_writer == null || _reader == null)
+        {
+            StartupLogger.Write("SendCoreWithoutLockAsync: Writer or reader is null");
+            return null;
+        }
+
+        var request = new HelperRequest
+        {
+            RequestId = Guid.NewGuid().ToString("N"),
+            Command = command,
+            Payload = payload
+        };
+
+        var json = JsonSerializer.Serialize(request, AdminHelperProtocol.JsonOptions);
+        StartupLogger.Write($"SendCoreAsync: Sending JSON ({json.Length} chars)...");
+        await _writer.WriteLineAsync(json).ConfigureAwait(false);
+        await _writer.FlushAsync().ConfigureAwait(false);
+        StartupLogger.Write("SendCoreAsync: Waiting for response...");
+
+        var responseLine = await _reader.ReadLineAsync().ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(responseLine))
+        {
+            StartupLogger.Write("SendCoreAsync: Empty response received");
+            return null;
+        }
+
+        StartupLogger.Write($"SendCoreAsync: Response received ({responseLine.Length} chars)");
+        return JsonSerializer.Deserialize<HelperResponse>(responseLine, AdminHelperProtocol.JsonOptions);
     }
 
     private static NamedPipeServerStream CreateServerPipe(string pipeName)
@@ -602,5 +860,6 @@ internal sealed class AdminHelperClient : IDisposable
         _writer = null;
         _reader = null;
         _pipe = null;
+        _connectionKind = AdminHelperConnectionKind.None;
     }
 }

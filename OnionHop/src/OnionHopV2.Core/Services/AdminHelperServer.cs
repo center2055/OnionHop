@@ -3,26 +3,35 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core;
+using OnionHopV2.Core.Platform.Windows;
 
 namespace OnionHopV2.Core.Services;
 
+[SupportedOSPlatform("windows")]
 public sealed class AdminHelperServer
 {
     private const int MaxBufferedLogLines = 400;
     private readonly VpnService _vpnService;
     private readonly object _vpnLogLock = new();
     private readonly Queue<string> _vpnLogLines = new();
+    private readonly WindowsOnionDnsProxyService _dnsProxyService = new();
+    private readonly bool _persistentMode;
     private bool _killSwitchEnabled;
     private bool _isStopping;
     private bool _shutdownRequested;
+    private Mutex? _daemonMutex;
 
-    public AdminHelperServer()
+    public AdminHelperServer(bool persistentMode = false)
     {
+        _persistentMode = persistentMode;
         _vpnService = new VpnService(LogVpnHelperLine);
         _vpnService.OutputReceived += OnVpnOutput;
         _vpnService.Exited += OnVpnExited;
@@ -41,6 +50,19 @@ public sealed class AdminHelperServer
         return false;
     }
 
+    public static bool IsDaemonMode(string[] args)
+    {
+        foreach (var arg in args)
+        {
+            if (string.Equals(arg, "--helper-daemon", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static void Run(string[] args)
     {
         if (!OperatingSystem.IsWindows())
@@ -49,7 +71,7 @@ public sealed class AdminHelperServer
             return;
         }
 
-        new AdminHelperServer().RunAsync(args).GetAwaiter().GetResult();
+        new AdminHelperServer(IsDaemonMode(args)).RunAsync(args).GetAwaiter().GetResult();
     }
 
     private static string GetPipeName(string[] args)
@@ -76,6 +98,17 @@ public sealed class AdminHelperServer
             return;
         }
 
+        if (_persistentMode)
+        {
+            await RunPersistentAsync().ConfigureAwait(false);
+            return;
+        }
+
+        await RunTransientAsync(args).ConfigureAwait(false);
+    }
+
+    private async Task RunTransientAsync(string[] args)
+    {
         var pipeName = GetPipeName(args);
         StartupLogger.Write($"Admin helper starting. Pipe={pipeName}");
 
@@ -151,6 +184,85 @@ public sealed class AdminHelperServer
         }
     }
 
+    private async Task RunPersistentAsync()
+    {
+        if (!WindowsAdmin.IsAdministrator())
+        {
+            StartupLogger.Write("Persistent admin helper started without elevation. Exiting.");
+            return;
+        }
+
+        var mutexName = $@"Local\{AdminHelperProtocol.PipeName}.daemon";
+        _daemonMutex = new Mutex(initiallyOwned: true, mutexName, out var createdNew);
+        if (!createdNew)
+        {
+            StartupLogger.Write("Persistent admin helper is already running.");
+            _daemonMutex.Dispose();
+            _daemonMutex = null;
+            return;
+        }
+
+        StartupLogger.Write($"Persistent admin helper starting. Pipe={AdminHelperProtocol.PipeName}");
+        try
+        {
+            while (!_shutdownRequested)
+            {
+                using var pipe = CreateServerPipe(AdminHelperProtocol.PipeName);
+                StartupLogger.Write("Persistent admin helper waiting for client connection...");
+                var connected = await WaitForConnectionAsync(pipe, TimeSpan.FromHours(24)).ConfigureAwait(false);
+                if (!connected)
+                {
+                    continue;
+                }
+
+                StartupLogger.Write("Persistent admin helper connected successfully.");
+                using var reader = new StreamReader(
+                    pipe,
+                    AdminHelperProtocol.PipeTextEncoding,
+                    detectEncodingFromByteOrderMarks: false,
+                    bufferSize: AdminHelperProtocol.PipeTextBufferSize,
+                    leaveOpen: true);
+                using var writer = new StreamWriter(
+                    pipe,
+                    AdminHelperProtocol.PipeTextEncoding,
+                    bufferSize: AdminHelperProtocol.PipeTextBufferSize,
+                    leaveOpen: true);
+
+                while (pipe.IsConnected && !_shutdownRequested)
+                {
+                    var line = await reader.ReadLineAsync().ConfigureAwait(false);
+                    if (line == null)
+                    {
+                        break;
+                    }
+
+                    var request = JsonSerializer.Deserialize<HelperRequest>(line, AdminHelperProtocol.JsonOptions);
+                    if (request == null)
+                    {
+                        continue;
+                    }
+
+                    StartupLogger.Write($"Persistent admin helper received command: {request.Command}");
+                    var response = await HandleRequestAsync(request).ConfigureAwait(false);
+                    var json = JsonSerializer.Serialize(response, AdminHelperProtocol.JsonOptions);
+                    await writer.WriteLineAsync(json).ConfigureAwait(false);
+                    await writer.FlushAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"Persistent admin helper failed: {ex.GetType().Name}: {ex.Message}");
+        }
+        finally
+        {
+            Cleanup();
+            try { _daemonMutex?.ReleaseMutex(); } catch { }
+            try { _daemonMutex?.Dispose(); } catch { }
+            _daemonMutex = null;
+        }
+    }
+
     private async Task<HelperResponse> HandleRequestAsync(HelperRequest request)
     {
         try
@@ -188,12 +300,44 @@ public sealed class AdminHelperServer
                     _killSwitchEnabled = false;
                     DisableKillSwitchEmergencyBlock();
                     return Ok(request, null);
+                case "EnableOnionDnsProxy":
+                {
+                    var payload = DeserializePayload<AdminHelperDnsProxyRequest>(request.Payload);
+                    var success = _dnsProxyService.Enable(payload?.NameServerAddress ?? "127.0.0.1", LogVpnHelperLine);
+                    return success
+                        ? Ok(request, null)
+                        : Fail(request, ".onion DNS proxying could not be enabled.");
+                }
+                case "DisableOnionDnsProxy":
+                    _dnsProxyService.Disable(LogVpnHelperLine);
+                    return Ok(request, null);
+                case "EnsurePersistentHelper":
+                {
+                    var payload = DeserializePayload<PersistentAdminHelperRequest>(request.Payload);
+                    var processPath = Environment.ProcessPath;
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        return Fail(request, "Persistent admin helper install failed: executable path unavailable.");
+                    }
+
+                    var success = WindowsPersistentAdminHelper.TryEnsureInstalled(
+                        processPath,
+                        payload?.UserSid ?? string.Empty,
+                        payload?.UserName ?? string.Empty,
+                        LogVpnHelperLine,
+                        out var error);
+                    return success
+                        ? Ok(request, null)
+                        : Fail(request, error ?? "Persistent admin helper install failed.");
+                }
                 case "GetStatus":
                     return Ok(request, new AdminHelperStatus
                     {
                         VpnRunning = _vpnService.IsRunning,
                         VpnExitCode = _vpnService.ExitCode,
-                        KillSwitchEnabled = _killSwitchEnabled
+                        KillSwitchEnabled = _killSwitchEnabled,
+                        IsAdministrator = WindowsAdmin.IsAdministrator(),
+                        Mode = _persistentMode ? "persistent" : "transient"
                     });
                 case "DrainLogs":
                 {
@@ -259,6 +403,75 @@ public sealed class AdminHelperServer
             Success = false,
             Error = message
         };
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static NamedPipeServerStream CreateServerPipe(string pipeName)
+    {
+        var pipeSecurity = new PipeSecurity();
+
+        try
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            if (identity.User is { } userSid)
+            {
+                pipeSecurity.AddAccessRule(new PipeAccessRule(userSid, PipeAccessRights.FullControl, AccessControlType.Allow));
+            }
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"Persistent admin helper: failed to add current-user pipe ACL: {ex.Message}");
+        }
+
+        try
+        {
+            var adminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            pipeSecurity.AddAccessRule(new PipeAccessRule(adminSid, PipeAccessRights.FullControl, AccessControlType.Allow));
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"Persistent admin helper: failed to add Administrators pipe ACL: {ex.Message}");
+        }
+
+        try
+        {
+            var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            pipeSecurity.AddAccessRule(new PipeAccessRule(systemSid, PipeAccessRights.FullControl, AccessControlType.Allow));
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"Persistent admin helper: failed to add SYSTEM pipe ACL: {ex.Message}");
+        }
+
+        return NamedPipeServerStreamAcl.Create(
+            pipeName,
+            PipeDirection.InOut,
+            1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous,
+            0,
+            0,
+            pipeSecurity);
+    }
+
+    private static async Task<bool> WaitForConnectionAsync(NamedPipeServerStream server, TimeSpan timeout)
+    {
+        try
+        {
+            var waitTask = server.WaitForConnectionAsync();
+            var completed = await Task.WhenAny(waitTask, Task.Delay(timeout)).ConfigureAwait(false);
+            if (completed != waitTask)
+            {
+                return false;
+            }
+
+            await waitTask.ConfigureAwait(false);
+            return server.IsConnected;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void Cleanup()

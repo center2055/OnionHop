@@ -31,7 +31,7 @@
                             </StackPanel>
 
                             <TextBlock IsVisible="{Binding State.ShowWindowsOnlySettings}"
-                                       Text="Windows-only: UAC helper can elevate TUN startup automatically."
+                                       Text="Windows: installed builds reuse a privileged helper after the first approval; portable builds still prompt when needed."
                                        Opacity="0.65"
                                        TextWrapping="Wrap" />
 

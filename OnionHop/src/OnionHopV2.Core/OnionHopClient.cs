@@ -566,7 +566,20 @@ public sealed class OnionHopClient : IDisposable
                 }
                 else if (_activeDnsPort == DefaultDnsPort && !string.IsNullOrWhiteSpace(_activeDnsBindAddress))
                 {
-                    _onionDnsProxyService.Enable(_activeDnsBindAddress!, RaiseLog);
+                    if (OperatingSystem.IsWindows() && !PlatformHelper.IsAdministrator())
+                    {
+                        var enabled = await _adminHelper.EnableOnionDnsProxyAsync(_activeDnsBindAddress!).ConfigureAwait(false);
+                        if (!enabled)
+                        {
+                            throw new InvalidOperationException(".onion DNS proxying could not be enabled by the privileged helper.");
+                        }
+
+                        RaiseLog($".onion DNS proxying enabled (helper-managed, nameserver={_activeDnsBindAddress}).");
+                    }
+                    else
+                    {
+                        _onionDnsProxyService.Enable(_activeDnsBindAddress!, RaiseLog);
+                    }
                 }
             }
 
@@ -850,7 +863,14 @@ public sealed class OnionHopClient : IDisposable
 
         try
         {
-            _onionDnsProxyService.Disable(RaiseLog);
+            if (OperatingSystem.IsWindows() && !WindowsAdmin.IsAdministrator())
+            {
+                _ = Task.Run(async () => await _adminHelper.DisableOnionDnsProxyIfAvailableAsync().ConfigureAwait(false));
+            }
+            else
+            {
+                _onionDnsProxyService.Disable(RaiseLog);
+            }
         }
         catch (Exception ex)
         {
@@ -1182,7 +1202,14 @@ public sealed class OnionHopClient : IDisposable
 
             if (_activeOptions?.OnionDnsProxyEnabled == true)
             {
-                _onionDnsProxyService.Disable(RaiseLog);
+                if (OperatingSystem.IsWindows() && !WindowsAdmin.IsAdministrator())
+                {
+                    _ = Task.Run(async () => await _adminHelper.DisableOnionDnsProxyIfAvailableAsync().ConfigureAwait(false));
+                }
+                else
+                {
+                    _onionDnsProxyService.Disable(RaiseLog);
+                }
             }
 
             StopTorProcess();

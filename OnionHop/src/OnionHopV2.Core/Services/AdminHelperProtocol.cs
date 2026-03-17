@@ -38,6 +38,17 @@ internal static class AdminHelperProtocol
     };
 }
 
+internal sealed class AdminHelperDnsProxyRequest
+{
+    public string? NameServerAddress { get; set; }
+}
+
+internal sealed class PersistentAdminHelperRequest
+{
+    public string? UserSid { get; set; }
+    public string? UserName { get; set; }
+}
+
 internal sealed class HelperRequest
 {
     public string? RequestId { get; set; }
@@ -58,4 +69,6 @@ internal sealed class AdminHelperStatus
     public bool VpnRunning { get; set; }
     public int? VpnExitCode { get; set; }
     public bool KillSwitchEnabled { get; set; }
+    public bool IsAdministrator { get; set; }
+    public string Mode { get; set; } = "transient";
 }

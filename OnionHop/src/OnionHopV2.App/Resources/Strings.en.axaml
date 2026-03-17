@@ -221,8 +221,8 @@
   <x:String x:Key="Status.ReadyToRoute">Ready to route traffic through Tor.</x:String>
   <x:String x:Key="Status.Resolving">Resolving...</x:String>
   <x:String x:Key="Status.DownloadingComponentsWait">Downloading components. Please wait.</x:String>
-  <x:String x:Key="Status.AdminRequiredRequesting">TUN/VPN mode requires Administrator. Requesting elevation...</x:String>
-  <x:String x:Key="Status.AdminRequiredCanceled">Administrator access is required for TUN/VPN mode. Connection canceled.</x:String>
+  <x:String x:Key="Status.AdminRequiredRequesting">Windows networking changes require Administrator access. Starting the privileged helper...</x:String>
+  <x:String x:Key="Status.AdminRequiredCanceled">Administrator access is required for this Windows networking feature. Connection canceled.</x:String>
   <x:String x:Key="Status.CancelingConnect">Canceling connection attempt...</x:String>
   <x:String x:Key="Status.DefaultsRestored">Default settings restored.</x:String>
   <x:String x:Key="Status.CheckingComponents">Checking components...</x:String>

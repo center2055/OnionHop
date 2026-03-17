@@ -59,6 +59,9 @@ Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
+[UninstallRun]
+Filename: "powershell"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Get-ScheduledTask -TaskName 'OnionHop Persistent Admin Helper *' -ErrorAction SilentlyContinue | Stop-ScheduledTask -ErrorAction SilentlyContinue; Get-ScheduledTask -TaskName 'OnionHop Persistent Admin Helper *' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue"""; Flags: runhidden
+
 [Code]
 function FindExistingInstallDir(): string;
 var
@@ -102,6 +105,7 @@ var
 begin
   Result := True;
   try
+    Exec('powershell', '-NoProfile -ExecutionPolicy Bypass -Command "Get-ScheduledTask -TaskName ''OnionHop Persistent Admin Helper *'' -ErrorAction SilentlyContinue | Stop-ScheduledTask -ErrorAction SilentlyContinue"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     existingDir := FindExistingInstallDir();
     if existingDir <> '' then
     begin

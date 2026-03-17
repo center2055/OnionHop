@@ -86,10 +86,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         ["Wird aufgelöst..."] = "Status.Resolving",
         ["Downloading components. Please wait."] = "Status.DownloadingComponentsWait",
         ["Komponenten werden heruntergeladen. Bitte warten."] = "Status.DownloadingComponentsWait",
-        ["TUN/VPN mode requires Administrator. Requesting elevation..."] = "Status.AdminRequiredRequesting",
-        ["TUN/VPN-Modus benötigt Administratorrechte. Erhöhe Berechtigungen..."] = "Status.AdminRequiredRequesting",
-        ["Administrator access is required for TUN/VPN mode. Connection canceled."] = "Status.AdminRequiredCanceled",
-        ["Administratorrechte sind für den TUN/VPN-Modus erforderlich. Verbindung abgebrochen."] = "Status.AdminRequiredCanceled",
+        ["Windows networking changes require Administrator access. Starting the privileged helper..."] = "Status.AdminRequiredRequesting",
+        ["Windows-Netzwerkänderungen benötigen Administratorrechte. Privilegierter Helfer wird gestartet..."] = "Status.AdminRequiredRequesting",
+        ["Administrator access is required for this Windows networking feature. Connection canceled."] = "Status.AdminRequiredCanceled",
+        ["Administratorrechte sind für diese Windows-Netzwerkfunktion erforderlich. Verbindung abgebrochen."] = "Status.AdminRequiredCanceled",
         ["Canceling connection attempt..."] = "Status.CancelingConnect",
         ["Verbindungsaufbau wird abgebrochen..."] = "Status.CancelingConnect",
         ["Default settings restored."] = "Status.DefaultsRestored",
@@ -468,7 +468,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool ShowMacOnlySettings => IsMacOS;
     public bool ShowTunStackOptions => !IsMacOS;
     public string VpnLogTabHeader => TunEngineLogTabHeader;
-    public bool CanUseOnionDnsProxy => OperatingSystem.IsMacOS() || PlatformHelper.IsAdministrator();
+    public bool CanUseOnionDnsProxy => OperatingSystem.IsMacOS() || OperatingSystem.IsWindows() || PlatformHelper.IsAdministrator();
     public string ManualExitFingerprintSummary => BuildFingerprintSummary(ExitNodeFingerprint);
     public bool UseCustomChrome => !UseNativeTheme;
     public bool UseNativeMacChrome => IsMacOS && UseNativeTheme;
@@ -1325,13 +1325,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             StatusMessage = LocalizationService.Get("Status.AdminRequiredRequesting");
 
-            if (options.OnionDnsProxyEnabled && !WindowsUacHelper.TryElevate())
-            {
-                StatusMessage = LocalizationService.Get("Status.AdminRequiredCanceled");
-                return false;
-            }
-
-            if (IsTunModeOption(options))
+            if (needsAdmin)
             {
                 OnionHopV2.Core.Services.StartupLogger.Write("ConnectAsync: Calling EnsureAdminHelperAsync...");
                 if (!await _client.EnsureAdminHelperAsync())
