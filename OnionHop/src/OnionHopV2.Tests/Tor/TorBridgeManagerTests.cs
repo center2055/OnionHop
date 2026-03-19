@@ -13,6 +13,8 @@ namespace OnionHopV2.Tests.Tor;
 
 public sealed class TorBridgeManagerTests
 {
+    private static readonly object BundledWebTunnelLock = new();
+
     private static string CreateTempDir()
     {
         var path = Path.Combine(Path.GetTempPath(), "OnionHopV2.Tests", Path.GetRandomFileName());
@@ -72,6 +74,73 @@ public sealed class TorBridgeManagerTests
         finally
         {
             try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void GetClientTransportPlugins_restores_webtunnel_client_from_bundle()
+    {
+        lock (BundledWebTunnelLock)
+        {
+            var dir = CreateTempDir();
+            var bundledPtDir = Path.Combine(AppContext.BaseDirectory, "tor", "pluggable_transports");
+            var bundledClient = Path.Combine(bundledPtDir, "webtunnel-client.exe");
+            var hadBundledClient = File.Exists(bundledClient);
+            byte[]? originalContent = null;
+
+            try
+            {
+                if (hadBundledClient)
+                {
+                    originalContent = File.ReadAllBytes(bundledClient);
+                }
+                else
+                {
+                    Directory.CreateDirectory(bundledPtDir);
+                }
+
+                File.WriteAllText(bundledClient, "test-webtunnel-client");
+
+                var ptDir = Path.Combine(dir, "tor", "pluggable_transports");
+                Directory.CreateDirectory(ptDir);
+
+                var manager = new TorBridgeManager(dir);
+                var options = new OnionHopConnectOptions
+                {
+                    SelectedBridgeType = "webtunnel"
+                };
+
+                var plugins = manager.GetClientTransportPlugins(
+                    options,
+                    ["webtunnel 198.51.100.20:443 0123456789ABCDEF0123456789ABCDEF01234567 url=https://example.test/ ver=0.0.3"],
+                    Path.Combine(dir, "tor"),
+                    null,
+                    _ => { });
+
+                var restoredClient = Path.Combine(ptDir, "webtunnel-client.exe");
+                Assert.Single(plugins);
+                Assert.True(File.Exists(restoredClient));
+                Assert.Equal("test-webtunnel-client", File.ReadAllText(restoredClient));
+            }
+            finally
+            {
+                try
+                {
+                    if (hadBundledClient && originalContent != null)
+                    {
+                        File.WriteAllBytes(bundledClient, originalContent);
+                    }
+                    else if (File.Exists(bundledClient))
+                    {
+                        File.Delete(bundledClient);
+                    }
+                }
+                catch
+                {
+                }
+
+                try { Directory.Delete(dir, true); } catch { }
+            }
         }
     }
 

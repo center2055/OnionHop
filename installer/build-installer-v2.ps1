@@ -34,6 +34,31 @@ function Remove-PathWithRetry {
   }
 }
 
+function Assert-RequiredRuntimeDependencies {
+  param(
+    [Parameter(Mandatory = $true)][string]$RepoRoot
+  )
+
+  $required = @(
+    "OnionHop\\tor\\tor.exe",
+    "OnionHop\\tor\\geoip",
+    "OnionHop\\tor\\geoip6",
+    "OnionHop\\tor\\pluggable_transports\\pt_config.json",
+    "OnionHop\\tor\\pluggable_transports\\lyrebird.exe",
+    "OnionHop\\tor\\pluggable_transports\\snowflake-client.exe",
+    "OnionHop\\tor\\pluggable_transports\\conjure-client.exe",
+    "OnionHop\\tor\\pluggable_transports\\webtunnel-client.exe",
+    "OnionHop\\vpn\\sing-box.exe",
+    "OnionHop\\vpn\\xray.exe",
+    "OnionHop\\vpn\\wintun.dll"
+  ) | ForEach-Object { Join-Path $RepoRoot $_ }
+
+  $missing = $required | Where-Object { -not (Test-Path $_) }
+  if ($missing.Count -gt 0) {
+    throw ("Required runtime files are missing:`n - " + ($missing -join "`n - "))
+  }
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop"
 $projectDir = Join-Path $solutionRoot "src\OnionHopV2.App"
@@ -53,24 +78,11 @@ if (-not $SkipDependencies) {
   & powershell -NoProfile -ExecutionPolicy Bypass -File $depsScript -NoPause
   if ($LASTEXITCODE -ne 0) {
     Write-Warning "Dependency download failed (exit code $LASTEXITCODE). Attempting to continue if dependencies are already present..."
-
-    $torExe = Join-Path $repoRoot "OnionHop\\tor\\tor.exe"
-    $singBoxExe = Join-Path $repoRoot "OnionHop\\vpn\\sing-box.exe"
-    $xrayExe = Join-Path $repoRoot "OnionHop\\vpn\\xray.exe"
-    $wintunDll = Join-Path $repoRoot "OnionHop\\vpn\\wintun.dll"
-
-    $missing = @()
-    foreach ($p in @($torExe, $singBoxExe, $xrayExe, $wintunDll)) {
-      if (!(Test-Path $p)) { $missing += $p }
-    }
-
-    if ($missing.Count -gt 0) {
-      throw ("Dependency download failed and required files are missing:`n - " + ($missing -join "`n - "))
-    }
-
-    Write-Host "Dependencies already present. Continuing..." -ForegroundColor Yellow
   }
 }
+
+Assert-RequiredRuntimeDependencies -RepoRoot $repoRoot
+Write-Host "Runtime dependencies verified." -ForegroundColor Green
 
 $sc = "false"
 if ($SelfContained.IsPresent) { $sc = "true" }

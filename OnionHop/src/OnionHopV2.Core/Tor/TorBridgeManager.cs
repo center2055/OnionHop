@@ -1430,13 +1430,14 @@ internal sealed class TorBridgeManager
         var clientPath = Path.Combine(ptPath, WebTunnelClientFileName);
         if (!File.Exists(clientPath))
         {
-            var found = FindWebTunnelClientInTorBrowser();
-            if (!string.IsNullOrWhiteSpace(found))
+            var source = FindWebTunnelClientSource();
+            if (source != null)
             {
                 try
                 {
-                    File.Copy(found, clientPath, true);
-                    log($"Copied {WebTunnelClientFileName} from Tor Browser.");
+                    Directory.CreateDirectory(ptPath);
+                    File.Copy(source.Path, clientPath, true);
+                    log($"Copied {WebTunnelClientFileName} from {source.Label}.");
                 }
                 catch (Exception ex)
                 {
@@ -1448,7 +1449,7 @@ internal sealed class TorBridgeManager
 
         if (!File.Exists(clientPath))
         {
-            BridgeValidationMessage = $"Webtunnel client is missing ({WebTunnelClientFileName}). Install Tor Browser and copy it into tor/pluggable_transports.";
+            BridgeValidationMessage = $"Webtunnel client is missing ({WebTunnelClientFileName}). Reinstall OnionHop or install Tor Browser and copy it into tor/pluggable_transports.";
             return false;
         }
 
@@ -1456,19 +1457,55 @@ internal sealed class TorBridgeManager
         return true;
     }
 
-    private static string? FindWebTunnelClientInTorBrowser()
+    private static CopySource? FindWebTunnelClientSource()
     {
-        var candidates = BuildTorBrowserPtCandidates();
-
-        foreach (var candidate in candidates)
+        foreach (var candidate in BuildBundledPtCandidates())
         {
             if (File.Exists(candidate))
             {
-                return candidate;
+                return new CopySource(candidate, "the OnionHop bundle");
+            }
+        }
+
+        foreach (var candidate in BuildTorBrowserPtCandidates())
+        {
+            if (File.Exists(candidate))
+            {
+                return new CopySource(candidate, "Tor Browser");
             }
         }
 
         return null;
+    }
+
+    private static IReadOnlyList<string> BuildBundledPtCandidates()
+    {
+        var candidates = new List<string>();
+        void AddCandidate(string? root)
+        {
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return;
+            }
+
+            candidates.Add(Path.Combine(root, "tor", "pluggable_transports", WebTunnelClientFileName));
+            candidates.Add(Path.Combine(root, "pluggable_transports", WebTunnelClientFileName));
+        }
+
+        AddCandidate(AppContext.BaseDirectory);
+
+        var exePath = Environment.ProcessPath;
+        var exeDir = exePath != null ? Path.GetDirectoryName(exePath) : null;
+        if (!string.IsNullOrWhiteSpace(exeDir) &&
+            !string.Equals(exeDir, AppContext.BaseDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            AddCandidate(exeDir);
+        }
+
+        return candidates
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static IReadOnlyList<string> BuildTorBrowserPtCandidates()
@@ -1498,6 +1535,8 @@ internal sealed class TorBridgeManager
             Path.Combine("/usr", "share", "torbrowser", "TorBrowser", "Tor", "PluggableTransports", WebTunnelClientFileName)
         ];
     }
+
+    private sealed record CopySource(string Path, string Label);
 
     private static List<string> ExtractBridgeLines(string? text)
     {

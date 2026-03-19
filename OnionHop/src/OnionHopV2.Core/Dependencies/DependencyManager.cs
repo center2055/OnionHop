@@ -38,6 +38,8 @@ internal sealed class DependencyManager
         var vpnDir = Path.Combine(baseDir, "vpn");
         var ptDir = Path.Combine(torDir, "pluggable_transports");
 
+        TrySeedBundledRuntime(baseDir, requireVpnDependencies, log);
+
         var torPath = Path.Combine(torDir, PlatformHelper.TorBinaryName);
         var geoip = Path.Combine(torDir, "geoip");
         var geoip6 = Path.Combine(torDir, "geoip6");
@@ -540,6 +542,37 @@ internal sealed class DependencyManager
             .ToList();
     }
 
+    internal static bool TrySeedBundledRuntime(
+        string baseDir,
+        bool includeVpnDependencies,
+        Action<string> log,
+        IEnumerable<string>? probeDirectories = null)
+    {
+        var copiedAny = false;
+        var torDir = Path.Combine(baseDir, "tor");
+        var vpnDir = Path.Combine(baseDir, "vpn");
+
+        foreach (var probeDir in EnumerateBundledRuntimeProbeDirectories(probeDirectories))
+        {
+            copiedAny |= CopyBundledRuntimeDirectoryIfMissing(
+                Path.Combine(probeDir, "tor"),
+                torDir,
+                preserveFileName: "pt_config.json",
+                log);
+
+            if (includeVpnDependencies)
+            {
+                copiedAny |= CopyBundledRuntimeDirectoryIfMissing(
+                    Path.Combine(probeDir, "vpn"),
+                    vpnDir,
+                    preserveFileName: null,
+                    log);
+            }
+        }
+
+        return copiedAny;
+    }
+
     private static IReadOnlyList<string> GetTorSuffixCandidates()
     {
         var suffixes = new List<string> { PlatformHelper.TorExpertBundlePlatformSuffix };
@@ -702,6 +735,85 @@ internal sealed class DependencyManager
         return Directory
             .GetDirectories(root, directoryName, SearchOption.AllDirectories)
             .FirstOrDefault();
+    }
+
+    private static IEnumerable<string> EnumerateBundledRuntimeProbeDirectories(IEnumerable<string>? probeDirectories)
+    {
+        if (probeDirectories != null)
+        {
+            return probeDirectories
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        var candidates = new List<string> { AppContext.BaseDirectory };
+        var processPath = Environment.ProcessPath;
+        var processDir = !string.IsNullOrWhiteSpace(processPath) ? Path.GetDirectoryName(processPath) : null;
+        if (!string.IsNullOrWhiteSpace(processDir))
+        {
+            candidates.Add(processDir);
+        }
+
+        return candidates
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static bool CopyBundledRuntimeDirectoryIfMissing(
+        string sourceDir,
+        string destinationDir,
+        string? preserveFileName,
+        Action<string> log)
+    {
+        if (!Directory.Exists(sourceDir))
+        {
+            return false;
+        }
+
+        var copiedFiles = 0;
+        Directory.CreateDirectory(destinationDir);
+
+        foreach (var filePath in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDir, filePath);
+            if (string.IsNullOrWhiteSpace(relativePath) || relativePath.StartsWith("..", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var destinationPath = Path.Combine(destinationDir, relativePath);
+            if (!string.IsNullOrWhiteSpace(preserveFileName)
+                && string.Equals(Path.GetFileName(destinationPath), preserveFileName, StringComparison.OrdinalIgnoreCase)
+                && File.Exists(destinationPath))
+            {
+                continue;
+            }
+
+            if (File.Exists(destinationPath))
+            {
+                continue;
+            }
+
+            var targetFolder = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrWhiteSpace(targetFolder))
+            {
+                Directory.CreateDirectory(targetFolder);
+            }
+
+            File.Copy(filePath, destinationPath, overwrite: false);
+            copiedFiles++;
+        }
+
+        if (copiedFiles > 0)
+        {
+            log($"Seeded {copiedFiles} bundled runtime file(s) from {sourceDir}.");
+            return true;
+        }
+
+        return false;
     }
 
     private static void CopyDirectory(string sourceDir, string destinationDir, bool overwrite, string? preserveFileName = null)
