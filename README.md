@@ -85,6 +85,7 @@ In normal use, OnionHop mainly works inside its own application-data/runtime fol
 - Auto-update checks via GitHub releases
 - Logs (App + DNS) and diagnostics
 - Optional Discord status + launch-page automation
+- Firefox extension bridge companion support via the same bundled `tor/` and `pluggable_transports/` runtime assets
 
 ---
 
