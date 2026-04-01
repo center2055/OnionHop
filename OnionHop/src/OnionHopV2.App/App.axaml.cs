@@ -26,6 +26,7 @@ public partial class App : Application
     private NativeMenuItem? _trayExitItem;
     private bool _allowShutdown;
     private CancellationTokenSource? _ipcCts;
+    private BrowserExtensionBridgeServer? _browserExtensionBridgeServer;
 
     public override void Initialize()
     {
@@ -81,6 +82,8 @@ public partial class App : Application
             ConfigureTray(desktop, shell);
             ConfigureWindowCloseToTray(desktop, shell);
             ApplyStartupMinimize(desktop, shell);
+            _browserExtensionBridgeServer = new BrowserExtensionBridgeServer(shell.State);
+            _browserExtensionBridgeServer.Start();
 
             desktop.Exit += (_, _) => shell.Dispose();
             desktop.Exit += (_, _) =>
@@ -88,6 +91,8 @@ public partial class App : Application
                 try { _ipcCts?.Cancel(); } catch { }
                 try { _ipcCts?.Dispose(); } catch { }
                 _ipcCts = null;
+                try { _browserExtensionBridgeServer?.Dispose(); } catch { }
+                _browserExtensionBridgeServer = null;
             };
 
             Dispatcher.UIThread.Post(async () => await shell.State.InitializeAsync());

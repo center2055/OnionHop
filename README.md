@@ -85,6 +85,7 @@ In normal use, OnionHop mainly works inside its own application-data/runtime fol
 - Auto-update checks via GitHub releases
 - Logs (App + DNS) and diagnostics
 - Optional Discord status + launch-page automation
+- Companion bridge for the Firefox extension: when OnionHop is open, the desktop app exposes a local companion pipe so the browser extension can query status and send connect/disconnect commands without scraping runtime state
 
 ---
 
