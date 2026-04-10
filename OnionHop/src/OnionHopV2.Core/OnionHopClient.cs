@@ -1051,7 +1051,10 @@ set -eu
             return true;
         }
 
-        var timeoutMs = (int)Math.Max(1, timeout.TotalMilliseconds);
+        var timeoutMsDouble = Math.Max(1d, timeout.TotalMilliseconds);
+        var timeoutMs = timeoutMsDouble > int.MaxValue
+            ? int.MaxValue
+            : (int)timeoutMsDouble;
 
         var chownArgs = new List<string> { "-R", $"{uid}:{gid}" };
         chownArgs.AddRange(dirsToFix);
@@ -1092,6 +1095,7 @@ set -eu
             return false;
         }
 
+        var stdErrTask = process.StandardError.ReadToEndAsync();
         if (!process.WaitForExit(timeoutMs))
         {
             try
@@ -1106,7 +1110,7 @@ set -eu
             return false;
         }
 
-        var stdErr = process.StandardError.ReadToEnd().Trim();
+        var stdErr = stdErrTask.GetAwaiter().GetResult().Trim();
         if (process.ExitCode != 0)
         {
             error = string.IsNullOrWhiteSpace(stdErr)
