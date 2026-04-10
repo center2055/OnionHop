@@ -988,29 +988,30 @@ public sealed class OnionHopClient : IDisposable
             try
             {
                 var uid = geteuid();
-                var userName = Environment.UserName;
-                var dirs = string.Join(" ", dirsToFix.Select(d => $"\\\"{d}\\\""));
-                var script = $"do shell script \"chown -R {userName}:staff {dirs} && chmod -R u+rwX {dirs}\" with administrator privileges";
+                var gid = getegid();
+                var ownerSpec = $"{uid}:{gid}";
+                var quotedOwner = MacAuthorization.QuoteShellArgument(ownerSpec);
+                var scriptBody = string.Join(
+                    "\n",
+                    dirsToFix.Select(dir =>
+                    {
+                        var quotedDir = MacAuthorization.QuoteShellArgument(dir);
+                        return $"/usr/sbin/chown -R {quotedOwner} {quotedDir}\n/bin/chmod -R u+rwX {quotedDir}";
+                    }));
+                var script = $"""
+#!/bin/sh
+set -eu
+{scriptBody}
+""";
 
-                var psi = new ProcessStartInfo("osascript", $"-e '{script}'")
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                using var proc = Process.Start(psi);
-                proc?.WaitForExit(30000);
-
-                if (proc?.ExitCode == 0)
+                var result = MacAuthorization.RunScript(script, requireAdministrator: true, timeoutMs: 30_000);
+                if (result.Success)
                 {
                     RaiseLog("Successfully fixed directory permissions.");
                 }
                 else
                 {
-                    var err = proc?.StandardError.ReadToEnd();
-                    RaiseLog($"Permission fix was declined or failed: {err}");
+                    RaiseLog($"Permission fix was declined or failed: {result.FailureMessage}");
                 }
             }
             catch (Exception ex)
@@ -1020,27 +1021,20 @@ public sealed class OnionHopClient : IDisposable
         }
         else if (OperatingSystem.IsLinux())
         {
-            // On Linux, try pkexec for a graphical sudo prompt.
+            // On Linux, use pkexec without shell interpolation to avoid command injection.
             try
             {
-                var userName = Environment.UserName;
-                var dirs = string.Join(" ", dirsToFix.Select(d => $"\"{d}\""));
-                var psi = new ProcessStartInfo("pkexec", $"sh -c \"chown -R {userName} {dirs} && chmod -R u+rwX {dirs}\"")
-                {
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var proc = Process.Start(psi);
-                proc?.WaitForExit(30000);
-
-                if (proc?.ExitCode == 0)
+                var uid = geteuid();
+                var gid = getegid();
+                if (TryRunPkexecOwnershipFix(uid, gid, dirsToFix, TimeSpan.FromSeconds(30), out var error))
                 {
                     RaiseLog("Successfully fixed directory permissions.");
                 }
                 else
                 {
-                    RaiseLog("Permission fix was declined or failed.");
+                    RaiseLog(string.IsNullOrWhiteSpace(error)
+                        ? "Permission fix was declined or failed."
+                        : $"Permission fix was declined or failed: {error}");
                 }
             }
             catch (Exception ex)
@@ -1048,6 +1042,88 @@ public sealed class OnionHopClient : IDisposable
                 RaiseLog($"Failed to request permission fix: {ex.Message}");
             }
         }
+    }
+
+    private static bool TryRunPkexecOwnershipFix(
+        uint uid,
+        uint gid,
+        IReadOnlyList<string> dirsToFix,
+        TimeSpan timeout,
+        out string? error)
+    {
+        error = null;
+        if (dirsToFix.Count == 0)
+        {
+            return true;
+        }
+
+        var timeoutMs = (int)Math.Clamp(timeout.TotalMilliseconds, 1d, int.MaxValue);
+
+        var chownArgs = new List<string> { "-R", $"{uid}:{gid}" };
+        chownArgs.AddRange(dirsToFix);
+        if (!TryRunPkexecCommand("chown", chownArgs, timeoutMs, out error))
+        {
+            return false;
+        }
+
+        var chmodArgs = new List<string> { "-R", "u+rwX" };
+        chmodArgs.AddRange(dirsToFix);
+        return TryRunPkexecCommand("chmod", chmodArgs, timeoutMs, out error);
+    }
+
+    private static bool TryRunPkexecCommand(
+        string executable,
+        IReadOnlyList<string> arguments,
+        int timeoutMs,
+        out string? error)
+    {
+        error = null;
+        var psi = new ProcessStartInfo("pkexec")
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        psi.ArgumentList.Add(executable);
+        foreach (var arg in arguments)
+        {
+            psi.ArgumentList.Add(arg);
+        }
+
+        using var process = Process.Start(psi);
+        if (process == null)
+        {
+            error = "Failed to start pkexec.";
+            return false;
+        }
+
+        var stdErrTask = process.StandardError.ReadToEndAsync();
+        if (!process.WaitForExit(timeoutMs))
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (Exception ex)
+            {
+                error = $"pkexec command timed out and could not be terminated cleanly: {ex.Message}";
+            }
+
+            error ??= "pkexec command timed out.";
+            return false;
+        }
+
+        var stdErr = stdErrTask.GetAwaiter().GetResult().Trim();
+        if (process.ExitCode != 0)
+        {
+            error = string.IsNullOrWhiteSpace(stdErr)
+                ? $"{executable} exited with code {process.ExitCode}."
+                : stdErr;
+            return false;
+        }
+
+        return true;
     }
 
     private void FixBaseDirectoryOwnershipForNonRoot()
@@ -1171,6 +1247,9 @@ public sealed class OnionHopClient : IDisposable
 
     [DllImport("libc")]
     private static extern uint geteuid();
+
+    [DllImport("libc")]
+    private static extern uint getegid();
 
     private async Task DisconnectCoreAsync(bool disableStatusUpdate)
     {
