@@ -990,12 +990,18 @@ public sealed class OnionHopClient : IDisposable
                 var uid = geteuid();
                 var gid = getegid();
                 var ownerSpec = $"{uid}:{gid}";
-                var dirs = string.Join(" ", dirsToFix.Select(MacAuthorization.QuoteShellArgument));
+                var quotedOwner = MacAuthorization.QuoteShellArgument(ownerSpec);
+                var scriptBody = string.Join(
+                    "\n",
+                    dirsToFix.Select(dir =>
+                    {
+                        var quotedDir = MacAuthorization.QuoteShellArgument(dir);
+                        return $"/usr/sbin/chown -R {quotedOwner} {quotedDir}\n/bin/chmod -R u+rwX {quotedDir}";
+                    }));
                 var script = $"""
 #!/bin/sh
 set -eu
-/usr/sbin/chown -R {MacAuthorization.QuoteShellArgument(ownerSpec)} {dirs}
-/bin/chmod -R u+rwX {dirs}
+{scriptBody}
 """;
 
                 var result = MacAuthorization.RunScript(script, requireAdministrator: true, timeoutMs: 30_000);
@@ -1051,10 +1057,7 @@ set -eu
             return true;
         }
 
-        var timeoutMsDouble = Math.Max(1d, timeout.TotalMilliseconds);
-        var timeoutMs = timeoutMsDouble > int.MaxValue
-            ? int.MaxValue
-            : (int)timeoutMsDouble;
+        var timeoutMs = (int)Math.Clamp(timeout.TotalMilliseconds, 1d, int.MaxValue);
 
         var chownArgs = new List<string> { "-R", $"{uid}:{gid}" };
         chownArgs.AddRange(dirsToFix);
@@ -1102,11 +1105,12 @@ set -eu
             {
                 process.Kill(entireProcessTree: true);
             }
-            catch
+            catch (Exception ex)
             {
+                error = $"pkexec command timed out and could not be terminated cleanly: {ex.Message}";
             }
 
-            error = "pkexec command timed out.";
+            error ??= "pkexec command timed out.";
             return false;
         }
 
