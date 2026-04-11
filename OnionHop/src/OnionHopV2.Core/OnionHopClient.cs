@@ -426,6 +426,13 @@ public sealed class OnionHopClient : IDisposable
         }
 
         ClearPreparedMacVpnLaunchConfig();
+        SetStatus(
+            isConnecting: true,
+            isConnected: false,
+            isDisconnecting: false,
+            connectionStatus: "Connecting...",
+            statusMessage: "Checking internet connectivity and preparing Tor...",
+            progress: 0.02);
 
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking internet connectivity...");
         var connectivity = await InternetConnectivityProbe.CheckAsync(token).ConfigureAwait(false);
@@ -446,6 +453,10 @@ public sealed class OnionHopClient : IDisposable
         {
             RaiseLog($"Internet check warning: {connectivity.Reason} Continuing connection attempt.");
         }
+
+        _statusMessage = "Checking local Tor components...";
+        _connectionProgress = Math.Max(_connectionProgress, 0.05);
+        PublishStatus();
 
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking dependencies...");
         var requiresVpnDependencies = IsTunMode(options);

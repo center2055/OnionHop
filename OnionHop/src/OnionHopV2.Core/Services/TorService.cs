@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -74,9 +75,9 @@ internal sealed class TorService : IDisposable
         TryDeleteFile(Path.Combine(_dataDirectory, ControlPortFileName));
         TryDeleteFile(Path.Combine(_dataDirectory, ControlAuthCookieFileName));
 
-        var args = BuildArguments(config, _dataDirectory);
-        _log($"Tor arguments: {args}");
-        var psi = new ProcessStartInfo(config.TorPath, args)
+        var arguments = BuildArguments(config, _dataDirectory);
+        _log($"Tor arguments: {FormatArgumentsForLog(arguments)}");
+        var psi = new ProcessStartInfo(config.TorPath)
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -86,6 +87,10 @@ internal sealed class TorService : IDisposable
                 ?? Path.GetDirectoryName(config.TorPath)
                 ?? AppContext.BaseDirectory
         };
+        foreach (var argument in arguments)
+        {
+            psi.ArgumentList.Add(argument);
+        }
 
         _process = new Process
         {
@@ -367,42 +372,42 @@ internal sealed class TorService : IDisposable
         return sb.ToString().Trim();
     }
 
-    private static string BuildArguments(TorLaunchConfig config, string dataDirectory)
+    private static IReadOnlyList<string> BuildArguments(TorLaunchConfig config, string dataDirectory)
     {
-        var sb = new StringBuilder();
+        var arguments = new List<string>();
 
-        sb.Append($"--SocksPort {FormatPortEndpoint(config.SocksListenAddress, config.SocksPort, "127.0.0.1")} ");
+        AddArgument(arguments, "--SocksPort", FormatPortEndpoint(config.SocksListenAddress, config.SocksPort, "127.0.0.1"));
         if (config.HttpTunnelPort.HasValue)
         {
-            sb.Append($"--HTTPTunnelPort {FormatPortEndpoint(config.HttpTunnelListenAddress, config.HttpTunnelPort.Value, "127.0.0.1")} ");
+            AddArgument(arguments, "--HTTPTunnelPort", FormatPortEndpoint(config.HttpTunnelListenAddress, config.HttpTunnelPort.Value, "127.0.0.1"));
         }
         if (config.DnsPort.HasValue)
         {
-            sb.Append($"--DNSPort {FormatPortEndpoint(config.DnsListenAddress, config.DnsPort.Value, "127.0.0.1")} ");
+            AddArgument(arguments, "--DNSPort", FormatPortEndpoint(config.DnsListenAddress, config.DnsPort.Value, "127.0.0.1"));
         }
-        sb.Append($"--DataDirectory \"{dataDirectory}\" ");
-        sb.Append($"--GeoIPFile \"{config.GeoIpPath}\" ");
-        sb.Append($"--GeoIPv6File \"{config.GeoIp6Path}\" ");
-        sb.Append("--Log \"notice stdout\" ");
+        AddArgument(arguments, "--DataDirectory", dataDirectory);
+        AddArgument(arguments, "--GeoIPFile", config.GeoIpPath);
+        AddArgument(arguments, "--GeoIPv6File", config.GeoIp6Path);
+        AddArgument(arguments, "--Log", "notice stdout");
 
         // Control port for NEWNYM etc
-        sb.Append("--ControlPort auto ");
-        sb.Append($"--ControlPortWriteToFile \"{Path.Combine(dataDirectory, ControlPortFileName)}\" ");
-        sb.Append("--CookieAuthentication 1 ");
+        AddArgument(arguments, "--ControlPort", "auto");
+        AddArgument(arguments, "--ControlPortWriteToFile", Path.Combine(dataDirectory, ControlPortFileName));
+        AddArgument(arguments, "--CookieAuthentication", "1");
 
         if (config.ClientUseIpv6.HasValue)
         {
-            sb.Append($"--ClientUseIPv6 {(config.ClientUseIpv6.Value ? "1" : "0")} ");
+            AddArgument(arguments, "--ClientUseIPv6", config.ClientUseIpv6.Value ? "1" : "0");
         }
 
         if (config.HardwareAccel.HasValue)
         {
-            sb.Append($"--HardwareAccel {(config.HardwareAccel.Value ? "1" : "0")} ");
+            AddArgument(arguments, "--HardwareAccel", config.HardwareAccel.Value ? "1" : "0");
         }
 
         if (!string.IsNullOrWhiteSpace(config.ConnectionPadding))
         {
-            sb.Append($"--ConnectionPadding {config.ConnectionPadding} ");
+            AddArgument(arguments, "--ConnectionPadding", config.ConnectionPadding);
         }
 
         if (config.AllowedPorts is { Count: > 0 })
@@ -413,20 +418,20 @@ internal sealed class TorService : IDisposable
                 .Select(port => $"*:{port}"));
             if (!string.IsNullOrWhiteSpace(reachable))
             {
-                sb.Append($"--ReachableAddresses \"{reachable}\" ");
-                sb.Append($"--ReachableDirAddresses \"{reachable}\" ");
-                sb.Append($"--ReachableORAddresses \"{reachable}\" ");
+                AddArgument(arguments, "--ReachableAddresses", reachable);
+                AddArgument(arguments, "--ReachableDirAddresses", reachable);
+                AddArgument(arguments, "--ReachableORAddresses", reachable);
             }
         }
 
         if (config.MaxCircuitDirtinessSeconds.HasValue && config.MaxCircuitDirtinessSeconds.Value > 0)
         {
-            sb.Append($"--MaxCircuitDirtiness {config.MaxCircuitDirtinessSeconds.Value} ");
+            AddArgument(arguments, "--MaxCircuitDirtiness", config.MaxCircuitDirtinessSeconds.Value.ToString());
         }
 
         if (config.BridgeLines is { Count: > 0 })
         {
-            sb.Append("--UseBridges 1 ");
+            AddArgument(arguments, "--UseBridges", "1");
             foreach (var plugin in config.ClientTransportPlugins ?? Array.Empty<string>())
             {
                 if (string.IsNullOrWhiteSpace(plugin))
@@ -444,8 +449,7 @@ internal sealed class TorService : IDisposable
                     value = value.Substring(prefix.Length).Trim();
                 }
 
-                sb.Append("--ClientTransportPlugin ");
-                sb.Append($"\"{value}\" ");
+                AddArgument(arguments, "--ClientTransportPlugin", value);
             }
 
             foreach (var bridge in config.BridgeLines)
@@ -462,8 +466,7 @@ internal sealed class TorService : IDisposable
                     value = value.Substring(bridgePrefix.Length).Trim();
                 }
 
-                sb.Append("--Bridge ");
-                sb.Append($"\"{value}\" ");
+                AddArgument(arguments, "--Bridge", value);
             }
         }
 
@@ -473,27 +476,54 @@ internal sealed class TorService : IDisposable
 
         if (hasEntry)
         {
-            sb.Append($"--EntryNodes \"{{{config.EntryCountryCode}}}\" ");
+            AddArgument(arguments, "--EntryNodes", $"{{{config.EntryCountryCode}}}");
         }
 
         if (hasExitFingerprint)
         {
-            sb.Append($"--ExitNodes \"{config.ExitNodeFingerprint}\" ");
+            AddArgument(arguments, "--ExitNodes", config.ExitNodeFingerprint!);
         }
         else if (hasExit)
         {
-            sb.Append($"--ExitNodes \"{{{config.ExitCountryCode}}}\" ");
+            AddArgument(arguments, "--ExitNodes", $"{{{config.ExitCountryCode}}}");
         }
 
         var strictNodes = hasEntry || hasExit || (hasExitFingerprint && config.StrictManualExitNodeFingerprint);
         if (strictNodes)
         {
-            sb.Append("--StrictNodes 1 ");
+            AddArgument(arguments, "--StrictNodes", "1");
         }
 
-        sb.Append("--ClientOnly 1 ");
+        AddArgument(arguments, "--ClientOnly", "1");
 
-        return sb.ToString().Trim();
+        return arguments;
+    }
+
+    private static void AddArgument(ICollection<string> arguments, string name, string value)
+    {
+        arguments.Add(name);
+        arguments.Add(value);
+    }
+
+    private static string FormatArgumentsForLog(IReadOnlyList<string> arguments)
+    {
+        return string.Join(" ", arguments.Select(QuoteForLog));
+    }
+
+    private static string QuoteForLog(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "\"\"";
+        }
+
+        if (value.IndexOfAny([' ', '\t', '"']) < 0)
+        {
+            return value;
+        }
+
+        return "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
     }
 
     private static string FormatPortEndpoint(string? listenAddress, int port, string defaultAddress)

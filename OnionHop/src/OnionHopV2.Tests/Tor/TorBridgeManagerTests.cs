@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core;
+using OnionHopV2.Core.Platform;
 using OnionHopV2.Core.Tor;
 using Xunit;
 
@@ -226,5 +227,66 @@ public sealed class TorBridgeManagerTests
         Assert.Contains(keys, key => string.Equals(key, "conjure", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(keys, key => string.Equals(key, "custom", StringComparison.OrdinalIgnoreCase));
         Assert.Equal("custom", Assert.Single(keys.Skip(Math.Max(0, keys.Count - 1))));
+    }
+
+    [Fact]
+    public void NormalizeClientTransportPlugin_quotes_executable_paths_with_spaces()
+    {
+        var plugin = "ClientTransportPlugin snowflake exec /Users/test/Library/Application Support/OnionHop/tor/pluggable_transports/lyrebird -ampcache https://cdn.ampproject.org/";
+
+        var normalized = TorBridgeManager.NormalizeClientTransportPlugin(plugin);
+
+        Assert.Equal(
+            "ClientTransportPlugin snowflake exec \"/Users/test/Library/Application Support/OnionHop/tor/pluggable_transports/lyrebird\" -ampcache https://cdn.ampproject.org/",
+            normalized);
+    }
+
+    [Fact]
+    public void NormalizeClientTransportPlugin_preserves_already_quoted_executable_paths()
+    {
+        var plugin = "ClientTransportPlugin webtunnel exec \"/Users/test/Library/Application Support/OnionHop/tor/pluggable_transports/webtunnel-client\" -url https://example.test/";
+
+        var normalized = TorBridgeManager.NormalizeClientTransportPlugin(plugin);
+
+        Assert.Equal(plugin, normalized);
+    }
+
+    [Fact]
+    public void GetClientTransportPlugins_stages_runtime_pt_directory_when_source_path_contains_spaces()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "OnionHopV2.Tests", "Application Support", Path.GetRandomFileName());
+        Directory.CreateDirectory(dir);
+
+        try
+        {
+            var ptDir = Path.Combine(dir, "tor", "pluggable_transports");
+            Directory.CreateDirectory(ptDir);
+            File.WriteAllText(Path.Combine(ptDir, PlatformHelper.LyrebirdBinaryName), "stub");
+
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "obfs4"
+            };
+
+            var plugins = manager.GetClientTransportPlugins(
+                options,
+                ["obfs4 1.2.3.4:443 74FAD13168806246602538555B5521A0383A1875 cert=abc iat-mode=0"],
+                Path.Combine(dir, "tor"),
+                null,
+                _ => { });
+
+            var plugin = Assert.Single(plugins);
+            const string prefix = "ClientTransportPlugin obfs4 exec ";
+            Assert.StartsWith(prefix, plugin, StringComparison.Ordinal);
+            Assert.DoesNotContain("Application Support", plugin, StringComparison.Ordinal);
+
+            var executablePath = plugin[prefix.Length..];
+            Assert.True(File.Exists(executablePath), $"Expected staged pluggable transport at '{executablePath}'.");
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
     }
 }
