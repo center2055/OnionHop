@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OnionHop
+Comment=Route traffic through Tor
+Exec=OnionHopV2
+Icon=onionhop
+Terminal=false
+Categories=Network;Security;
+StartupNotify=true

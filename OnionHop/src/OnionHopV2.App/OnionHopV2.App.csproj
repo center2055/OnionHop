@@ -8,6 +8,9 @@
     <ApplicationIcon>Assets\OnionHop.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <OnionHopIncludeWindowsRuntimeAssets>false</OnionHopIncludeWindowsRuntimeAssets>
+    <OnionHopIncludeWindowsRuntimeAssets Condition="'$(RuntimeIdentifier)' != '' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win-'))">true</OnionHopIncludeWindowsRuntimeAssets>
+    <OnionHopIncludeWindowsRuntimeAssets Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</OnionHopIncludeWindowsRuntimeAssets>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +18,7 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(OnionHopIncludeWindowsRuntimeAssets)' == 'true'">
     <None Include="..\..\..\OnionHop\tor\**\*">
       <Link>tor\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

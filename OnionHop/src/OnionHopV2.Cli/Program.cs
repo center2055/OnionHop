@@ -13,8 +13,10 @@ internal static class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
+        args = ExtractGlobalOption(args, "--base-dir", out var baseDirectory);
+
         using var shutdownCts = new CancellationTokenSource();
-        await using var host = new CliHost();
+        await using var host = new CliHost(baseDirectory);
         var ctrlCCount = 0;
         Console.CancelKeyPress += (_, eventArgs) =>
         {
@@ -52,11 +54,43 @@ internal static class Program
             await host.ShutdownAsync();
         }
     }
+
+    private static string[] ExtractGlobalOption(string[] args, string optionName, out string? value)
+    {
+        value = null;
+        var remaining = new List<string>();
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var current = args[i];
+            if (string.Equals(current, optionName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (i + 1 >= args.Length)
+                {
+                    throw new ArgumentException($"Missing value for {optionName}.");
+                }
+
+                value = args[++i];
+                continue;
+            }
+
+            var prefix = optionName + "=";
+            if (current.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                value = current[prefix.Length..];
+                continue;
+            }
+
+            remaining.Add(current);
+        }
+
+        return remaining.ToArray();
+    }
 }
 
 internal sealed class CliHost : IAsyncDisposable
 {
-    private readonly OnionHopClient _client = new();
+    private readonly OnionHopClient _client;
     private readonly SmartConnectAdvisor _advisor = new();
     private readonly object _statusLock = new();
     private readonly object _consoleLock = new();
@@ -75,8 +109,9 @@ internal sealed class CliHost : IAsyncDisposable
     private string _lastStatusPrintKey = string.Empty;
     private bool _shutdownRequested;
 
-    public CliHost()
+    public CliHost(string? baseDirectory = null)
     {
+        _client = new OnionHopClient(baseDirectory);
         _client.Log += (_, message) => WriteLog("LOG", message, ConsoleColor.DarkGray);
         _client.DnsLog += (_, message) => WriteLog("DNS", message, ConsoleColor.DarkYellow);
         _client.DependencyUpdated += (_, update) => OnDependencyUpdated(update);
@@ -121,6 +156,9 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine("  deps                         Ensure dependencies are downloaded", ConsoleColor.Gray);
         WriteLine("  clear                        Clear console", ConsoleColor.Gray);
         WriteLine("  exit | quit                  Exit CLI", ConsoleColor.Gray);
+        WriteLine(string.Empty, ConsoleColor.Gray);
+        WriteLine("Global options:", ConsoleColor.White);
+        WriteLine("  --base-dir <path>            Use a custom runtime/dependency directory", ConsoleColor.Gray);
         WriteLine(string.Empty, ConsoleColor.Gray);
         WriteLine("Connect options:", ConsoleColor.White);
         WriteLine("  --smart <on|off>             Smart Connect mode (default: on)", ConsoleColor.Gray);
