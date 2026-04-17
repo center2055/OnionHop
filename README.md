@@ -142,6 +142,10 @@ Build:
 powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-v2.ps1
 ```
 
+Notes:
+- The GUI installer now builds `self-contained` by default, so the shipped app includes the .NET 9 runtime and end users do not need to install it separately.
+- If you explicitly want a framework-dependent installer, pass `-FrameworkDependent`.
+
 Output:
 - `installer/output/OnionHop-Setup-<version>.exe`
 

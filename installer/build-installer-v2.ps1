@@ -1,6 +1,7 @@
 param(
   [string]$Configuration = "Release",
   [string]$Runtime = "win-x64",
+  [switch]$FrameworkDependent,
   [switch]$SelfContained,
   [switch]$SkipDependencies
 )
@@ -84,8 +85,14 @@ if (-not $SkipDependencies) {
 Assert-RequiredRuntimeDependencies -RepoRoot $repoRoot
 Write-Host "Runtime dependencies verified." -ForegroundColor Green
 
-$sc = "false"
-if ($SelfContained.IsPresent) { $sc = "true" }
+if ($FrameworkDependent.IsPresent -and $SelfContained.IsPresent) {
+  throw "Use either -FrameworkDependent or -SelfContained, not both. Installer builds are self-contained by default."
+}
+
+$sc = if ($FrameworkDependent.IsPresent) { "false" } else { "true" }
+
+$publishMode = if ($sc -eq "true") { "self-contained" } else { "framework-dependent" }
+Write-Host "Publish mode: $publishMode" -ForegroundColor Cyan
 
 Write-Host "Cleaning and Publishing OnionHop V2..." -ForegroundColor Cyan
 
