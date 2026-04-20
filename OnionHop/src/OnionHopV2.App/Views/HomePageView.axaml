@@ -10,22 +10,41 @@
              x:Class="OnionHopV2.App.Views.HomePageView"
              x:DataType="vm:HomePageViewModel">
 
+    <UserControl.Styles>
+        <Style Selector="Grid.home-toggle-row">
+            <Setter Property="ColumnSpacing" Value="16" />
+        </Style>
+
+        <Style Selector="TextBlock.home-toggle-label">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="ToggleSwitch.home-toggle-switch">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="TextBlock.home-hint">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.46" />
+            <Setter Property="FontStyle" Value="Italic" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Styles>
+
     <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                   VerticalScrollBarVisibility="Auto">
-        <Grid Margin="24"
-              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-              RowSpacing="14">
+        <Grid Margin="24,18,24,16"
+              RowDefinitions="Auto,Auto,Auto,Auto"
+              RowSpacing="10">
 
-        <TextBlock Grid.Row="0"
-                   Text="{DynamicResource Home.Title}"
-                   FontSize="28"
-                   FontWeight="SemiBold" />
-
-        <suki:GlassCard Grid.Row="1" Padding="18" CornerRadius="18">
+        <suki:GlassCard Grid.Row="0" Padding="16" CornerRadius="18">
             <Grid ColumnDefinitions="*,Auto"
                   RowDefinitions="Auto,Auto,Auto"
                   ColumnSpacing="18"
-                  RowSpacing="10">
+                  RowSpacing="8">
                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <TextBlock Text="{Binding State.ConnectionStatus}"
@@ -106,21 +125,21 @@
                           VerticalAlignment="Center">
                         <Button Classes="Accent"
                                 Width="150"
-                                Height="38"
+                                Height="36"
                                 Margin="0,0,10,0"
                                 Command="{Binding State.ConnectCommand}"
                                 IsVisible="{Binding State.ShowConnectButton}"
                                 Content="{DynamicResource Home.Connect}" />
                         <Button Classes="Danger"
                                 Width="150"
-                                Height="38"
+                                Height="36"
                                 Margin="0,0,10,0"
                                 Command="{Binding State.DisconnectCommand}"
                                 IsVisible="{Binding State.ShowDisconnectButton}"
                                 Content="{DynamicResource Home.Disconnect}" />
                         <Button Classes="Warning"
                                 Width="150"
-                                Height="38"
+                                Height="36"
                                 Margin="0,0,10,0"
                                 Command="{Binding State.CancelConnectCommand}"
                                 IsVisible="{Binding State.ShowCancelButton}"
@@ -129,7 +148,7 @@
 
                     <!-- Secondary actions -->
                     <StackPanel Grid.Column="1"
-                                Spacing="6"
+                                Spacing="4"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
                                 MaxWidth="480">
@@ -138,18 +157,18 @@
                                     HorizontalAlignment="Right">
                             <Button Classes="Flat"
                                     MinWidth="145"
-                                    Height="38"
+                                    Height="36"
                                     Command="{Binding State.RefreshIpCommand}"
                                     Content="{DynamicResource Home.RefreshIp}" />
                             <Button Classes="Flat"
                                     MinWidth="145"
-                                    Height="38"
+                                    Height="36"
                                     Command="{Binding State.ChangeIdentityCommand}"
                                     Content="{DynamicResource Home.NewIdentity}" />
                         </StackPanel>
                         <Button Classes="Flat"
                                 MinWidth="300"
-                                Height="38"
+                                Height="36"
                                 HorizontalAlignment="Right"
                                 IsEnabled="{Binding State.CanUpdateBridgeDb}"
                                 Command="{Binding State.RefreshBridgeDbCommand}"
@@ -162,19 +181,23 @@
             </Grid>
         </suki:GlassCard>
 
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="1"
               ColumnDefinitions="*,*"
               ColumnSpacing="14">
-            <suki:GlassCard Grid.Column="0" Padding="16" CornerRadius="18">
+            <suki:GlassCard Grid.Column="0" Padding="14" CornerRadius="18">
                 <StackPanel Spacing="10">
                     <TextBlock Text="{DynamicResource Home.Routing}"
                                FontSize="16"
                                FontWeight="SemiBold" />
-                    <ToggleSwitch Content="{DynamicResource Home.SmartConnect}"
-                                  IsChecked="{Binding State.SmartConnectEnabled}" />
-                    <TextBlock Text="{DynamicResource Home.SmartConnectHint}"
-                               Opacity="0.75"
-                               TextWrapping="Wrap" />
+                    <Grid Classes="home-toggle-row" ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="home-toggle-label"
+                                   Text="{DynamicResource Home.SmartConnect}" />
+                        <ToggleSwitch Classes="home-toggle-switch"
+                                      Grid.Column="1"
+                                      IsChecked="{Binding State.SmartConnectEnabled}" />
+                    </Grid>
+                    <TextBlock Classes="home-hint"
+                               Text="{DynamicResource Home.SmartConnectHint}" />
 
                     <StackPanel Spacing="6">
                         <TextBlock Text="{DynamicResource Home.Mode}" Opacity="0.75" />
@@ -187,16 +210,15 @@
                         <ComboBox ItemsSource="{Binding State.LocationOptions}"
                                   SelectedItem="{Binding State.SelectedLocationOption}"
                                   IsEnabled="{Binding State.CanSelectExitLocation}" />
-                        <TextBlock Text="{DynamicResource Home.ExitLocationManualHint}"
-                                   Opacity="0.7"
-                                   TextWrapping="Wrap"
+                        <TextBlock Classes="home-hint"
+                                   Text="{DynamicResource Home.ExitLocationManualHint}"
                                    IsVisible="{Binding State.IsManualExitNodeFingerprintSet}" />
                     </StackPanel>
                 </StackPanel>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="1" Padding="16" CornerRadius="18">
-                <StackPanel Spacing="12">
+            <suki:GlassCard Grid.Column="1" Padding="14" CornerRadius="18">
+                <StackPanel Spacing="10">
                     <TextBlock Text="{DynamicResource Home.TorNetwork}"
                                FontSize="16"
                                FontWeight="SemiBold" />
@@ -218,34 +240,42 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Text="{DynamicResource Home.TorNetworkHint}"
-                               Opacity="0.75"
-                               TextWrapping="Wrap" />
+                    <TextBlock Classes="home-hint"
+                               Text="{DynamicResource Home.TorNetworkHint}" />
                 </StackPanel>
             </suki:GlassCard>
         </Grid>
 
-        <suki:GlassCard Grid.Row="3" Padding="16" CornerRadius="18" IsVisible="{Binding State.IsTunMode}">
-            <StackPanel Spacing="12">
+        <suki:GlassCard Grid.Row="2" Padding="14" CornerRadius="18" IsVisible="{Binding State.IsTunMode}">
+            <StackPanel Spacing="10">
                 <TextBlock Text="{DynamicResource Home.TunOptions}"
                            FontSize="16"
                            FontWeight="SemiBold" />
 
-                <ToggleSwitch Content="{DynamicResource Home.HybridRouting}"
-                              IsChecked="{Binding State.UseHybridRouting}" />
+                <Grid Classes="home-toggle-row" ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="home-toggle-label"
+                               Text="{DynamicResource Home.HybridRouting}" />
+                    <ToggleSwitch Classes="home-toggle-switch"
+                                  Grid.Column="1"
+                                  IsChecked="{Binding State.UseHybridRouting}" />
+                </Grid>
 
-                <ToggleSwitch Content="{DynamicResource Home.KillSwitch}"
-                              IsChecked="{Binding State.KillSwitchEnabled}"
-                              IsEnabled="{Binding State.CanUseKillSwitch}" />
+                <Grid Classes="home-toggle-row" ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="home-toggle-label"
+                               Text="{DynamicResource Home.KillSwitch}" />
+                    <ToggleSwitch Classes="home-toggle-switch"
+                                  Grid.Column="1"
+                                  IsChecked="{Binding State.KillSwitchEnabled}"
+                                  IsEnabled="{Binding State.CanUseKillSwitch}" />
+                </Grid>
 
-                <TextBlock Text="{DynamicResource Home.KillSwitchHint}"
-                           Opacity="0.75"
-                           TextWrapping="Wrap" />
+                <TextBlock Classes="home-hint"
+                           Text="{DynamicResource Home.KillSwitchHint}" />
             </StackPanel>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="4"
-                        Padding="16"
+        <suki:GlassCard Grid.Row="3"
+                        Padding="14"
                         CornerRadius="18"
                         IsVisible="{Binding State.IsDependencyDownloadInProgress}">
             <StackPanel Spacing="10">

@@ -55,7 +55,7 @@
   <!-- About -->
   <x:String x:Key="About.Title">About</x:String>
   <x:String x:Key="About.Links">Links</x:String>
-  <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
+  <x:String x:Key="About.GitHub">GitHub</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
   <x:String x:Key="About.Changelog">Changelog</x:String>
@@ -74,6 +74,12 @@
   <x:String x:Key="About.ChangelogTypeBeta">Beta / Pre-release</x:String>
   <x:String x:Key="About.ChangelogDateUnknown">Unknown date</x:String>
   <x:String x:Key="About.ChangelogNotesMissing">No changelog notes were provided for this release.</x:String>
+  <x:String x:Key="Update.AvailableTitle">Update available</x:String>
+  <x:String x:Key="Update.AvailableBody">A newer OnionHop release is available.</x:String>
+  <x:String x:Key="Update.CurrentVersion">Current version: {0}</x:String>
+  <x:String x:Key="Update.LatestVersion">Latest version: {0}</x:String>
+  <x:String x:Key="Update.OpenReleasePage">Open release page</x:String>
+  <x:String x:Key="Update.Later">Later</x:String>
 
   <!-- Settings -->
   <x:String x:Key="Settings.TabGeneral">General</x:String>

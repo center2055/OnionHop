@@ -171,7 +171,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
             }
 
             var mapped = ordered
-                .Select((release, index) => MapRelease(release, index == ordered.Count - 1))
+                .Select(static release => MapRelease(release))
                 .ToList();
             mapped.Reverse();
 
@@ -230,7 +230,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
         return releases;
     }
 
-    private static AboutChangelogEntry MapRelease(GitHubReleaseHistoryItem release, bool expandedByDefault)
+    private static AboutChangelogEntry MapRelease(GitHubReleaseHistoryItem release)
     {
         var tag = string.IsNullOrWhiteSpace(release.TagName) ? "untagged" : release.TagName.Trim();
         var title = string.IsNullOrWhiteSpace(release.Name) ? tag : release.Name.Trim();
@@ -252,7 +252,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
             PublishedText = publishedText,
             ReleaseType = releaseType,
             Notes = notes,
-            IsExpanded = expandedByDefault
+            IsExpanded = false
         };
     }
 

@@ -3,12 +3,32 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:controls="using:OnionHopV2.App.Controls"
              xmlns:vm="using:OnionHopV2.App.ViewModels"
              mc:Ignorable="d"
              d:DesignWidth="900"
              d:DesignHeight="720"
              x:Class="OnionHopV2.App.Views.AboutPageView"
              x:DataType="vm:AboutPageViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.changelog-disclosure">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="MinWidth" Value="28" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style Selector="TextBlock.changelog-disclosure-glyph">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24" Spacing="16">
@@ -38,10 +58,24 @@
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button Classes="Flat"
                         Click="OnOpenReleasesClick"
-                        Content="{DynamicResource About.GitHubIssues}" />
+                        >
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Width="16"
+                                  Height="16"
+                                  Data="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.726-4.043-1.61-4.043-1.61-.546-1.386-1.333-1.756-1.333-1.756-1.09-.745.082-.729.082-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.47-2.38 1.236-3.22-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.3 1.23A11.52 11.52 0 0 1 12 6.844c1.02.005 2.045.138 3.003.404 2.29-1.552 3.296-1.23 3.296-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.806 5.625-5.479 5.92.43.372.823 1.103.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.216.694.825.576C20.565 21.796 24 17.3 24 12 24 5.373 18.627 0 12 0z" />
+                        <TextBlock Text="{DynamicResource About.GitHub}" />
+                    </StackPanel>
+                </Button>
                 <Button Classes="Flat"
                         Click="OnOpenDiscordClick"
-                        Content="{DynamicResource About.Discord}" />
+                        >
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Width="16"
+                                  Height="16"
+                                  Data="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.445.865-.608 1.25a18.27 18.27 0 0 0-5.488 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.067.067 0 0 0-.031.028C.533 9.047-.32 13.58.1 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.994 3.03.078.078 0 0 0 .084-.028 14.31 14.31 0 0 0 1.226-1.995.076.076 0 0 0-.042-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.127-.095.253-.199.373-.303a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.104.246.208.373.303a.077.077 0 0 1-.006.128 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.769 1.367 1.225 1.995a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .053-.056c.5-5.177-.839-9.677-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.211 0 2.175 1.086 2.157 2.419 0 1.333-.946 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.174 1.086 2.156 2.419 0 1.333-.946 2.419-2.156 2.419z" />
+                        <TextBlock Text="{DynamicResource About.Discord}" />
+                    </StackPanel>
+                </Button>
                 <Button Classes="Flat"
                         Click="OnOpenKoFiClick"
                         >
@@ -54,90 +88,105 @@
                 </Button>
             </StackPanel>
 
-            <TextBlock Text="{DynamicResource About.Changelog}"
-                       FontSize="16"
-                       FontWeight="SemiBold" />
-
             <suki:GlassCard Padding="16" CornerRadius="18">
                 <StackPanel Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding ChangelogSummaryText}"
-                                   Opacity="0.75"
-                                   TextWrapping="Wrap"
-                                   VerticalAlignment="Center" />
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{DynamicResource About.Changelog}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding ChangelogSummaryText}"
+                                       Opacity="0.75"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
                         <Button Grid.Column="1"
                                 Classes="Flat"
                                 Command="{Binding RefreshChangelogsCommand}"
-                                Content="{DynamicResource About.Refresh}" />
+                                Content="{DynamicResource About.Refresh}"
+                                VerticalAlignment="Center" />
+                        <ToggleButton x:Name="ChangelogSectionToggle"
+                                      Grid.Column="2"
+                                      Classes="changelog-disclosure"
+                                      IsChecked="False"
+                                      VerticalAlignment="Center">
+                            <Grid>
+                                <TextBlock Classes="changelog-disclosure-glyph"
+                                           Text="+"
+                                           IsVisible="{Binding !IsChecked, ElementName=ChangelogSectionToggle}" />
+                                <TextBlock Classes="changelog-disclosure-glyph"
+                                           Text="−"
+                                           IsVisible="{Binding IsChecked, ElementName=ChangelogSectionToggle}" />
+                            </Grid>
+                        </ToggleButton>
                     </Grid>
 
-                    <ProgressBar IsIndeterminate="True"
-                                 IsVisible="{Binding IsLoadingChangelogs}" />
+                    <StackPanel IsVisible="{Binding IsChecked, ElementName=ChangelogSectionToggle}"
+                                Spacing="12">
+                        <ProgressBar IsIndeterminate="True"
+                                     IsVisible="{Binding IsLoadingChangelogs}" />
 
-                    <TextBlock Text="{Binding ChangelogStatusText}"
-                               IsVisible="{Binding HasChangelogStatus}"
-                               Opacity="0.8"
-                               TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ChangelogStatusText}"
+                                   IsVisible="{Binding HasChangelogStatus}"
+                                   Opacity="0.8"
+                                   TextWrapping="Wrap" />
 
-                    <ItemsControl ItemsSource="{Binding ChangelogEntries}"
-                                  IsVisible="{Binding HasChangelogEntries}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:AboutChangelogEntry">
-                                <Border Margin="0,0,0,8"
-                                        Padding="12"
-                                        Background="#0F000000"
-                                        CornerRadius="12">
-                                    <StackPanel Spacing="8">
-                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="{Binding Title}"
-                                                           FontWeight="SemiBold"
-                                                           TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Tag}"
-                                                           Opacity="0.72"
-                                                           FontSize="12" />
-                                                <TextBlock Text="{Binding PublishedText}"
-                                                           Opacity="0.72"
-                                                           FontSize="12" />
-                                            </StackPanel>
-                                            <Border Grid.Column="1"
-                                                    Background="#1EFFFFFF"
-                                                    CornerRadius="8"
-                                                    Padding="8,4"
-                                                    VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding ReleaseType}"
-                                                           FontSize="12" />
+                        <ItemsControl ItemsSource="{Binding ChangelogEntries}"
+                                      IsVisible="{Binding HasChangelogEntries}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AboutChangelogEntry">
+                                    <Border Margin="0,0,0,8"
+                                            Padding="14"
+                                            Background="#0F000000"
+                                            CornerRadius="12">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontWeight="SemiBold"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Tag}"
+                                                               Opacity="0.72"
+                                                               FontSize="12" />
+                                                    <TextBlock Text="{Binding PublishedText}"
+                                                               Opacity="0.72"
+                                                               FontSize="12" />
+                                                </StackPanel>
+                                                <Border Grid.Column="1"
+                                                        Background="#1EFFFFFF"
+                                                        CornerRadius="8"
+                                                        Padding="8,4"
+                                                        VerticalAlignment="Top">
+                                                    <TextBlock Text="{Binding ReleaseType}"
+                                                               FontSize="12" />
+                                                </Border>
+                                                <ToggleButton x:Name="ReleaseDetailsToggle"
+                                                              Grid.Column="2"
+                                                              Classes="changelog-disclosure"
+                                                              IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                              VerticalAlignment="Top">
+                                                    <Grid>
+                                                        <TextBlock Classes="changelog-disclosure-glyph"
+                                                                   Text="+"
+                                                                   IsVisible="{Binding !IsChecked, ElementName=ReleaseDetailsToggle}" />
+                                                        <TextBlock Classes="changelog-disclosure-glyph"
+                                                                   Text="−"
+                                                                   IsVisible="{Binding IsChecked, ElementName=ReleaseDetailsToggle}" />
+                                                    </Grid>
+                                                </ToggleButton>
+                                            </Grid>
+
+                                            <Border Padding="12"
+                                                    Background="#12000000"
+                                                    CornerRadius="10"
+                                                    IsVisible="{Binding IsExpanded}">
+                                                <controls:MarkdownTextView Markdown="{Binding Notes}" />
                                             </Border>
-                                            <ToggleButton Grid.Column="2"
-                                                          x:Name="DetailsToggle"
-                                                          Classes="Flat"
-                                                          IsChecked="{Binding IsExpanded, Mode=TwoWay}"
-                                                          VerticalAlignment="Center">
-                                                <ToggleButton.Styles>
-                                                    <Style Selector="ToggleButton#DetailsToggle">
-                                                        <Setter Property="Content"
-                                                                Value="{DynamicResource About.ChangelogDetailsExpand}" />
-                                                    </Style>
-                                                    <Style Selector="ToggleButton#DetailsToggle:checked">
-                                                        <Setter Property="Content"
-                                                                Value="{DynamicResource About.ChangelogDetailsCollapse}" />
-                                                    </Style>
-                                                </ToggleButton.Styles>
-                                            </ToggleButton>
-                                        </Grid>
-                                        <Border IsVisible="{Binding IsExpanded}"
-                                                Padding="10"
-                                                Background="#12000000"
-                                                CornerRadius="10">
-                                            <TextBlock Text="{Binding Notes}"
-                                                       TextWrapping="Wrap" />
-                                        </Border>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </StackPanel>
             </suki:GlassCard>
         </StackPanel>

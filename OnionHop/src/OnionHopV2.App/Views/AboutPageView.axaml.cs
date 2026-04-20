@@ -17,7 +17,7 @@ public partial class AboutPageView : UserControl
 
     private void OnOpenReleasesClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        OpenUri(new Uri("https://github.com/center2055/OnionHop/issues"));
+        OpenUri(new Uri("https://github.com/center2055/OnionHop"));
     }
 
     private void OnOpenDiscordClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

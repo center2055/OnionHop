@@ -160,12 +160,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly DiscordPresenceService _discordPresence = new();
     private readonly SmartConnectAdvisor _smartConnectAdvisor = new();
+    private readonly UpdateService _updateService = new();
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
     private bool _loadingSettings;
     private bool _disposed;
+    private bool _isInitialized;
     private bool _hasStatusSnapshot;
     private bool _wasConnected;
+    private int _updateCheckInProgress;
+    private Version? _lastPromptedUpdateVersion;
     private Dictionary<string, TorCountryNodeStats> _countryStatsByCode = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _pendingLogsLock = new();
     private readonly Queue<string> _pendingAppLogs = new();
@@ -1011,6 +1015,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(UseNativeMacChrome));
     }
 
+    partial void OnAutoUpdateChanged(bool value)
+    {
+        if (value && !_loadingSettings && !_disposed && _isInitialized)
+        {
+            ScheduleUpdateCheck();
+        }
+    }
+
     partial void OnAutoStartModeChanged(string value)
     {
         SelectedAutoStartModeOption = AutoStartModeOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.OrdinalIgnoreCase))
@@ -1033,6 +1045,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return Task.CompletedTask;
         }
 
+        _isInitialized = true;
         Dispatcher.UIThread.Post(StartSpeedMonitor);
         Dispatcher.UIThread.Post(StartIpAutoRefresh);
 
@@ -1106,6 +1119,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 Dispatcher.UIThread.Post(() => AppendLog($"Initialization failed: {ex.Message}"));
             }
         });
+
+        if (AutoUpdate)
+        {
+            ScheduleUpdateCheck();
+        }
 
         return Task.CompletedTask;
     }
@@ -2652,6 +2670,65 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return normalized[..180].TrimEnd() + "...";
+    }
+
+    private void ScheduleUpdateCheck()
+    {
+        if (_disposed || !AutoUpdate)
+        {
+            return;
+        }
+
+        _ = Task.Run(CheckForUpdatesAsync);
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (_disposed || Interlocked.Exchange(ref _updateCheckInProgress, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            var currentVersion = GetCurrentAppVersion();
+            if (!HasKnownVersion(currentVersion))
+            {
+                return;
+            }
+
+            var updateInfo = await _updateService.GetLatestReleaseAsync(UpdateApiUrl).ConfigureAwait(false);
+            if (updateInfo == null || !HasKnownVersion(updateInfo.Version))
+            {
+                return;
+            }
+
+            if (!IsVersionNewer(updateInfo.Version, currentVersion))
+            {
+                return;
+            }
+
+            if (_lastPromptedUpdateVersion != null && Equals(_lastPromptedUpdateVersion, updateInfo.Version))
+            {
+                return;
+            }
+
+            _lastPromptedUpdateVersion = updateInfo.Version;
+            var currentVersionText = FormatVersion(currentVersion);
+            var latestVersionText = FormatVersion(updateInfo.Version);
+            AppendLog($"Update available: {latestVersionText} (current: {currentVersionText}).");
+
+            Dispatcher.UIThread.Post(async () =>
+                await UpdatePromptService.ShowUpdateAvailableAsync(currentVersionText, updateInfo, UpdateReleasesPageUrl));
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Update check failed: {ex.Message}");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _updateCheckInProgress, 0);
+        }
     }
 
     private static Version GetCurrentAppVersion()

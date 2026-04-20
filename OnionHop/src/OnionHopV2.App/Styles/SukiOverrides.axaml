@@ -220,6 +220,29 @@
       <Setter Property="CornerRadius" Value="10" />
   </Style>
 
+  <!-- Neutralize inherited TreeViewItem chrome so sidebar selections keep a clean, even pill shape. -->
+  <Style Selector="suki|SukiSideMenuItem">
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="suki|SukiSideMenuItem /template/ Border#PART_Border">
+      <Setter Property="Margin" Value="15,2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="suki|SukiSideMenuItem.Compact /template/ Border#PART_Border">
+      <Setter Property="Height" Value="48" />
+  </Style>
+
+  <Style Selector="suki|SukiSideMenuItem[IsSelected=True] /template/ TextBlock#PART_Header">
+      <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
   <!-- Fix for TabItem hit test area (Github issue) -->
   <Style Selector="TabControl > TabItem">
       <Setter Property="VerticalContentAlignment" Value="Stretch" />

@@ -38,28 +38,19 @@ internal static class InternetConnectivityProbe
                 .ToList();
             if (activeInterfaces.Count == 0)
             {
-                return new InternetConnectivityReport(
-                    InternetConnectivityState.Offline,
-                    "No active network adapter detected.");
+                return CreateReport(
+                    hasActiveInterfaces: false,
+                    hasUsableGateway: false,
+                    canReachPublicEndpoint: false);
             }
 
-            if (!activeInterfaces.Any(HasUsableGateway))
-            {
-                return new InternetConnectivityReport(
-                    InternetConnectivityState.Offline,
-                    "No default network route detected.");
-            }
+            var hasUsableGateway = activeInterfaces.Any(HasUsableGateway);
+            var canReachPublicEndpoint = await CanReachAnyPublicEndpointAsync(token).ConfigureAwait(false);
 
-            if (await CanReachAnyPublicEndpointAsync(token).ConfigureAwait(false))
-            {
-                return new InternetConnectivityReport(
-                    InternetConnectivityState.Online,
-                    "Public internet reachability probe succeeded.");
-            }
-
-            return new InternetConnectivityReport(
-                InternetConnectivityState.Unknown,
-                "A network route exists, but quick reachability probes failed.");
+            return CreateReport(
+                hasActiveInterfaces: true,
+                hasUsableGateway,
+                canReachPublicEndpoint);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -73,6 +64,37 @@ internal static class InternetConnectivityProbe
                 InternetConnectivityState.Unknown,
                 $"Connectivity probe unavailable: {ex.Message}");
         }
+    }
+
+    internal static InternetConnectivityReport CreateReport(
+        bool hasActiveInterfaces,
+        bool hasUsableGateway,
+        bool canReachPublicEndpoint)
+    {
+        if (!hasActiveInterfaces)
+        {
+            return new InternetConnectivityReport(
+                InternetConnectivityState.Offline,
+                "No active network adapter detected.");
+        }
+
+        if (canReachPublicEndpoint)
+        {
+            return new InternetConnectivityReport(
+                InternetConnectivityState.Online,
+                "Public internet reachability probe succeeded.");
+        }
+
+        if (hasUsableGateway)
+        {
+            return new InternetConnectivityReport(
+                InternetConnectivityState.Unknown,
+                "A default network route exists, but quick reachability probes failed.");
+        }
+
+        return new InternetConnectivityReport(
+            InternetConnectivityState.Unknown,
+            "Active network adapter detected, but no default gateway was exposed (common on PPP/PPPoE or route-managed links).");
     }
 
     private static bool IsCandidateInterface(NetworkInterface networkInterface)
