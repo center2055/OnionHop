@@ -807,6 +807,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(CanUpdateBridgeDb));
     }
 
+    partial void OnIsPreparingConnectionChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsBusy));
+        OnPropertyChanged(nameof(ShowConnectButton));
+        OnPropertyChanged(nameof(ShowDisconnectButton));
+        OnPropertyChanged(nameof(ShowCancelButton));
+        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+    }
+
     partial void OnIsConnectedChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowConnectButton));
@@ -834,15 +843,6 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(ShowConnectButton));
-    }
-
-    partial void OnIsPreparingConnectionChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsBusy));
-        OnPropertyChanged(nameof(ShowConnectButton));
-        OnPropertyChanged(nameof(ShowDisconnectButton));
-        OnPropertyChanged(nameof(ShowCancelButton));
-        OnPropertyChanged(nameof(CanUpdateBridgeDb));
     }
 
     partial void OnIsBridgeDbUpdateInProgressChanged(bool value)
@@ -2112,7 +2112,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             AutoUpdate = AutoUpdate,
             KillSwitchEnabled = KillSwitchEnabled,
             ThemeMode = ThemeMode,
-            IsDarkMode = IsDarkMode,
+            IsDarkMode = string.Equals(ThemeMode, ThemeModeDark, StringComparison.OrdinalIgnoreCase) ||
+                         (string.Equals(ThemeMode, ThemeModeSystem, StringComparison.OrdinalIgnoreCase) &&
+                          Application.Current?.ActualThemeVariant == ThemeVariant.Dark),
             UseNativeTheme = UseNativeTheme,
             SelectedLocation = SelectedLocation,
             SelectedEntryLocation = SelectedEntryLocation,
@@ -2199,18 +2201,6 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ThemeModeLight => ThemeVariant.Light,
             _ => ThemeVariant.Default
         };
-
-        var resolvedIsDark = ThemeMode switch
-        {
-            ThemeModeDark => true,
-            ThemeModeLight => false,
-            _ => Application.Current.ActualThemeVariant == ThemeVariant.Dark
-        };
-
-        if (IsDarkMode != resolvedIsDark)
-        {
-            IsDarkMode = resolvedIsDark;
-        }
     }
 
     private void RefreshLanguageOptions()

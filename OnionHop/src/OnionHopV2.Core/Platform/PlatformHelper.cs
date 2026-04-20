@@ -235,6 +235,57 @@ public static class PlatformHelper
         }
     }
 
+    internal static bool IsCommandAvailable(string commandName)
+    {
+        if (string.IsNullOrWhiteSpace(commandName))
+        {
+            return false;
+        }
+
+        if (Path.IsPathRooted(commandName))
+        {
+            return File.Exists(commandName);
+        }
+
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathValue))
+        {
+            return false;
+        }
+
+        var extensions = IsWin
+            ? (Environment.GetEnvironmentVariable("PATHEXT") ?? ".EXE;.CMD;.BAT;.COM")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            : [string.Empty];
+
+        foreach (var directory in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            try
+            {
+                foreach (var extension in extensions)
+                {
+                    var candidate = Path.Combine(directory, commandName);
+                    if (!string.IsNullOrEmpty(extension) &&
+                        !candidate.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidate += extension;
+                    }
+
+                    if (File.Exists(candidate))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore malformed PATH entries.
+            }
+        }
+
+        return false;
+    }
+
     internal static void RemoveQuarantineOnMacOS(string path)
     {
         if (!IsMac)
