@@ -216,7 +216,7 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Deaktivieren, um auf andere Exits zur&#252;ckzufallen, wenn der gew&#228;hlte Fingerprint nicht verf&#252;gbar ist.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split-Tunneling (Hybridmodus)</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">Im Hybridmodus kannst du w&#228;hlen, welche Apps Tor nutzen und welche direkt gehen. Ein Prozessname pro Zeile (z. B. chrome unter Linux/macOS, chrome.exe unter Windows).</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">Im Hybridmodus kannst du w&#228;hlen, welche Apps Tor nutzen und welche direkt gehen. Ein Prozessname pro Zeile (z. B. chrome.exe; unter Windows wird .exe automatisch erg&#228;nzt). Der echte Programmname kann vom Namen im Task-Manager abweichen: Yandex Browser ist browser.exe. &#214;ffne den Task-Manager und nutze die Registerkarte Details, um den echten Namen zu finden.</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Gesamten Web-Traffic (Ports 80/443) &#252;ber Tor leiten</x:String>
   <x:String x:Key="Settings.BlockQuic">QUIC/UDP f&#252;r Tor-Apps blockieren (verhindert Umgehungs-Leaks)</x:String>
   <x:String x:Key="Settings.BlockUdp">UDP-Verkehr blockieren</x:String>

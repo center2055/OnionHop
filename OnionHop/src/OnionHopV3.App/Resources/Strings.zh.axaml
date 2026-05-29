@@ -216,7 +216,7 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">禁用此项可在所选指纹不可用时允许回退出口节点。</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">分流隧道（混合模式）</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">在混合模式下，你可以选择哪些应用使用 Tor、哪些直连。每行一个进程名（例如：在 Linux/macOS 上为 chrome，在 Windows 上为 chrome.exe）。</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">在混合模式下，选择哪些应用走 Tor、哪些直连。每行一个进程名（例如 chrome.exe；在 Windows 上 .exe 会自动补全）。应用的真实可执行文件名可能与任务管理器中显示的名称不同：Yandex 浏览器是 browser.exe。请打开任务管理器并切换到“详细信息”选项卡查看真实名称。</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">通过 Tor 路由所有 Web 流量（端口 80/443）</x:String>
   <x:String x:Key="Settings.BlockQuic">为 Tor 应用阻止 QUIC/UDP（防止绕过泄露）</x:String>
   <x:String x:Key="Settings.BlockUdp">阻止 UDP 流量</x:String>

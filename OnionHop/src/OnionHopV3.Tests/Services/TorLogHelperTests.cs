@@ -132,6 +132,22 @@ public sealed class TorLogHelperTests
         Assert.Equal("firefox.exe", names[0]);
     }
 
+    [Fact]
+    public void ParseProcessNames_AppendsExeOnWindowsWhenMissing()
+    {
+        // Users copy friendly names like "FreeTube" / "browser" (Yandex) from Task
+        // Manager; sing-box needs the .exe image name, so it is added automatically.
+        var names = TorLogHelper.ParseProcessNames("FreeTube\nbrowser\nchrome.exe", isWindows: true);
+        Assert.Equal(new[] { "FreeTube.exe", "browser.exe", "chrome.exe" }, names);
+    }
+
+    [Fact]
+    public void ParseProcessNames_DoesNotAppendExeOffWindows()
+    {
+        var names = TorLogHelper.ParseProcessNames("freetube\nchrome", isWindows: false);
+        Assert.Equal(new[] { "freetube", "chrome" }, names);
+    }
+
     [Theory]
     [InlineData(9050, 9050)]
     [InlineData(0, 9050)]

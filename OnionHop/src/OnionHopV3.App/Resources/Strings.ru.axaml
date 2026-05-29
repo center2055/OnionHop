@@ -216,7 +216,7 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Отключите это, чтобы разрешить резервные выходы, когда выбранный отпечаток недоступен.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Раздельное туннелирование (гибридный режим)</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">В гибридном режиме можно выбрать, какие приложения используют Tor, а какие идут напрямую. Одно имя процесса в строке (например: chrome в Linux/macOS, chrome.exe в Windows).</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">В гибридном режиме выберите, какие приложения используют Tor, а какие идут напрямую. Одно имя процесса в строке (например chrome.exe; в Windows расширение .exe добавляется автоматически). Реальное имя файла может отличаться от названия в Диспетчере задач: у Яндекс Браузера это browser.exe. Откройте Диспетчер задач и используйте вкладку «Подробности», чтобы узнать настоящее имя.</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Направлять весь веб-трафик (порты 80/443) через Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">Блокировать QUIC/UDP для приложений Tor (предотвращает утечки в обход)</x:String>
   <x:String x:Key="Settings.BlockUdp">Блокировать трафик UDP</x:String>

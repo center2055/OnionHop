@@ -83,6 +83,9 @@ internal static class TorLogHelper
     }
 
     internal static IReadOnlyList<string> ParseProcessNames(string? text)
+        => ParseProcessNames(text, OperatingSystem.IsWindows());
+
+    internal static IReadOnlyList<string> ParseProcessNames(string? text, bool isWindows)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -121,10 +124,22 @@ internal static class TorLogHelper
                     name = lastSep >= 0 ? name[(lastSep + 1)..] : name;
                 }
 
-                if (!string.IsNullOrWhiteSpace(name))
+                if (string.IsNullOrWhiteSpace(name))
                 {
-                    results.Add(name);
+                    continue;
                 }
+
+                // On Windows, sing-box matches the executable image name *with* its
+                // ".exe" extension (its own defaults are tor.exe, chrome.exe, ...).
+                // Users typically copy just the app name (e.g. "FreeTube") from Task
+                // Manager, so append the suffix when missing or split-tunnel rules
+                // would silently match nothing.
+                if (isWindows && !name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    name += ".exe";
+                }
+
+                results.Add(name);
             }
         }
 
