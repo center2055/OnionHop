@@ -42,7 +42,7 @@ CloseApplications=yes
 RestartApplications=no
 RestartIfNeededByRun=no
 ; Include helper binaries so updates can replace tor/vpn files without scheduling reboot.
-CloseApplicationsFilter={#V2AppExeName},tor.exe,sing-box.exe,xray.exe,conjure-client.exe,lyrebird.exe,snowflake-client.exe,webtunnel-client.exe
+CloseApplicationsFilter={#MyAppExeName},{#V2AppExeName},tor.exe,sing-box.exe,xray.exe,conjure-client.exe,lyrebird.exe,snowflake-client.exe,webtunnel-client.exe,snowflake-proxy.exe,artihop.exe,arti.exe
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
@@ -215,9 +215,17 @@ var
   existingV3Dir: string;
   existingV2Dir: string;
   promptResult: Integer;
+  resultCode: Integer;
 begin
   Result := True;
   try
+    // Force-terminate any running OnionHop V3 process (including an elevated/wedged instance) before
+    // copying files. Setup runs elevated (PrivilegesRequired=admin), so it can kill an admin instance.
+    // Without this, a running app keeps its DLLs (e.g. Avalonia.Base.dll) locked and the install
+    // aborts or only partially updates, leaving stale files behind.
+    Exec('taskkill', '/F /IM {#MyAppExeName} /T', '', SW_HIDE, ewWaitUntilTerminated, resultCode);
+    Sleep(800);
+
     existingV3Dir := FindExistingV3InstallDir();
     if existingV3Dir <> '' then
     begin
