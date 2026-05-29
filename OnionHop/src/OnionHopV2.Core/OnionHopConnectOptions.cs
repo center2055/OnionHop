@@ -22,8 +22,17 @@ public sealed record OnionHopConnectOptions
     public const string TunStackGvisor = "gVisor";
     public const string TunCoreSingBox = "sing-box";
     public const string TunCoreXray = "xray";
-    public const string BridgeSourceAuto = "Auto (BridgeDB -> Offline)";
-    public const string BridgeSourceBridgeDbOnly = "BridgeDB only";
+    public const string TorEngineAutomatic = "automatic";
+    public const string TorEngineClassic = "classic";
+    public const string TorEngineArti = "arti";
+
+    // ArtiHop: a separate Arti-based SOCKS runtime that uses shortened 2-hop (Guard -> Exit)
+    // circuits for lower latency. Faster than standard 3-hop Tor, but weaker anonymity.
+    public const string TorEngineArtiHop = "artihop";
+    // ArtiHop circuit mode passed via --mode. "short-2" = 2 relays (Guard -> Exit).
+    public const string ArtiHopShortMode = "short-2";
+    public const string BridgeSourceAuto = "Auto (Tor bridge service -> Offline)";
+    public const string BridgeSourceOnlineOnly = "Tor bridge service only";
     public const string BridgeSourceOfflineOnly = "Offline only";
 
     public const string DnsProviderCloudflare = "Cloudflare (DoH)";
@@ -39,8 +48,11 @@ public sealed record OnionHopConnectOptions
 
     public string SelectedLocation { get; init; } = AutomaticLocationLabel;
     public string SelectedEntryLocation { get; init; } = AutomaticLocationLabel;
+    public string? EntryNodeFingerprint { get; init; }
+    public string? MiddleNodeFingerprint { get; init; }
     public string? ExitNodeFingerprint { get; init; }
     public string SelectedConnectionMode { get; init; } = ConnectionModeProxy;
+    public string TorEngineMode { get; init; } = TorEngineAutomatic;
 
     public bool UseHybridRouting { get; init; }
     public bool KillSwitchEnabled { get; init; }
@@ -77,6 +89,14 @@ public sealed record OnionHopConnectOptions
     public string? AllowedPorts { get; init; }
 
     public bool OnionDnsProxyEnabled { get; init; }
+
+    // When true (Proxy Mode only), route ALL system DNS through Tor's DNSPort, not just
+    // the .onion namespace. This closes the DNS leak where normal lookups (e.g. netflix.com)
+    // would otherwise go to the system/ISP resolver. Requires the Tor DNSPort to be active
+    // (driven by OnionDnsProxyEnabled) and elevated privileges to install the DNS rule.
+    public bool FullDnsOverTor { get; init; }
+    public bool StrictManualEntryNodeFingerprint { get; init; } = true;
+    public bool StrictManualMiddleNodeFingerprint { get; init; } = true;
     public bool StrictManualExitNodeFingerprint { get; init; } = true;
 
     public int MaxCircuitInactivityMinutes { get; init; } = 10;
@@ -91,6 +111,7 @@ public sealed record OnionHopConnectOptions
     // Hybrid mode split-tunneling (per-app routing) for TUN mode.
     public bool HybridRouteAllWebTraffic { get; init; } = true;
     public bool HybridBlockQuicForTorApps { get; init; } = true;
+    public bool BlockUdpTraffic { get; init; } = true;
     public string? HybridTorApps { get; init; }
     public string? HybridBypassApps { get; init; }
 }

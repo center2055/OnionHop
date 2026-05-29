@@ -18,6 +18,7 @@ internal static class VpnConfigBuilder
         IReadOnlyList<string> bypassAppProcessNames,
         bool routeAllWebTrafficThroughTor,
         bool blockQuicForTorApps,
+        bool blockUdpTraffic,
         string? dohServer,
         int dohServerPort,
         string? dohPath,
@@ -51,7 +52,12 @@ internal static class VpnConfigBuilder
                 rules.Add(new { process_name = bypassAppProcessNames, outbound = "direct" });
             }
 
-            if (blockQuicForTorApps && torAppProcessNames.Count > 0)
+            if (blockUdpTraffic)
+            {
+                // Tor does not carry UDP. Block it in hybrid mode instead of allowing silent direct bypasses.
+                rules.Add(new { network = "udp", outbound = "block" });
+            }
+            else if (blockQuicForTorApps && torAppProcessNames.Count > 0)
             {
                 // Prevent QUIC/UDP bypass for apps intended to go over Tor.
                 rules.Add(new { process_name = torAppProcessNames, network = "udp", port = 443, outbound = "block" });

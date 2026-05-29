@@ -303,10 +303,10 @@ public sealed class AdminHelperServer
                 case "EnableOnionDnsProxy":
                 {
                     var payload = DeserializePayload<AdminHelperDnsProxyRequest>(request.Payload);
-                    var success = _dnsProxyService.Enable(payload?.NameServerAddress ?? "127.0.0.1", LogVpnHelperLine);
+                    var success = _dnsProxyService.Enable(payload?.NameServerAddress ?? "127.0.0.1", payload?.RouteAllDns ?? false, LogVpnHelperLine);
                     return success
                         ? Ok(request, null)
-                        : Fail(request, ".onion DNS proxying could not be enabled.");
+                        : Fail(request, "DNS-over-Tor could not be enabled.");
                 }
                 case "DisableOnionDnsProxy":
                     _dnsProxyService.Disable(LogVpnHelperLine);

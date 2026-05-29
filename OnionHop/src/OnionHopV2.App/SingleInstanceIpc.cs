@@ -9,15 +9,15 @@ namespace OnionHopV2.App;
 
 internal static class SingleInstanceIpc
 {
-    public const string MutexName = "OnionHopV2.SingleInstance";
-    private const string PipeName = "OnionHopV2.Ipc";
+    public const string MutexName = "OnionHopV3.SingleInstance";
+    private const string PipeName = "OnionHopV3.Ipc";
 
     public static Mutex AcquireMutex(out bool isPrimary)
     {
         return new Mutex(initiallyOwned: true, MutexName, out isPrimary);
     }
 
-    public static async Task<bool> TrySendAsync(string message, int timeoutMs = 1200)
+    public static async Task<bool> TrySendAsync(string message, int timeoutMs = 700)
     {
         try
         {
@@ -71,4 +71,3 @@ internal static class SingleInstanceIpc
         }, token);
     }
 }
-

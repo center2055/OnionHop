@@ -7,12 +7,13 @@ using OnionHopV2.App.ViewModels;
 using OnionHopV2.App.Views;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Material.Icons;
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using SukiUI.Controls;
 using OnionHopV2.App.Services;
 
 namespace OnionHopV2.App;
@@ -25,7 +26,6 @@ public partial class App : Application
     private NativeMenuItem? _trayDisconnectItem;
     private NativeMenuItem? _trayExitItem;
     private bool _allowShutdown;
-    private CancellationTokenSource? _ipcCts;
     private BrowserExtensionBridgeServer? _browserExtensionBridgeServer;
 
     public override void Initialize()
@@ -48,8 +48,7 @@ public partial class App : Application
             };
 
             desktop.ShutdownRequested += (_, _) => _allowShutdown = true;
-            _ipcCts = new CancellationTokenSource();
-            SingleInstanceIpc.StartServer(message =>
+            Program.IpcMessageHandler = message =>
             {
                 if (string.Equals(message, "show", StringComparison.OrdinalIgnoreCase))
                 {
@@ -68,7 +67,7 @@ public partial class App : Application
                 }
 
                 return Task.CompletedTask;
-            }, _ipcCts.Token);
+            };
 
             ApplyWindowChrome(desktop.MainWindow, shell.State.UseNativeTheme);
             shell.State.PropertyChanged += (_, e) =>
@@ -79,18 +78,15 @@ public partial class App : Application
                 }
             };
 
-            ConfigureTray(desktop, shell);
             ConfigureWindowCloseToTray(desktop, shell);
+            ConfigureTrayAfterFirstFrame(desktop, shell);
             ApplyStartupMinimize(desktop, shell);
-            _browserExtensionBridgeServer = new BrowserExtensionBridgeServer(shell.State);
-            _browserExtensionBridgeServer.Start();
+            StartBrowserExtensionBridgeAfterFirstFrame(shell);
 
             desktop.Exit += (_, _) => shell.Dispose();
             desktop.Exit += (_, _) =>
             {
-                try { _ipcCts?.Cancel(); } catch { }
-                try { _ipcCts?.Dispose(); } catch { }
-                _ipcCts = null;
+                Program.IpcMessageHandler = null;
                 try { _browserExtensionBridgeServer?.Dispose(); } catch { }
                 _browserExtensionBridgeServer = null;
             };
@@ -103,56 +99,22 @@ public partial class App : Application
 
     private static void ApplyWindowChrome(Window window, bool useNativeChrome)
     {
-        var wasMaximized = window.WindowState == WindowState.Maximized;
+        window.SystemDecorations = SystemDecorations.Full;
 
         if (useNativeChrome)
         {
-            window.SystemDecorations = SystemDecorations.Full;
-
-            if (OperatingSystem.IsMacOS())
-            {
-                window.ExtendClientAreaToDecorationsHint = false;
-                window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.Default;
-                window.ExtendClientAreaTitleBarHeightHint = -1;
-            }
-            else
-            {
-                window.ExtendClientAreaToDecorationsHint = false;
-                window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.Default;
-                window.ExtendClientAreaTitleBarHeightHint = -1;
-            }
-
-            if (window is SukiWindow sukiWindow)
-            {
-                sukiWindow.IsTitleBarVisible = false;
-                sukiWindow.ShowTitlebarBackground = false;
-                sukiWindow.TitleBarVisibilityOnFullScreen = SukiWindow.TitleBarVisibilityMode.Unchanged;
-                sukiWindow.CanFullScreen = OperatingSystem.IsMacOS();
-                sukiWindow.CanMove = true;
-                sukiWindow.CanPin = false;
-            }
-
-            return;
+            // Opt-in: the standard OS title bar (icon + title + caption buttons).
+            window.ExtendClientAreaToDecorationsHint = false;
+            window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.Default;
+            window.ExtendClientAreaTitleBarHeightHint = -1;
         }
-
-        window.SystemDecorations = SystemDecorations.None;
-        window.ExtendClientAreaToDecorationsHint = false;
-        window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
-        window.ExtendClientAreaTitleBarHeightHint = 0;
-
-        if (window is SukiWindow sw)
+        else
         {
-            // Hide Suki titlebar strip; we'll render our own buttons in-window.
-            sw.IsTitleBarVisible = false;
-            sw.ShowTitlebarBackground = false;
-            sw.CanFullScreen = false;
-            sw.CanPin = false;
-        }
-
-        if (wasMaximized)
-        {
-            window.WindowState = WindowState.Normal;
-            window.WindowState = WindowState.Maximized;
+            // Default: integrated chromeless title bar (DNS-Hop look). No OS title bar, icon, or
+            // title; MainWindow draws its own caption buttons and provides the drag region.
+            window.ExtendClientAreaToDecorationsHint = true;
+            window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
+            window.ExtendClientAreaTitleBarHeightHint = 0;
         }
     }
 
@@ -160,24 +122,34 @@ public partial class App : Application
     {
         try
         {
-            var iconStream = AssetLoader.Open(new Uri("avares://OnionHopV2/Assets/OnionHop.ico"));
+            var iconStream = AssetLoader.Open(new Uri("avares://OnionHopV3/Assets/OnionHop.ico"));
             var icon = new WindowIcon(iconStream);
 
             var menu = new NativeMenu();
 
             _trayShowItem = new NativeMenuItem(LocalizationService.Get("Tray.Show"))
             {
-                IsEnabled = true
+                IsEnabled = true,
+                Icon = CreateTrayMenuIcon(MaterialIconKind.OpenInApp)
             };
             _trayShowItem.Click += (_, _) => ShowMainWindow(desktop);
 
-            _trayConnectItem = new NativeMenuItem(LocalizationService.Get("Tray.Connect"));
+            _trayConnectItem = new NativeMenuItem(LocalizationService.Get("Tray.Connect"))
+            {
+                Icon = CreateTrayMenuIcon(MaterialIconKind.LanConnect)
+            };
             _trayConnectItem.Click += (_, _) => Dispatcher.UIThread.Post(async () => await shell.State.ConnectCommand.ExecuteAsync(null));
 
-            _trayDisconnectItem = new NativeMenuItem(LocalizationService.Get("Tray.Disconnect"));
+            _trayDisconnectItem = new NativeMenuItem(LocalizationService.Get("Tray.Disconnect"))
+            {
+                Icon = CreateTrayMenuIcon(MaterialIconKind.LanDisconnect)
+            };
             _trayDisconnectItem.Click += (_, _) => Dispatcher.UIThread.Post(async () => await shell.State.DisconnectCommand.ExecuteAsync(null));
 
-            _trayExitItem = new NativeMenuItem(LocalizationService.Get("Tray.Exit"));
+            _trayExitItem = new NativeMenuItem(LocalizationService.Get("Tray.Exit"))
+            {
+                Icon = CreateTrayMenuIcon(MaterialIconKind.Power)
+            };
             _trayExitItem.Click += (_, _) =>
             {
                 _allowShutdown = true;
@@ -216,6 +188,64 @@ public partial class App : Application
         {
             // Tray is optional; ignore failures on platforms/DEs without support.
         }
+    }
+
+    private void ConfigureTrayAfterFirstFrame(IClassicDesktopStyleApplicationLifetime desktop, ShellViewModel shell)
+    {
+        var needsTrayImmediately =
+            shell.State.MinimizeToTray ||
+            desktop.Args?.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase)) == true;
+
+        if (needsTrayImmediately)
+        {
+            ConfigureTray(desktop, shell);
+            return;
+        }
+
+        Dispatcher.UIThread.Post(
+            () => ConfigureTray(desktop, shell),
+            DispatcherPriority.Background);
+    }
+
+    private void StartBrowserExtensionBridgeAfterFirstFrame(ShellViewModel shell)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                    if (Program.IsIpcCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    _browserExtensionBridgeServer = new BrowserExtensionBridgeServer(shell.State);
+                    _browserExtensionBridgeServer.Start();
+                }
+                catch
+                {
+                    // Browser extension integration is optional and should never slow or block app launch.
+                }
+            });
+        }, DispatcherPriority.Background);
+    }
+
+    private static Bitmap CreateTrayMenuIcon(MaterialIconKind kind)
+    {
+        const int size = 18;
+        const double materialViewBox = 24d;
+        var pathData = MaterialIconDataProvider.GetData(kind);
+        var geometry = StreamGeometry.Parse(pathData);
+        var bitmap = new RenderTargetBitmap(new PixelSize(size, size), new Vector(96, 96));
+        using var context = bitmap.CreateDrawingContext();
+        using (context.PushTransform(Matrix.CreateScale(size / materialViewBox, size / materialViewBox)))
+        {
+            context.DrawGeometry(Brushes.White, null, geometry);
+        }
+
+        return bitmap;
     }
 
     private void UpdateTrayLocalization()

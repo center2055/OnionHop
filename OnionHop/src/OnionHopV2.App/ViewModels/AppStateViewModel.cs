@@ -31,6 +31,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private const string DefaultConnectedPageUrl = "https://check.torproject.org/";
     private const string DefaultDisconnectedPageUrl = "https://support.torproject.org/";
     private const string UpdateApiUrl = "https://api.github.com/repos/center2055/OnionHop/releases/latest";
+    private const string UpdatePreviewApiUrl = "https://api.github.com/repos/center2055/OnionHop/releases?per_page=20";
     private const string UpdateReleasesPageUrl = "https://github.com/center2055/OnionHop/releases/latest";
     private const int MaxBufferedLogEntries = 6000;
     private const int LogFlushBatchPerQueue = 200;
@@ -62,8 +63,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string DnsProviderOpenDns = "OpenDNS (DoH)";
     public const string DnsProviderCustom = "Custom (DoH)";
     public const string BridgeTypeAutomatic = "automatic";
+    public const string BridgeTypeVanilla = "vanilla";
     public const string BridgeSourceAuto = OnionHopConnectOptions.BridgeSourceAuto;
-    public const string BridgeSourceBridgeDbOnly = OnionHopConnectOptions.BridgeSourceBridgeDbOnly;
+    public const string BridgeSourceOnlineOnly = OnionHopConnectOptions.BridgeSourceOnlineOnly;
     public const string BridgeSourceOfflineOnly = OnionHopConnectOptions.BridgeSourceOfflineOnly;
     private static readonly Regex ExitFingerprintRegex = new("^[A-F0-9]{40}$", RegexOptions.Compiled);
     /// <summary>
@@ -110,6 +112,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(UseNativeTheme),
         nameof(SelectedLocation),
         nameof(SelectedEntryLocation),
+        nameof(EntryNodeFingerprint),
+        nameof(MiddleNodeFingerprint),
         nameof(ExitNodeFingerprint),
         nameof(SelectedConnectionMode),
         nameof(UseHybridRouting),
@@ -140,6 +144,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(RestrictedFirewallMode),
         nameof(AllowedPorts),
         nameof(OnionDnsProxyEnabled),
+        nameof(StrictManualEntryNodeFingerprint),
+        nameof(StrictManualMiddleNodeFingerprint),
         nameof(StrictManualExitNodeFingerprint),
         nameof(ShowAdvancedHomeConnectionDetails),
         nameof(MaxCircuitInactivityMinutes),
@@ -150,9 +156,19 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(EnableDiscordStatus),
         nameof(HybridRouteAllWebTraffic),
         nameof(HybridBlockQuicForTorApps),
+        nameof(BlockUdpTraffic),
         nameof(HybridTorApps),
         nameof(HybridBypassApps),
-        nameof(SelectedLanguage)
+        nameof(SelectedLanguage),
+        nameof(SelectedAccentColor),
+        nameof(SelectedTorEngineMode),
+        nameof(SelectedRelayRefreshInterval),
+        nameof(SelectedUpdateChannel),
+        nameof(ClearSessionDataOnDisconnect),
+        nameof(DnsLeakProtectionEnabled),
+        nameof(ClipboardProtectionEnabled),
+        nameof(SnowflakeProxyAutoStart),
+        nameof(SnowflakeProxyCapacity)
     };
 
     private readonly OnionHopClient _client;
@@ -162,6 +178,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private readonly SmartConnectAdvisor _smartConnectAdvisor = new();
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
+    private DispatcherTimer? _bridgeRefreshTimer;
     private bool _loadingSettings;
     private bool _disposed;
     private bool _hasStatusSnapshot;
@@ -260,7 +277,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         BridgeSourceModes =
         [
             BridgeSourceAuto,
-            BridgeSourceBridgeDbOnly,
+            BridgeSourceOnlineOnly,
             BridgeSourceOfflineOnly
         ];
 
@@ -268,6 +285,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         RefreshLocalizedOptions();
 
         BridgeTypes.Add(BridgeTypeAutomatic);
+        BridgeTypes.Add(BridgeTypeVanilla);
         BridgeTypes.Add("obfs4");
         BridgeTypes.Add("snowflake");
         BridgeTypes.Add("conjure");
@@ -282,14 +300,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         _client.VpnLog += (_, message) => Dispatcher.UIThread.Post(() => AppendVpnLog(message));
         _client.StatusUpdated += (_, update) => Dispatcher.UIThread.Post(() => ApplyClientStatus(update));
         _client.DependencyUpdated += (_, update) => Dispatcher.UIThread.Post(() => ApplyDependencyUpdate(update));
+        _client.SnowflakeProxyStatusUpdated += (_, status) => Dispatcher.UIThread.Post(() => ApplySnowflakeProxyStatus(status));
         StartLogPump();
-        LastBridgeDbUpdateUtc = _client.GetLastBridgeDbUpdateUtc();
+        LastBridgeDataUpdateUtc = _client.GetLastBridgeDataUpdateUtc();
 
         LoadSettings();
-        if (!string.Equals(AutoStartMode, AutoStartModeOff, StringComparison.OrdinalIgnoreCase))
-        {
-            UpdateAutoStartRegistration();
-        }
         ApplyTheme();
         ConnectionStatus = LocalizationService.Get("Status.Disconnected");
         StatusMessage = LocalizationService.Get("Status.ReadyToRoute");
@@ -348,6 +363,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty] private string _selectedLocation = AutomaticLocationLabel;
     [ObservableProperty] private string _selectedEntryLocation = AutomaticLocationLabel;
+    [ObservableProperty] private string _entryNodeFingerprint = string.Empty;
+    [ObservableProperty] private string _middleNodeFingerprint = string.Empty;
     [ObservableProperty] private string _exitNodeFingerprint = string.Empty;
     [ObservableProperty] private string _selectedConnectionMode = ConnectionModeProxy;
     [ObservableProperty] private bool _useHybridRouting;
@@ -382,6 +399,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _restrictedFirewallMode;
     [ObservableProperty] private string _allowedPorts = DefaultAllowedPorts;
     [ObservableProperty] private bool _onionDnsProxyEnabled;
+    [ObservableProperty] private bool _strictManualEntryNodeFingerprint = true;
+    [ObservableProperty] private bool _strictManualMiddleNodeFingerprint = true;
     [ObservableProperty] private bool _strictManualExitNodeFingerprint = true;
     [ObservableProperty] private bool _showAdvancedHomeConnectionDetails;
     [ObservableProperty] private int _maxCircuitInactivityMinutes = 10;
@@ -420,7 +439,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _autoUpdate;
     [ObservableProperty] private string _themeMode = ThemeModeSystem;
     [ObservableProperty] private bool _isDarkMode;
-    [ObservableProperty] private bool _useNativeTheme = true;
+    [ObservableProperty] private bool _useNativeTheme;
 
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _sidebarStatusMessage = string.Empty;
@@ -433,8 +452,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isDependencyDownloadInProgress;
     [ObservableProperty] private double _dependencyDownloadProgress;
     [ObservableProperty] private string _dependencyDownloadStatus = string.Empty;
-    [ObservableProperty] private bool _isBridgeDbUpdateInProgress;
-    [ObservableProperty] private DateTimeOffset? _lastBridgeDbUpdateUtc;
+    [ObservableProperty] private bool _isBridgeDataUpdateInProgress;
+    [ObservableProperty] private DateTimeOffset? _lastBridgeDataUpdateUtc;
 
     private DispatcherTimer? _speedTimer;
     private DispatcherTimer? _ipRefreshTimer;
@@ -451,14 +470,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool ShowConnectButton => !IsConnected && !IsPreparingConnection && !IsConnecting;
     public bool ShowDisconnectButton => IsConnected && !IsPreparingConnection && !IsConnecting && !IsDisconnecting;
     public bool ShowCancelButton => IsPreparingConnection || IsConnecting;
-    public bool CanUpdateBridgeDb => IsConnected && !IsPreparingConnection && !IsConnecting && !IsDisconnecting && !IsBridgeDbUpdateInProgress;
+    public bool CanUpdateBridgeData => IsConnected && !IsPreparingConnection && !IsConnecting && !IsDisconnecting && !IsBridgeDataUpdateInProgress;
 
     public bool IsTunMode => string.Equals(SelectedConnectionMode, ConnectionModeTun, StringComparison.Ordinal);
     public bool IsProxyMode => !IsTunMode;
     public bool CanUseKillSwitch => IsTunMode && !UseHybridRouting;
+    public bool IsManualEntryNodeFingerprintSet => !string.IsNullOrWhiteSpace(EntryNodeFingerprint);
+    public bool IsManualMiddleNodeFingerprintSet => !string.IsNullOrWhiteSpace(MiddleNodeFingerprint);
     public bool IsManualExitNodeFingerprintSet => !string.IsNullOrWhiteSpace(ExitNodeFingerprint);
     public bool CanSelectExitLocation => !IsManualExitNodeFingerprintSet;
-    public bool CanSelectEntryLocation => !UseTorBridges;
+    public bool CanSelectEntryLocation => !UseTorBridges && !IsManualEntryNodeFingerprintSet;
     public bool IsCustomDoh => string.Equals(SelectedDnsProvider, DnsProviderCustom, StringComparison.Ordinal);
     public bool UseCustomBridges => string.Equals(SelectedBridgeType, "custom", StringComparison.OrdinalIgnoreCase);
     public bool IsSnowflakeBridgeSelected => string.Equals(SelectedBridgeType, "snowflake", StringComparison.OrdinalIgnoreCase);
@@ -470,30 +491,46 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool ShowTunStackOptions => !IsMacOS;
     public string VpnLogTabHeader => TunEngineLogTabHeader;
     public bool CanUseOnionDnsProxy => OperatingSystem.IsMacOS() || OperatingSystem.IsWindows() || PlatformHelper.IsAdministrator();
+    public string ManualEntryFingerprintSummary => BuildFingerprintSummary(EntryNodeFingerprint);
+    public string ManualMiddleFingerprintSummary => BuildFingerprintSummary(MiddleNodeFingerprint);
     public string ManualExitFingerprintSummary => BuildFingerprintSummary(ExitNodeFingerprint);
     public bool UseCustomChrome => !UseNativeTheme;
     public bool UseNativeMacChrome => IsMacOS && UseNativeTheme;
     public bool SupportsNativeWindowChrome => true;
     public bool CanConfigureSplitTunneling => IsTunMode && UseHybridRouting;
-    public string BridgeDbLastUpdateText
+    public string BridgeDataLastUpdateText
     {
         get
         {
-            if (!LastBridgeDbUpdateUtc.HasValue || LastBridgeDbUpdateUtc.Value == DateTimeOffset.MinValue)
+            if (!LastBridgeDataUpdateUtc.HasValue || LastBridgeDataUpdateUtc.Value == DateTimeOffset.MinValue)
             {
-                return LocalizationService.Get("Home.BridgeDbLastUpdateUnknown");
+                return LocalizationService.Get("Home.BridgeDataLastUpdateUnknown");
             }
 
-            var localTime = LastBridgeDbUpdateUtc.Value.ToLocalTime();
+            var localTime = LastBridgeDataUpdateUtc.Value.ToLocalTime();
             return string.Format(
                 CultureInfo.CurrentCulture,
-                LocalizationService.Get("Home.BridgeDbLastUpdateValue"),
+                LocalizationService.Get("Home.BridgeDataLastUpdateValue"),
                 localTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture));
         }
     }
 
-    public sealed record LocalizedOption(string Value, string Label)
+    // NOTE: intentionally a class (reference equality), NOT a record. ComboBox option lists are
+    // rebuilt (Clear + re-Add) on language/data refresh. With record value-equality, reassigning
+    // Selected*Option to a value-equal new instance is a no-op under [ObservableProperty].SetProperty,
+    // so the ComboBox never learns its (now-removed) selected item changed and renders blank.
+    // Reference equality guarantees each rebuilt instance is distinct -> the selection updates.
+    public sealed class LocalizedOption
     {
+        public LocalizedOption(string value, string label)
+        {
+            Value = value;
+            Label = label;
+        }
+
+        public string Value { get; }
+        public string Label { get; }
+
         public override string ToString() => Label;
     }
 
@@ -774,7 +811,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         ConnectionStatus = LocalizeRuntimeText(ConnectionStatus);
         StatusMessage = LocalizeRuntimeText(StatusMessage);
         DependencyDownloadStatus = LocalizeRuntimeText(DependencyDownloadStatus);
-        OnPropertyChanged(nameof(BridgeDbLastUpdateText));
+        OnPropertyChanged(nameof(BridgeDataLastUpdateText));
         OnPropertyChanged(nameof(TunEngineLogTabHeader));
         OnPropertyChanged(nameof(VpnLogTabHeader));
     }
@@ -804,7 +841,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowConnectButton));
         OnPropertyChanged(nameof(ShowDisconnectButton));
         OnPropertyChanged(nameof(ShowCancelButton));
-        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+        OnPropertyChanged(nameof(CanUpdateBridgeData));
     }
 
     partial void OnIsPreparingConnectionChanged(bool value)
@@ -813,18 +850,19 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowConnectButton));
         OnPropertyChanged(nameof(ShowDisconnectButton));
         OnPropertyChanged(nameof(ShowCancelButton));
-        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+        OnPropertyChanged(nameof(CanUpdateBridgeData));
     }
 
     partial void OnIsConnectedChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowConnectButton));
         OnPropertyChanged(nameof(ShowDisconnectButton));
-        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+        OnPropertyChanged(nameof(CanUpdateBridgeData));
 
         if (value)
         {
             StartConnectionElapsedTimer();
+            _ = RefreshBridgeDataAsync();
         }
         else
         {
@@ -836,7 +874,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(ShowDisconnectButton));
-        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+        OnPropertyChanged(nameof(CanUpdateBridgeData));
     }
 
     partial void OnIsDependencyDownloadInProgressChanged(bool value)
@@ -845,14 +883,14 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowConnectButton));
     }
 
-    partial void OnIsBridgeDbUpdateInProgressChanged(bool value)
+    partial void OnIsBridgeDataUpdateInProgressChanged(bool value)
     {
-        OnPropertyChanged(nameof(CanUpdateBridgeDb));
+        OnPropertyChanged(nameof(CanUpdateBridgeData));
     }
 
-    partial void OnLastBridgeDbUpdateUtcChanged(DateTimeOffset? value)
+    partial void OnLastBridgeDataUpdateUtcChanged(DateTimeOffset? value)
     {
-        OnPropertyChanged(nameof(BridgeDbLastUpdateText));
+        OnPropertyChanged(nameof(BridgeDataLastUpdateText));
     }
 
     partial void OnSelectedConnectionModeChanged(string value)
@@ -897,7 +935,48 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedEntryLocationChanged(string value)
     {
+        if (IsManualEntryNodeFingerprintSet &&
+            !string.Equals(value, AutomaticLocationLabel, StringComparison.Ordinal))
+        {
+            SelectedEntryLocation = AutomaticLocationLabel;
+            return;
+        }
+
         SelectedEntryLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.Ordinal));
+    }
+
+    partial void OnEntryNodeFingerprintChanged(string value)
+    {
+        var normalized = NormalizeExitNodeFingerprint(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            EntryNodeFingerprint = normalized;
+            return;
+        }
+
+        OnPropertyChanged(nameof(IsManualEntryNodeFingerprintSet));
+        OnPropertyChanged(nameof(CanSelectEntryLocation));
+        OnPropertyChanged(nameof(ManualEntryFingerprintSummary));
+        OnPropertyChanged(nameof(AdvancedConnectionSummary));
+        if (IsManualEntryNodeFingerprintSet &&
+            !string.Equals(SelectedEntryLocation, AutomaticLocationLabel, StringComparison.Ordinal))
+        {
+            SelectedEntryLocation = AutomaticLocationLabel;
+        }
+    }
+
+    partial void OnMiddleNodeFingerprintChanged(string value)
+    {
+        var normalized = NormalizeExitNodeFingerprint(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            MiddleNodeFingerprint = normalized;
+            return;
+        }
+
+        OnPropertyChanged(nameof(IsManualMiddleNodeFingerprintSet));
+        OnPropertyChanged(nameof(ManualMiddleFingerprintSummary));
+        OnPropertyChanged(nameof(AdvancedConnectionSummary));
     }
 
     partial void OnExitNodeFingerprintChanged(string value)
@@ -912,10 +991,157 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsManualExitNodeFingerprintSet));
         OnPropertyChanged(nameof(CanSelectExitLocation));
         OnPropertyChanged(nameof(ManualExitFingerprintSummary));
+        OnPropertyChanged(nameof(AdvancedConnectionSummary));
         if (IsManualExitNodeFingerprintSet &&
             !string.Equals(SelectedLocation, AutomaticLocationLabel, StringComparison.Ordinal))
         {
             SelectedLocation = AutomaticLocationLabel;
+        }
+    }
+
+    public async Task ApplyPreferredMiddleFingerprintAsync(string fingerprint, string relayName, CancellationToken token)
+    {
+        var normalized = NormalizeExitNodeFingerprint(fingerprint);
+        var relayDisplayName = string.IsNullOrWhiteSpace(relayName)
+            ? BuildFingerprintSummary(normalized)
+            : relayName.Trim();
+
+        if (string.IsNullOrWhiteSpace(normalized) || !ExitFingerprintRegex.IsMatch(normalized))
+        {
+            StatusMessage = "Selected middle relay fingerprint is invalid.";
+            AppendLog($"Preferred middle was not applied because relay '{relayDisplayName}' has an invalid fingerprint.");
+            return;
+        }
+
+        MiddleNodeFingerprint = normalized;
+        StrictManualMiddleNodeFingerprint = true;
+
+        var fingerprintSummary = BuildFingerprintSummary(normalized);
+        if (!IsConnected)
+        {
+            StatusMessage = $"Preferred middle set to {relayDisplayName}. It will apply on the next connection.";
+            AppendLog($"Preferred middle set to {relayDisplayName} ({fingerprintSummary}). Reconnect to use it.");
+            return;
+        }
+
+        try
+        {
+            var liveApplied = await _client
+                .ChangeMiddleFingerprintAsync(normalized, strict: true, token)
+                .ConfigureAwait(true);
+
+            if (liveApplied)
+            {
+                StatusMessage = $"Preferred middle set to {relayDisplayName}. Requested a new circuit.";
+                AppendLog($"Preferred middle set to {relayDisplayName} ({fingerprintSummary}).");
+                return;
+            }
+
+            StatusMessage = $"Preferred middle set to {relayDisplayName}. Reconnect if the live circuit did not change.";
+            AppendLog($"Preferred middle set to {relayDisplayName} ({fingerprintSummary}); live update was not available.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Preferred middle saved, but live update failed: {ex.Message}";
+            AppendLog($"Preferred middle live update failed: {ex.Message}");
+        }
+    }
+
+    public async Task ApplyPreferredExitFingerprintAsync(string fingerprint, string relayName, CancellationToken token)
+    {
+        var normalized = NormalizeExitNodeFingerprint(fingerprint);
+        var relayDisplayName = string.IsNullOrWhiteSpace(relayName)
+            ? BuildFingerprintSummary(normalized)
+            : relayName.Trim();
+
+        if (string.IsNullOrWhiteSpace(normalized) || !ExitFingerprintRegex.IsMatch(normalized))
+        {
+            StatusMessage = "Selected relay fingerprint is invalid.";
+            AppendLog($"Preferred exit was not applied because relay '{relayDisplayName}' has an invalid fingerprint.");
+            return;
+        }
+
+        ExitNodeFingerprint = normalized;
+        StrictManualExitNodeFingerprint = true;
+        SelectedLocation = AutomaticLocationLabel;
+
+        var fingerprintSummary = BuildFingerprintSummary(normalized);
+        if (!IsConnected)
+        {
+            StatusMessage = $"Preferred exit set to {relayDisplayName}. It will apply on the next connection.";
+            AppendLog($"Preferred exit set to {relayDisplayName} ({fingerprintSummary}). Reconnect to use it.");
+            return;
+        }
+
+        try
+        {
+            var liveApplied = await _client
+                .ChangeExitFingerprintAsync(normalized, strict: true, token)
+                .ConfigureAwait(true);
+
+            if (liveApplied)
+            {
+                StatusMessage = $"Preferred exit set to {relayDisplayName}. Requested a new circuit.";
+                AppendLog($"Preferred exit set to {relayDisplayName} ({fingerprintSummary}).");
+                return;
+            }
+
+            StatusMessage = $"Preferred exit set to {relayDisplayName}. Reconnect if the live circuit did not change.";
+            AppendLog($"Preferred exit set to {relayDisplayName} ({fingerprintSummary}); live update was not available.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Preferred exit saved, but live update failed: {ex.Message}";
+            AppendLog($"Preferred exit live update failed: {ex.Message}");
+        }
+    }
+
+    public async Task ApplyPreferredGuardFingerprintAsync(string fingerprint, string relayName, CancellationToken token)
+    {
+        var normalized = NormalizeExitNodeFingerprint(fingerprint);
+        var relayDisplayName = string.IsNullOrWhiteSpace(relayName)
+            ? BuildFingerprintSummary(normalized)
+            : relayName.Trim();
+
+        if (string.IsNullOrWhiteSpace(normalized) || !ExitFingerprintRegex.IsMatch(normalized))
+        {
+            StatusMessage = "Selected guard relay fingerprint is invalid.";
+            AppendLog($"Preferred guard was not applied because relay '{relayDisplayName}' has an invalid fingerprint.");
+            return;
+        }
+
+        EntryNodeFingerprint = normalized;
+        StrictManualEntryNodeFingerprint = true;
+        SelectedEntryLocation = AutomaticLocationLabel;
+
+        var fingerprintSummary = BuildFingerprintSummary(normalized);
+        if (!IsConnected)
+        {
+            StatusMessage = $"Preferred guard set to {relayDisplayName}. It will apply on the next connection.";
+            AppendLog($"Preferred guard set to {relayDisplayName} ({fingerprintSummary}). Reconnect to use it.");
+            return;
+        }
+
+        try
+        {
+            var liveApplied = await _client
+                .ChangeEntryFingerprintAsync(normalized, strict: true, token)
+                .ConfigureAwait(true);
+
+            if (liveApplied)
+            {
+                StatusMessage = $"Preferred guard set to {relayDisplayName}. Requested a new circuit.";
+                AppendLog($"Preferred guard set to {relayDisplayName} ({fingerprintSummary}).");
+                return;
+            }
+
+            StatusMessage = $"Preferred guard set to {relayDisplayName}. Reconnect if the live circuit did not change.";
+            AppendLog($"Preferred guard set to {relayDisplayName} ({fingerprintSummary}); live update was not available.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Preferred guard saved, but live update failed: {ex.Message}";
+            AppendLog($"Preferred guard live update failed: {ex.Message}");
         }
     }
 
@@ -1041,6 +1267,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             try
             {
+                await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
                 var countries = await _nodeDatabaseService.GetCountryStatsAsync(AppendLog, CancellationToken.None).ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() => ApplyCountryStats(countries));
             }
@@ -1054,6 +1281,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             try
             {
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
                 await _client.RefreshIpAsync(updateStatusMessage: false, CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -1062,11 +1290,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             }
         });
 
-        _ = Task.Run(async () =>
+        _ = Task.Run(() =>
         {
             try
             {
-                await _client.EnsureTorDependenciesAsync().ConfigureAwait(false);
+                _client.LoadCachedBridgeMetadata();
                 var bridgeTypes = _client.GetBridgeTypes();
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -1079,6 +1307,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                     if (!BridgeTypes.Any(type => string.Equals(type, BridgeTypeAutomatic, StringComparison.OrdinalIgnoreCase)))
                     {
                         BridgeTypes.Insert(0, BridgeTypeAutomatic);
+                    }
+
+                    if (!BridgeTypes.Any(type => string.Equals(type, BridgeTypeVanilla, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        BridgeTypes.Insert(Math.Min(1, BridgeTypes.Count), BridgeTypeVanilla);
                     }
 
                     RefreshBridgeTypeOptions();
@@ -1106,6 +1339,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 Dispatcher.UIThread.Post(() => AppendLog($"Initialization failed: {ex.Message}"));
             }
         });
+
+        StartV3BackgroundTasks();
 
         return Task.CompletedTask;
     }
@@ -1152,6 +1387,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 _logFlushTimer.Stop();
                 _logFlushTimer.Tick -= OnLogFlushTimerTick;
                 _logFlushTimer = null;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            if (_bridgeRefreshTimer != null)
+            {
+                _bridgeRefreshTimer.Stop();
+                _bridgeRefreshTimer = null;
             }
         }
         catch
@@ -1434,6 +1681,131 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         await _client.DisconnectAsync();
     }
 
+    // Runtime state for the "System Proxy ON/OFF" toggle. SystemProxyEnabled reflects whether
+    // the system proxy currently points at Tor; CanToggleSystemProxy gates the button so it only
+    // shows when toggling is meaningful (connected, Proxy Mode, system scope). Both are synced
+    // from the client in ApplyClientStatus and are NOT persisted settings.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SystemProxyButtonText))]
+    private bool _systemProxyEnabled;
+    [ObservableProperty] private bool _canToggleSystemProxy;
+
+    public string SystemProxyButtonText => SystemProxyEnabled
+        ? LocalizationService.Get("Home.SystemProxyOn")
+        : LocalizationService.Get("Home.SystemProxyOff");
+
+    [RelayCommand]
+    private void ToggleSystemProxy()
+    {
+        if (!_client.CanToggleSystemProxy)
+        {
+            return;
+        }
+
+        // Flip the system proxy without touching Tor, then mirror the resulting state.
+        _client.SetSystemProxyEnabled(!_client.IsSystemProxyEnabled);
+        SystemProxyEnabled = _client.IsSystemProxyEnabled;
+        CanToggleSystemProxy = _client.CanToggleSystemProxy;
+    }
+
+    // --- Snowflake proxy (volunteer as a Snowflake bridge) ------------------------------------
+    // SnowflakeProxyAutoStart + SnowflakeProxyCapacity are persisted settings; the rest is runtime
+    // status. The on/off toggle is intentionally NOT persisted (off each session unless auto-start).
+    private bool _suppressSnowflakeToggle;
+
+    [ObservableProperty] private bool _snowflakeProxyEnabled;
+    [ObservableProperty] private bool _snowflakeProxyAutoStart;
+    [ObservableProperty] private int _snowflakeProxyCapacity;
+    [ObservableProperty] private bool _snowflakeProxyRunning;
+    [ObservableProperty] private string _snowflakeProxyNatType = "unknown";
+    [ObservableProperty] private long _snowflakeProxyConnectionsServed;
+    [ObservableProperty] private string _snowflakeProxyStatusText = string.Empty;
+
+    partial void OnSnowflakeProxyEnabledChanged(bool value)
+    {
+        if (_suppressSnowflakeToggle || _loadingSettings)
+        {
+            return;
+        }
+
+        _ = ToggleSnowflakeProxyAsync(value);
+    }
+
+    private async Task ToggleSnowflakeProxyAsync(bool enable)
+    {
+        try
+        {
+            if (enable)
+            {
+                var capacity = SnowflakeProxyCapacity > 0 ? (uint)SnowflakeProxyCapacity : 0u;
+                var started = await _client.StartSnowflakeProxyAsync(capacity, CancellationToken.None).ConfigureAwait(true);
+                if (!started)
+                {
+                    _suppressSnowflakeToggle = true;
+                    SnowflakeProxyEnabled = false;
+                    _suppressSnowflakeToggle = false;
+                    SnowflakeProxyStatusText = LocalizationService.Get("Snowflake.StatusUnavailable");
+                }
+            }
+            else
+            {
+                _client.StopSnowflakeProxy();
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private void ApplySnowflakeProxyStatus(OnionHopV2.Core.Services.SnowflakeProxyStatus status)
+    {
+        SnowflakeProxyRunning = status.IsRunning;
+        SnowflakeProxyNatType = status.NatType;
+        SnowflakeProxyConnectionsServed = status.ConnectionsServed;
+        SnowflakeProxyStatusText = BuildSnowflakeStatusText(status);
+
+        if (SnowflakeProxyEnabled != status.IsRunning)
+        {
+            _suppressSnowflakeToggle = true;
+            SnowflakeProxyEnabled = status.IsRunning;
+            _suppressSnowflakeToggle = false;
+        }
+    }
+
+    private static string BuildSnowflakeStatusText(OnionHopV2.Core.Services.SnowflakeProxyStatus status)
+    {
+        if (!status.IsRunning)
+        {
+            return LocalizationService.Get("Snowflake.StatusStopped");
+        }
+
+        var nat = string.IsNullOrWhiteSpace(status.NatType) ? "unknown" : status.NatType;
+        var text = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            LocalizationService.Get("Snowflake.StatusRunning"),
+            nat,
+            status.ConnectionsServed);
+        if (!string.IsNullOrWhiteSpace(status.TrafficSummary))
+        {
+            text += $" — {status.TrafficSummary}";
+        }
+
+        return text;
+    }
+
+    private void StartSnowflakeProxyIfAutoStart()
+    {
+        if (!SnowflakeProxyAutoStart)
+        {
+            return;
+        }
+
+        _suppressSnowflakeToggle = true;
+        SnowflakeProxyEnabled = true;
+        _suppressSnowflakeToggle = false;
+        _ = ToggleSnowflakeProxyAsync(true);
+    }
+
     [RelayCommand]
     private void CancelConnect()
     {
@@ -1453,55 +1825,51 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private async Task RefreshBridgeDbAsync()
+    private async Task RefreshBridgeDataAsync()
     {
-        if (_disposed || IsBridgeDbUpdateInProgress)
+        if (_disposed || IsBridgeDataUpdateInProgress)
         {
             return;
         }
 
-        if (!IsConnected)
-        {
-            StatusMessage = "Connect to Tor before updating BridgeDB.";
-            AppendLog("BridgeDB update skipped: connect to Tor first.");
-            return;
-        }
-
-        IsBridgeDbUpdateInProgress = true;
+        IsBridgeDataUpdateInProgress = true;
         try
         {
-            StatusMessage = "Updating BridgeDB...";
-            var result = await _client.RefreshBridgeDatabaseAsync(BuildConnectOptions(), CancellationToken.None);
-            LastBridgeDbUpdateUtc = result.LastUpdatedUtc;
+            StatusMessage = "Updating Tor bridge data...";
+            var result = await _client.RefreshBridgeDistributionAsync(BuildConnectOptions(), CancellationToken.None);
+            LastBridgeDataUpdateUtc = result.LastUpdatedUtc;
 
             if (result.UpdatedTypes > 0)
             {
-                StatusMessage = "BridgeDB updated.";
+                StatusMessage = "Tor bridge data updated.";
             }
             else if (result.AttemptedTypes > 0)
             {
-                StatusMessage = "BridgeDB update finished with no new usable bridges.";
+                StatusMessage = "Bridge data refresh finished with no new usable bridges.";
             }
             else
             {
-                StatusMessage = "BridgeDB update skipped.";
+                StatusMessage = "Bridge data refresh skipped.";
             }
         }
         catch (Exception ex)
         {
-            AppendLog($"BridgeDB update failed: {ex.Message}");
-            StatusMessage = $"BridgeDB update failed: {ex.Message}";
+            AppendLog($"Bridge data refresh failed: {ex.Message}");
+            StatusMessage = $"Bridge data refresh failed: {ex.Message}";
         }
         finally
         {
-            IsBridgeDbUpdateInProgress = false;
+            IsBridgeDataUpdateInProgress = false;
         }
     }
 
     [RelayCommand]
     private async Task ChangeIdentityAsync()
     {
-        await _client.ChangeIdentityAsync(CancellationToken.None);
+        if (await _client.ChangeIdentityAsync(CancellationToken.None))
+        {
+            RegisterSessionIdentityChange();
+        }
     }
 
     [RelayCommand]
@@ -1526,6 +1894,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             SelectedLocation = AutomaticLocationLabel;
             SelectedEntryLocation = AutomaticLocationLabel;
+            EntryNodeFingerprint = string.Empty;
+            MiddleNodeFingerprint = string.Empty;
             ExitNodeFingerprint = string.Empty;
             SelectedConnectionMode = ConnectionModeProxy;
 
@@ -1557,6 +1927,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             RestrictedFirewallMode = false;
             AllowedPorts = DefaultAllowedPorts;
             OnionDnsProxyEnabled = false;
+            StrictManualEntryNodeFingerprint = true;
+            StrictManualMiddleNodeFingerprint = true;
             StrictManualExitNodeFingerprint = true;
             ShowAdvancedHomeConnectionDetails = false;
             MaxCircuitInactivityMinutes = 10;
@@ -1568,11 +1940,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             HybridRouteAllWebTraffic = true;
             HybridBlockQuicForTorApps = true;
+            BlockUdpTraffic = true;
             HybridTorApps = string.Empty;
             HybridBypassApps = string.Empty;
 
             ThemeMode = ThemeModeSystem;
-            UseNativeTheme = true;
+            UseNativeTheme = false;
+            ResetV3Settings();
         }
         finally
         {
@@ -1593,6 +1967,18 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (!SmartConnectEnabled && IsManualExitNodeFingerprintSet && !ExitFingerprintRegex.IsMatch(ExitNodeFingerprint))
         {
             error = "Manual exit fingerprint must be exactly 40 hexadecimal characters.";
+            return false;
+        }
+
+        if (!SmartConnectEnabled && IsManualEntryNodeFingerprintSet && !ExitFingerprintRegex.IsMatch(EntryNodeFingerprint))
+        {
+            error = "Manual guard fingerprint must be exactly 40 hexadecimal characters.";
+            return false;
+        }
+
+        if (!SmartConnectEnabled && IsManualMiddleNodeFingerprintSet && !ExitFingerprintRegex.IsMatch(MiddleNodeFingerprint))
+        {
+            error = "Manual middle fingerprint must be exactly 40 hexadecimal characters.";
             return false;
         }
 
@@ -1738,8 +2124,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             SelectedLocation = SelectedLocation,
             SelectedEntryLocation = SelectedEntryLocation,
+            EntryNodeFingerprint = EntryNodeFingerprint,
+            MiddleNodeFingerprint = MiddleNodeFingerprint,
             ExitNodeFingerprint = ExitNodeFingerprint,
             SelectedConnectionMode = SelectedConnectionMode,
+            TorEngineMode = SelectedTorEngineMode,
             UseHybridRouting = UseHybridRouting,
             KillSwitchEnabled = KillSwitchEnabled,
             UseTorBridges = UseTorBridges,
@@ -1767,7 +2156,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
-            OnionDnsProxyEnabled = OnionDnsProxyEnabled,
+            OnionDnsProxyEnabled = OnionDnsProxyEnabled || DnsLeakProtectionEnabled,
+            // "DNS leak protection" now routes the whole system's DNS through Tor (Proxy Mode),
+            // not just .onion. OnionDnsProxyEnabled above keeps Tor's DNSPort listening.
+            FullDnsOverTor = DnsLeakProtectionEnabled,
+            StrictManualEntryNodeFingerprint = StrictManualEntryNodeFingerprint,
+            StrictManualMiddleNodeFingerprint = StrictManualMiddleNodeFingerprint,
             StrictManualExitNodeFingerprint = StrictManualExitNodeFingerprint,
             MaxCircuitInactivityMinutes = MaxCircuitInactivityMinutes,
             OpenConnectedPageEnabled = OpenConnectedPageEnabled,
@@ -1777,6 +2171,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             EnableDiscordStatus = EnableDiscordStatus,
             HybridRouteAllWebTraffic = HybridRouteAllWebTraffic,
             HybridBlockQuicForTorApps = HybridBlockQuicForTorApps,
+            BlockUdpTraffic = BlockUdpTraffic,
             HybridTorApps = HybridTorApps,
             HybridBypassApps = HybridBypassApps
         };
@@ -1800,10 +2195,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         CurrentIp = update.CurrentIp;
         SocksProxyPort = update.SocksPort.ToString();
         HttpProxyPort = update.HttpPort.HasValue ? update.HttpPort.Value.ToString() : "--";
-        var latestBridgeDbUpdate = _client.GetLastBridgeDbUpdateUtc();
-        if (latestBridgeDbUpdate != LastBridgeDbUpdateUtc)
+        SystemProxyEnabled = _client.IsSystemProxyEnabled;
+        CanToggleSystemProxy = _client.CanToggleSystemProxy;
+        var latestBridgeDataUpdate = _client.GetLastBridgeDataUpdateUtc();
+        if (latestBridgeDataUpdate != LastBridgeDataUpdateUtc)
         {
-            LastBridgeDbUpdateUtc = latestBridgeDbUpdate;
+            LastBridgeDataUpdateUtc = latestBridgeDataUpdate;
         }
 
         _hasStatusSnapshot = true;
@@ -1818,6 +2215,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             OpenLaunchPage(DisconnectedPageUrl);
         }
 
+        ApplyV3ClientStatus(previouslyConnected, update);
         var exitLabel = SelectedLocationOption?.Label
                         ?? LocationOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedLocation, StringComparison.Ordinal))?.Label
                         ?? LocalizationService.Get("Home.Automatic");
@@ -1852,6 +2250,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             ApplyTheme();
         }
+
+        HandleV3PropertyChange(e.PropertyName);
     }
 
     private void ScheduleSave()
@@ -1868,7 +2268,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             try
             {
                 await Task.Delay(500, token).ConfigureAwait(false);
-                SaveSettings();
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                // SaveSettings reads UI-thread-only state (e.g. Application.ActualThemeVariant),
+                // so the debounce waits on a background thread but the save itself must run on the
+                // UI thread — otherwise we get "Call from invalid thread" (seen when toggling TUN mode).
+                await Dispatcher.UIThread.InvokeAsync(() => SaveSettings());
             }
             catch (OperationCanceledException)
             {
@@ -1899,7 +2307,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ThemeMode = string.IsNullOrWhiteSpace(settings.ThemeMode)
                 ? (settings.IsDarkMode ? ThemeModeDark : ThemeModeLight)
                 : NormalizeThemeMode(settings.ThemeMode);
-            UseNativeTheme = settings.UseNativeTheme;
+            UseNativeTheme = settings.UiSchemaVersion >= 3 && settings.UseNativeTheme;
 
             SelectedLocation = string.IsNullOrWhiteSpace(settings.SelectedLocation)
                 ? AutomaticLocationLabel
@@ -1917,6 +2325,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 SelectedEntryLocation = AutomaticLocationLabel;
             }
 
+            EntryNodeFingerprint = settings.EntryNodeFingerprint ?? string.Empty;
+            MiddleNodeFingerprint = settings.MiddleNodeFingerprint ?? string.Empty;
             ExitNodeFingerprint = settings.ExitNodeFingerprint ?? string.Empty;
 
             SelectedConnectionMode = string.IsNullOrWhiteSpace(settings.SelectedConnectionMode) ? ConnectionModeProxy : settings.SelectedConnectionMode;
@@ -1998,6 +2408,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             RestrictedFirewallMode = settings.RestrictedFirewallMode;
             AllowedPorts = string.IsNullOrWhiteSpace(settings.AllowedPorts) ? DefaultAllowedPorts : settings.AllowedPorts;
             OnionDnsProxyEnabled = settings.OnionDnsProxyEnabled;
+            StrictManualEntryNodeFingerprint = settings.StrictManualEntryNodeFingerprint ?? true;
+            StrictManualMiddleNodeFingerprint = settings.StrictManualMiddleNodeFingerprint ?? true;
             StrictManualExitNodeFingerprint = settings.StrictManualExitNodeFingerprint ?? true;
             ShowAdvancedHomeConnectionDetails = settings.ShowAdvancedHomeConnectionDetails;
             MaxCircuitInactivityMinutes = settings.MaxCircuitInactivityMinutes ?? 10;
@@ -2009,10 +2421,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             HybridRouteAllWebTraffic = settings.HybridRouteAllWebTraffic ?? true;
             HybridBlockQuicForTorApps = settings.HybridBlockQuicForTorApps ?? true;
+            BlockUdpTraffic = settings.BlockUdpTraffic ?? true;
             HybridTorApps = settings.HybridTorApps ?? string.Empty;
             HybridBypassApps = settings.HybridBypassApps ?? string.Empty;
             var language = string.IsNullOrWhiteSpace(settings.LanguageCode) ? "en" : settings.LanguageCode!;
             SelectedLanguage = language.StartsWith("de", StringComparison.OrdinalIgnoreCase) ? "de" : "en";
+            LoadV3Settings(settings);
         }
         finally
         {
@@ -2104,6 +2518,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         var settings = new UserSettings
         {
+            UiSchemaVersion = 3,
             AutoConnect = AutoConnect,
             AutoStartMode = AutoStartMode,
             StartWithWindows = startWithWindows,
@@ -2118,6 +2533,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             UseNativeTheme = UseNativeTheme,
             SelectedLocation = SelectedLocation,
             SelectedEntryLocation = SelectedEntryLocation,
+            EntryNodeFingerprint = EntryNodeFingerprint,
+            MiddleNodeFingerprint = MiddleNodeFingerprint,
             ExitNodeFingerprint = ExitNodeFingerprint,
             SelectedConnectionMode = SelectedConnectionMode,
             UseHybridRouting = UseHybridRouting,
@@ -2148,6 +2565,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
             OnionDnsProxyEnabled = OnionDnsProxyEnabled,
+            StrictManualEntryNodeFingerprint = StrictManualEntryNodeFingerprint,
+            StrictManualMiddleNodeFingerprint = StrictManualMiddleNodeFingerprint,
             StrictManualExitNodeFingerprint = StrictManualExitNodeFingerprint,
             ShowAdvancedHomeConnectionDetails = ShowAdvancedHomeConnectionDetails,
             MaxCircuitInactivityMinutes = MaxCircuitInactivityMinutes,
@@ -2158,11 +2577,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             EnableDiscordStatus = EnableDiscordStatus,
             HybridRouteAllWebTraffic = HybridRouteAllWebTraffic,
             HybridBlockQuicForTorApps = HybridBlockQuicForTorApps,
+            BlockUdpTraffic = BlockUdpTraffic,
             HybridTorApps = HybridTorApps,
             HybridBypassApps = HybridBypassApps,
             LanguageCode = SelectedLanguage
         };
 
+        SaveV3Settings(settings);
         _settingsService.Save(settings);
     }
 
@@ -2201,6 +2622,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             ThemeModeLight => ThemeVariant.Light,
             _ => ThemeVariant.Default
         };
+
+        ApplyV3ThemeResources();
     }
 
     private void RefreshLanguageOptions()
@@ -2209,9 +2632,22 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             LanguageOptions.Add(new LocalizedOption("en", "English"));
             LanguageOptions.Add(new LocalizedOption("de", "Deutsch"));
+            LanguageOptions.Add(new LocalizedOption("fr", "Français"));
+            LanguageOptions.Add(new LocalizedOption("ru", "Русский"));
+            LanguageOptions.Add(new LocalizedOption("zh", "中文"));
         }
 
-        var targetIndex = string.Equals(SelectedLanguage, "de", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        var lang = (SelectedLanguage ?? "en").Trim().ToLowerInvariant();
+        var targetIndex = 0;
+        for (var i = 0; i < LanguageOptions.Count; i++)
+        {
+            if (string.Equals(LanguageOptions[i].Value, lang, StringComparison.OrdinalIgnoreCase))
+            {
+                targetIndex = i;
+                break;
+            }
+        }
+
         if (SelectedLanguageIndex != targetIndex)
         {
             SelectedLanguageIndex = targetIndex;
@@ -2242,20 +2678,76 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         RefreshTunCoreOptions();
         RefreshTunStackOptions();
 
+        RefreshLocationOptions();
+
+        RefreshBridgeSourceOptions();
+        RefreshBridgeTypeOptions();
+        RefreshV3LocalizedOptions();
+    }
+
+    /// <summary>
+    /// Rebuilds only the exit/entry location options. Called on its own when the country database
+    /// loads asynchronously (<see cref="ApplyCountryStats"/>) so the engine/mode/bridge combos are
+    /// NOT torn down and rebuilt — rebuilding a ComboBox's ItemsSource drops its selection (the
+    /// previously selected option instance is no longer in the new list), which left those combos
+    /// blank. Only the location combos rebuild here, and their selection is re-asserted.
+    /// </summary>
+    private void RefreshLocationOptions()
+    {
         LocationOptions.Clear();
         foreach (var location in Locations)
         {
-            var label = GetLocationLabel(location);
-            LocationOptions.Add(new LocalizedOption(location, label));
+            LocationOptions.Add(new LocalizedOption(location, GetLocationLabel(location)));
         }
 
+        ReselectLocationOptions();
+
+        // The ComboBox writes its selection back to null when its ItemsSource is reset, and that
+        // write-back can arrive after this method returns. Re-assert on a later dispatcher pass so
+        // the selection sticks instead of ending up blank.
+        Dispatcher.UIThread.Post(ReselectLocationOptions, DispatcherPriority.Background);
+    }
+
+    private void ReselectLocationOptions()
+    {
         SelectedLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedLocation, StringComparison.Ordinal))
                               ?? LocationOptions.FirstOrDefault();
         SelectedEntryLocationOption = LocationOptions.FirstOrDefault(option => string.Equals(option.Value, SelectedEntryLocation, StringComparison.Ordinal))
                                    ?? LocationOptions.FirstOrDefault();
+    }
 
-        RefreshBridgeSourceOptions();
-        RefreshBridgeTypeOptions();
+    private static LocalizedOption? PickOption(System.Collections.ObjectModel.ObservableCollection<LocalizedOption> options, string? value, bool ignoreCase = false)
+    {
+        var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return options.FirstOrDefault(option => string.Equals(option.Value, value, comparison)) ?? options.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Re-resolves every dropdown's selected option from its authoritative string value. A ComboBox
+    /// resets its bound SelectedItem to null when its page is unloaded (navigation / tab switch),
+    /// which leaves the box blank on return; calling this after a page change restores the selection.
+    /// Each assignment is a no-op when the option is already correct, so it only fixes the blanked ones.
+    /// </summary>
+    public void RestoreSelectedOptions()
+    {
+        SelectedConnectionModeOption = PickOption(ConnectionModeOptions, SelectedConnectionMode);
+        SelectedLocationOption = PickOption(LocationOptions, SelectedLocation);
+        SelectedEntryLocationOption = PickOption(LocationOptions, SelectedEntryLocation);
+        SelectedBridgeTypeOption = PickOption(BridgeTypeOptions, SelectedBridgeType, ignoreCase: true);
+        SelectedBridgeSourceModeOption = PickOption(BridgeSourceModeOptions, BridgeSourceMode);
+        SelectedProxyScopeModeOption = PickOption(ProxyScopeModeOptions, ProxyScopeMode);
+        SelectedTunCoreModeOption = PickOption(TunCoreModeOptions, TunCoreMode);
+        SelectedTunStackModeOption = PickOption(TunStackModeOptions, TunStackMode);
+        SelectedAutoStartModeOption = PickOption(AutoStartModeOptions, AutoStartMode, ignoreCase: true);
+        SelectedThemeModeOption = PickOption(ThemeModeOptions, NormalizeThemeMode(ThemeMode), ignoreCase: true);
+        SelectedTorIpv6ModeOption = PickOption(TorOptionModeOptions, TorIpv6Mode);
+        SelectedHardwareAccelerationModeOption = PickOption(TorOptionModeOptions, HardwareAccelerationMode);
+        SelectedConnectionPaddingModeOption = PickOption(ConnectionPaddingModeOptions, ConnectionPaddingMode);
+        SelectedAccentColorOption = PickOption(AccentColorOptions, SelectedAccentColor);
+        SelectedTorEngineOption = PickOption(TorEngineOptions, SelectedTorEngineMode);
+        SelectedRelayRefreshIntervalOption = PickOption(RelayRefreshIntervalOptions, SelectedRelayRefreshInterval);
+        SelectedUpdateChannelOption = PickOption(UpdateChannelOptions, SelectedUpdateChannel);
+        SelectedLanguageOption = PickOption(LanguageOptions, SelectedLanguage, ignoreCase: true);
     }
 
     private void RefreshBridgeTypeOptions()
@@ -2439,7 +2931,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         SelectedLocation = string.IsNullOrWhiteSpace(normalizedExit) ? AutomaticLocationLabel : normalizedExit;
         SelectedEntryLocation = string.IsNullOrWhiteSpace(normalizedEntry) ? AutomaticLocationLabel : normalizedEntry;
 
-        RefreshLocalizedOptions();
+        // Only the location lists depend on the country DB. Rebuilding everything here (the old
+        // behavior) tore down the engine/mode/bridge combos and left them blank, so refresh just
+        // the location options.
+        RefreshLocationOptions();
     }
 
     private static string LocalizeBridgeType(string bridgeType)
@@ -2447,6 +2942,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         return bridgeType.ToLowerInvariant() switch
         {
             "automatic" => LocalizationService.Get("BridgeType.Automatic"),
+            "vanilla" => LocalizationService.Get("BridgeType.Vanilla"),
             "obfs4" => LocalizationService.Get("BridgeType.Obfs4"),
             "snowflake" => LocalizationService.Get("BridgeType.Snowflake"),
             "conjure" => LocalizationService.Get("BridgeType.Conjure"),
@@ -2463,7 +2959,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         return sourceMode switch
         {
             BridgeSourceAuto => LocalizationService.Get("BridgeSource.Auto"),
-            BridgeSourceBridgeDbOnly => LocalizationService.Get("BridgeSource.BridgeDbOnly"),
+            BridgeSourceOnlineOnly => LocalizationService.Get("BridgeSource.OnlineOnly"),
             BridgeSourceOfflineOnly => LocalizationService.Get("BridgeSource.OfflineOnly"),
             _ => sourceMode
         };
@@ -2518,9 +3014,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return BridgeSourceAuto;
         }
 
-        if (string.Equals(sourceMode, BridgeSourceBridgeDbOnly, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(sourceMode, BridgeSourceOnlineOnly, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sourceMode, "Bridge" + "DB only", StringComparison.OrdinalIgnoreCase))
         {
-            return BridgeSourceBridgeDbOnly;
+            return BridgeSourceOnlineOnly;
         }
 
         if (string.Equals(sourceMode, BridgeSourceOfflineOnly, StringComparison.OrdinalIgnoreCase))
@@ -3134,6 +3631,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             _lastBytesReceived = rx;
             _lastBytesSent = tx;
             _lastSpeedSampleUtc = now;
+            UpdateSessionTrafficTotals(rx, tx);
 
             DownloadSpeed = FormatRate(downBytesPerSecond);
             UploadSpeed = FormatRate(upBytesPerSecond);

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using OnionHopV2.Core.Services;
 using Xunit;
 
@@ -17,6 +17,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -55,6 +56,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: true,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -95,6 +97,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: true,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -133,6 +136,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -157,6 +161,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -174,6 +179,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -195,6 +201,7 @@ public sealed class XrayConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,

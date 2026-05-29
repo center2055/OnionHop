@@ -156,8 +156,9 @@ internal sealed class BrowserExtensionBridgeServer : IDisposable
                 await RunOnUiThreadAsync(() => _state.DisconnectCommand.ExecuteAsync(null)).ConfigureAwait(false);
                 return BridgeResponse.Success(await RunOnUiThreadAsync(BuildStatusPayload).ConfigureAwait(false));
             case "newidentity":
+                var identityChangesBefore = _state.SessionIdentityChanges;
                 await RunOnUiThreadAsync(() => _state.ChangeIdentityCommand.ExecuteAsync(null)).ConfigureAwait(false);
-                return BridgeResponse.Success(new { rotated = true });
+                return BridgeResponse.Success(new { rotated = _state.SessionIdentityChanges > identityChangesBefore });
             case "openapp":
                 return BridgeResponse.Success(new { opened = true });
             default:

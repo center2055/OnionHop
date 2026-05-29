@@ -2,6 +2,7 @@ namespace OnionHopV2.Core.Models;
 
 public sealed class UserSettings
 {
+    public int UiSchemaVersion { get; set; }
     public bool AutoConnect { get; set; }
     public string? AutoStartMode { get; set; }
     public bool StartWithWindows { get; set; }
@@ -14,6 +15,8 @@ public sealed class UserSettings
     public bool UseNativeTheme { get; set; }
     public string? SelectedLocation { get; set; }
     public string? SelectedEntryLocation { get; set; }
+    public string? EntryNodeFingerprint { get; set; }
+    public string? MiddleNodeFingerprint { get; set; }
     public string? ExitNodeFingerprint { get; set; }
     public string? SelectedConnectionMode { get; set; }
     public bool UseHybridRouting { get; set; }
@@ -44,6 +47,8 @@ public sealed class UserSettings
     public bool RestrictedFirewallMode { get; set; }
     public string? AllowedPorts { get; set; }
     public bool OnionDnsProxyEnabled { get; set; }
+    public bool? StrictManualEntryNodeFingerprint { get; set; }
+    public bool? StrictManualMiddleNodeFingerprint { get; set; }
     public bool? StrictManualExitNodeFingerprint { get; set; }
     public bool ShowAdvancedHomeConnectionDetails { get; set; }
     public int? MaxCircuitInactivityMinutes { get; set; }
@@ -54,7 +59,19 @@ public sealed class UserSettings
     public bool EnableDiscordStatus { get; set; }
     public bool? HybridRouteAllWebTraffic { get; set; }
     public bool? HybridBlockQuicForTorApps { get; set; }
+    public bool? BlockUdpTraffic { get; set; }
     public string? HybridTorApps { get; set; }
     public string? HybridBypassApps { get; set; }
     public string? LanguageCode { get; set; }
+    public string? AccentColor { get; set; }
+    public string? TorEngineMode { get; set; }
+    public string? RelayRefreshInterval { get; set; }
+    public string? UpdateChannel { get; set; }
+    public bool ClearSessionDataOnDisconnect { get; set; }
+    public bool? DnsLeakProtectionEnabled { get; set; }
+    public bool ClipboardProtectionEnabled { get; set; }
+
+    // Snowflake proxy (volunteer as a Snowflake bridge).
+    public bool SnowflakeProxyAutoStart { get; set; }
+    public int? SnowflakeProxyCapacity { get; set; }
 }

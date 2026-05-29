@@ -1,0 +1,27 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Russian. Keys not present here fall back to English (see LocalizationService). -->
+  <x:String x:Key="Common.Search">Поиск</x:String>
+
+  <x:String x:Key="Nav.Home">Главная</x:String>
+  <x:String x:Key="Nav.Settings">Настройки</x:String>
+  <x:String x:Key="Nav.Relays">Реле</x:String>
+  <x:String x:Key="Nav.Scanner">Сканер</x:String>
+  <x:String x:Key="Nav.Logs">Журналы</x:String>
+  <x:String x:Key="Nav.About">О программе</x:String>
+
+  <x:String x:Key="Home.Connect">Подключить</x:String>
+  <x:String x:Key="Home.Disconnect">Отключить</x:String>
+  <x:String x:Key="Home.Cancel">Отмена</x:String>
+  <x:String x:Key="Home.RefreshIp">Обновить IP</x:String>
+  <x:String x:Key="Home.NewIdentity">Новая личность</x:String>
+  <x:String x:Key="Home.CurrentIp">Текущий IP</x:String>
+  <x:String x:Key="Home.EngineMode">Движок Tor</x:String>
+  <x:String x:Key="Home.RoutingPreferences">Маршрутизация и настройки</x:String>
+  <x:String x:Key="Home.SmartConnect">Умное подключение (рекомендуется)</x:String>
+  <x:String x:Key="Home.Mode">Режим</x:String>
+  <x:String x:Key="Home.ExitLocation">Точка выхода</x:String>
+  <x:String x:Key="Home.RecentActivity">Недавняя активность сессии</x:String>
+  <x:String x:Key="Home.SystemProxyOn">Системный прокси: ВКЛ</x:String>
+  <x:String x:Key="Home.SystemProxyOff">Системный прокси: ВЫКЛ</x:String>
+</ResourceDictionary>

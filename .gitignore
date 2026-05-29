@@ -75,6 +75,24 @@ OnionHop/tor/pluggable_transports/*.exe
 OnionHop/vpn/sing-box.exe
 OnionHop/vpn/wintun.dll
 
+# ArtiHop engine binary — built from github.com/center2055/ArtiHop at build time.
+# Keep the ArtiHop source in its own repo; only the binary is bundled, and it is not committed.
+OnionHop/artihop/
+
+# ArtiHop build cache
+temp_artihop/
+
+# Snowflake volunteer proxy binary — built from the Tor Project source at build time.
+OnionHop/snowflake/
+
 # Webtunnel build cache
 temp_webtunnel/
 temp_webtunnel_bundle/
+
+# Xcode / Apple
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserstate
+*.xcuserdata/
+ios/**/build/

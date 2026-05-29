@@ -3,14 +3,13 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <AssemblyName>OnionHopV2</AssemblyName>
-    <Version>2.6</Version>
+    <AssemblyName>OnionHopV3</AssemblyName>
+    <Version>3.0.0</Version>
     <ApplicationIcon>Assets\OnionHop.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <OnionHopIncludeWindowsRuntimeAssets>false</OnionHopIncludeWindowsRuntimeAssets>
-    <OnionHopIncludeWindowsRuntimeAssets Condition="'$(RuntimeIdentifier)' != '' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win-'))">true</OnionHopIncludeWindowsRuntimeAssets>
-    <OnionHopIncludeWindowsRuntimeAssets Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</OnionHopIncludeWindowsRuntimeAssets>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +17,7 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(OnionHopIncludeWindowsRuntimeAssets)' == 'true'">
+  <ItemGroup>
     <None Include="..\..\..\OnionHop\tor\**\*">
       <Link>tor\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -26,6 +25,20 @@
     </None>
     <None Include="..\..\..\OnionHop\vpn\**\*">
       <Link>vpn\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <!-- ArtiHop engine binary (built from github.com/center2055/ArtiHop by download-deps.ps1).
+         The folder may be empty on a fresh checkout; that's fine (no files to copy). -->
+    <None Include="..\..\..\OnionHop\artihop\**\*">
+      <Link>artihop\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <!-- Snowflake volunteer proxy binary (built from source by download-deps.ps1).
+         The folder may be empty on a fresh checkout; that's fine (no files to copy). -->
+    <None Include="..\..\..\OnionHop\snowflake\**\*">
+      <Link>snowflake\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
@@ -43,8 +56,8 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="DiscordRichPresence" />
+    <PackageReference Include="FluentAvaloniaUI" />
     <PackageReference Include="Material.Icons.Avalonia" />
-    <PackageReference Include="SukiUI" />
   </ItemGroup>
 
   <ItemGroup>

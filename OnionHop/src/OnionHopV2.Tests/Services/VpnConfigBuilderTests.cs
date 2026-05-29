@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Text.Json;
 using OnionHopV2.Core.Services;
 using Xunit;
@@ -18,6 +18,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: ["notepad.exe"],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -61,6 +62,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -98,6 +100,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -121,6 +124,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -144,6 +148,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: true,
+            blockUdpTraffic: false,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -180,6 +185,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: true,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -218,6 +224,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,
@@ -243,6 +250,7 @@ public sealed class VpnConfigBuilderTests
             bypassAppProcessNames: [],
             routeAllWebTrafficThroughTor: false,
             blockQuicForTorApps: false,
+            blockUdpTraffic: true,
             dohServer: null,
             dohServerPort: 443,
             dohPath: null,

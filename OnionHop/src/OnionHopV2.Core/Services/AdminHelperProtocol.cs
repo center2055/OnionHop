@@ -41,6 +41,7 @@ internal static class AdminHelperProtocol
 internal sealed class AdminHelperDnsProxyRequest
 {
     public string? NameServerAddress { get; set; }
+    public bool RouteAllDns { get; set; }
 }
 
 internal sealed class PersistentAdminHelperRequest

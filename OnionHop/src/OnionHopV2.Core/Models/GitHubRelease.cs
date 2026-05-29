@@ -13,6 +13,12 @@ internal sealed class GitHubRelease
 
     [JsonPropertyName("html_url")]
     public string? HtmlUrl { get; set; }
+
+    [JsonPropertyName("prerelease")]
+    public bool Prerelease { get; set; }
+
+    [JsonPropertyName("draft")]
+    public bool Draft { get; set; }
 }
 
 internal sealed class GitHubAsset
@@ -23,4 +29,3 @@ internal sealed class GitHubAsset
     [JsonPropertyName("browser_download_url")]
     public string? BrowserDownloadUrl { get; set; }
 }
-

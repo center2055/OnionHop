@@ -102,6 +102,11 @@ internal sealed class VpnService : IDisposable
         Stop();
         _lastExitCode = null;
 
+        if (OperatingSystem.IsWindows())
+        {
+            KillStaleVpnCores();
+        }
+
         var psi = new ProcessStartInfo(launch.VpnCorePath, $"run -c \"{launch.ConfigPath}\"")
         {
             UseShellExecute = false,
@@ -280,6 +285,54 @@ internal sealed class VpnService : IDisposable
         Exited?.Invoke(sender, e);
     }
 
+    /// <summary>
+    /// Kill any orphaned sing-box/xray processes before starting a new one. A core that didn't exit
+    /// cleanly (crash, killed app, leftover from a previous session) keeps the "OnionHop" Wintun
+    /// adapter open, so the next TUN start fails with "Cannot create a file when that file already
+    /// exists." Killing the holder releases the adapter. Stop() already cleared our tracked process,
+    /// so anything still running here is orphaned.
+    /// </summary>
+    private void KillStaleVpnCores()
+    {
+        var killedAny = false;
+        foreach (var name in new[] { "sing-box", "xray" })
+        {
+            Process[] processes;
+            try
+            {
+                processes = Process.GetProcessesByName(name);
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var process in processes)
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(3000);
+                    killedAny = true;
+                    _log($"Released TUN adapter: stopped orphaned {name} process (pid {process.Id}).");
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    try { process.Dispose(); } catch { }
+                }
+            }
+        }
+
+        if (killedAny)
+        {
+            // Give Wintun a moment to tear down the adapter before we recreate it.
+            try { Thread.Sleep(500); } catch { }
+        }
+    }
+
     private void HandleOutput(object sender, DataReceivedEventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(e.Data))
@@ -388,6 +441,7 @@ internal sealed class VpnService : IDisposable
                 config.BypassAppProcessNames,
                 config.RouteAllWebTrafficThroughTor,
                 config.BlockQuicForTorApps,
+                config.BlockUdpTraffic,
                 config.DohServer,
                 config.DohServerPort,
                 config.DohPath,
@@ -401,6 +455,7 @@ internal sealed class VpnService : IDisposable
                 config.BypassAppProcessNames,
                 config.RouteAllWebTrafficThroughTor,
                 config.BlockQuicForTorApps,
+                config.BlockUdpTraffic,
                 config.DohServer,
                 config.DohServerPort,
                 config.DohPath,
@@ -1780,6 +1835,7 @@ internal sealed class VpnLaunchConfig
     public string DohPath { get; init; } = "/dns-query";
     public bool RouteAllWebTrafficThroughTor { get; init; } = true;
     public bool BlockQuicForTorApps { get; init; } = true;
+    public bool BlockUdpTraffic { get; init; } = true;
     public string TunStack { get; init; } = "mixed";
     public int? TunMtu { get; init; }
     public bool TunStrictRoute { get; init; } = true;

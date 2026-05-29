@@ -2,491 +2,345 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:controls="using:OnionHopV2.App.Controls"
              xmlns:vm="using:OnionHopV2.App.ViewModels"
              mc:Ignorable="d"
-             d:DesignWidth="900"
-             d:DesignHeight="720"
+             d:DesignWidth="1200"
+             d:DesignHeight="820"
              x:Class="OnionHopV2.App.Views.SettingsPageView"
              x:DataType="vm:SettingsPageViewModel">
 
-    <TabControl Margin="24">
-        <!-- General / Startup -->
-        <TabItem Header="{DynamicResource Settings.TabGeneral}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="16" Margin="0,16,0,0">
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
-                            <TextBlock Text="{DynamicResource Settings.StartupBehavior}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
+  <TabControl>
+    <TabItem>
+      <TabItem.Header>
+        <TextBlock Text="{DynamicResource Settings.TabGeneral}"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+      </TabItem.Header>
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="18"
+                    Margin="0,12,0,0">
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.StartupBehavior}"
+                         Classes="SectionTitle" />
+              <controls:ToggleRow Title="{DynamicResource Settings.AutoConnect}"
+                                  Description="{DynamicResource Settings.AutoConnectHint}"
+                                  IsChecked="{Binding State.AutoConnect}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.AutoStart}"
+                                    Description="{DynamicResource Settings.AutoStartHint}"
+                                    ItemsSource="{Binding State.AutoStartModeOptions}"
+                                    SelectedItem="{Binding State.SelectedAutoStartModeOption}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.MinimizeToTray}"
+                                  Description="{DynamicResource Settings.MinimizeToTrayHint}"
+                                  IsChecked="{Binding State.MinimizeToTray}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.AutoUpdate}"
+                                  Description="{DynamicResource Settings.AutoUpdateHint}"
+                                  IsChecked="{Binding State.AutoUpdate}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.DiscordStatus}"
+                                  Description="{DynamicResource Settings.DiscordStatusHint}"
+                                  IsChecked="{Binding State.EnableDiscordStatus}" />
+            </StackPanel>
+          </Border>
 
-                            <ToggleSwitch Content="{DynamicResource Settings.AutoConnect}"
-                                          IsChecked="{Binding State.AutoConnect}" />
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.Appearance}"
+                         Classes="SectionTitle" />
+              <controls:DropdownRow Title="{DynamicResource Settings.AppearanceMode}"
+                                    Description="{DynamicResource Settings.AppearanceModeHint}"
+                                    ItemsSource="{Binding State.ThemeModeOptions}"
+                                    SelectedItem="{Binding State.SelectedThemeModeOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.AccentColor}"
+                                    Description="{DynamicResource Settings.AccentColorHint}"
+                                    ItemsSource="{Binding State.AccentColorOptions}"
+                                    SelectedItem="{Binding State.SelectedAccentColorOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.Language}"
+                                    Description="{DynamicResource Settings.LanguageHint}"
+                                    ItemsSource="{Binding State.LanguageOptions}"
+                                    SelectedItem="{Binding State.SelectedLanguageOption}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.ShowAdvancedHomeConnectionDetails}"
+                                  Description="{DynamicResource Settings.ShowAdvancedHomeConnectionDetailsHint}"
+                                  IsChecked="{Binding State.ShowAdvancedHomeConnectionDetails}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.NativeChrome}"
+                                  Description="{DynamicResource Settings.NativeChromeHint}"
+                                  IsChecked="{Binding State.UseNativeTheme}"
+                                  IsVisible="{Binding State.SupportsNativeWindowChrome}" />
+            </StackPanel>
+          </Border>
 
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.AutoStart}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.AutoStartModeOptions}"
-                                          SelectedItem="{Binding State.SelectedAutoStartModeOption}" />
-                            </StackPanel>
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.PrivacySecurity}"
+                         Classes="SectionTitle" />
+              <controls:ToggleRow Title="{DynamicResource Settings.ClearSessionDataOnDisconnect}"
+                                  Description="{DynamicResource Settings.ClearSessionDataOnDisconnectHint}"
+                                  IsChecked="{Binding State.ClearSessionDataOnDisconnect}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.BlockLanAccess}"
+                                  Description="{DynamicResource Settings.BlockLanAccessHint}"
+                                  IsChecked="{Binding State.BlockLanAccess}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.DnsLeakProtection}"
+                                  Description="{DynamicResource Settings.DnsLeakProtectionHint}"
+                                  IsChecked="{Binding State.DnsLeakProtectionEnabled}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.ClipboardProtection}"
+                                  Description="{DynamicResource Settings.ClipboardProtectionHint}"
+                                  IsChecked="{Binding State.ClipboardProtectionEnabled}" />
+              <controls:SettingRow Title="{DynamicResource Settings.ResetHint}"
+                                   Description="{DynamicResource Settings.ResetDescription}">
+                <controls:SettingRow.RowContent>
+                  <Button Classes="ActionDanger"
+                          Command="{Binding State.RestoreDefaultsCommand}"
+                          Content="{DynamicResource Settings.RestoreDefaults}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+            </StackPanel>
+          </Border>
 
-                            <TextBlock IsVisible="{Binding State.ShowWindowsOnlySettings}"
-                                       Text="Windows: installed builds reuse a privileged helper after the first approval; portable builds still prompt when needed."
-                                       Opacity="0.65"
-                                       TextWrapping="Wrap" />
-
-                            <TextBlock IsVisible="{Binding State.ShowMacOnlySettings}"
-                                       Text="macOS: OnionHop now requests administrator permission only when TUN, kill switch, or .onion DNS setup needs it."
-                                       Opacity="0.65"
-                                       TextWrapping="Wrap" />
-
-                            <ToggleSwitch Content="{DynamicResource Settings.MinimizeToTray}"
-                                          IsChecked="{Binding State.MinimizeToTray}" />
-
-                            <ToggleSwitch Content="{DynamicResource Settings.AutoUpdate}"
-                                          IsChecked="{Binding State.AutoUpdate}" />
-
-                            <ToggleSwitch Content="{DynamicResource Settings.DiscordStatus}"
-                                          IsChecked="{Binding State.EnableDiscordStatus}" />
-                        </StackPanel>
-                    </suki:GlassCard>
-
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
-                            <TextBlock Text="{DynamicResource Settings.Appearance}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
-
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.AppearanceMode}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.ThemeModeOptions}"
-                                          SelectedItem="{Binding State.SelectedThemeModeOption}" />
-                            </StackPanel>
-
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.Language}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.LanguageOptions}"
-                                          DisplayMemberBinding="{Binding Label}"
-                                          SelectedIndex="{Binding State.SelectedLanguageIndex}" />
-                            </StackPanel>
-
-                            <ToggleSwitch Content="{DynamicResource Settings.ShowAdvancedHomeConnectionDetails}"
-                                          IsChecked="{Binding State.ShowAdvancedHomeConnectionDetails}" />
-                            <TextBlock Text="{DynamicResource Settings.ShowAdvancedHomeConnectionDetailsHint}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
-
-                            <Grid IsVisible="{Binding State.SupportsNativeWindowChrome}"
-                                  ColumnDefinitions="*,Auto"
-                                  ColumnSpacing="12">
-                                <TextBlock Grid.Column="0"
-                                           Text="{DynamicResource Settings.NativeChrome}"
-                                           VerticalAlignment="Center"
-                                           TextWrapping="Wrap" />
-                                <ToggleSwitch Grid.Column="1"
-                                              VerticalAlignment="Center"
-                                              IsChecked="{Binding State.UseNativeTheme}" />
-                            </Grid>
-                        </StackPanel>
-                    </suki:GlassCard>
-
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
-                            <TextBlock Text="{DynamicResource Settings.Maintenance}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
-
-                            <TextBlock Text="{DynamicResource Settings.ResetHint}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
-
-                            <Button Classes="Danger"
-                                    Height="38"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding State.RestoreDefaultsCommand}"
-                                    Content="{DynamicResource Settings.RestoreDefaults}" />
-                        </StackPanel>
-                    </suki:GlassCard>
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Snowflake.SectionTitle}"
+                         Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource Snowflake.SectionHint}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <controls:ToggleRow Title="{DynamicResource Snowflake.Enable}"
+                                  Description="{DynamicResource Snowflake.EnableHint}"
+                                  IsChecked="{Binding State.SnowflakeProxyEnabled}" />
+              <controls:ToggleRow Title="{DynamicResource Snowflake.AutoStart}"
+                                  Description="{DynamicResource Snowflake.AutoStartHint}"
+                                  IsChecked="{Binding State.SnowflakeProxyAutoStart}" />
+              <controls:SettingRow Title="{DynamicResource Snowflake.Capacity}"
+                                   Description="{DynamicResource Snowflake.CapacityHint}">
+                <controls:SettingRow.RowContent>
+                  <NumericUpDown Width="130"
+                                 Minimum="0"
+                                 Maximum="1000"
+                                 Increment="1"
+                                 FormatString="0"
+                                 Value="{Binding State.SnowflakeProxyCapacity}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+              <Border Classes="InsetPanel">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{DynamicResource Snowflake.Status}"
+                             Classes="SectionCaption" />
+                  <TextBlock Text="{Binding State.SnowflakeProxyStatusText}"
+                             TextWrapping="Wrap" />
                 </StackPanel>
-            </ScrollViewer>
-        </TabItem>
+              </Border>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
 
-        <!-- Network & DNS -->
-        <TabItem Header="{DynamicResource Settings.TabNetwork}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="16" Margin="0,16,0,0">
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
-                            <TextBlock Text="{DynamicResource Settings.BridgesTitle}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
+    <TabItem>
+      <TabItem.Header>
+        <TextBlock Text="{DynamicResource Settings.TabNetwork}"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+      </TabItem.Header>
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="18"
+                    Margin="0,12,0,0">
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.TorEngineSection}"
+                         Classes="SectionTitle" />
+              <controls:DropdownRow Title="{DynamicResource Settings.TorEngine}"
+                                    Description="{Binding State.TorEngineSelectionHint}"
+                                    ItemsSource="{Binding State.TorEngineOptions}"
+                                    SelectedItem="{Binding State.SelectedTorEngineOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.RelayRefreshInterval}"
+                                    Description="{DynamicResource Settings.RelayRefreshIntervalHint}"
+                                    ItemsSource="{Binding State.RelayRefreshIntervalOptions}"
+                                    SelectedItem="{Binding State.SelectedRelayRefreshIntervalOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.UpdateChannel}"
+                                    Description="{DynamicResource Settings.UpdateChannelHint}"
+                                    ItemsSource="{Binding State.UpdateChannelOptions}"
+                                    SelectedItem="{Binding State.SelectedUpdateChannelOption}" />
+            </StackPanel>
+          </Border>
 
-                            <ToggleSwitch Content="{DynamicResource Settings.UseBridges}"
-                                          IsChecked="{Binding State.UseTorBridges}" />
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.BridgesTitle}"
+                         Classes="SectionTitle" />
+              <controls:ToggleRow Title="{DynamicResource Settings.UseBridges}"
+                                  Description="{DynamicResource Settings.UseBridgesHint}"
+                                  IsChecked="{Binding State.UseTorBridges}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.BridgeType}"
+                                    Description="{DynamicResource Settings.BridgeTypeHint}"
+                                    ItemsSource="{Binding State.BridgeTypeOptions}"
+                                    SelectedItem="{Binding State.SelectedBridgeTypeOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.BridgeSource}"
+                                    Description="{DynamicResource Settings.BridgeSourceHint}"
+                                    ItemsSource="{Binding State.BridgeSourceModeOptions}"
+                                    SelectedItem="{Binding State.SelectedBridgeSourceModeOption}" />
+              <TextBox Text="{Binding State.CustomBridges}"
+                       AcceptsReturn="True"
+                       MinHeight="120"
+                       TextWrapping="Wrap"
+                       VerticalContentAlignment="Top"
+                       Watermark="{DynamicResource Settings.CustomBridgesWatermark}" />
+            </StackPanel>
+          </Border>
 
-                            <StackPanel Spacing="10"
-                                        IsVisible="{Binding State.UseTorBridges}">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.BridgeType}" Opacity="0.75" />
-                                    <ComboBox ItemsSource="{Binding State.BridgeTypeOptions}"
-                                              SelectedItem="{Binding State.SelectedBridgeTypeOption}" />
-                                </StackPanel>
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.ProxyModeTitle}"
+                         Classes="SectionTitle" />
+              <controls:DropdownRow Title="{DynamicResource Settings.ProxyScope}"
+                                    Description="{DynamicResource Settings.ProxyScopeHint}"
+                                    ItemsSource="{Binding State.ProxyScopeModeOptions}"
+                                    SelectedItem="{Binding State.SelectedProxyScopeModeOption}" />
+              <Grid ColumnDefinitions="*,*"
+                    ColumnSpacing="12">
+                <controls:SettingRow Grid.Column="0"
+                                     Title="{DynamicResource Settings.PreferredSocksPort}"
+                                     Description="{DynamicResource Settings.PreferredSocksPortHint}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="140"
+                             Text="{Binding State.PreferredSocksPort}" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+                <controls:SettingRow Grid.Column="1"
+                                     Title="{DynamicResource Settings.PreferredHttpPort}"
+                                     Description="{DynamicResource Settings.PreferredHttpPortHint}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="140"
+                             Text="{Binding State.PreferredHttpPort}" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+              </Grid>
+              <controls:ToggleRow Title="{DynamicResource Settings.SecureDns}"
+                                  Description="{DynamicResource Settings.DnsProviderHint}"
+                                  IsChecked="{Binding State.UseCensoredMode}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.DnsProvider}"
+                                    Description="{DynamicResource Settings.CustomDohHostWatermark}"
+                                    ItemsSource="{Binding State.DnsProviders}"
+                                    SelectedItem="{Binding State.SelectedDnsProvider}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
 
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.BridgeSource}" Opacity="0.75" />
-                                    <ComboBox ItemsSource="{Binding State.BridgeSourceModeOptions}"
-                                              SelectedItem="{Binding State.SelectedBridgeSourceModeOption}" />
-                                    <TextBlock Text="{DynamicResource Settings.BridgeSourceHint}"
-                                               Opacity="0.7"
-                                               TextWrapping="Wrap" />
-                                    <TextBlock Text="{DynamicResource Settings.BridgeSourceCredits}"
-                                               Opacity="0.65"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
+    <TabItem>
+      <TabItem.Header>
+        <TextBlock Text="{DynamicResource Settings.TabAdvanced}"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+      </TabItem.Header>
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="18"
+                    Margin="0,12,0,0">
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.TorAdvanced}"
+                         Classes="SectionTitle" />
+              <controls:DropdownRow Title="{DynamicResource Settings.EntryNode}"
+                                    Description="{DynamicResource Settings.EntryNodeHint}"
+                                    ItemsSource="{Binding State.LocationOptions}"
+                                    SelectedItem="{Binding State.SelectedEntryLocationOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.ExitLocation}"
+                                    Description="{DynamicResource Settings.ExitLocationAdvancedHint}"
+                                    ItemsSource="{Binding State.LocationOptions}"
+                                    SelectedItem="{Binding State.SelectedLocationOption}" />
+              <controls:SettingRow Title="{DynamicResource Settings.ManualEntryFingerprint}"
+                                   Description="{DynamicResource Settings.StrictManualEntryFingerprintHint}">
+                <controls:SettingRow.RowContent>
+                  <TextBox Width="300"
+                           Text="{Binding State.EntryNodeFingerprint}"
+                           Watermark="{DynamicResource Settings.ManualEntryFingerprintWatermark}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+              <controls:ToggleRow Title="{DynamicResource Settings.StrictManualEntryFingerprint}"
+                                  Description="{DynamicResource Settings.StrictManualEntryFingerprintHint}"
+                                  IsChecked="{Binding State.StrictManualEntryNodeFingerprint}" />
+              <controls:SettingRow Title="{DynamicResource Settings.ManualMiddleFingerprint}"
+                                   Description="{DynamicResource Settings.StrictManualMiddleFingerprintHint}">
+                <controls:SettingRow.RowContent>
+                  <TextBox Width="300"
+                           Text="{Binding State.MiddleNodeFingerprint}"
+                           Watermark="{DynamicResource Settings.ManualMiddleFingerprintWatermark}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+              <controls:ToggleRow Title="{DynamicResource Settings.StrictManualMiddleFingerprint}"
+                                  Description="{DynamicResource Settings.StrictManualMiddleFingerprintHint}"
+                                  IsChecked="{Binding State.StrictManualMiddleNodeFingerprint}" />
+              <controls:SettingRow Title="{DynamicResource Settings.ManualExitFingerprint}"
+                                   Description="{DynamicResource Settings.StrictManualExitFingerprintHint}">
+                <controls:SettingRow.RowContent>
+                  <TextBox Width="300"
+                           Text="{Binding State.ExitNodeFingerprint}"
+                           Watermark="{DynamicResource Settings.ManualExitFingerprintWatermark}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+              <controls:ToggleRow Title="{DynamicResource Settings.StrictManualExitFingerprint}"
+                                  Description="{DynamicResource Settings.StrictManualExitFingerprintHint}"
+                                  IsChecked="{Binding State.StrictManualExitNodeFingerprint}" />
+            </StackPanel>
+          </Border>
 
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.CustomBridges}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.CustomBridges}"
-                                             AcceptsReturn="True"
-                                             TextWrapping="Wrap"
-                                             MinHeight="140"
-                                             VerticalContentAlignment="Top"
-                                             Padding="10"
-                                             Watermark="{DynamicResource Settings.CustomBridgesWatermark}" />
-                                </StackPanel>
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.AdvancedTunSection}"
+                         Classes="SectionTitle" />
+              <controls:DropdownRow Title="{DynamicResource Settings.TunCore}"
+                                    Description="{DynamicResource Settings.AdvancedTunSectionHint}"
+                                    ItemsSource="{Binding State.TunCoreModeOptions}"
+                                    SelectedItem="{Binding State.SelectedTunCoreModeOption}" />
+              <controls:DropdownRow Title="{DynamicResource Settings.TunStack}"
+                                    Description="{DynamicResource Settings.TunStrictRouteHint}"
+                                    ItemsSource="{Binding State.TunStackModeOptions}"
+                                    SelectedItem="{Binding State.SelectedTunStackModeOption}" />
+              <controls:SettingRow Title="{DynamicResource Settings.TunMtu}">
+                <controls:SettingRow.RowContent>
+                  <TextBox Width="160"
+                           Text="{Binding State.TunMtu}"
+                           Watermark="{DynamicResource Settings.TunMtuWatermark}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+              <controls:SettingRow Title="{DynamicResource Settings.ConnectionTimeoutSeconds}">
+                <controls:SettingRow.RowContent>
+                  <TextBox Width="160"
+                           Text="{Binding State.ConnectionTimeoutSeconds}"
+                           Watermark="{DynamicResource Settings.ConnectionTimeoutSecondsHint}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
+              <controls:ToggleRow Title="{DynamicResource Settings.TunStrictRoute}"
+                                  Description="{DynamicResource Settings.TunStrictRouteHint}"
+                                  IsChecked="{Binding State.TunStrictRoute}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.RouteAllWebTraffic}"
+                                  Description="{DynamicResource Settings.SplitTunnelingHint}"
+                                  IsChecked="{Binding State.HybridRouteAllWebTraffic}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.BlockQuic}"
+                                  Description="{DynamicResource Settings.BlockQuicHint}"
+                                  IsChecked="{Binding State.HybridBlockQuicForTorApps}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.BlockUdp}"
+                                  Description="{DynamicResource Settings.BlockUdpHint}"
+                                  IsChecked="{Binding State.BlockUdpTraffic}" />
+            </StackPanel>
+          </Border>
 
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.CustomSni}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.CustomSniHosts}"
-                                             VerticalContentAlignment="Center"
-                                             Watermark="{DynamicResource Settings.CustomSniWatermark}" />
-                                </StackPanel>
-
-                                <StackPanel Spacing="10"
-                                            IsVisible="{Binding State.IsSnowflakeBridgeSelected}">
-                                    <ToggleSwitch Content="{DynamicResource Settings.SnowflakeAmp}"
-                                                  IsChecked="{Binding State.UseSnowflakeAmp}" />
-
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="{DynamicResource Settings.AmpCacheUrl}" Opacity="0.75" />
-                                        <TextBox Text="{Binding State.SnowflakeAmpCache}"
-                                                 IsEnabled="{Binding State.UseSnowflakeAmp}"
-                                                 VerticalContentAlignment="Center"
-                                                 Watermark="{DynamicResource Settings.AmpCacheWatermark}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <Separator Height="1" Margin="0,8" Opacity="0.1" />
-
-                            <TextBlock Text="{DynamicResource Settings.ProxyModeTitle}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
-
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.ProxyScope}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.ProxyScopeModeOptions}"
-                                          SelectedItem="{Binding State.SelectedProxyScopeModeOption}" />
-                                <TextBlock Text="{DynamicResource Settings.ProxyScopeHint}"
-                                           Opacity="0.7"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-
-                            <Grid ColumnDefinitions="*,*"
-                                  ColumnSpacing="10">
-                                <StackPanel Grid.Column="0"
-                                            Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.PreferredSocksPort}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.PreferredSocksPort}"
-                                             VerticalContentAlignment="Center" />
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1"
-                                            Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.PreferredHttpPort}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.PreferredHttpPort}"
-                                             VerticalContentAlignment="Center" />
-                                </StackPanel>
-                            </Grid>
-
-                            <ToggleSwitch Content="{DynamicResource Settings.AllowLanProxyAccess}"
-                                          IsChecked="{Binding State.AllowLanProxyAccess}" />
-                            <TextBlock Text="{DynamicResource Settings.AllowLanProxyAccessHint}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
-
-                            <ToggleSwitch Content="{DynamicResource Settings.SecureDns}"
-                                          IsChecked="{Binding State.UseCensoredMode}" />
-
-                            <StackPanel Spacing="14" IsVisible="{Binding State.UseCensoredMode}">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.DnsProvider}" Opacity="0.75" />
-                                    <ComboBox ItemsSource="{Binding State.DnsProviders}"
-                                              SelectedItem="{Binding State.SelectedDnsProvider}" />
-                                    <TextBlock Text="{DynamicResource Settings.DnsProviderHint}"
-                                               Opacity="0.7"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.CustomDohHost}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.CustomDohHost}"
-                                             IsEnabled="{Binding State.IsCustomDoh}"
-                                             VerticalContentAlignment="Center"
-                                             Watermark="{DynamicResource Settings.CustomDohHostWatermark}" />
-                                </StackPanel>
-
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.CustomDohPath}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.CustomDohPath}"
-                                             IsEnabled="{Binding State.IsCustomDoh}"
-                                             VerticalContentAlignment="Center"
-                                             Watermark="{DynamicResource Settings.CustomDohPathWatermark}" />
-                                </StackPanel>
-
-                                <ToggleSwitch Content="{DynamicResource Settings.OnionDnsProxy}"
-                                              IsChecked="{Binding State.OnionDnsProxyEnabled}"
-                                              IsEnabled="{Binding State.CanUseOnionDnsProxy}" />
-                                <TextBlock Text="{DynamicResource Settings.OnionDnsProxyHint}"
-                                           Opacity="0.75"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                        </StackPanel>
-                    </suki:GlassCard>
-                </StackPanel>
-            </ScrollViewer>
-        </TabItem>
-
-        <!-- Advanced -->
-        <TabItem Header="{DynamicResource Settings.TabAdvanced}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="16" Margin="0,16,0,0">
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="12">
-                            <TextBlock Text="{DynamicResource Settings.TorAdvanced}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="{DynamicResource Settings.TorAdvancedHint}"
-                                       Opacity="0.7"
-                                       TextWrapping="Wrap" />
-
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{DynamicResource Settings.EntryNode}" Opacity="0.75" />
-                                <ComboBox ItemsSource="{Binding State.LocationOptions}"
-                                           IsEnabled="{Binding State.CanSelectEntryLocation}"
-                                           SelectedItem="{Binding State.SelectedEntryLocationOption}" />
-
-                                <TextBlock Text="{DynamicResource Settings.EntryNodeHint}"
-                                           Opacity="0.75"
-                                           TextWrapping="Wrap"
-                                           IsVisible="{Binding State.UseTorBridges}" />
-                            </StackPanel>
-
-                            <Expander Header="{DynamicResource Settings.AdvancedPerformanceSection}"
-                                      IsExpanded="True">
-                                <StackPanel Spacing="10" Margin="0,10,0,0">
-                                    <Grid ColumnDefinitions="*,*"
-                                          ColumnSpacing="10">
-                                        <StackPanel Grid.Column="0"
-                                                    Spacing="6">
-                                            <TextBlock Text="{DynamicResource Settings.IPv6Support}" Opacity="0.75" />
-                                            <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
-                                                      SelectedItem="{Binding State.SelectedTorIpv6ModeOption}" />
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Column="1"
-                                                    Spacing="6">
-                                            <TextBlock Text="{DynamicResource Settings.HardwareAccel}" Opacity="0.75" />
-                                            <ComboBox ItemsSource="{Binding State.TorOptionModeOptions}"
-                                                      SelectedItem="{Binding State.SelectedHardwareAccelerationModeOption}" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <Grid ColumnDefinitions="*,*"
-                                          ColumnSpacing="10">
-                                        <StackPanel Grid.Column="0"
-                                                    Spacing="6">
-                                            <TextBlock Text="{DynamicResource Settings.ConnectionPadding}" Opacity="0.75" />
-                                            <ComboBox ItemsSource="{Binding State.ConnectionPaddingModeOptions}"
-                                                      SelectedItem="{Binding State.SelectedConnectionPaddingModeOption}" />
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Column="1"
-                                                    Spacing="6">
-                                            <TextBlock Text="{DynamicResource Settings.MaxCircuitInactivity}" Opacity="0.75" />
-                                            <TextBox Text="{Binding State.MaxCircuitInactivityMinutes}"
-                                                     VerticalContentAlignment="Center" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="{DynamicResource Settings.ConnectionTimeoutSeconds}" Opacity="0.75" />
-                                        <TextBox Text="{Binding State.ConnectionTimeoutSeconds}"
-                                                 VerticalContentAlignment="Center"
-                                                 Watermark="{DynamicResource Settings.ConnectionTimeoutSecondsWatermark}" />
-                                        <TextBlock Text="{DynamicResource Settings.ConnectionTimeoutSecondsHint}"
-                                                   Opacity="0.75"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Expander>
-
-                            <Expander Header="{DynamicResource Settings.AdvancedTunSection}">
-                                <StackPanel Spacing="10" Margin="0,10,0,0">
-                                    <TextBlock Text="{DynamicResource Settings.AdvancedTunSectionHint}"
-                                               Opacity="0.75"
-                                               TextWrapping="Wrap" />
-
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="{DynamicResource Settings.TunCore}" Opacity="0.75" />
-                                        <ComboBox ItemsSource="{Binding State.TunCoreModeOptions}"
-                                                  SelectedItem="{Binding State.SelectedTunCoreModeOption}" />
-                                    </StackPanel>
-
-                                    <Grid ColumnDefinitions="*,*"
-                                          ColumnSpacing="10"
-                                          IsVisible="{Binding State.ShowTunStackOptions}">
-                                        <StackPanel Grid.Column="0"
-                                                    Spacing="6">
-                                            <TextBlock Text="{DynamicResource Settings.TunStack}" Opacity="0.75" />
-                                            <ComboBox ItemsSource="{Binding State.TunStackModeOptions}"
-                                                      SelectedItem="{Binding State.SelectedTunStackModeOption}" />
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Column="1"
-                                                    Spacing="6">
-                                            <TextBlock Text="{DynamicResource Settings.TunMtu}" Opacity="0.75" />
-                                            <TextBox Text="{Binding State.TunMtu}"
-                                                     VerticalContentAlignment="Center"
-                                                     Watermark="{DynamicResource Settings.TunMtuWatermark}" />
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <StackPanel Spacing="6"
-                                                IsVisible="{Binding !State.ShowTunStackOptions}">
-                                        <TextBlock Text="{DynamicResource Settings.TunMtu}" Opacity="0.75" />
-                                        <TextBox Text="{Binding State.TunMtu}"
-                                                 VerticalContentAlignment="Center"
-                                                 Watermark="{DynamicResource Settings.TunMtuWatermark}" />
-                                    </StackPanel>
-
-                                    <ToggleSwitch Content="{DynamicResource Settings.TunStrictRoute}"
-                                                  IsChecked="{Binding State.TunStrictRoute}" />
-                                    <TextBlock Text="{DynamicResource Settings.TunStrictRouteHint}"
-                                               Opacity="0.75"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Expander>
-
-                            <Expander Header="{DynamicResource Settings.AdvancedTrafficRulesSection}">
-                                <StackPanel Spacing="10" Margin="0,10,0,0">
-                                    <ToggleSwitch Content="{DynamicResource Settings.RestrictedFirewallMode}"
-                                                  IsChecked="{Binding State.RestrictedFirewallMode}" />
-
-                                    <StackPanel Spacing="6" IsVisible="{Binding State.RestrictedFirewallMode}">
-                                        <TextBlock Text="{DynamicResource Settings.AllowedPorts}" Opacity="0.75" />
-                                        <TextBox Text="{Binding State.AllowedPorts}"
-                                                 VerticalContentAlignment="Center"
-                                                 Watermark="{DynamicResource Settings.AllowedPortsWatermark}" />
-                                    </StackPanel>
-
-                                    <TextBlock Text="{DynamicResource Settings.EntryExitTip}"
-                                               Opacity="0.75"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Expander>
-
-                            <Expander Header="{DynamicResource Settings.AdvancedManualExitSection}">
-                                <StackPanel Spacing="10" Margin="0,10,0,0">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="{DynamicResource Settings.ManualExitFingerprint}" Opacity="0.75" />
-                                        <TextBox Text="{Binding State.ExitNodeFingerprint}"
-                                                 VerticalContentAlignment="Center"
-                                                 Watermark="{DynamicResource Settings.ManualExitFingerprintWatermark}" />
-                                    </StackPanel>
-
-                                    <ToggleSwitch Content="{DynamicResource Settings.StrictManualExitFingerprint}"
-                                                  IsChecked="{Binding State.StrictManualExitNodeFingerprint}"
-                                                  IsEnabled="{Binding State.IsManualExitNodeFingerprintSet}" />
-                                    <TextBlock Text="{DynamicResource Settings.StrictManualExitFingerprintHint}"
-                                               Opacity="0.75"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Expander>
-                        </StackPanel>
-                    </suki:GlassCard>
-
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
-                            <TextBlock Text="{DynamicResource Settings.SplitTunnelingTitle}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
-
-                            <TextBlock Text="{DynamicResource Settings.SplitTunnelingHint}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
-
-                            <StackPanel Spacing="10"
-                                        IsEnabled="{Binding State.CanConfigureSplitTunneling}">
-                                <ToggleSwitch Content="{DynamicResource Settings.RouteAllWebTraffic}"
-                                              IsChecked="{Binding State.HybridRouteAllWebTraffic}" />
-
-                                <ToggleSwitch Content="{DynamicResource Settings.BlockQuic}"
-                                              IsChecked="{Binding State.HybridBlockQuicForTorApps}" />
-
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.TorApps}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.HybridTorApps}"
-                                             AcceptsReturn="True"
-                                             TextWrapping="Wrap"
-                                             MinHeight="120"
-                                             VerticalContentAlignment="Top"
-                                             Padding="10"
-                                             Watermark="{DynamicResource Settings.TorAppsWatermark}" />
-                                </StackPanel>
-
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Settings.BypassApps}" Opacity="0.75" />
-                                    <TextBox Text="{Binding State.HybridBypassApps}"
-                                             AcceptsReturn="True"
-                                             TextWrapping="Wrap"
-                                             MinHeight="90"
-                                             VerticalContentAlignment="Top"
-                                             Padding="10"
-                                             Watermark="{DynamicResource Settings.BypassAppsWatermark}" />
-                                </StackPanel>
-                            </StackPanel>
-
-                            <TextBlock Text="{DynamicResource Settings.SplitTunnelingEnableHint}"
-                                       Opacity="0.75"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </suki:GlassCard>
-
-                    <suki:GlassCard Padding="18" CornerRadius="18">
-                        <StackPanel Spacing="14">
-                            <TextBlock Text="{DynamicResource Settings.AutomationTitle}"
-                                       FontSize="16"
-                                       FontWeight="SemiBold" />
-
-                            <ToggleSwitch Content="{DynamicResource Settings.OpenConnectedPage}"
-                                          IsChecked="{Binding State.OpenConnectedPageEnabled}" />
-                            <TextBox Text="{Binding State.ConnectedPageUrl}"
-                                     IsEnabled="{Binding State.OpenConnectedPageEnabled}"
-                                     VerticalContentAlignment="Center"
-                                     Watermark="{DynamicResource Settings.OpenConnectedPageWatermark}" />
-
-                            <ToggleSwitch Content="{DynamicResource Settings.OpenDisconnectedPage}"
-                                          IsChecked="{Binding State.OpenDisconnectedPageEnabled}" />
-                            <TextBox Text="{Binding State.DisconnectedPageUrl}"
-                                     IsEnabled="{Binding State.OpenDisconnectedPageEnabled}"
-                                     VerticalContentAlignment="Center"
-                                     Watermark="{DynamicResource Settings.OpenDisconnectedPageWatermark}" />
-
-                        </StackPanel>
-                    </suki:GlassCard>
-                </StackPanel>
-            </ScrollViewer>
-        </TabItem>
-    </TabControl>
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.AutomationTitle}"
+                         Classes="SectionTitle" />
+              <controls:ToggleRow Title="{DynamicResource Settings.OpenConnectedPage}"
+                                  Description="{DynamicResource Settings.OpenConnectedPageHint}"
+                                  IsChecked="{Binding State.OpenConnectedPageEnabled}" />
+              <TextBox Text="{Binding State.ConnectedPageUrl}"
+                       IsEnabled="{Binding State.OpenConnectedPageEnabled}"
+                       Watermark="{DynamicResource Settings.OpenConnectedPageWatermark}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.OpenDisconnectedPage}"
+                                  Description="{DynamicResource Settings.OpenDisconnectedPageHint}"
+                                  IsChecked="{Binding State.OpenDisconnectedPageEnabled}" />
+              <TextBox Text="{Binding State.DisconnectedPageUrl}"
+                       IsEnabled="{Binding State.OpenDisconnectedPageEnabled}"
+                       Watermark="{DynamicResource Settings.OpenDisconnectedPageWatermark}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
+  </TabControl>
 </UserControl>

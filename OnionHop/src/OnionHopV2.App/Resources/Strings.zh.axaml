@@ -1,0 +1,27 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Simplified Chinese. Keys not present here fall back to English (see LocalizationService). -->
+  <x:String x:Key="Common.Search">搜索</x:String>
+
+  <x:String x:Key="Nav.Home">主页</x:String>
+  <x:String x:Key="Nav.Settings">设置</x:String>
+  <x:String x:Key="Nav.Relays">中继</x:String>
+  <x:String x:Key="Nav.Scanner">扫描器</x:String>
+  <x:String x:Key="Nav.Logs">日志</x:String>
+  <x:String x:Key="Nav.About">关于</x:String>
+
+  <x:String x:Key="Home.Connect">连接</x:String>
+  <x:String x:Key="Home.Disconnect">断开连接</x:String>
+  <x:String x:Key="Home.Cancel">取消</x:String>
+  <x:String x:Key="Home.RefreshIp">刷新 IP</x:String>
+  <x:String x:Key="Home.NewIdentity">新身份</x:String>
+  <x:String x:Key="Home.CurrentIp">当前 IP</x:String>
+  <x:String x:Key="Home.EngineMode">Tor 引擎</x:String>
+  <x:String x:Key="Home.RoutingPreferences">路由与首选项</x:String>
+  <x:String x:Key="Home.SmartConnect">智能连接（推荐）</x:String>
+  <x:String x:Key="Home.Mode">模式</x:String>
+  <x:String x:Key="Home.ExitLocation">出口位置</x:String>
+  <x:String x:Key="Home.RecentActivity">最近会话活动</x:String>
+  <x:String x:Key="Home.SystemProxyOn">系统代理：开</x:String>
+  <x:String x:Key="Home.SystemProxyOff">系统代理：关</x:String>
+</ResourceDictionary>

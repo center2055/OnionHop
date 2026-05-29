@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV2.Core.Dependencies;
@@ -24,6 +25,7 @@ public sealed class OnionHopClient : IDisposable
     public const int DefaultSocksPort = OnionHopConnectOptions.DefaultSocksPort;
     public const int DefaultHttpPort = OnionHopConnectOptions.DefaultHttpPort;
     public const int DefaultDnsPort = 53;
+    private const int DefaultArtiHopControlPort = 9151;
     private const int MaxBridgeLinesForLaunch = 64;
     private const int MaxBridgeArgumentCharsForLaunch = 12000;
     private const int AutomaticBridgeProxyFailureThreshold = 8;
@@ -42,7 +44,7 @@ public sealed class OnionHopClient : IDisposable
         int? HttpPort);
 
     public readonly record struct DependencyUpdate(bool InProgress, string Status, double Progress);
-    public readonly record struct BridgeDbRefreshStatus(
+    public readonly record struct BridgeDataRefreshStatus(
         bool UsedTorProxy,
         int AttemptedTypes,
         int UpdatedTypes,
@@ -53,6 +55,7 @@ public sealed class OnionHopClient : IDisposable
     public event EventHandler<string>? VpnLog;
     public event EventHandler<StatusUpdate>? StatusUpdated;
     public event EventHandler<DependencyUpdate>? DependencyUpdated;
+    public event EventHandler<SnowflakeProxyStatus>? SnowflakeProxyStatusUpdated;
 
     private readonly string _baseDir;
     private readonly DependencyManager _deps = new();
@@ -65,6 +68,9 @@ public sealed class OnionHopClient : IDisposable
     private readonly SingBoxLogProcessor _singBoxLogProcessor = new();
 
     private readonly TorService _torService;
+    private readonly ArtiService _artiService;
+    private readonly ArtiHopService _artiHopService;
+    private readonly SnowflakeProxyService _snowflakeProxyService;
     private readonly VpnService _vpnService;
     private readonly AdminHelperClient _adminHelper = new();
 
@@ -95,6 +101,7 @@ public sealed class OnionHopClient : IDisposable
     private string _activeProxyBindAddress = "127.0.0.1";
     private int? _activeDnsPort;
     private string? _activeDnsBindAddress;
+    private string _activeTorEngine = OnionHopConnectOptions.TorEngineClassic;
     private string _activeVpnCoreMode = OnionHopConnectOptions.TunCoreSingBox;
     private bool _macNetworkExtensionActive;
     private VpnLaunchConfig? _preparedMacVpnLaunchConfig;
@@ -109,11 +116,19 @@ public sealed class OnionHopClient : IDisposable
         _bridgeManager = new TorBridgeManager(_baseDir);
 
         _torService = new TorService(RaiseLog);
+        _artiService = new ArtiService(RaiseLog);
+        _artiHopService = new ArtiHopService(RaiseLog);
+        _snowflakeProxyService = new SnowflakeProxyService(RaiseLog);
         _vpnService = new VpnService(RaiseLog);
         _httpProxyBridgeService = new HttpProxyBridgeService(RaiseLog);
 
         _torService.OutputReceived += OnTorDataReceived;
         _torService.Exited += OnTorExited;
+        _artiService.OutputReceived += OnArtiOutputReceived;
+        _artiService.Exited += OnArtiExited;
+        _artiHopService.OutputReceived += OnArtiHopOutputReceived;
+        _artiHopService.Exited += OnArtiHopExited;
+        _snowflakeProxyService.StatusChanged += OnSnowflakeProxyStatusChanged;
 
         _vpnService.OutputLineReceived += OnVpnOutputLine;
         _vpnService.Exited += OnSingBoxExited;
@@ -203,9 +218,21 @@ public sealed class OnionHopClient : IDisposable
         return _ptConfig?.RecommendedDefault;
     }
 
-    public DateTimeOffset? GetLastBridgeDbUpdateUtc()
+    public DateTimeOffset? GetLastBridgeDataUpdateUtc()
     {
         return _bridgeManager.GetLatestBridgeCacheUpdateUtc();
+    }
+
+    public void LoadCachedBridgeMetadata()
+    {
+        try
+        {
+            _ptConfig = DependencyManager.TryLoadPluggableTransportConfig(_baseDir, RaiseLog);
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"Bridge metadata cache load failed: {ex.Message}");
+        }
     }
 
     public bool CanUseMacNetworkExtension()
@@ -213,57 +240,57 @@ public sealed class OnionHopClient : IDisposable
         return MacNetworkExtensionService.IsConfigured();
     }
 
-    public async Task<BridgeDbRefreshStatus> RefreshBridgeDatabaseAsync(OnionHopConnectOptions options, CancellationToken token = default)
+    public async Task<BridgeDataRefreshStatus> RefreshBridgeDistributionAsync(OnionHopConnectOptions options, CancellationToken token = default)
     {
         if (!await EnsureTorDependenciesAsync(token).ConfigureAwait(false))
         {
-            RaiseLog("BridgeDB refresh skipped: dependencies are not available.");
-            return new BridgeDbRefreshStatus(
+            RaiseLog("Bridge data refresh skipped: dependencies are not available.");
+            return new BridgeDataRefreshStatus(
                 UsedTorProxy: false,
                 AttemptedTypes: 0,
                 UpdatedTypes: 0,
                 LastUpdatedUtc: _bridgeManager.GetLatestBridgeCacheUpdateUtc());
         }
 
-        var bridgeTypes = ResolveBridgeDbRefreshTypes(options);
+        var bridgeTypes = ResolveBridgeDistributionRefreshTypes(options);
         if (bridgeTypes.Count == 0)
         {
-            RaiseLog("BridgeDB refresh skipped: no eligible bridge types were found.");
-            return new BridgeDbRefreshStatus(
+            RaiseLog("Bridge data refresh skipped: no eligible bridge types were found.");
+            return new BridgeDataRefreshStatus(
                 UsedTorProxy: false,
                 AttemptedTypes: 0,
                 UpdatedTypes: 0,
                 LastUpdatedUtc: _bridgeManager.GetLatestBridgeCacheUpdateUtc());
         }
 
-        var useTorProxy = _isConnected && _torService.IsRunning && _activeSocksPort > 0;
+        var useTorProxy = _isConnected && IsTorRuntimeRunning && _activeSocksPort > 0;
         HttpClient? httpClient = null;
         try
         {
             if (useTorProxy)
             {
                 httpClient = Socks5HttpClient.Create("127.0.0.1", _activeSocksPort, TimeSpan.FromSeconds(35));
-                RaiseLog($"BridgeDB refresh: routing requests through Tor SOCKS 127.0.0.1:{_activeSocksPort}.");
+                RaiseLog($"Bridge data refresh: routing requests through Tor SOCKS 127.0.0.1:{_activeSocksPort}.");
             }
             else
             {
-                RaiseLog("BridgeDB refresh: Tor is not active, using direct network access.");
+                RaiseLog("Bridge data refresh: Tor is not active, using direct network access.");
             }
 
             var summary = await _bridgeManager
-                .RefreshBridgeDbAsync(bridgeTypes, RaiseLog, token, httpClient)
+                .RefreshBridgeDataAsync(bridgeTypes, RaiseLog, token, httpClient)
                 .ConfigureAwait(false);
 
             if (summary.UpdatedTypes > 0)
             {
-                RaiseLog($"BridgeDB refresh complete: {summary.UpdatedTypes}/{summary.AttemptedTypes} bridge type(s) updated.");
+                RaiseLog($"Bridge data refresh complete: {summary.UpdatedTypes}/{summary.AttemptedTypes} bridge type(s) updated.");
             }
             else
             {
-                RaiseLog("BridgeDB refresh completed, but no new usable bridge lines were fetched.");
+                RaiseLog("Bridge data refresh completed, but no new usable bridge lines were fetched.");
             }
 
-            return new BridgeDbRefreshStatus(
+            return new BridgeDataRefreshStatus(
                 UsedTorProxy: useTorProxy,
                 AttemptedTypes: summary.AttemptedTypes,
                 UpdatedTypes: summary.UpdatedTypes,
@@ -284,7 +311,7 @@ public sealed class OnionHopClient : IDisposable
     {
         try
         {
-            if (!_torService.IsRunning)
+            if (!_torService.IsRunning || string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal))
             {
                 return null;
             }
@@ -459,10 +486,42 @@ public sealed class OnionHopClient : IDisposable
         PublishStatus();
 
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking dependencies...");
+        var effectiveTorEngine = ResolveEffectiveTorEngine(options);
+        if (string.Equals(effectiveTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal) &&
+            string.IsNullOrWhiteSpace(ResolveArtiPath()))
+        {
+            SetStatus(
+                isConnecting: false,
+                isConnected: false,
+                isDisconnecting: false,
+                connectionStatus: "Disconnected",
+                statusMessage: "Arti engine selected, but no arti binary was found. Install arti, bundle it under the app's arti folder, or set ONIONHOP_ARTI_PATH.",
+                progress: 0);
+            RaiseLog("Arti engine selected, but no arti binary was found. Searched ONIONHOP_ARTI_PATH, bundled arti folder, runtime directory, and PATH.");
+            return;
+        }
+
+        if (string.Equals(effectiveTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal) &&
+            string.IsNullOrWhiteSpace(ResolveArtiHopPath()))
+        {
+            SetStatus(
+                isConnecting: false,
+                isConnected: false,
+                isDisconnecting: false,
+                connectionStatus: "Disconnected",
+                statusMessage: "ArtiHop engine selected, but no artihop binary was found. Build it from github.com/center2055/ArtiHop, bundle it under the app's artihop folder, or set ONIONHOP_ARTIHOP_PATH.",
+                progress: 0);
+            RaiseLog("ArtiHop engine selected, but no artihop binary was found. Searched ONIONHOP_ARTIHOP_PATH, bundled artihop folder, runtime directory, and PATH.");
+            return;
+        }
+
         var requiresVpnDependencies = IsTunMode(options);
-        var dependenciesReady = requiresVpnDependencies
-            ? await EnsureDependenciesAsync(token).ConfigureAwait(false)
-            : await EnsureTorDependenciesAsync(token).ConfigureAwait(false);
+        // Arti and ArtiHop are self-contained SOCKS runtimes and do not need the Tor/PT dependency bundle.
+        var dependenciesReady = IsArtiFamilyEngine(effectiveTorEngine) && !requiresVpnDependencies
+            ? true
+            : requiresVpnDependencies
+                ? await EnsureDependenciesAsync(token).ConfigureAwait(false)
+                : await EnsureTorDependenciesAsync(token).ConfigureAwait(false);
         if (!dependenciesReady)
         {
             StartupLogger.Write("OnionHopClient.ConnectAsync: Dependencies check failed!");
@@ -564,7 +623,7 @@ public sealed class OnionHopClient : IDisposable
         try
         {
             var xrayTunCompatibilityProxyApplied = false;
-            RaiseLog($"Connecting. Mode={options.SelectedConnectionMode}, Hybrid={options.UseHybridRouting}, Exit={options.SelectedLocation}, Bridges={(options.UseTorBridges ? options.SelectedBridgeType : "off")}");
+            RaiseLog($"Connecting. Engine={ResolveEffectiveTorEngine(options)}, Mode={options.SelectedConnectionMode}, Hybrid={options.UseHybridRouting}, Exit={options.SelectedLocation}, Bridges={(options.UseTorBridges ? options.SelectedBridgeType : "off")}");
 
             var resolvedOptions = await StartTorWithBridgeFallbackAsync(options, timeoutCts.Token).ConfigureAwait(false);
             _activeOptions = resolvedOptions;
@@ -577,19 +636,26 @@ public sealed class OnionHopClient : IDisposable
                 }
                 else if (_activeDnsPort == DefaultDnsPort && !string.IsNullOrWhiteSpace(_activeDnsBindAddress))
                 {
+                    // Full system-wide DNS-over-Tor only applies in Proxy Mode. In TUN/VPN mode the
+                    // tunnel core (sing-box/xray) already hijacks and forces DNS through Tor, so an
+                    // additional system-wide DNS rule would conflict with it.
+                    var routeAllDns = resolvedOptions.FullDnsOverTor && !IsTunMode(resolvedOptions);
+
                     if (OperatingSystem.IsWindows() && !PlatformHelper.IsAdministrator())
                     {
-                        var enabled = await _adminHelper.EnableOnionDnsProxyAsync(_activeDnsBindAddress!).ConfigureAwait(false);
+                        var enabled = await _adminHelper.EnableOnionDnsProxyAsync(_activeDnsBindAddress!, routeAllDns).ConfigureAwait(false);
                         if (!enabled)
                         {
-                            throw new InvalidOperationException(".onion DNS proxying could not be enabled by the privileged helper.");
+                            throw new InvalidOperationException("DNS-over-Tor could not be enabled by the privileged helper.");
                         }
 
-                        RaiseLog($".onion DNS proxying enabled (helper-managed, nameserver={_activeDnsBindAddress}).");
+                        RaiseLog(routeAllDns
+                            ? $"Full DNS-over-Tor leak protection enabled (helper-managed, nameserver={_activeDnsBindAddress})."
+                            : $".onion DNS proxying enabled (helper-managed, nameserver={_activeDnsBindAddress}).");
                     }
                     else
                     {
-                        _onionDnsProxyService.Enable(_activeDnsBindAddress!, RaiseLog);
+                        _onionDnsProxyService.Enable(_activeDnsBindAddress!, routeAllDns, RaiseLog);
                     }
                 }
             }
@@ -635,6 +701,16 @@ public sealed class OnionHopClient : IDisposable
                 {
                     RaiseLog(BuildManualProxyHint(_activeProxyBindAddress, _activeSocksPort, _activeHttpPort));
                 }
+
+                RaiseLog(
+                    "Privacy notice (Proxy Mode): the system proxy only routes proxy-aware app traffic through Tor. " +
+                    "WebRTC, QUIC/HTTP3 (UDP), and apps that ignore the system proxy can still expose your real IP " +
+                    "and are a common reason some geo-blocked or sanctioned sites fail to load. " +
+                    (resolvedOptions.FullDnsOverTor
+                        ? "DNS is forced through Tor (DNS leak protection). "
+                        : "DNS may leak (DNS leak protection is off). ") +
+                    "For leak-free routing (no WebRTC/DNS/IP leaks), use TUN/VPN Mode (Admin), or disable WebRTC in your browser " +
+                    "(Firefox: media.peerconnection.enabled=false; Chromium: a WebRTC-leak-prevent extension).");
             }
 
             _isConnected = true;
@@ -695,7 +771,7 @@ public sealed class OnionHopClient : IDisposable
             return;
         }
 
-        if (!_isConnected && !_torService.IsRunning)
+        if (!_isConnected && !IsTorRuntimeRunning)
         {
             return;
         }
@@ -712,10 +788,211 @@ public sealed class OnionHopClient : IDisposable
         await DisconnectCoreAsync(disableStatusUpdate: false).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// True when the system proxy is currently pointed at Tor.
+    /// </summary>
+    public bool IsSystemProxyEnabled => _proxyService.IsApplied;
+
+    /// <summary>
+    /// True when the system proxy can be toggled independently of the Tor connection,
+    /// i.e. we are connected in a Proxy-Mode system scope (not TUN, not local-only).
+    /// </summary>
+    public bool CanToggleSystemProxy =>
+        _isConnected &&
+        IsTorRuntimeRunning &&
+        _activeOptions is { } options &&
+        !IsTunMode(options) &&
+        UsesSystemProxyScope(options);
+
+    /// <summary>
+    /// Turn the system proxy on/off WITHOUT stopping Tor. This lets the user temporarily
+    /// route system traffic directly (e.g. to use a separate VPN) while keeping the Tor
+    /// circuit alive; apps pointed straight at the SOCKS port keep working either way.
+    /// </summary>
+    public bool SetSystemProxyEnabled(bool enable)
+    {
+        if (_activeOptions is not { } options || !_isConnected || !IsTorRuntimeRunning)
+        {
+            return false;
+        }
+
+        if (IsTunMode(options) || !UsesSystemProxyScope(options))
+        {
+            // Nothing to toggle: TUN mode captures traffic at the OS layer, and local-only
+            // scope never installs a system proxy in the first place.
+            return false;
+        }
+
+        if (enable)
+        {
+            if (!_proxyService.IsApplied)
+            {
+                var systemHttpPort = UsesSocksOnlySystemProxyScope(options) ? null : _activeHttpPort;
+                _proxyService.ApplyTorProxy(_activeSocksPort, systemHttpPort, RaiseLog);
+                // Re-apply DNS-over-Tor together with the proxy so name resolution and traffic stay
+                // consistent.
+                _ = ApplyOnionDnsProxyAsync();
+                RaiseLog("System proxy re-enabled: system traffic and DNS are routed through Tor again (Tor stayed connected).");
+            }
+        }
+        else
+        {
+            if (_proxyService.IsApplied)
+            {
+                _proxyService.RestorePreviousProxy(RaiseLog);
+                // Critical: also lift the system-wide DNS-over-Tor rule. Otherwise DNS stays pinned to
+                // Tor's resolver while traffic goes direct (or via a separate VPN), which breaks name
+                // resolution entirely ("no site loads"). DNS follows the proxy state.
+                _ = DisableOnionDnsProxyAsync();
+                RaiseLog("System proxy disabled while Tor stays connected: system traffic and DNS now go direct. " +
+                         $"Apps pointed at SOCKS 127.0.0.1:{_activeSocksPort} (or HTTP {_activeHttpPort?.ToString() ?? "off"}) still use Tor.");
+            }
+        }
+
+        PublishStatus();
+        return true;
+    }
+
+    // Applies the system-wide DNS-over-Tor rule for the active connection (mirrors the connect-time
+    // logic). Used when (re)enabling the system proxy so DNS routing tracks the proxy state.
+    private async Task ApplyOnionDnsProxyAsync()
+    {
+        if (_activeOptions is not { } options || !options.OnionDnsProxyEnabled)
+        {
+            return;
+        }
+
+        if (ShouldManageOnionDnsInsideMacTun(options) ||
+            _activeDnsPort != DefaultDnsPort ||
+            string.IsNullOrWhiteSpace(_activeDnsBindAddress))
+        {
+            return;
+        }
+
+        var routeAllDns = options.FullDnsOverTor && !IsTunMode(options);
+        try
+        {
+            if (OperatingSystem.IsWindows() && !PlatformHelper.IsAdministrator())
+            {
+                await _adminHelper.EnableOnionDnsProxyAsync(_activeDnsBindAddress!, routeAllDns).ConfigureAwait(false);
+            }
+            else
+            {
+                _onionDnsProxyService.Enable(_activeDnsBindAddress!, routeAllDns, RaiseLog);
+            }
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"DNS-over-Tor re-enable failed: {ex.Message}");
+        }
+    }
+
+    private async Task DisableOnionDnsProxyAsync()
+    {
+        if (_activeOptions?.OnionDnsProxyEnabled != true)
+        {
+            return;
+        }
+
+        try
+        {
+            if (OperatingSystem.IsWindows() && !PlatformHelper.IsAdministrator())
+            {
+                await _adminHelper.DisableOnionDnsProxyIfAvailableAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                _onionDnsProxyService.Disable(RaiseLog);
+            }
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"DNS-over-Tor disable failed: {ex.Message}");
+        }
+    }
+
+    // --- Snowflake proxy (volunteer / "act as a Snowflake bridge") ----------------------------
+    // Donor-side and fully independent of the user's own Tor connection: it relays other (censored)
+    // users' traffic into Tor over WebRTC. Can run whether or not OnionHop itself is connected.
+
+    public bool IsSnowflakeProxyRunning => _snowflakeProxyService.IsRunning;
+
+    public SnowflakeProxyStatus GetSnowflakeProxyStatus() => _snowflakeProxyService.CurrentStatus();
+
+    public async Task<bool> StartSnowflakeProxyAsync(uint capacity, CancellationToken token = default)
+    {
+        if (_snowflakeProxyService.IsRunning)
+        {
+            return true;
+        }
+
+        var proxyPath = ResolveSnowflakeProxyPath();
+        if (string.IsNullOrWhiteSpace(proxyPath))
+        {
+            RaiseLog("Snowflake proxy binary was not found. Build it (download-deps.ps1 with the Go toolchain), bundle it under the app's snowflake folder, or set ONIONHOP_SNOWFLAKE_PROXY_PATH.");
+            return false;
+        }
+
+        try
+        {
+            await _snowflakeProxyService.StartAsync(new SnowflakeProxyConfig
+            {
+                ProxyPath = proxyPath,
+                Capacity = capacity,
+                SummaryIntervalSeconds = 60,
+                WorkingDirectory = Path.GetDirectoryName(proxyPath)
+            }, token).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"Failed to start the Snowflake proxy: {ex.Message}");
+            return false;
+        }
+    }
+
+    public void StopSnowflakeProxy()
+    {
+        _snowflakeProxyService.Stop();
+    }
+
+    private void OnSnowflakeProxyStatusChanged(object? sender, SnowflakeProxyStatus status)
+    {
+        SnowflakeProxyStatusUpdated?.Invoke(this, status);
+    }
+
+    private string? ResolveSnowflakeProxyPath()
+    {
+        var envPath = Environment.GetEnvironmentVariable("ONIONHOP_SNOWFLAKE_PROXY_PATH");
+        if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+        {
+            return envPath;
+        }
+
+        var candidates = new[]
+        {
+            Path.Combine(_baseDir, "snowflake", PlatformHelper.SnowflakeProxyBinaryName),
+            Path.Combine(AppContext.BaseDirectory, "snowflake", PlatformHelper.SnowflakeProxyBinaryName),
+            Path.Combine(AppContext.BaseDirectory, PlatformHelper.SnowflakeProxyBinaryName)
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return PlatformHelper.IsCommandAvailable(PlatformHelper.SnowflakeProxyBinaryName)
+            ? PlatformHelper.SnowflakeProxyBinaryName
+            : null;
+    }
+
     public async Task RefreshIpAsync(bool updateStatusMessage, CancellationToken token)
     {
-        var torFirst = _isConnected && _torService.IsRunning;
-        RaiseLog($"IP check: torFirst={torFirst}, isConnected={_isConnected}, torRunning={_torService.IsRunning}, socksPort={_activeSocksPort}");
+        var torFirst = _isConnected && IsTorRuntimeRunning;
+        RaiseLog($"IP check: torFirst={torFirst}, isConnected={_isConnected}, runtime={_activeTorEngine}, runtimeRunning={IsTorRuntimeRunning}, socksPort={_activeSocksPort}");
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         cts.CancelAfter(TimeSpan.FromSeconds(18));
 
@@ -783,20 +1060,60 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
-    public async Task ChangeIdentityAsync(CancellationToken token)
+    public async Task<bool> ChangeIdentityAsync(CancellationToken token)
     {
-        if (!_isConnected || !_torService.IsRunning)
+        if (!_isConnected || !IsTorRuntimeRunning)
         {
             _statusMessage = "Connect to Tor before requesting a new identity.";
             PublishStatus();
-            return;
+            return false;
+        }
+
+        if (string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal))
+        {
+            // ArtiHop exposes a loopback control listener; "NEWNYM" swaps in a freshly isolated
+            // client so subsequent circuits (and the exit) change — the same UX as classic NEWNYM.
+            if (DateTime.UtcNow - _lastNewnymUtc < TimeSpan.FromSeconds(10))
+            {
+                _statusMessage = "Please wait a moment before requesting another identity.";
+                PublishStatus();
+                return false;
+            }
+
+            _statusMessage = "Requesting a new ArtiHop identity (fresh circuits)...";
+            PublishStatus();
+
+            using var artiCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            artiCts.CancelAfter(TimeSpan.FromSeconds(8));
+            var artiSuccess = await _artiHopService.SendNewIdentityAsync(artiCts.Token).ConfigureAwait(false);
+            if (!artiSuccess)
+            {
+                _statusMessage = "Unable to rotate ArtiHop identity. Reconnect to rotate circuits.";
+                RaiseLog("ArtiHop New Identity failed: control listener did not acknowledge NEWNYM.");
+                PublishStatus();
+                return false;
+            }
+
+            _lastNewnymUtc = DateTime.UtcNow;
+            RaiseLog("ArtiHop identity rotated; new connections will use fresh circuits.");
+            await Task.Delay(1200, token).ConfigureAwait(false);
+            await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+            return true;
+        }
+
+        if (IsUsingArtiRuntime)
+        {
+            _statusMessage = "Arti mode does not expose OnionHop's classic NEWNYM control yet. Disconnect and reconnect to rotate circuits.";
+            RaiseLog("New Identity skipped: Arti runtime does not provide the classic Tor control-port NEWNYM flow used by OnionHop.");
+            PublishStatus();
+            return false;
         }
 
         if (DateTime.UtcNow - _lastNewnymUtc < TimeSpan.FromSeconds(10))
         {
             _statusMessage = "Please wait a moment before requesting another identity.";
             PublishStatus();
-            return;
+            return false;
         }
 
         _statusMessage = "Requesting a new Tor circuit...";
@@ -809,18 +1126,25 @@ public sealed class OnionHopClient : IDisposable
         {
             _statusMessage = "Unable to request a new identity. Check Tor is running.";
             PublishStatus();
-            return;
+            return false;
         }
 
         _lastNewnymUtc = DateTime.UtcNow;
         await Task.Delay(1200, token).ConfigureAwait(false);
         await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+        return true;
     }
 
     public async Task ChangeExitCountryAsync(string? countryCode, CancellationToken token)
     {
-        if (!_isConnected || !_torService.IsRunning)
+        if (!_isConnected || !IsTorRuntimeRunning)
         {
+            return;
+        }
+
+        if (IsUsingArtiRuntime)
+        {
+            RaiseLog("Exit country changes are not applied live in Arti mode; reconnect with classic Tor for live exit pinning.");
             return;
         }
 
@@ -846,6 +1170,159 @@ public sealed class OnionHopClient : IDisposable
         _lastNewnymUtc = DateTime.UtcNow;
         await Task.Delay(1500, token).ConfigureAwait(false);
         await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+    }
+
+    public async Task<bool> ChangeExitFingerprintAsync(string? fingerprint, bool strict, CancellationToken token)
+    {
+        if (!_isConnected || !IsTorRuntimeRunning)
+        {
+            return false;
+        }
+
+        if (IsUsingArtiRuntime)
+        {
+            RaiseLog("Preferred exit relay changes are not applied live in Arti mode; reconnect with classic Tor for live exit pinning.");
+            return false;
+        }
+
+        var normalized = fingerprint?.Trim().TrimStart('$') ?? string.Empty;
+        var exitNodesValue = string.IsNullOrWhiteSpace(normalized)
+            ? string.Empty
+            : $"${normalized}";
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+
+        var strictCmd = string.IsNullOrWhiteSpace(exitNodesValue) || !strict
+            ? "SETCONF StrictNodes=0"
+            : "SETCONF StrictNodes=1";
+
+        var exitNodesApplied = await _torService
+            .SendControlSignalAsync($"SETCONF ExitNodes=\"{exitNodesValue}\"", cts.Token)
+            .ConfigureAwait(false);
+        var strictNodesApplied = await _torService
+            .SendControlSignalAsync(strictCmd, cts.Token)
+            .ConfigureAwait(false);
+        var newCircuitRequested = await _torService
+            .SendControlSignalAsync("SIGNAL NEWNYM", cts.Token)
+            .ConfigureAwait(false);
+
+        if (!exitNodesApplied || !strictNodesApplied || !newCircuitRequested)
+        {
+            RaiseLog("Preferred exit relay was saved, but Tor did not accept the live control-port update.");
+            return false;
+        }
+
+        RaiseLog(string.IsNullOrWhiteSpace(exitNodesValue)
+            ? "Preferred exit relay cleared. Requesting new circuit..."
+            : $"Preferred exit relay changed to {exitNodesValue}. Requesting new circuit...");
+
+        _lastNewnymUtc = DateTime.UtcNow;
+        await Task.Delay(1500, token).ConfigureAwait(false);
+        await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+        return true;
+    }
+
+    public async Task<bool> ChangeEntryFingerprintAsync(string? fingerprint, bool strict, CancellationToken token)
+    {
+        if (!_isConnected || !IsTorRuntimeRunning)
+        {
+            return false;
+        }
+
+        if (IsUsingArtiRuntime)
+        {
+            RaiseLog("Preferred guard relay changes are not applied live in Arti mode; reconnect with classic Tor for live guard pinning.");
+            return false;
+        }
+
+        var normalized = fingerprint?.Trim().TrimStart('$') ?? string.Empty;
+        var entryNodesValue = string.IsNullOrWhiteSpace(normalized)
+            ? string.Empty
+            : $"${normalized}";
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+
+        var strictCmd = string.IsNullOrWhiteSpace(entryNodesValue) || !strict
+            ? "SETCONF StrictNodes=0"
+            : "SETCONF StrictNodes=1";
+
+        var entryNodesApplied = await _torService
+            .SendControlSignalAsync($"SETCONF EntryNodes=\"{entryNodesValue}\"", cts.Token)
+            .ConfigureAwait(false);
+        var strictNodesApplied = await _torService
+            .SendControlSignalAsync(strictCmd, cts.Token)
+            .ConfigureAwait(false);
+        var newCircuitRequested = await _torService
+            .SendControlSignalAsync("SIGNAL NEWNYM", cts.Token)
+            .ConfigureAwait(false);
+
+        if (!entryNodesApplied || !strictNodesApplied || !newCircuitRequested)
+        {
+            RaiseLog("Preferred guard relay was saved, but Tor did not accept the live control-port update.");
+            return false;
+        }
+
+        RaiseLog(string.IsNullOrWhiteSpace(entryNodesValue)
+            ? "Preferred guard relay cleared. Requesting new circuit..."
+            : $"Preferred guard relay changed to {entryNodesValue}. Requesting new circuit...");
+
+        _lastNewnymUtc = DateTime.UtcNow;
+        await Task.Delay(1500, token).ConfigureAwait(false);
+        await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+        return true;
+    }
+
+    public async Task<bool> ChangeMiddleFingerprintAsync(string? fingerprint, bool strict, CancellationToken token)
+    {
+        if (!_isConnected || !IsTorRuntimeRunning)
+        {
+            return false;
+        }
+
+        if (IsUsingArtiRuntime)
+        {
+            RaiseLog("Preferred middle relay changes are not applied live in Arti mode; reconnect with classic Tor for live middle pinning.");
+            return false;
+        }
+
+        var normalized = fingerprint?.Trim().TrimStart('$') ?? string.Empty;
+        var middleNodesValue = string.IsNullOrWhiteSpace(normalized)
+            ? string.Empty
+            : $"${normalized}";
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+
+        var strictCmd = string.IsNullOrWhiteSpace(middleNodesValue) || !strict
+            ? "SETCONF StrictNodes=0"
+            : "SETCONF StrictNodes=1";
+
+        var middleNodesApplied = await _torService
+            .SendControlSignalAsync($"SETCONF MiddleNodes=\"{middleNodesValue}\"", cts.Token)
+            .ConfigureAwait(false);
+        var strictNodesApplied = await _torService
+            .SendControlSignalAsync(strictCmd, cts.Token)
+            .ConfigureAwait(false);
+        var newCircuitRequested = await _torService
+            .SendControlSignalAsync("SIGNAL NEWNYM", cts.Token)
+            .ConfigureAwait(false);
+
+        if (!middleNodesApplied || !strictNodesApplied || !newCircuitRequested)
+        {
+            RaiseLog("Preferred middle relay was saved, but Tor did not accept the live control-port update.");
+            return false;
+        }
+
+        RaiseLog(string.IsNullOrWhiteSpace(middleNodesValue)
+            ? "Preferred middle relay cleared. Requesting new circuit..."
+            : $"Preferred middle relay changed to {middleNodesValue}. Requesting new circuit...");
+
+        _lastNewnymUtc = DateTime.UtcNow;
+        await Task.Delay(1500, token).ConfigureAwait(false);
+        await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+        return true;
     }
 
     public void Dispose()
@@ -928,7 +1405,18 @@ public sealed class OnionHopClient : IDisposable
         }
 
         _adminHelper.Dispose();
+        try
+        {
+            _snowflakeProxyService.Dispose();
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"Dispose: failed to stop Snowflake proxy: {ex.Message}");
+        }
+
         _vpnService.Dispose();
+        _artiService.Dispose();
+        _artiHopService.Dispose();
         _torService.Dispose();
     }
 
@@ -1267,6 +1755,7 @@ public sealed class OnionHopClient : IDisposable
             _activeHttpPort = null;
             _activeDnsPort = null;
             _activeDnsBindAddress = null;
+            _activeTorEngine = OnionHopConnectOptions.TorEngineClassic;
             _activeVpnCoreMode = OnionHopConnectOptions.TunCoreSingBox;
             _macNetworkExtensionActive = false;
             ClearPreparedMacVpnLaunchConfig();
@@ -1331,6 +1820,95 @@ public sealed class OnionHopClient : IDisposable
         return string.Equals(options.SelectedConnectionMode, OnionHopConnectOptions.ConnectionModeTun, StringComparison.Ordinal);
     }
 
+    private bool IsTorRuntimeRunning => _torService.IsRunning || _artiService.IsRunning || _artiHopService.IsRunning;
+
+    // ArtiHop shares Arti's SOCKS-only limitations (no control-port NEWNYM, no live entry/middle/exit
+    // pinning, no traffic-byte counters), so it is treated as part of the "Arti family" runtime.
+    private bool IsUsingArtiRuntime =>
+        string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal) ||
+        string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal);
+
+    private static string ResolveEffectiveTorEngine(OnionHopConnectOptions options)
+    {
+        if (string.Equals(options.TorEngineMode, OnionHopConnectOptions.TorEngineArti, StringComparison.OrdinalIgnoreCase))
+        {
+            return OnionHopConnectOptions.TorEngineArti;
+        }
+
+        if (string.Equals(options.TorEngineMode, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.OrdinalIgnoreCase))
+        {
+            return OnionHopConnectOptions.TorEngineArtiHop;
+        }
+
+        return OnionHopConnectOptions.TorEngineClassic;
+    }
+
+    private static bool IsArtiFamilyEngine(string engine) =>
+        string.Equals(engine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal) ||
+        string.Equals(engine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal);
+
+    private static bool IsAutomaticLocation(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ||
+               string.Equals(value.Trim(), OnionHopConnectOptions.AutomaticLocationLabel, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string? ResolveArtiPath()
+    {
+        var envPath = Environment.GetEnvironmentVariable("ONIONHOP_ARTI_PATH");
+        if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+        {
+            return envPath;
+        }
+
+        var candidates = new[]
+        {
+            Path.Combine(_baseDir, "arti", PlatformHelper.ArtiBinaryName),
+            Path.Combine(AppContext.BaseDirectory, "arti", PlatformHelper.ArtiBinaryName),
+            Path.Combine(AppContext.BaseDirectory, PlatformHelper.ArtiBinaryName)
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return PlatformHelper.IsCommandAvailable(PlatformHelper.ArtiBinaryName)
+            ? PlatformHelper.ArtiBinaryName
+            : null;
+    }
+
+    private string? ResolveArtiHopPath()
+    {
+        var envPath = Environment.GetEnvironmentVariable("ONIONHOP_ARTIHOP_PATH");
+        if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+        {
+            return envPath;
+        }
+
+        var candidates = new[]
+        {
+            Path.Combine(_baseDir, "artihop", PlatformHelper.ArtiHopBinaryName),
+            Path.Combine(AppContext.BaseDirectory, "artihop", PlatformHelper.ArtiHopBinaryName),
+            Path.Combine(AppContext.BaseDirectory, PlatformHelper.ArtiHopBinaryName)
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return PlatformHelper.IsCommandAvailable(PlatformHelper.ArtiHopBinaryName)
+            ? PlatformHelper.ArtiHopBinaryName
+            : null;
+    }
+
     private void RaiseLog(string message)
     {
         Log?.Invoke(this, message);
@@ -1348,6 +1926,21 @@ public sealed class OnionHopClient : IDisposable
 
     private async Task<OnionHopConnectOptions> StartTorWithBridgeFallbackAsync(OnionHopConnectOptions options, CancellationToken token)
     {
+        var effectiveEngine = ResolveEffectiveTorEngine(options);
+        if (string.Equals(effectiveEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal))
+        {
+            _activeOptions = options;
+            await StartArtiAsync(options, token).ConfigureAwait(false);
+            return options;
+        }
+
+        if (string.Equals(effectiveEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal))
+        {
+            _activeOptions = options;
+            await StartArtiHopAsync(options, token).ConfigureAwait(false);
+            return options;
+        }
+
         if (!options.UseTorBridges || !TorBridgeManager.IsAutomaticBridgeType(options.SelectedBridgeType))
         {
             _activeOptions = options;
@@ -1442,7 +2035,7 @@ public sealed class OnionHopClient : IDisposable
         return options with { SelectedBridgeType = bridgeType };
     }
 
-    private IReadOnlyList<string> ResolveBridgeDbRefreshTypes(OnionHopConnectOptions options)
+    private IReadOnlyList<string> ResolveBridgeDistributionRefreshTypes(OnionHopConnectOptions options)
     {
         var ordered = new List<string>();
         var availableTypes = new HashSet<string>(TorBridgeManager.GetBridgeTypeKeys(_ptConfig), StringComparer.OrdinalIgnoreCase);
@@ -1501,6 +2094,7 @@ public sealed class OnionHopClient : IDisposable
 
     private async Task StartTorAsync(OnionHopConnectOptions options, CancellationToken token)
     {
+        _activeTorEngine = OnionHopConnectOptions.TorEngineClassic;
         _bootstrapSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var registration = token.Register(() => _bootstrapSource.TrySetCanceled(token));
 
@@ -1535,7 +2129,7 @@ public sealed class OnionHopClient : IDisposable
             bridgeLines = LimitBridgeLinesForLaunch(bridgeLines, RaiseLog);
 
             var pluginLines = _bridgeManager.GetClientTransportPlugins(options, bridgeLines, torDir, _ptConfig, RaiseLog);
-            if (pluginLines.Count == 0)
+            if (pluginLines.Count == 0 && TorBridgeManager.BridgeLinesNeedClientTransportPlugins(bridgeLines))
             {
                 var message = _bridgeManager.BridgeValidationMessage;
                 if (string.IsNullOrWhiteSpace(message))
@@ -1576,12 +2170,14 @@ public sealed class OnionHopClient : IDisposable
             entryCode = string.Empty;
         }
 
-        if (options.UseTorBridges && !string.IsNullOrWhiteSpace(entryCode))
+        var entryFingerprint = options.EntryNodeFingerprint;
+        if (options.UseTorBridges && (!string.IsNullOrWhiteSpace(entryCode) || !string.IsNullOrWhiteSpace(entryFingerprint)))
         {
             // Tor does not allow UseBridges together with EntryNodes.
             // When bridges are enabled we silently ignore the entry pin to avoid a hard failure.
             RaiseLog("Note: Entry node pinning is not compatible with Tor bridges and will be ignored.");
             entryCode = null;
+            entryFingerprint = null;
         }
 
         var allowedPorts = ParseAllowedPorts(options.AllowedPorts);
@@ -1603,7 +2199,11 @@ public sealed class OnionHopClient : IDisposable
             AllowedPorts = options.RestrictedFirewallMode ? allowedPorts : null,
             MaxCircuitDirtinessSeconds = maxCircuitMinutes * 60,
             ExitCountryCode = countryCode,
+            EntryNodeFingerprint = entryFingerprint,
+            MiddleNodeFingerprint = options.MiddleNodeFingerprint,
             ExitNodeFingerprint = options.ExitNodeFingerprint,
+            StrictManualEntryNodeFingerprint = options.StrictManualEntryNodeFingerprint,
+            StrictManualMiddleNodeFingerprint = options.StrictManualMiddleNodeFingerprint,
             StrictManualExitNodeFingerprint = options.StrictManualExitNodeFingerprint,
             EntryCountryCode = entryCode,
             ClientUseIpv6 = ParseToggleMode(options.TorIpv6Mode),
@@ -1614,6 +2214,94 @@ public sealed class OnionHopClient : IDisposable
 
         await _torService.StartAsync(config, token).ConfigureAwait(false);
         await _bootstrapSource.Task.ConfigureAwait(false);
+    }
+
+    private async Task StartArtiAsync(OnionHopConnectOptions options, CancellationToken token)
+    {
+        var artiPath = ResolveArtiPath();
+        if (string.IsNullOrWhiteSpace(artiPath))
+        {
+            throw new InvalidOperationException("Arti engine selected, but no arti binary was found.");
+        }
+
+        _activeTorEngine = OnionHopConnectOptions.TorEngineArti;
+        _connectionProgress = Math.Max(_connectionProgress, 0.2);
+        _statusMessage = "Starting Arti SOCKS runtime...";
+        PublishStatus();
+
+        if (options.UseTorBridges ||
+            !IsAutomaticLocation(options.SelectedLocation) ||
+            !IsAutomaticLocation(options.SelectedEntryLocation) ||
+            !string.IsNullOrWhiteSpace(options.EntryNodeFingerprint) ||
+            !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
+            !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
+        {
+            RaiseLog("Arti mode is using SOCKS proxy runtime only. Classic Tor is still required for OnionHop bridge transport plugins, live entry/middle/exit pinning, and control-port identity changes.");
+        }
+
+        await _artiService.StartAsync(new ArtiLaunchConfig
+        {
+            ArtiPath = artiPath,
+            SocksPort = _activeSocksPort,
+            SocksListenAddress = _activeProxyBindAddress,
+            DataDirectory = Path.Combine(_baseDir, "arti-data"),
+            WorkingDirectory = Path.GetDirectoryName(artiPath)
+        }, token).ConfigureAwait(false);
+
+        _connectionProgress = Math.Max(_connectionProgress, 0.82);
+        _statusMessage = "Arti SOCKS runtime is ready.";
+        RaiseLog($"Arti SOCKS runtime is listening on {_activeProxyBindAddress}:{_activeSocksPort}.");
+        PublishStatus();
+    }
+
+    private async Task StartArtiHopAsync(OnionHopConnectOptions options, CancellationToken token)
+    {
+        var artiHopPath = ResolveArtiHopPath();
+        if (string.IsNullOrWhiteSpace(artiHopPath))
+        {
+            throw new InvalidOperationException("ArtiHop engine selected, but no artihop binary was found.");
+        }
+
+        _activeTorEngine = OnionHopConnectOptions.TorEngineArtiHop;
+        _connectionProgress = Math.Max(_connectionProgress, 0.2);
+        _statusMessage = "Starting ArtiHop SOCKS runtime (2-hop circuits)...";
+        PublishStatus();
+
+        RaiseLog("ArtiHop uses shortened 2-hop (Guard -> Exit) circuits for lower latency. This is faster than standard Tor but provides weaker anonymity than full 3-hop circuits.");
+
+        if (options.UseTorBridges ||
+            !IsAutomaticLocation(options.SelectedLocation) ||
+            !IsAutomaticLocation(options.SelectedEntryLocation) ||
+            !string.IsNullOrWhiteSpace(options.EntryNodeFingerprint) ||
+            !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
+            !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
+        {
+            RaiseLog("ArtiHop mode is using a SOCKS proxy runtime only. Bridges, country/relay pinning, and control-port identity changes require the classic Tor engine.");
+        }
+
+        // Allocate a loopback-only control port so New Identity (NEWNYM) works in ArtiHop mode.
+        var controlPort = PortSelector.FindAvailablePort(
+            DefaultArtiHopControlPort,
+            additionalAttempts: 30,
+            excludedPorts: _activeHttpPort.HasValue
+                ? [_activeSocksPort, _activeHttpPort.Value]
+                : [_activeSocksPort]);
+
+        await _artiHopService.StartAsync(new ArtiHopLaunchConfig
+        {
+            ArtiHopPath = artiHopPath,
+            SocksPort = _activeSocksPort,
+            SocksListenAddress = _activeProxyBindAddress,
+            ControlPort = controlPort,
+            Mode = OnionHopConnectOptions.ArtiHopShortMode,
+            WorkingDirectory = Path.GetDirectoryName(artiHopPath)
+        }, token).ConfigureAwait(false);
+
+        _connectionProgress = Math.Max(_connectionProgress, 0.82);
+        _statusMessage = "ArtiHop SOCKS runtime is ready (2-hop).";
+        RaiseLog($"ArtiHop SOCKS runtime is listening on {_activeProxyBindAddress}:{_activeSocksPort} (mode={OnionHopConnectOptions.ArtiHopShortMode}).");
+        RaiseLog($"ArtiHop control listener on 127.0.0.1:{controlPort} (New Identity enabled).");
+        PublishStatus();
     }
 
     private async Task StartHttpProxyBridgeAsync(CancellationToken token)
@@ -1785,6 +2473,7 @@ public sealed class OnionHopClient : IDisposable
             BypassAppProcessNames = ParseProcessNames(options.HybridBypassApps),
             RouteAllWebTrafficThroughTor = options.HybridRouteAllWebTraffic,
             BlockQuicForTorApps = options.HybridBlockQuicForTorApps,
+            BlockUdpTraffic = options.BlockUdpTraffic,
             TunStack = NormalizeTunStackModeForSingBox(options.TunStackMode),
             TunMtu = options.TunMtu,
             TunStrictRoute = options.TunStrictRoute,
@@ -2020,6 +2709,131 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
+    private static readonly Regex AnsiEscapeRegex = new("\\[[0-9;]*m", RegexOptions.Compiled);
+
+    private static string StripAnsi(string line) =>
+        AnsiEscapeRegex.Replace(line.Replace(((char)27).ToString(), string.Empty, StringComparison.Ordinal), string.Empty);
+
+    private void OnArtiOutputReceived(object? sender, string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return;
+        }
+
+        line = StripAnsi(line);
+        if (ShouldLogTorLine(line) || line.Contains("arti", StringComparison.OrdinalIgnoreCase))
+        {
+            RaiseLog($"Arti log: {line}");
+        }
+    }
+
+    private void OnArtiExited(object? sender, EventArgs e)
+    {
+        if (_isDisconnecting)
+        {
+            return;
+        }
+
+        var exitCode = _artiService.ExitCode ?? 0;
+        var recentOutput = _artiService.RecentOutput;
+        RaiseLog($"Arti exited with code {exitCode}.");
+        if (!string.IsNullOrWhiteSpace(recentOutput))
+        {
+            RaiseLog($"Arti recent output:\n{recentOutput}");
+        }
+
+        if (_isConnecting)
+        {
+            var message = $"Arti exited with code {exitCode}.";
+            if (!string.IsNullOrWhiteSpace(recentOutput))
+            {
+                message += $"\n\nArti output:\n{recentOutput}";
+            }
+
+            _bootstrapSource?.TrySetException(new InvalidOperationException(message));
+            return;
+        }
+
+        if (_isConnected)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _connectionStatus = "Tor stopped";
+                    _statusMessage = $"Arti stopped unexpectedly (exit code {exitCode}). Disconnecting...";
+                    _connectionProgress = 0;
+                    PublishStatus();
+                    await DisconnectAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            });
+        }
+    }
+
+    private void OnArtiHopOutputReceived(object? sender, string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return;
+        }
+
+        line = StripAnsi(line);
+        if (ShouldLogTorLine(line) || line.Contains("artihop", StringComparison.OrdinalIgnoreCase) || line.Contains("arti", StringComparison.OrdinalIgnoreCase))
+        {
+            RaiseLog($"ArtiHop log: {line}");
+        }
+    }
+
+    private void OnArtiHopExited(object? sender, EventArgs e)
+    {
+        if (_isDisconnecting)
+        {
+            return;
+        }
+
+        var exitCode = _artiHopService.ExitCode ?? 0;
+        var recentOutput = _artiHopService.RecentOutput;
+        RaiseLog($"ArtiHop exited with code {exitCode}.");
+        if (!string.IsNullOrWhiteSpace(recentOutput))
+        {
+            RaiseLog($"ArtiHop recent output:\n{recentOutput}");
+        }
+
+        if (_isConnecting)
+        {
+            var message = $"ArtiHop exited with code {exitCode}.";
+            if (!string.IsNullOrWhiteSpace(recentOutput))
+            {
+                message += $"\n\nArtiHop output:\n{recentOutput}";
+            }
+
+            _bootstrapSource?.TrySetException(new InvalidOperationException(message));
+            return;
+        }
+
+        if (_isConnected)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _connectionStatus = "Tor stopped";
+                    _statusMessage = $"ArtiHop stopped unexpectedly (exit code {exitCode}). Disconnecting...";
+                    _connectionProgress = 0;
+                    PublishStatus();
+                    await DisconnectAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            });
+        }
+    }
+
     private void OnVpnOutputLine(string line)
     {
         ProcessSingBoxLogLine(line);
@@ -2135,6 +2949,8 @@ public sealed class OnionHopClient : IDisposable
     private void StopTorProcess()
     {
         _torService.Stop();
+        _artiService.Stop();
+        _artiHopService.Stop();
         _lastNewnymUtc = DateTime.MinValue;
     }
 

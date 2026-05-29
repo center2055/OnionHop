@@ -1,5 +1,7 @@
 ﻿using Avalonia;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using OnionHopV2.Core.Services;
 
 namespace OnionHopV2.App;
@@ -11,6 +13,9 @@ sealed class Program
     /// is passed via --basedir so the root instance uses the same tor/geoip data.
     /// </summary>
     internal static string? OverrideBaseDirectory { get; private set; }
+    internal static Func<string, Task>? IpcMessageHandler { get; set; }
+    internal static bool IsIpcCancellationRequested => _singleInstanceIpcCts?.IsCancellationRequested == true;
+    private static CancellationTokenSource? _singleInstanceIpcCts;
 
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
@@ -75,12 +80,18 @@ sealed class Program
             return;
         }
 
+        if (isPrimary)
+        {
+            StartSingleInstanceIpcServer();
+        }
+
         try
         {
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         finally
         {
+            StopSingleInstanceIpcServer();
             if (isPrimary)
             {
                 instanceMutex.Dispose();
@@ -88,10 +99,49 @@ sealed class Program
         }
     }
 
+    private static void StartSingleInstanceIpcServer()
+    {
+        _singleInstanceIpcCts?.Cancel();
+        _singleInstanceIpcCts?.Dispose();
+        _singleInstanceIpcCts = new CancellationTokenSource();
+        SingleInstanceIpc.StartServer(HandleSingleInstanceMessageAsync, _singleInstanceIpcCts.Token);
+    }
+
+    private static void StopSingleInstanceIpcServer()
+    {
+        IpcMessageHandler = null;
+        try { _singleInstanceIpcCts?.Cancel(); } catch { }
+        try { _singleInstanceIpcCts?.Dispose(); } catch { }
+        _singleInstanceIpcCts = null;
+    }
+
+    private static Task HandleSingleInstanceMessageAsync(string message)
+    {
+        var handler = IpcMessageHandler;
+        if (handler != null)
+        {
+            return handler(message);
+        }
+
+        if (string.Equals(message, "shutdown", StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.Exit(0);
+        }
+
+        return Task.CompletedTask;
+    }
+
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    {
+        var builder = AppBuilder.Configure<App>()
             .UsePlatformDetect()
-            .WithInterFont()
-            .LogToTrace();
+            .WithInterFont();
+
+#if DEBUG
+        builder = builder.LogToTrace();
+#endif
+
+        return builder;
+    }
 }

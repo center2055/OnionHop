@@ -1,0 +1,110 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Win11 25H2 Settings-style building blocks (aligned with DNS-Hop). Used by the redesigned
+    pages. Colors come from FluentAvalonia's Card/Layer/Subtle tokens so light/dark/Mica look
+    right out of the box.
+  -->
+
+  <Style Selector="TextBlock.Muted">
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.Caption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.GroupHeader">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="2,18,0,8" />
+  </Style>
+
+  <!-- Hero / standard card -->
+  <Style Selector="Border.Card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="20" />
+  </Style>
+
+  <Style Selector="Border.CardSecondary">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <!-- SettingsExpander-style row list -->
+  <Style Selector="StackPanel.SettingsList">
+    <Setter Property="Spacing" Value="4" />
+  </Style>
+
+  <Style Selector="Border.SettingRow">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="18,14" />
+    <Setter Property="MinHeight" Value="64" />
+  </Style>
+
+  <Style Selector="Border.SettingRow:pointerover">
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorOnAccentDefaultBrush}" />
+  </Style>
+
+  <Style Selector="Button.RowButton">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+
+  <!-- Pill badge -->
+  <Style Selector="Border.Badge">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Border.Badge.Accent">
+    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector="Border.Badge.Accent TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="Border.Badge TextBlock">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- Status dots -->
+  <Style Selector="Border.StatusDot">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="Height" Value="10" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource SystemFillColorNeutralBrush}" />
+  </Style>
+
+  <Style Selector="Border.StatusDot.Healthy">
+    <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+  </Style>
+
+  <Style Selector="Border.StatusDot.Warning">
+    <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBrush}" />
+  </Style>
+
+  <Style Selector="Border.StatusDot.Critical">
+    <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+  </Style>
+</Styles>

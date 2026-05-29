@@ -45,6 +45,7 @@ function Assert-RequiredRuntimeDependencies {
     "OnionHop\\tor\\geoip6",
     "OnionHop\\tor\\pluggable_transports\\pt_config.json",
     "OnionHop\\tor\\pluggable_transports\\lyrebird.exe",
+    "OnionHop\\tor\\pluggable_transports\\snowflake-client.exe",
     "OnionHop\\tor\\pluggable_transports\\conjure-client.exe",
     "OnionHop\\tor\\pluggable_transports\\webtunnel-client.exe",
     "OnionHop\\vpn\\sing-box.exe",

@@ -5,13 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>OnionHopV2.Cli</AssemblyName>
-    <Version>2.6</Version>
-    <OnionHopIncludeWindowsRuntimeAssets>false</OnionHopIncludeWindowsRuntimeAssets>
-    <OnionHopIncludeWindowsRuntimeAssets Condition="'$(RuntimeIdentifier)' != '' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win-'))">true</OnionHopIncludeWindowsRuntimeAssets>
-    <OnionHopIncludeWindowsRuntimeAssets Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</OnionHopIncludeWindowsRuntimeAssets>
+    <Version>3.0.0</Version>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(OnionHopIncludeWindowsRuntimeAssets)' == 'true'">
+  <ItemGroup>
     <None Include="..\..\..\OnionHop\tor\**\*">
       <Link>tor\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

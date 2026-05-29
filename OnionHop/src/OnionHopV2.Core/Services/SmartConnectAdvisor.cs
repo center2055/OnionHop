@@ -829,7 +829,7 @@ public sealed class SmartConnectAdvisor
 
         var probeDirectories = new List<string>();
         var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop");
-        var localAppDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop V2");
+        var localAppDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop V3");
         var downloadsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         probeDirectories.Add(appDataDir);
         probeDirectories.Add(localAppDataDir);

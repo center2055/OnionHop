@@ -145,7 +145,7 @@ internal sealed class DiscordPresenceService : IDisposable
             _client.SetPresence(new RichPresence
             {
                 Details = details,
-                State = _lastConnected ? "OnionHop V2" : "Idle",
+                State = _lastConnected ? "OnionHop V3" : "Idle",
                 Timestamps = _lastConnected ? Timestamps.Now : null,
                 Assets = assets
             });

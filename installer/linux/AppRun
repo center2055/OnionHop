@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-appdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PATH="${appdir}/usr/bin:${PATH:-}"
-export LD_LIBRARY_PATH="${appdir}/usr/bin:${appdir}/usr/lib:${LD_LIBRARY_PATH:-}"
-
-exec "${appdir}/usr/bin/OnionHopV2" "$@"

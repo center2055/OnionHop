@@ -32,6 +32,7 @@ internal static class XrayConfigBuilder
         IReadOnlyList<string> bypassAppProcessNames,
         bool routeAllWebTrafficThroughTor,
         bool blockQuicForTorApps,
+        bool blockUdpTraffic,
         string? dohServer,
         int dohServerPort,
         string? dohPath,
@@ -99,7 +100,16 @@ internal static class XrayConfigBuilder
                 });
             }
 
-            if (blockQuicForTorApps && effectiveTorApps.Count > 0)
+            if (blockUdpTraffic)
+            {
+                rules.Add(new
+                {
+                    type = "field",
+                    network = "udp",
+                    outboundTag = "block"
+                });
+            }
+            else if (blockQuicForTorApps && effectiveTorApps.Count > 0)
             {
                 rules.Add(new
                 {

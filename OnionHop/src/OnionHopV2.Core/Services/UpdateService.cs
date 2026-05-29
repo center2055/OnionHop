@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -25,26 +26,39 @@ public sealed class UpdateService
             return null;
         }
 
-        var latestVersion = ParseVersionFromTag(release.TagName);
-        if (latestVersion.Major == 0 && latestVersion.Minor == 0 && latestVersion.Build == 0)
+        return MapRelease(release);
+    }
+
+    public async Task<UpdateInfo?> GetLatestReleaseFromListAsync(string apiUrl, bool includePrereleases)
+    {
+        using var response = await HttpClientFactory.Default.GetAsync(apiUrl);
+        if (!response.IsSuccessStatusCode)
         {
             return null;
         }
 
-        var asset = release.Assets?
-            .FirstOrDefault(a => a.Name != null
-                                 && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-                                 && a.Name.Contains("OnionHop", StringComparison.OrdinalIgnoreCase))
-            ?? release.Assets?.FirstOrDefault(a => a.Name != null
-                                                  && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
-
-        return new UpdateInfo
+        var json = await response.Content.ReadAsStringAsync();
+        var releases = JsonSerializer.Deserialize<List<GitHubRelease>>(json);
+        if (releases == null || releases.Count == 0)
         {
-            Version = latestVersion,
-            DownloadUrl = asset?.BrowserDownloadUrl,
-            HtmlUrl = release.HtmlUrl,
-            FileName = asset?.Name
-        };
+            return null;
+        }
+
+        foreach (var release in releases)
+        {
+            if (release.Draft || (!includePrereleases && release.Prerelease))
+            {
+                continue;
+            }
+
+            var mapped = MapRelease(release);
+            if (mapped != null)
+            {
+                return mapped;
+            }
+        }
+
+        return null;
     }
 
     public async Task<string?> DownloadUpdateAsync(UpdateInfo info)
@@ -90,5 +104,28 @@ public sealed class UpdateService
 
         return new Version(0, 0, 0);
     }
-}
 
+    private static UpdateInfo? MapRelease(GitHubRelease release)
+    {
+        var latestVersion = ParseVersionFromTag(release.TagName);
+        if (latestVersion.Major == 0 && latestVersion.Minor == 0 && latestVersion.Build == 0)
+        {
+            return null;
+        }
+
+        var asset = release.Assets?
+            .FirstOrDefault(a => a.Name != null
+                                 && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                                 && a.Name.Contains("OnionHop", StringComparison.OrdinalIgnoreCase))
+            ?? release.Assets?.FirstOrDefault(a => a.Name != null
+                                                  && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
+
+        return new UpdateInfo
+        {
+            Version = latestVersion,
+            DownloadUrl = asset?.BrowserDownloadUrl,
+            HtmlUrl = release.HtmlUrl,
+            FileName = asset?.Name
+        };
+    }
+}

@@ -5,9 +5,9 @@ namespace OnionHopV2.Core.Platform.Windows;
 
 internal sealed class WindowsOnionDnsProxyService : IDnsProxyService
 {
-    private const string RuleComment = "OnionHopV2-OnionDnsProxy";
+    private const string RuleComment = "OnionHopV3-OnionDnsProxy";
 
-    public bool Enable(string nameServerAddress, Action<string> log)
+    public bool Enable(string nameServerAddress, bool routeAllDns, Action<string> log)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -26,16 +26,52 @@ internal sealed class WindowsOnionDnsProxyService : IDnsProxyService
                 ? "127.0.0.1"
                 : nameServerAddress.Trim();
             RemoveRule(log);
-            ExecutePowerShell(
-                "$ErrorActionPreference='Stop'; Add-DnsClientNrptRule -Namespace '.onion' -NameServers '" + safeNameServer + "' -Comment '" + RuleComment + "' | Out-Null");
-            log($".onion DNS proxying enabled (NRPT rule added, nameserver={safeNameServer}).");
+
+            // Always keep .onion pointed at the Tor resolver.
+            AddNrptRule(".onion", safeNameServer);
+
+            if (routeAllDns)
+            {
+                // The single "." namespace is NRPT's catch-all: it matches every DNS query,
+                // forcing all name resolution through Tor's DNSPort so normal lookups can no
+                // longer leak to the system/ISP resolver. The more specific ".onion" rule above
+                // still wins for onion addresses. Both rules share the same comment, so Disable()
+                // removes them together. This is fail-closed: if Tor stops resolving, DNS stops
+                // rather than silently falling back to a direct (leaking) resolver.
+                //
+                // The catch-all is added separately so that, if a particular Windows build rejects
+                // the "." namespace, we keep the .onion protection and the connection rather than
+                // failing outright — but we warn loudly because the user asked for full protection.
+                try
+                {
+                    AddNrptRule(".", safeNameServer);
+                    log($"Full DNS-over-Tor leak protection enabled (all DNS routed to {safeNameServer} via Tor).");
+                }
+                catch (Exception ex)
+                {
+                    log($"WARNING: full DNS-over-Tor rule could not be installed ({ex.Message}). " +
+                        "Normal DNS may leak to your ISP. Use TUN/VPN Mode for guaranteed leak-free DNS.");
+                }
+            }
+            else
+            {
+                log($".onion DNS proxying enabled (NRPT rule added, nameserver={safeNameServer}).");
+            }
+
             return true;
         }
         catch (Exception ex)
         {
-            log($".onion DNS proxying enable failed: {ex.Message}");
+            log($"DNS-over-Tor enable failed: {ex.Message}");
             return false;
         }
+    }
+
+    private static void AddNrptRule(string namespacePattern, string nameServer)
+    {
+        ExecutePowerShell(
+            "$ErrorActionPreference='Stop'; Add-DnsClientNrptRule -Namespace '" + namespacePattern +
+            "' -NameServers '" + nameServer + "' -Comment '" + RuleComment + "' | Out-Null");
     }
 
     public void Disable(Action<string> log)

@@ -3,9 +3,9 @@
              x:Class="OnionHopV2.App.App"
              xmlns:local="using:OnionHopV2.App"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:sty="using:FluentAvalonia.Styling"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             <!-- "Default" follows the system light/dark variant. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
@@ -14,19 +14,13 @@
     <Application.Resources>
         <ResourceDictionary />
     </Application.Resources>
-  
-    <Application.Styles>
-        <FluentTheme />
-        <suki:SukiTheme Locale="en-US" ThemeColor="Blue" />
-        <icons:MaterialIconStyles />
-        <StyleInclude Source="avares://OnionHopV2/Styles/SukiOverrides.axaml" />
 
-        <!-- Avoid bright accent-colored ToggleSwitch labels -->
-        <Style Selector="ToggleSwitch">
-            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
-        </Style>
-        <Style Selector="ToggleSwitch TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
-        </Style>
+    <Application.Styles>
+        <sty:FluentAvaloniaTheme PreferUserAccentColor="True" />
+        <icons:MaterialIconStyles />
+        <!-- OnionHop semantic design tokens mapped onto FluentAvalonia's light/dark palette. -->
+        <StyleInclude Source="avares://OnionHopV3/Styles/V3Theme.axaml" />
+        <!-- Win11-style card / settings-row / typography classes (DNS-Hop aligned). -->
+        <StyleInclude Source="avares://OnionHopV3/Styles/Cards.axaml" />
     </Application.Styles>
 </Application>

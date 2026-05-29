@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="OnionHopV2.App.Controls.SettingRow"
+             x:Name="Root">
+  <Grid ColumnDefinitions="*,Auto"
+        ColumnSpacing="18"
+        MinHeight="54">
+    <StackPanel Spacing="4"
+                MinWidth="0">
+      <TextBlock Text="{Binding Title, ElementName=Root}"
+                 FontWeight="SemiBold"
+                 FontSize="14"
+                 Foreground="{DynamicResource TextPrimaryBrush}"
+                 TextWrapping="Wrap" />
+
+      <TextBlock Text="{Binding Description, ElementName=Root}"
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 FontSize="12"
+                 TextWrapping="Wrap" />
+    </StackPanel>
+
+    <ContentPresenter Grid.Column="1"
+                      Content="{Binding RowContent, ElementName=Root}"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center" />
+  </Grid>
+</UserControl>

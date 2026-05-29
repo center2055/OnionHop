@@ -1,6 +1,6 @@
-# OnionHop V2 (Avalonia + SukiUI)
+# OnionHop V3 (Avalonia + SukiUI)
 
-This is the **V2 UI** for OnionHop, rebuilt with **Avalonia** + **SukiUI** for a cleaner, modern, cross-platform UI.
+This is the **V3 UI** for OnionHop, rebuilt with **Avalonia** + **SukiUI** for a cleaner, modern, cross-platform UI.
 
 ## Status
 
@@ -50,7 +50,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-cl
 GUI portable ZIP:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-v2.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-v3.ps1
 ```
 
 CLI portable ZIP:

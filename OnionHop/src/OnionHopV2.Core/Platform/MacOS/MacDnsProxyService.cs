@@ -10,11 +10,18 @@ internal sealed class MacDnsProxyService : IDnsProxyService
     private const string ResolverFilePath = "/etc/resolver/onion";
     private bool _enabled;
 
-    public bool Enable(string nameServerAddress, Action<string> log)
+    public bool Enable(string nameServerAddress, bool routeAllDns, Action<string> log)
     {
         if (!OperatingSystem.IsMacOS())
         {
             return false;
+        }
+
+        if (routeAllDns)
+        {
+            // Full system-wide DNS-over-Tor leak protection is currently implemented on Windows
+            // only. On macOS, prefer TUN/VPN Mode, which forces all DNS through Tor at the tunnel.
+            log("Full DNS-over-Tor leak protection is Windows-only for now; routing .onion only. Use TUN/VPN Mode for leak-free DNS on macOS.");
         }
 
         var safeNameServer = string.IsNullOrWhiteSpace(nameServerAddress)

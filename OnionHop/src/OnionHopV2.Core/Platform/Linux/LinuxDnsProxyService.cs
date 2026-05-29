@@ -6,7 +6,7 @@ internal sealed class LinuxDnsProxyService : IDnsProxyService
 {
     private bool _enabled;
 
-    public bool Enable(string nameServerAddress, Action<string> log)
+    public bool Enable(string nameServerAddress, bool routeAllDns, Action<string> log)
     {
         if (!OperatingSystem.IsLinux())
         {
@@ -17,6 +17,13 @@ internal sealed class LinuxDnsProxyService : IDnsProxyService
         {
             log(".onion DNS proxying requires root privileges on Linux.");
             return false;
+        }
+
+        if (routeAllDns)
+        {
+            // Full system-wide DNS-over-Tor leak protection is currently implemented on Windows
+            // only. On Linux, prefer TUN/VPN Mode, which forces all DNS through Tor at the tunnel.
+            log("Full DNS-over-Tor leak protection is Windows-only for now; routing .onion only. Use TUN/VPN Mode for leak-free DNS on Linux.");
         }
 
         try

@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Material.Icons;
@@ -23,37 +24,84 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
     {
         State = new AppStateViewModel();
 
+        var settingsPage = new SettingsPageViewModel(State);
+        var homePage = new HomePageViewModel(State, () => ActivePage = settingsPage);
+        var relaysPage = new RelaysPageViewModel(State);
+        var scannerPage = new BridgeScannerPageViewModel(State);
+        var logsPage = new LogsPageViewModel(State);
+        var aboutPage = new AboutPageViewModel(State);
+
         Pages =
         [
-            new HomePageViewModel(State),
-            new SettingsPageViewModel(State),
-            new LogsPageViewModel(State),
-            new AboutPageViewModel(State)
+            homePage,
+            settingsPage,
+            relaysPage,
+            scannerPage,
+            logsPage,
+            aboutPage
         ];
 
+        SelectPageCommand = new RelayCommand<PageViewModelBase>(SelectPage);
         ActivePage = Pages[0];
     }
 
     public AppStateViewModel State { get; }
 
     public ObservableCollection<PageViewModelBase> Pages { get; }
+    public IRelayCommand<PageViewModelBase> SelectPageCommand { get; }
 
     [ObservableProperty] private PageViewModelBase _activePage = null!;
+    [ObservableProperty] private bool _isSidebarExpanded = true;
+
+    public GridLength SidebarColumnWidth => IsSidebarExpanded ? new GridLength(248) : new GridLength(78);
+    public double SidebarNavItemWidth => IsSidebarExpanded ? 216 : 46;
+    public MaterialIconKind SidebarToggleIcon => IsSidebarExpanded ? MaterialIconKind.ChevronLeft : MaterialIconKind.ChevronRight;
+    public string SidebarToggleToolTip => IsSidebarExpanded ? "Collapse sidebar" : "Expand sidebar";
+
+    [RelayCommand]
+    private void ToggleSidebar()
+    {
+        IsSidebarExpanded = !IsSidebarExpanded;
+    }
+
+    partial void OnActivePageChanged(PageViewModelBase? oldValue, PageViewModelBase newValue)
+    {
+        if (oldValue != null)
+        {
+            oldValue.IsActive = false;
+        }
+
+        newValue.IsActive = true;
+        newValue.OnActivated();
+
+        // Switching pages unloads the old page's ComboBoxes, which reset their bound selection to
+        // null; restore every dropdown's selection once the new page is in place so they don't show
+        // up blank. Background priority runs after the view swap completes.
+        Avalonia.Threading.Dispatcher.UIThread.Post(State.RestoreSelectedOptions,
+            Avalonia.Threading.DispatcherPriority.Background);
+    }
+
+    partial void OnIsSidebarExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SidebarColumnWidth));
+        OnPropertyChanged(nameof(SidebarNavItemWidth));
+        OnPropertyChanged(nameof(SidebarToggleIcon));
+        OnPropertyChanged(nameof(SidebarToggleToolTip));
+    }
+
+    private void SelectPage(PageViewModelBase? page)
+    {
+        if (page != null)
+        {
+            ActivePage = page;
+        }
+    }
 
     public void Dispose()
     {
         State.Dispose();
     }
 }
-
-public sealed class HomePageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Nav.Home", MaterialIconKind.HomeOutline, state);
-
-public sealed class SettingsPageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Nav.Settings", MaterialIconKind.CogOutline, state);
-
-public sealed class LogsPageViewModel(AppStateViewModel state)
-    : PageViewModelBase("Nav.Logs", MaterialIconKind.TextBoxOutline, state);
 
 public sealed class AboutPageViewModel : PageViewModelBase
 {
@@ -63,10 +111,12 @@ public sealed class AboutPageViewModel : PageViewModelBase
     private static readonly HttpClient ReleasesHttpClient = CreateReleasesHttpClient();
 
     private bool _isLoadingChangelogs;
+    private bool _hasRequestedChangelogLoad;
+    private bool _isChangelogExpanded = true;
     private string _changelogStatusText = string.Empty;
 
     public AboutPageViewModel(AppStateViewModel state)
-        : base("Nav.About", MaterialIconKind.InformationOutline, state)
+        : base("Nav.About", MaterialIconKind.InformationOutline, state, 0xE946)
     {
         VersionText = BuildVersionText();
         RefreshChangelogsCommand = new AsyncRelayCommand(LoadChangelogsAsync);
@@ -75,10 +125,12 @@ public sealed class AboutPageViewModel : PageViewModelBase
         LocalizationService.LanguageChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ChangelogSummaryText));
-            _ = RefreshChangelogsCommand.ExecuteAsync(null);
+            OnPropertyChanged(nameof(ChangelogToggleText));
+            if (_hasRequestedChangelogLoad)
+            {
+                _ = RefreshChangelogsCommand.ExecuteAsync(null);
+            }
         };
-
-        _ = RefreshChangelogsCommand.ExecuteAsync(null);
     }
 
     public string VersionText { get; }
@@ -86,6 +138,24 @@ public sealed class AboutPageViewModel : PageViewModelBase
     public ObservableCollection<AboutChangelogEntry> ChangelogEntries { get; } = [];
 
     public IAsyncRelayCommand RefreshChangelogsCommand { get; }
+
+    public bool IsChangelogExpanded
+    {
+        get => _isChangelogExpanded;
+        set
+        {
+            if (SetProperty(ref _isChangelogExpanded, value))
+            {
+                OnPropertyChanged(nameof(ChangelogToggleText));
+                OnPropertyChanged(nameof(ShowChangelogLoading));
+                OnPropertyChanged(nameof(ShowChangelogStatus));
+                OnPropertyChanged(nameof(ShowChangelogEntries));
+            }
+        }
+    }
+
+    public string ChangelogToggleText => LocalizationService.Get(
+        IsChangelogExpanded ? "About.HideHistory" : "About.ShowHistory");
 
     public bool IsLoadingChangelogs
     {
@@ -95,6 +165,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
             if (SetProperty(ref _isLoadingChangelogs, value))
             {
                 OnPropertyChanged(nameof(ChangelogSummaryText));
+                OnPropertyChanged(nameof(ShowChangelogLoading));
             }
         }
     }
@@ -107,12 +178,21 @@ public sealed class AboutPageViewModel : PageViewModelBase
             if (SetProperty(ref _changelogStatusText, value))
             {
                 OnPropertyChanged(nameof(HasChangelogStatus));
+                OnPropertyChanged(nameof(ShowChangelogStatus));
             }
         }
     }
 
     public bool HasChangelogEntries => ChangelogEntries.Count > 0;
     public bool HasChangelogStatus => !string.IsNullOrWhiteSpace(ChangelogStatusText);
+    public bool ShowChangelogLoading => IsChangelogExpanded && IsLoadingChangelogs;
+    public bool ShowChangelogStatus => IsChangelogExpanded && HasChangelogStatus;
+    public bool ShowChangelogEntries => IsChangelogExpanded && HasChangelogEntries;
+
+    public override void OnActivated()
+    {
+        EnsureChangelogsLoaded();
+    }
 
     public string ChangelogSummaryText
     {
@@ -146,6 +226,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
             return;
         }
 
+        _hasRequestedChangelogLoad = true;
         IsLoadingChangelogs = true;
         ChangelogStatusText = LocalizationService.Get("About.ChangelogLoading");
 
@@ -194,9 +275,21 @@ public sealed class AboutPageViewModel : PageViewModelBase
         }
     }
 
+    private void EnsureChangelogsLoaded()
+    {
+        if (_hasRequestedChangelogLoad)
+        {
+            return;
+        }
+
+        _hasRequestedChangelogLoad = true;
+        _ = RefreshChangelogsCommand.ExecuteAsync(null);
+    }
+
     private void OnChangelogEntriesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         OnPropertyChanged(nameof(HasChangelogEntries));
+        OnPropertyChanged(nameof(ShowChangelogEntries));
         OnPropertyChanged(nameof(ChangelogSummaryText));
     }
 
@@ -303,7 +396,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
             Timeout = TimeSpan.FromSeconds(25)
         };
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHopV2-Changelog/1.0");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHopV3-Changelog/1.0");
         return client;
     }
 

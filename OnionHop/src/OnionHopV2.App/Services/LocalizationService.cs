@@ -10,11 +10,12 @@ public static class LocalizationService
 {
     private static readonly Dictionary<string, string> LanguageResources = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["en"] = "avares://OnionHopV2/Resources/Strings.en.axaml",
-        ["de"] = "avares://OnionHopV2/Resources/Strings.de.axaml"
+        ["en"] = "avares://OnionHopV3/Resources/Strings.en.axaml",
+        ["de"] = "avares://OnionHopV3/Resources/Strings.de.axaml",
+        ["fr"] = "avares://OnionHopV3/Resources/Strings.fr.axaml",
+        ["ru"] = "avares://OnionHopV3/Resources/Strings.ru.axaml",
+        ["zh"] = "avares://OnionHopV3/Resources/Strings.zh.axaml"
     };
-
-    private static ResourceInclude? _activeDictionary;
 
     public static string CurrentLanguage { get; private set; } = "en";
 
@@ -23,19 +24,15 @@ public static class LocalizationService
     public static void ApplyLanguage(string? languageCode)
     {
         var code = Normalize(languageCode);
-        if (!LanguageResources.TryGetValue(code, out var source))
-        {
-            code = "en";
-            source = LanguageResources[code];
-        }
-
         CurrentLanguage = code;
+
         var app = Application.Current;
         if (app == null)
         {
             return;
         }
 
+        // Remove any previously merged string dictionaries.
         var dictionariesToRemove = app.Resources.MergedDictionaries
             .OfType<ResourceInclude>()
             .Where(static dictionary => dictionary.Source?.OriginalString.Contains("/Resources/Strings.", StringComparison.OrdinalIgnoreCase) == true)
@@ -46,17 +43,23 @@ public static class LocalizationService
             app.Resources.MergedDictionaries.Remove(dictionary);
         }
 
-        if (_activeDictionary != null && app.Resources.MergedDictionaries.Contains(_activeDictionary))
+        // Always merge English first as the fallback base. Avalonia resolves merged dictionaries
+        // last-wins, so overlaying the selected language afterward overrides translated keys while
+        // any untranslated key gracefully falls back to English (instead of showing the raw key).
+        app.Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://OnionHopV3/"))
         {
-            app.Resources.MergedDictionaries.Remove(_activeDictionary);
+            Source = new Uri(LanguageResources["en"])
+        });
+
+        if (!string.Equals(code, "en", StringComparison.OrdinalIgnoreCase) &&
+            LanguageResources.TryGetValue(code, out var overlaySource))
+        {
+            app.Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://OnionHopV3/"))
+            {
+                Source = new Uri(overlaySource)
+            });
         }
 
-        _activeDictionary = new ResourceInclude(new Uri("avares://OnionHopV2/"))
-        {
-            Source = new Uri(source)
-        };
-
-        app.Resources.MergedDictionaries.Add(_activeDictionary);
         LanguageChanged?.Invoke(null, EventArgs.Empty);
     }
 
@@ -78,12 +81,11 @@ public static class LocalizationService
             return "en";
         }
 
-        var trimmed = languageCode.Trim();
-        if (trimmed.StartsWith("de", StringComparison.OrdinalIgnoreCase))
-        {
-            return "de";
-        }
-
+        var trimmed = languageCode.Trim().ToLowerInvariant();
+        if (trimmed.StartsWith("de", StringComparison.Ordinal)) return "de";
+        if (trimmed.StartsWith("fr", StringComparison.Ordinal)) return "fr";
+        if (trimmed.StartsWith("ru", StringComparison.Ordinal)) return "ru";
+        if (trimmed.StartsWith("zh", StringComparison.Ordinal)) return "zh";
         return "en";
     }
 }

@@ -26,8 +26,12 @@ $WebTunnelSourceUrl = "https://gitlab.torproject.org/tpo/anti-censorship/pluggab
 $RepoRoot = $PSScriptRoot
 $TorDir = Join-Path $RepoRoot "OnionHop\tor"
 $VpnDir = Join-Path $RepoRoot "OnionHop\vpn"
+$ArtiHopDir = Join-Path $RepoRoot "OnionHop\artihop"
+$SnowflakeDir = Join-Path $RepoRoot "OnionHop\snowflake"
 $PtDir = Join-Path $TorDir "pluggable_transports"
 $TempDir = Join-Path $RepoRoot "temp_deps"
+$ArtiHopRepoUrl = "https://github.com/center2055/ArtiHop.git"
+$SnowflakeProxyPackage = "gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
 
 # Helper to ensure directory exists
 function Ensure-Dir($path) {
@@ -246,6 +250,89 @@ function Verify-FileHash($filePath, $expectedHash) {
     }
 }
 
+# Build the ArtiHop 2-hop engine from its own public repo and bundle only the binary.
+# The ArtiHop source is intentionally NOT vendored into OnionHop — it is fetched at build time.
+function Build-ArtiHop($tempDir, $artiHopDir, $repoUrl) {
+    $exeName = "artihop.exe"
+    $output = Join-Path $artiHopDir $exeName
+
+    $cargo = Get-Command "cargo" -ErrorAction SilentlyContinue
+    $git = Get-Command "git" -ErrorAction SilentlyContinue
+    if (-not $cargo) {
+        Write-Warning "cargo (Rust toolchain) not found. Skipping ArtiHop build. Install Rust from https://rustup.rs to bundle the ArtiHop 2-hop engine, or set ONIONHOP_ARTIHOP_PATH at runtime."
+        return
+    }
+    if (-not $git) {
+        Write-Warning "git not found. Skipping ArtiHop build."
+        return
+    }
+
+    $cloneDir = Join-Path $tempDir "ArtiHop"
+    try {
+        if (Test-Path $cloneDir) { Remove-Item $cloneDir -Recurse -Force }
+        Write-Host "Cloning ArtiHop source from $repoUrl ..."
+        & git clone --depth 1 $repoUrl $cloneDir
+        if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
+
+        Write-Host "Building ArtiHop (cargo build --release). This compiles Arti and can take several minutes..."
+        Push-Location $cloneDir
+        try {
+            & cargo build --release
+            if ($LASTEXITCODE -ne 0) { throw "cargo build failed (exit $LASTEXITCODE)." }
+        } finally {
+            Pop-Location
+        }
+
+        $built = Join-Path $cloneDir "target\release\$exeName"
+        if (-not (Test-Path $built)) { throw "Built artihop.exe not found at $built." }
+
+        Copy-Item $built $output -Force
+        Write-Host "ArtiHop engine built and bundled: $output" -ForegroundColor Green
+    } catch {
+        Write-Warning "ArtiHop build failed: $($_.Exception.Message). The ArtiHop engine will be unavailable; users can still set ONIONHOP_ARTIHOP_PATH or use the Classic/Arti engines."
+    }
+}
+
+# Build the standalone Snowflake proxy so users can volunteer as a Snowflake bridge.
+# Uses `go install` (via the Go module proxy) so we don't depend on direct gitlab access.
+function Build-SnowflakeProxy($tempDir, $snowflakeDir, $package) {
+    $exeName = "snowflake-proxy.exe"
+    $output = Join-Path $snowflakeDir $exeName
+
+    $go = Get-Command "go" -ErrorAction SilentlyContinue
+    if (-not $go) {
+        Write-Warning "Go not found. Skipping Snowflake proxy build. Install Go (https://go.dev/dl) to bundle the Snowflake volunteer proxy, or set ONIONHOP_SNOWFLAKE_PROXY_PATH at runtime."
+        return
+    }
+
+    $gobin = Join-Path $tempDir "gobin"
+    Ensure-Dir $gobin
+    $prevGobin = $env:GOBIN
+    $prevCgo = $env:CGO_ENABLED
+    try {
+        $env:GOBIN = $gobin
+        $env:CGO_ENABLED = "0"
+        Write-Host "Building Snowflake proxy (go install $package)... this can take a few minutes."
+        & go install $package
+        if ($LASTEXITCODE -ne 0) { throw "go install failed (exit $LASTEXITCODE)." }
+
+        # `go install .../proxy@latest` emits a binary named after the package dir ("proxy").
+        $built = Join-Path $gobin "proxy.exe"
+        if (-not (Test-Path $built)) {
+            $built = Get-ChildItem -Path $gobin -Filter "*.exe" | Select-Object -First 1 | ForEach-Object { $_.FullName }
+        }
+        if (-not $built -or -not (Test-Path $built)) { throw "Built proxy binary not found in $gobin." }
+
+        Copy-Item $built $output -Force
+        Write-Host "Snowflake proxy built and bundled: $output" -ForegroundColor Green
+    } catch {
+        Write-Warning "Snowflake proxy build failed: $($_.Exception.Message). The Snowflake volunteer feature will be unavailable; users can set ONIONHOP_SNOWFLAKE_PROXY_PATH."
+    } finally {
+        $env:GOBIN = $prevGobin
+        $env:CGO_ENABLED = $prevCgo
+    }
+}
+
 # Helper to pause on exit
 function Exit-WithPause($code) {
     if (-not $NoPause -and $Host.Name -eq "ConsoleHost") {
@@ -269,6 +356,8 @@ try {
     Ensure-Dir $TempDir
     Ensure-Dir $TorDir
     Ensure-Dir $VpnDir
+    Ensure-Dir $ArtiHopDir
+    Ensure-Dir $SnowflakeDir
     Ensure-Dir $PtDir
 
     if ($TorVersion -eq "latest") {
@@ -508,6 +597,14 @@ try {
     Write-Host "Extracting Wintun..."
     Expand-Archive -Path $WintunArchive -DestinationPath (Join-Path $TempDir "wintun") -Force
     Copy-Item (Join-Path $TempDir "wintun\wintun\bin\amd64\wintun.dll") $VpnDir -Force
+
+    # --- 6. ArtiHop 2-hop engine (built from source; optional) ---
+    Write-Host "`n[6] Building ArtiHop 2-hop engine..."
+    Build-ArtiHop -tempDir $TempDir -artiHopDir $ArtiHopDir -repoUrl $ArtiHopRepoUrl
+
+    # --- 7. Snowflake volunteer proxy (built from source; optional) ---
+    Write-Host "`n[7] Building Snowflake volunteer proxy..."
+    Build-SnowflakeProxy -tempDir $TempDir -snowflakeDir $SnowflakeDir -package $SnowflakeProxyPackage
 
     # Cleanup (best effort)
     if (Test-Path $TempDir) {

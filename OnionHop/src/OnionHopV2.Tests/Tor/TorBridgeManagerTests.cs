@@ -177,7 +177,7 @@ public sealed class TorBridgeManagerTests
     }
 
     [Fact]
-    public async Task GetBridgeLinesAsync_bridge_db_only_does_not_use_offline_files()
+    public async Task GetBridgeLinesAsync_bridge_service_only_does_not_use_offline_files()
     {
         var dir = CreateTempDir();
         try
@@ -191,13 +191,40 @@ public sealed class TorBridgeManagerTests
             var options = new OnionHopConnectOptions
             {
                 SelectedBridgeType = "custom",
-                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceBridgeDbOnly
+            BridgeSourceMode = OnionHopConnectOptions.BridgeSourceOnlineOnly
+        };
+
+        var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+        Assert.Empty(lines);
+        Assert.Equal("No usable bridge lines were fetched from the Tor bridge service.", manager.BridgeValidationMessage);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_vanilla_custom_lines_do_not_require_transport_plugins()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "vanilla",
+                CustomBridges = "8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875"
             };
 
             var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+            var plugins = manager.GetClientTransportPlugins(options, lines, Path.Combine(dir, "tor"), null, _ => { });
 
-            Assert.Empty(lines);
-            Assert.Equal("No usable bridge lines were fetched from BridgeDB.", manager.BridgeValidationMessage);
+            Assert.Single(lines);
+            Assert.StartsWith("8.8.8.8:443 ", lines[0]);
+            Assert.Empty(plugins);
+            Assert.False(TorBridgeManager.BridgeLinesNeedClientTransportPlugins(lines));
         }
         finally
         {
@@ -224,6 +251,7 @@ public sealed class TorBridgeManagerTests
         var keys = TorBridgeManager.GetBridgeTypeKeys(config);
 
         Assert.Contains(keys, key => string.Equals(key, "conjure", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(keys, key => string.Equals(key, "vanilla", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(keys, key => string.Equals(key, "custom", StringComparison.OrdinalIgnoreCase));
         Assert.Equal("custom", Assert.Single(keys.Skip(Math.Max(0, keys.Count - 1))));
     }

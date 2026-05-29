@@ -240,11 +240,11 @@ internal sealed class AdminHelperClient : IDisposable
         return response?.Success == true;
     }
 
-    public async Task<bool> EnableOnionDnsProxyAsync(string? nameServerAddress)
+    public async Task<bool> EnableOnionDnsProxyAsync(string? nameServerAddress, bool routeAllDns = false)
     {
         var response = await SendAsync(
             "EnableOnionDnsProxy",
-            new AdminHelperDnsProxyRequest { NameServerAddress = nameServerAddress }).ConfigureAwait(false);
+            new AdminHelperDnsProxyRequest { NameServerAddress = nameServerAddress, RouteAllDns = routeAllDns }).ConfigureAwait(false);
         return response?.Success == true;
     }
 

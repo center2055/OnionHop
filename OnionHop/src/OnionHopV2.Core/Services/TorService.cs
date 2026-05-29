@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -471,24 +470,38 @@ internal sealed class TorService : IDisposable
         }
 
         var hasEntry = !string.IsNullOrWhiteSpace(config.EntryCountryCode);
+        var hasEntryFingerprint = !string.IsNullOrWhiteSpace(config.EntryNodeFingerprint);
+        var hasMiddleFingerprint = !string.IsNullOrWhiteSpace(config.MiddleNodeFingerprint);
         var hasExit = !string.IsNullOrWhiteSpace(config.ExitCountryCode);
         var hasExitFingerprint = !string.IsNullOrWhiteSpace(config.ExitNodeFingerprint);
 
-        if (hasEntry)
+        if (hasEntryFingerprint)
+        {
+            AddArgument(arguments, "--EntryNodes", FormatRelayFingerprint(config.EntryNodeFingerprint!));
+        }
+        else if (hasEntry)
         {
             AddArgument(arguments, "--EntryNodes", $"{{{config.EntryCountryCode}}}");
         }
 
+        if (hasMiddleFingerprint)
+        {
+            AddArgument(arguments, "--MiddleNodes", FormatRelayFingerprint(config.MiddleNodeFingerprint!));
+        }
+
         if (hasExitFingerprint)
         {
-            AddArgument(arguments, "--ExitNodes", config.ExitNodeFingerprint!);
+            AddArgument(arguments, "--ExitNodes", FormatRelayFingerprint(config.ExitNodeFingerprint!));
         }
         else if (hasExit)
         {
             AddArgument(arguments, "--ExitNodes", $"{{{config.ExitCountryCode}}}");
         }
 
-        var strictNodes = hasEntry || hasExit || (hasExitFingerprint && config.StrictManualExitNodeFingerprint);
+        var strictNodes = hasEntry || hasExit ||
+                          (hasEntryFingerprint && config.StrictManualEntryNodeFingerprint) ||
+                          (hasMiddleFingerprint && config.StrictManualMiddleNodeFingerprint) ||
+                          (hasExitFingerprint && config.StrictManualExitNodeFingerprint);
         if (strictNodes)
         {
             AddArgument(arguments, "--StrictNodes", "1");
@@ -503,6 +516,12 @@ internal sealed class TorService : IDisposable
     {
         arguments.Add(name);
         arguments.Add(value);
+    }
+
+    private static string FormatRelayFingerprint(string fingerprint)
+    {
+        var normalized = fingerprint.Trim().TrimStart('$');
+        return string.IsNullOrWhiteSpace(normalized) ? string.Empty : $"${normalized}";
     }
 
     private static string FormatArgumentsForLog(IReadOnlyList<string> arguments)
@@ -750,8 +769,12 @@ internal sealed class TorLaunchConfig
     public IReadOnlyList<int>? AllowedPorts { get; init; }
     public int? MaxCircuitDirtinessSeconds { get; init; }
     public string? EntryCountryCode { get; init; }
+    public string? EntryNodeFingerprint { get; init; }
+    public string? MiddleNodeFingerprint { get; init; }
     public string? ExitCountryCode { get; init; }
     public string? ExitNodeFingerprint { get; init; }
+    public bool StrictManualEntryNodeFingerprint { get; init; } = true;
+    public bool StrictManualMiddleNodeFingerprint { get; init; } = true;
     public bool StrictManualExitNodeFingerprint { get; init; } = true;
     public bool? ClientUseIpv6 { get; init; }
     public bool? HardwareAccel { get; init; }

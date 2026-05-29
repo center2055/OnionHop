@@ -10,11 +10,14 @@ public static class PlatformHelper
     private static readonly bool IsMac = OperatingSystem.IsMacOS();
 
     public static string TorBinaryName => IsWin ? "tor.exe" : "tor";
+    public static string ArtiBinaryName => IsWin ? "arti.exe" : "arti";
+    public static string ArtiHopBinaryName => IsWin ? "artihop.exe" : "artihop";
     public static string TorGenCertBinaryName => IsWin ? "tor-gencert.exe" : "tor-gencert";
     public static string SingBoxBinaryName => IsWin ? "sing-box.exe" : "sing-box";
     public static string XrayBinaryName => IsWin ? "xray.exe" : "xray";
     public static string LyrebirdBinaryName => IsWin ? "lyrebird.exe" : "lyrebird";
     public static string SnowflakeClientBinaryName => IsWin ? "snowflake-client.exe" : "snowflake-client";
+    public static string SnowflakeProxyBinaryName => IsWin ? "snowflake-proxy.exe" : "snowflake-proxy";
     public static string Obfs4ProxyBinaryName => IsWin ? "obfs4proxy.exe" : "obfs4proxy";
     public static string WebTunnelClientBinaryName => IsWin ? "webtunnel-client.exe" : "webtunnel-client";
     public static string WintunLibraryName => IsWin ? "wintun.dll" : string.Empty;

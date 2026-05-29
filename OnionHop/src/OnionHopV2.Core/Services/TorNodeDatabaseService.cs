@@ -23,7 +23,7 @@ public sealed class TorNodeDatabaseService
     {
         _cachePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "OnionHop V2",
+            "OnionHop V3",
             "tor-node-db.json");
     }
 
