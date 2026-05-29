@@ -1,27 +1,487 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- Russian. Keys not present here fall back to English (see LocalizationService). -->
+  <!-- Common -->
   <x:String x:Key="Common.Search">Поиск</x:String>
 
+  <!-- Navigation -->
   <x:String x:Key="Nav.Home">Главная</x:String>
   <x:String x:Key="Nav.Settings">Настройки</x:String>
-  <x:String x:Key="Nav.Relays">Реле</x:String>
   <x:String x:Key="Nav.Scanner">Сканер</x:String>
   <x:String x:Key="Nav.Logs">Журналы</x:String>
   <x:String x:Key="Nav.About">О программе</x:String>
 
+  <!-- Bridge Scanner -->
+  <x:String x:Key="Scanner.Title">Сканер мостов</x:String>
+  <x:String x:Key="Scanner.Subtitle">TCP-пинг мостов для поиска доступных из вашего региона. Зелёный — доступен, жёлтый — медленный, красный — заблокирован/недоступен. Экспортируйте рабочие или примените их как пользовательские мосты.</x:String>
+  <x:String x:Key="Scanner.Category">Категория</x:String>
+  <x:String x:Key="Scanner.Transport">Транспорт</x:String>
+  <x:String x:Key="Scanner.IpVersion">IP</x:String>
+  <x:String x:Key="Scanner.Workers">Потоки</x:String>
+  <x:String x:Key="Scanner.Timeout">Таймаут (с)</x:String>
+  <x:String x:Key="Scanner.CustomSource">Свой список</x:String>
+  <x:String x:Key="Scanner.CustomSourceHint">Сканировать вставленные вами строки мостов вместо списка коллектора.</x:String>
+  <x:String x:Key="Scanner.CustomWatermark">Вставьте строки мостов сюда, по одной в строке (например, obfs4 1.2.3.4:443 FINGERPRINT cert=... iat-mode=0)</x:String>
+  <x:String x:Key="Scanner.Start">Начать сканирование</x:String>
+  <x:String x:Key="Scanner.Stop">Стоп</x:String>
+  <x:String x:Key="Scanner.Export">Экспорт рабочих</x:String>
+  <x:String x:Key="Scanner.ApplyAsCustom">Использовать рабочие как мосты</x:String>
+  <x:String x:Key="Scanner.ColType">Тип моста</x:String>
+  <x:String x:Key="Scanner.ColHost">Хост</x:String>
+  <x:String x:Key="Scanner.ColPort">Порт</x:String>
+  <x:String x:Key="Scanner.ColPing">Пинг (мс)</x:String>
+  <x:String x:Key="Scanner.ColStatus">Статус</x:String>
+  <x:String x:Key="Scanner.EmptyTitle">Результатов сканирования пока нет</x:String>
+  <x:String x:Key="Scanner.EmptyDescription">Выберите категорию/транспорт и нажмите «Начать сканирование» или вставьте свой список.</x:String>
+
+  <!-- Home -->
+  <x:String x:Key="Home.Title">Подключение</x:String>
+  <x:String x:Key="Home.CurrentIp">Текущий IP</x:String>
+  <x:String x:Key="Home.SocksPort">Порт SOCKS</x:String>
+  <x:String x:Key="Home.HttpPort">Порт HTTP</x:String>
+  <x:String x:Key="Home.ManualExitFingerprint">Ручной отпечаток выходного узла</x:String>
   <x:String x:Key="Home.Connect">Подключить</x:String>
   <x:String x:Key="Home.Disconnect">Отключить</x:String>
   <x:String x:Key="Home.Cancel">Отмена</x:String>
   <x:String x:Key="Home.RefreshIp">Обновить IP</x:String>
   <x:String x:Key="Home.NewIdentity">Новая личность</x:String>
-  <x:String x:Key="Home.CurrentIp">Текущий IP</x:String>
-  <x:String x:Key="Home.EngineMode">Движок Tor</x:String>
-  <x:String x:Key="Home.RoutingPreferences">Маршрутизация и настройки</x:String>
-  <x:String x:Key="Home.SmartConnect">Умное подключение (рекомендуется)</x:String>
-  <x:String x:Key="Home.Mode">Режим</x:String>
-  <x:String x:Key="Home.ExitLocation">Точка выхода</x:String>
-  <x:String x:Key="Home.RecentActivity">Недавняя активность сессии</x:String>
   <x:String x:Key="Home.SystemProxyOn">Системный прокси: ВКЛ</x:String>
   <x:String x:Key="Home.SystemProxyOff">Системный прокси: ВЫКЛ</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">Включает/выключает системный прокси без отключения Tor. Когда ВЫКЛ, системный трафик идёт напрямую (например, для использования отдельного VPN), а Tor остаётся подключённым; приложения, нацеленные на порт SOCKS, по-прежнему используют Tor.</x:String>
+  <x:String x:Key="Home.BridgeDataAutoUpdates">Данные мостов обновляются автоматически</x:String>
+  <x:String x:Key="Home.BridgeDataLastUpdateUnknown">последнее обновление данных мостов: ещё не обновлялось.</x:String>
+  <x:String x:Key="Home.BridgeDataLastUpdateValue">последнее обновление данных мостов: {0}</x:String>
+  <x:String x:Key="Home.Routing">Маршрутизация</x:String>
+  <x:String x:Key="Home.SmartConnect">Умное подключение (рекомендуется)</x:String>
+  <x:String x:Key="Home.SmartConnectHint">Автоматически выбирает лучшую стратегию подключения к Tor для вашей сети и профиля страны. При включении настройки мостов/обхода цензуры могут быть переопределены.</x:String>
+  <x:String x:Key="Home.Mode">Режим</x:String>
+  <x:String x:Key="Home.ModeProxy">Режим прокси (рекомендуется)</x:String>
+  <x:String x:Key="Home.ModeTun">Режим TUN/VPN (Администратор)</x:String>
+  <x:String x:Key="Home.Automatic">Автоматически</x:String>
+  <x:String x:Key="Home.ExitLocation">Точка выхода</x:String>
+  <x:String x:Key="Home.ExitLocationManualHint">Задан ручной отпечаток выхода. Точка выхода отключена.</x:String>
+  <x:String x:Key="Home.TorNetwork">Сеть Tor</x:String>
+  <x:String x:Key="Home.TorNetworkHint">Показывает собственный трафик Tor (с управляющего порта).</x:String>
+  <x:String x:Key="Home.TunOptions">Параметры TUN/VPN</x:String>
+  <x:String x:Key="Home.HybridRouting">Гибридная маршрутизация (раздельное туннелирование)</x:String>
+  <x:String x:Key="Home.KillSwitch">Аварийное отключение (только строгий TUN)</x:String>
+  <x:String x:Key="Home.KillSwitchHint">Аварийное отключение требует прав администратора и отключено в гибридном режиме.</x:String>
+  <x:String x:Key="Home.ConnectionElapsed">Подключено в течение</x:String>
+  <x:String x:Key="Home.DownloadingComponents">Загрузка компонентов...</x:String>
+  <x:String x:Key="Home.QuickActions">Быстрые действия</x:String>
+
+  <!-- Logs -->
+  <x:String x:Key="Logs.Title">Журналы</x:String>
+  <x:String x:Key="Logs.TabApp">Приложение</x:String>
+  <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.TabXray">Xray</x:String>
+  <x:String x:Key="Logs.TabSingBox">Sing-box</x:String>
+  <x:String x:Key="Logs.Copy">Копировать</x:String>
+  <x:String x:Key="Logs.Export">Экспорт...</x:String>
+  <x:String x:Key="Logs.Clear">Очистить</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">Совет: журналы хранятся только локально.</x:String>
+
+  <!-- About -->
+  <x:String x:Key="About.Title">О программе</x:String>
+  <x:String x:Key="About.Links">Ссылки</x:String>
+  <x:String x:Key="About.GitHubIssues">Задачи на GitHub</x:String>
+  <x:String x:Key="About.Discord">Discord</x:String>
+  <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.Changelog">История OnionHop</x:String>
+  <x:String x:Key="About.Refresh">Обновить</x:String>
+  <x:String x:Key="About.ChangelogDetails">Подробнее</x:String>
+  <x:String x:Key="About.ChangelogDetailsExpand">Подробнее +</x:String>
+  <x:String x:Key="About.ChangelogDetailsCollapse">Подробнее -</x:String>
+  <x:String x:Key="About.ChangelogLoading">Загрузка записей журнала изменений с GitHub...</x:String>
+  <x:String x:Key="About.ChangelogLoaded">Журнал изменений загружен.</x:String>
+  <x:String x:Key="About.ChangelogFailed">Не удалось загрузить историю изменений сейчас. Проверьте подключение и повторите обновление.</x:String>
+  <x:String x:Key="About.ChangelogEmpty">Записи о выпусках не найдены.</x:String>
+  <x:String x:Key="About.ChangelogSummaryLoading">Получение истории выпусков...</x:String>
+  <x:String x:Key="About.ChangelogSummaryEmpty">История выпусков ещё не загружена.</x:String>
+  <x:String x:Key="About.ChangelogSummaryRange">Показано {0} выпусков с {1} по {2}.</x:String>
+  <x:String x:Key="About.ChangelogTypeRelease">Выпуск</x:String>
+  <x:String x:Key="About.ChangelogTypeBeta">Бета / Предварительный выпуск</x:String>
+  <x:String x:Key="About.ChangelogDateUnknown">Неизвестная дата</x:String>
+  <x:String x:Key="About.ChangelogNotesMissing">Для этого выпуска не указаны заметки об изменениях.</x:String>
+  <x:String x:Key="About.Subtitle">История OnionHop, ссылки на проект и заметки о выпусках.</x:String>
+  <x:String x:Key="About.ProductName">OnionHop V3</x:String>
+  <x:String x:Key="About.Tagline">Лёгкая настольная панель управления для маршрутизации через Tor, смены личности и выбора подключения с учётом мостов.</x:String>
+  <x:String x:Key="About.BuildRuntime">Сборка &amp; среда выполнения</x:String>
+  <x:String x:Key="About.Version">Версия</x:String>
+  <x:String x:Key="About.Engine">Движок Tor</x:String>
+  <x:String x:Key="About.UpdateState">Статус обновления</x:String>
+  <x:String x:Key="About.LocalOnly">Локальная диагностика</x:String>
+  <x:String x:Key="About.LocalOnlyHint">Журналы и активность сессии остаются на этом устройстве, пока вы явно не экспортируете их.</x:String>
+  <x:String x:Key="About.LinksHint">Ссылки на проект открываются в браузере по умолчанию.</x:String>
+  <x:String x:Key="About.ShowHistory">Показать историю</x:String>
+  <x:String x:Key="About.HideHistory">Скрыть историю</x:String>
+
+  <!-- Settings -->
+  <x:String x:Key="Settings.TabGeneral">Общие</x:String>
+  <x:String x:Key="Settings.TabNetwork">Сеть</x:String>
+  <x:String x:Key="Settings.TabAdvanced">Дополнительно</x:String>
+  <x:String x:Key="Settings.StartupBehavior">Запуск &amp; поведение</x:String>
+  <x:String x:Key="Settings.AutoConnect">Автоподключение при запуске</x:String>
+  <x:String x:Key="Settings.AutoStart">Автозапуск</x:String>
+  <x:String x:Key="Settings.AutoStartOff">Выкл</x:String>
+  <x:String x:Key="Settings.AutoStartOn">Вкл</x:String>
+  <x:String x:Key="Settings.AutoStartMinimized">Вкл (свёрнуто)</x:String>
+  <x:String x:Key="Settings.MinimizeToTray">Сворачивать в трей при закрытии</x:String>
+  <x:String x:Key="Settings.AutoUpdate">Проверять обновления</x:String>
+  <x:String x:Key="Settings.Appearance">Внешний вид</x:String>
+  <x:String x:Key="Settings.AppearanceMode">Режим темы</x:String>
+  <x:String x:Key="Settings.AppearanceSystemDefault">Как в системе</x:String>
+  <x:String x:Key="Settings.AppearanceDark">Тёмная</x:String>
+  <x:String x:Key="Settings.AppearanceLight">Светлая</x:String>
+  <x:String x:Key="Settings.DarkMode">Тёмный режим</x:String>
+  <x:String x:Key="Settings.NativeChrome">Использовать системное оформление окна (заголовок/кнопки)</x:String>
+  <x:String x:Key="Settings.Language">Язык</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">Показывать расширенные сведения о подключении на главной</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">Показывает активные порты SOCKS/HTTP и статус ручного отпечатка выхода на карточке главной страницы.</x:String>
+  <x:String x:Key="Settings.Maintenance">Обслуживание</x:String>
+  <x:String x:Key="Settings.ResetHint">Сбрасывает все настройки OnionHop V3 к значениям по умолчанию.</x:String>
+  <x:String x:Key="Settings.RestoreDefaults">Восстановить настройки по умолчанию</x:String>
+
+  <x:String x:Key="Settings.BridgesTitle">Мосты &amp; сети с цензурой</x:String>
+  <x:String x:Key="Settings.UseBridges">Использовать мосты Tor (obfs4/snowflake/и т.д.)</x:String>
+  <x:String x:Key="Settings.BridgeType">Тип моста</x:String>
+  <x:String x:Key="Settings.BridgeSource">Источник мостов</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Авто сначала пробует службу мостов Tor, затем переключается на локальные офлайн-списки, если получить не удалось.</x:String>
+  <x:String x:Key="Settings.BridgeSourceCredits">Данные офлайн-резерва мостов: Tor-Bridges-Namer от Chara-Freedom и участников.</x:String>
+  <x:String x:Key="Settings.CustomBridges">Пользовательские мосты (необязательно, переопределяют встроенные)</x:String>
+  <x:String x:Key="Settings.CustomBridgesWatermark">Вставьте строки мостов с bridges.torproject.org...</x:String>
+  <x:String x:Key="Settings.CustomSni">Свои хосты SNI/фронта (необязательно)</x:String>
+  <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Snowflake: использовать кэш AMP (для заблокированных сетей)</x:String>
+  <x:String x:Key="Settings.AmpCacheUrl">URL кэша AMP (необязательно)</x:String>
+  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
+  <x:String x:Key="Settings.ProxyModeTitle">Режим прокси</x:String>
+  <x:String x:Key="Settings.ProxyScope">Поведение прокси</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">Системный прокси (все приложения) задаёт HTTP/HTTPS + SOCKS. Режим SOCKS для браузера/.onion задаёт только SOCKS для лучшей совместимости с .onion в браузерах. Только локально оставляет настройки системного прокси без изменений для ручной настройки приложений.</x:String>
+  <x:String x:Key="Settings.PreferredSocksPort">Предпочитаемый порт SOCKS</x:String>
+  <x:String x:Key="Settings.PreferredHttpPort">Предпочитаемый порт HTTP-туннеля</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccess">Разрешить доступ к прокси из LAN</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccessHint">Открывает порты прокси Tor на локальных сетевых интерфейсах, чтобы другие устройства могли подключаться. Держите выключенным, если не доверяете своей LAN.</x:String>
+
+  <x:String x:Key="Settings.SecureDns">Защищённый DNS (DoH) в режиме VPN</x:String>
+  <x:String x:Key="Settings.DnsProvider">Провайдер DNS</x:String>
+  <x:String x:Key="Settings.DnsProviderHint">Авто тестирует встроенные провайдеры DoH и выбирает самый быстрый работоспособный. Ручные провайдеры автоматически переключаются на резервные, если недоступны.</x:String>
+  <x:String x:Key="Settings.CustomDohHost">Свой хост / URL DoH</x:String>
+  <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com или https://dns.example:443</x:String>
+  <x:String x:Key="Settings.CustomDohPath">Свой путь DoH</x:String>
+  <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
+  <x:String x:Key="Settings.OnionDnsProxy">Проксировать DNS .onion через Tor (Администратор)</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">При включении и запуске с повышенными правами запросы DNS .onion маршрутизируются через Tor.</x:String>
+
+  <x:String x:Key="Settings.TorAdvanced">Дополнительно для Tor</x:String>
+  <x:String x:Key="Settings.TorAdvancedHint">Сгруппированные элементы помогают сохранить читаемость раздела. Разворачивайте только то, что нужно.</x:String>
+  <x:String x:Key="Settings.AdvancedPerformanceSection">Производительность &amp; совместимость</x:String>
+  <x:String x:Key="Settings.AdvancedTunSection">Движок TUN</x:String>
+  <x:String x:Key="Settings.AdvancedTunSectionHint">Применяется только в режиме TUN/VPN. Используйте значения по умолчанию, если не требуется настройка совместимости.</x:String>
+  <x:String x:Key="Settings.TunCore">Ядро TUN</x:String>
+  <x:String x:Key="Settings.TunStack">Стек TUN</x:String>
+  <x:String x:Key="Settings.TunMtu">MTU TUN (необязательно)</x:String>
+  <x:String x:Key="Settings.TunMtuWatermark">Пусто = по умолчанию (авто)</x:String>
+  <x:String x:Key="Settings.TunStrictRoute">Строгая маршрутизация</x:String>
+  <x:String x:Key="Settings.TunStrictRouteHint">При включении маршруты должны оставаться в пути TUN. Отключайте только для устранения неполадок в сложных сетях.</x:String>
+  <x:String x:Key="Settings.AdvancedTrafficRulesSection">Ограничения трафика</x:String>
+  <x:String x:Key="Settings.AdvancedManualExitSection">Ручное переопределение выхода</x:String>
+  <x:String x:Key="Settings.EntryNode">Входной узел (необязательно)</x:String>
+  <x:String x:Key="Settings.EntryNodeHint">Входные узлы нельзя использовать вместе с мостами.</x:String>
+  <x:String x:Key="Settings.IPv6Support">Поддержка IPv6</x:String>
+  <x:String x:Key="Settings.HardwareAccel">Аппаратное ускорение</x:String>
+  <x:String x:Key="Settings.ConnectionPadding">Заполнение соединения</x:String>
+  <x:String x:Key="Settings.OptionDefault">По умолчанию</x:String>
+  <x:String x:Key="Settings.OptionEnabled">Включено</x:String>
+  <x:String x:Key="Settings.OptionDisabled">Отключено</x:String>
+  <x:String x:Key="Settings.ConnectionPaddingAuto">Авто (рекомендуется)</x:String>
+  <x:String x:Key="Settings.MaxCircuitInactivity">Макс. бездействие цепочки (минуты)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSeconds">Таймаут подключения (секунды)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">Пусто = Авто, 0 = Отключено</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">Оставьте пустым для значений OnionHop по умолчанию, укажите 0 для отключения таймаута или введите 1-3600 для фиксированного таймаута.</x:String>
+  <x:String x:Key="Settings.RestrictedFirewallMode">Режим ограниченного брандмауэра</x:String>
+  <x:String x:Key="Settings.AllowedPorts">Разрешённые порты</x:String>
+  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
+  <x:String x:Key="Settings.EntryExitTip">Совет: ограничение входных/выходных узлов может снизить надёжность и скорость.</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprint">Ручной отпечаток выходного узла</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprintWatermark">Необязательно (например, $FINGERPRINT)</x:String>
+  <x:String x:Key="Settings.ManualEntryFingerprint">Ручной отпечаток сторожевого узла</x:String>
+  <x:String x:Key="Settings.ManualEntryFingerprintWatermark">Необязательный отпечаток сторожевого узла (например, $FINGERPRINT)</x:String>
+  <x:String x:Key="Settings.ManualMiddleFingerprint">Ручной отпечаток промежуточного узла</x:String>
+  <x:String x:Key="Settings.ManualMiddleFingerprintWatermark">Необязательный отпечаток промежуточного узла (например, $FINGERPRINT)</x:String>
+  <x:String x:Key="Settings.StrictManualEntryFingerprint">Строгий ручной отпечаток сторожевого узла (ошибка, если недоступен)</x:String>
+  <x:String x:Key="Settings.StrictManualEntryFingerprintHint">Отключите это, чтобы разрешить резервные сторожевые узлы, когда выбранный отпечаток недоступен.</x:String>
+  <x:String x:Key="Settings.StrictManualMiddleFingerprint">Строгий ручной отпечаток промежуточного узла (ошибка, если недоступен)</x:String>
+  <x:String x:Key="Settings.StrictManualMiddleFingerprintHint">Отключите это, чтобы разрешить резервные промежуточные реле, когда выбранный отпечаток недоступен.</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprint">Строгий ручной отпечаток выходного узла (ошибка, если недоступен)</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprintHint">Отключите это, чтобы разрешить резервные выходы, когда выбранный отпечаток недоступен.</x:String>
+
+  <x:String x:Key="Settings.SplitTunnelingTitle">Раздельное туннелирование (гибридный режим)</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">В гибридном режиме можно выбрать, какие приложения используют Tor, а какие идут напрямую. Одно имя процесса в строке (например: chrome в Linux/macOS, chrome.exe в Windows).</x:String>
+  <x:String x:Key="Settings.RouteAllWebTraffic">Направлять весь веб-трафик (порты 80/443) через Tor</x:String>
+  <x:String x:Key="Settings.BlockQuic">Блокировать QUIC/UDP для приложений Tor (предотвращает утечки в обход)</x:String>
+  <x:String x:Key="Settings.BlockUdp">Блокировать трафик UDP</x:String>
+  <x:String x:Key="Settings.TorApps">Приложения, маршрутизируемые через Tor (гибридный режим)</x:String>
+  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
+  <x:String x:Key="Settings.BypassApps">Приложения в обход Tor (необязательно)</x:String>
+  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
+  <x:String x:Key="Settings.SplitTunnelingEnableHint">Включите режим TUN/VPN + гибридную маршрутизацию на главной странице, чтобы использовать раздельное туннелирование.</x:String>
+
+  <x:String x:Key="Settings.AutomationTitle">Автоматизация</x:String>
+  <x:String x:Key="Settings.OpenConnectedPage">Открывать страницу при подключении</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPage">Открывать страницу при отключении</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageWatermark">https://support.torproject.org/</x:String>
+  <x:String x:Key="Settings.DiscordStatus">Включить статус Discord</x:String>
+
+  <!-- Bridge type labels -->
+  <x:String x:Key="BridgeType.Automatic">Автоматически (рекомендуется)</x:String>
+  <x:String x:Key="BridgeType.Vanilla">vanilla-мосты</x:String>
+  <x:String x:Key="BridgeType.Obfs4">obfs4</x:String>
+  <x:String x:Key="BridgeType.Snowflake">snowflake</x:String>
+  <x:String x:Key="BridgeType.Conjure">conjure</x:String>
+  <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
+  <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
+  <x:String x:Key="BridgeType.Custom">пользовательские</x:String>
+  <x:String x:Key="BridgeSource.Auto">Авто (служба мостов Tor -&gt; Офлайн)</x:String>
+  <x:String x:Key="BridgeSource.OnlineOnly">Только служба мостов Tor</x:String>
+  <x:String x:Key="BridgeSource.OfflineOnly">Только офлайн</x:String>
+  <x:String x:Key="ProxyScope.System">Системный прокси (все приложения)</x:String>
+  <x:String x:Key="ProxyScope.SystemSocks">Системный прокси (SOCKS браузер/.onion)</x:String>
+  <x:String x:Key="ProxyScope.LocalOnly">Только локальный прокси (ручные приложения)</x:String>
+  <x:String x:Key="TunStack.Mixed">Смешанный (рекомендуется)</x:String>
+  <x:String x:Key="TunStack.System">Системный</x:String>
+  <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunCore.SingBox">sing-box (рекомендуется)</x:String>
+  <x:String x:Key="TunCore.Xray">xray (экспериментально)</x:String>
+
+  <!-- Language names -->
+  <x:String x:Key="Language.English">Английский</x:String>
+  <x:String x:Key="Language.German">Немецкий</x:String>
+
+  <!-- Window controls -->
+  <x:String x:Key="Window.Minimize">Свернуть</x:String>
+  <x:String x:Key="Window.MaximizeRestore">Развернуть / Восстановить</x:String>
+  <x:String x:Key="Window.Close">Закрыть</x:String>
+
+  <!-- Runtime status -->
+  <x:String x:Key="Status.Disconnected">Отключено</x:String>
+  <x:String x:Key="Status.Connected">Подключено</x:String>
+  <x:String x:Key="Status.Connecting">Подключение...</x:String>
+  <x:String x:Key="Status.Disconnecting">Отключение...</x:String>
+  <x:String x:Key="Status.ReadyToRoute">Готово к маршрутизации трафика через Tor.</x:String>
+  <x:String x:Key="Status.Resolving">Разрешение...</x:String>
+  <x:String x:Key="Status.DownloadingComponentsWait">Загрузка компонентов. Пожалуйста, подождите.</x:String>
+  <x:String x:Key="Status.AdminRequiredRequesting">Изменения сети Windows требуют доступа администратора. Запуск привилегированного помощника...</x:String>
+  <x:String x:Key="Status.AdminRequiredCanceled">Для этой сетевой функции Windows требуется доступ администратора. Подключение отменено.</x:String>
+  <x:String x:Key="Status.CancelingConnect">Отмена попытки подключения...</x:String>
+  <x:String x:Key="Status.DefaultsRestored">Настройки по умолчанию восстановлены.</x:String>
+  <x:String x:Key="Status.CheckingComponents">Проверка компонентов...</x:String>
+
+  <!-- Tray -->
+  <x:String x:Key="Tray.Tooltip">OnionHop V3</x:String>
+  <x:String x:Key="Tray.Show">Показать</x:String>
+  <x:String x:Key="Tray.Connect">Подключить</x:String>
+  <x:String x:Key="Tray.Disconnect">Отключить</x:String>
+  <x:String x:Key="Tray.Exit">Выход</x:String>
+
+  <!-- V3 Navigation -->
+  <x:String x:Key="Nav.Relays">Реле</x:String>
+  <x:String x:Key="Nav.Navigation">Навигация</x:String>
+
+  <!-- Common -->
+  <x:String x:Key="Common.Idle">Ожидание</x:String>
+
+  <!-- Accent -->
+  <x:String x:Key="Accent.Violet">Фиолетовый</x:String>
+  <x:String x:Key="Accent.Indigo">Индиго</x:String>
+  <x:String x:Key="Accent.Cyan">Голубой</x:String>
+  <x:String x:Key="Accent.Rose">Розовый</x:String>
+
+  <!-- V3 Home -->
+  <x:String x:Key="Home.V3HeroTitle">Обзор подключения</x:String>
+  <x:String x:Key="Home.V3HeroSubtitle">Текущий маршрут Tor, мост и статус личности в реальном времени.</x:String>
+  <x:String x:Key="Home.EngineMode">Движок Tor</x:String>
+  <x:String x:Key="Home.CopyIp">Копировать IP</x:String>
+  <x:String x:Key="Home.NetworkOverview">Обзор сети</x:String>
+  <x:String x:Key="Home.Download">Загрузка</x:String>
+  <x:String x:Key="Home.Upload">Отдача</x:String>
+  <x:String x:Key="Home.CircuitYou">Вы</x:String>
+  <x:String x:Key="Home.CircuitGuard">Сторож</x:String>
+  <x:String x:Key="Home.CircuitMiddle">Промежуточный</x:String>
+  <x:String x:Key="Home.CircuitExit">Выход</x:String>
+  <x:String x:Key="Home.CircuitInternet">Интернет</x:String>
+  <x:String x:Key="Home.CircuitBridge">Мост / вход</x:String>
+  <x:String x:Key="Home.CircuitMiddleActive">Сеть реле</x:String>
+  <x:String x:Key="Home.CircuitMiddleIdle">Ожидание цепочки</x:String>
+  <x:String x:Key="Home.CircuitInternetIdle">Ещё не маршрутизировано</x:String>
+  <x:String x:Key="Home.CircuitGuardHint">Выбранное предпочтение входа или путь с учётом мостов.</x:String>
+  <x:String x:Key="Home.CircuitExitHint">Текущее предпочтение выхода или ручной отпечаток.</x:String>
+  <x:String x:Key="Home.RoutingPreferences">Маршрутизация &amp; настройки</x:String>
+  <x:String x:Key="Home.ModeHint">Переключение между лёгкой маршрутизацией через прокси и системным режимом VPN.</x:String>
+  <x:String x:Key="Home.ExitLocationHint">Ручной выбор выхода — для опытных пользователей и может влиять на анонимность и доступность.</x:String>
+  <x:String x:Key="Home.AdvancedPreferences">Открыть расширенные настройки</x:String>
+  <x:String x:Key="Home.RecentActivity">Недавняя активность сессии</x:String>
+  <x:String x:Key="Home.NoRecentEvents">Недавних событий пока нет</x:String>
+  <x:String x:Key="Home.NoRecentEventsHint">Действия с подключением, мостами и сетью будут отображаться здесь в течение этой сессии.</x:String>
+  <x:String x:Key="Home.SessionTransfer">Передано данных</x:String>
+  <x:String x:Key="Home.SessionTransferHint">Общий трафик, замеченный в текущей сессии Tor.</x:String>
+  <x:String x:Key="Home.SessionCircuits">Построено цепочек</x:String>
+  <x:String x:Key="Home.SessionCircuitsHint">Счётчик цепочек уровня сессии от подключений и смены личности.</x:String>
+  <x:String x:Key="Home.SessionIdentityChanges">Смены личности</x:String>
+  <x:String x:Key="Home.SessionIdentityChangesHint">Запросы новой личности в течение этой сессии приложения.</x:String>
+  <x:String x:Key="Home.SessionUptime">Время работы</x:String>
+  <x:String x:Key="Home.SessionUptimeHint">Текущее время подключения для этой сессии.</x:String>
+  <x:String x:Key="Home.PortHint">Конечная точка SOCKS, зарезервированная для клиентов с поддержкой Tor.</x:String>
+  <x:String x:Key="Home.HttpPortHint">Порт HTTP-моста, используемый при активном локальном HTTP-туннелировании.</x:String>
+
+  <!-- V3 Settings -->
+  <x:String x:Key="Settings.AutoConnectHint">Запуск приложения с готовностью к подключению без лишних кликов.</x:String>
+  <x:String x:Key="Settings.AutoStartHint">Управляет тем, запускается ли OnionHop вместе с сеансом рабочего стола.</x:String>
+  <x:String x:Key="Settings.MinimizeToTrayHint">Закрытие окна оставляет OnionHop работать в трее/строке меню.</x:String>
+  <x:String x:Key="Settings.AutoUpdateHint">Проверяет метаданные выпусков на GitHub и показывает более новые сборки.</x:String>
+  <x:String x:Key="Settings.DiscordStatusHint">Необязательное расширенное присутствие. Трафик и содержимое просмотра не передаются.</x:String>
+  <x:String x:Key="Settings.AppearanceModeHint">Подготовлено для будущего светлого режима без изменения поведения серверной части.</x:String>
+  <x:String x:Key="Settings.AccentColor">Акцентный цвет</x:String>
+  <x:String x:Key="Settings.AccentColorHint">Меняет акцент интерфейса без изменения поведения маршрутизации.</x:String>
+  <x:String x:Key="Settings.LanguageHint">Только локализация интерфейса. Поведение подключения не меняется.</x:String>
+  <x:String x:Key="Settings.NativeChromeHint">Использовать системные элементы заголовка там, где интеграция платформы выглядит лучше.</x:String>
+  <x:String x:Key="Settings.PrivacySecurity">Конфиденциальность &amp; безопасность</x:String>
+  <x:String x:Key="Settings.ClearSessionDataOnDisconnect">Очищать данные сессии при отключении</x:String>
+  <x:String x:Key="Settings.ClearSessionDataOnDisconnectHint">Очищает текущие журналы и счётчики сессии после остановки туннеля.</x:String>
+  <x:String x:Key="Settings.BlockLanAccess">Блокировать доступ из LAN</x:String>
+  <x:String x:Key="Settings.BlockLanAccessHint">По умолчанию держит локальные прокси-слушатели вне вашей LAN.</x:String>
+  <x:String x:Key="Settings.DnsLeakProtection">Защита от утечек DNS</x:String>
+  <x:String x:Key="Settings.DnsLeakProtectionHint">Принудительно направляет весь DNS через Tor, чтобы обычные запросы не утекали к вашему ISP. В режиме прокси требуются права администратора (Windows); режим TUN/VPN всегда маршрутизирует DNS через Tor. Примечание: не останавливает утечки IP через WebRTC/UDP — для этого используйте режим TUN/VPN.</x:String>
+  <x:String x:Key="Settings.ClipboardProtection">Защита буфера обмена</x:String>
+  <x:String x:Key="Settings.ClipboardProtectionHint">Очищает скопированные OnionHop значения через короткую задержку, если буфер обмена не изменялся.</x:String>
+  <x:String x:Key="Settings.ResetDescription">Восстановить настройки по умолчанию и очистить текущие счётчики сессии.</x:String>
+  <x:String x:Key="Settings.TorEngineSection">Движок Tor</x:String>
+  <x:String x:Key="Settings.TorEngine">Предпочтение среды выполнения</x:String>
+  <x:String x:Key="Settings.TorEngineAutomatic">Автоматически (рекомендуется)</x:String>
+  <x:String x:Key="Settings.TorEngineClassic">Классическая стабильная</x:String>
+  <x:String x:Key="Settings.TorEngineArti">Arti нового поколения</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop быстрый (2 узла)</x:String>
+  <x:String x:Key="Settings.TorEngineHint">Автоматически использует классическую среду выполнения, если не выбрана поддерживаемая среда Arti.</x:String>
+  <x:String x:Key="Settings.TorEnginePreviewHint">Arti запускает локальную среду SOCKS, когда бинарник arti встроен, находится в PATH или задан через ONIONHOP_ARTI_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop использует укороченные цепочки из 2 узлов (Сторож→Выход) для меньшей задержки — быстрее стандартного Tor, но слабее анонимность. Требует бинарник artihop встроенным, в PATH или заданным через ONIONHOP_ARTIHOP_PATH.</x:String>
+
+  <!-- Snowflake proxy (volunteer) -->
+  <x:String x:Key="Snowflake.SectionTitle">Мост Snowflake (волонтёрский)</x:String>
+  <x:String x:Key="Snowflake.SectionHint">Запустите прокси Snowflake, чтобы помочь пользователям с цензурой получить доступ к Tor. Он передаёт трафик других людей через WebRTC и не зависит от вашего собственного подключения — он не маршрутизирует ваш трафик. Лучше всего работает на неограниченном/full-cone NAT.</x:String>
+  <x:String x:Key="Snowflake.Enable">Работать как прокси Snowflake</x:String>
+  <x:String x:Key="Snowflake.EnableHint">Начать/остановить волонтёрство сейчас. Требуется бинарник snowflake-proxy (собранный download-deps.ps1 с Go или заданный через ONIONHOP_SNOWFLAKE_PROXY_PATH).</x:String>
+  <x:String x:Key="Snowflake.AutoStart">Запускать прокси Snowflake при старте OnionHop</x:String>
+  <x:String x:Key="Snowflake.AutoStartHint">Автоматически начинать волонтёрство при каждом запуске приложения.</x:String>
+  <x:String x:Key="Snowflake.Capacity">Макс. одновременных клиентов</x:String>
+  <x:String x:Key="Snowflake.CapacityHint">0 = без ограничений. Ограничивает, скольким пользователям с цензурой вы помогаете одновременно.</x:String>
+  <x:String x:Key="Snowflake.Status">Статус</x:String>
+  <x:String x:Key="Snowflake.StatusStopped">Не запущено.</x:String>
+  <x:String x:Key="Snowflake.StatusRunning">Работает — тип NAT: {0}, обслужено подключений за эту сессию: {1}.</x:String>
+  <x:String x:Key="Snowflake.StatusUnavailable">Бинарник прокси Snowflake не найден. Соберите его с помощью download-deps.ps1 (нужен Go) или задайте ONIONHOP_SNOWFLAKE_PROXY_PATH.</x:String>
+  <x:String x:Key="Settings.RelayRefreshInterval">Интервал обновления данных реле</x:String>
+  <x:String x:Key="Settings.RelayRefreshIntervalHint">Управляет тем, как часто метаданные реле должны обновляться в будущих итерациях.</x:String>
+  <x:String x:Key="Settings.RelayRefreshSixHours">Каждые 6 часов</x:String>
+  <x:String x:Key="Settings.RelayRefreshTwelveHours">Каждые 12 часов</x:String>
+  <x:String x:Key="Settings.RelayRefreshTwentyFourHours">Каждые 24 часа</x:String>
+  <x:String x:Key="Settings.UpdateChannel">Канал обновлений</x:String>
+  <x:String x:Key="Settings.UpdateChannelHint">Стабильный использует опубликованные выпуски. Предварительный оставляет место для бета-версий позже.</x:String>
+  <x:String x:Key="Settings.UpdateChannelStable">Стабильный</x:String>
+  <x:String x:Key="Settings.UpdateChannelPreview">Предварительный</x:String>
+  <x:String x:Key="Settings.UseBridgesHint">Мосты предназначены для сопротивления цензуре, а не для обычной смены местоположения.</x:String>
+  <x:String x:Key="Settings.BridgeTypeHint">Выберите семейство транспортов, которое OnionHop должен предпочитать при включённых мостах.</x:String>
+  <x:String x:Key="Settings.PreferredSocksPortHint">Полезно, когда другая локальная служба уже занимает порт по умолчанию.</x:String>
+  <x:String x:Key="Settings.PreferredHttpPortHint">Резервируется только при запуске локального HTTP-моста.</x:String>
+  <x:String x:Key="Settings.ExitLocation">Точка выхода</x:String>
+  <x:String x:Key="Settings.ExitLocationAdvancedHint">Ручная настройка выхода — для опытных пользователей и может снизить анонимность или надёжность.</x:String>
+  <x:String x:Key="Settings.BlockQuicHint">Предотвращает обход QUIC трафика браузера, маршрутизируемого через Tor, в гибридном режиме.</x:String>
+  <x:String x:Key="Settings.BlockUdpHint">Блокирует UDP в режиме TUN по умолчанию, поскольку Tor не передаёт UDP.</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageHint">Необязательная цель запуска после успешного подключения.</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageHint">Необязательная страница для повторного открытия при остановке туннеля.</x:String>
+
+  <!-- V3 Logs -->
+  <x:String x:Key="Logs.Subtitle">Только локальная диагностика с фильтрацией по источнику и важности.</x:String>
+  <x:String x:Key="Logs.Search">Поиск в журналах</x:String>
+  <x:String x:Key="Logs.FilterAll">Все</x:String>
+  <x:String x:Key="Logs.LevelInfo">Инфо</x:String>
+  <x:String x:Key="Logs.LevelWarning">Предупреждение</x:String>
+  <x:String x:Key="Logs.LevelError">Ошибка</x:String>
+  <x:String x:Key="Logs.ColumnTime">Время</x:String>
+  <x:String x:Key="Logs.ColumnLevel">Уровень</x:String>
+  <x:String x:Key="Logs.ColumnSource">Источник</x:String>
+  <x:String x:Key="Logs.ColumnMessage">Сообщение</x:String>
+  <x:String x:Key="Logs.EmptyTitle">Нет записей журнала, соответствующих текущему виду</x:String>
+  <x:String x:Key="Logs.EmptyDescription">Попробуйте другую вкладку, очистите текст поиска или дождитесь новой активности среды выполнения.</x:String>
+  <x:String x:Key="Logs.Summary">Сводка</x:String>
+  <x:String x:Key="Logs.TotalEntries">Всего записей</x:String>
+  <x:String x:Key="Logs.ActiveSources">Активные источники</x:String>
+  <x:String x:Key="Logs.LocalOnly">Только локально</x:String>
+  <x:String x:Key="Logs.Pause">Пауза</x:String>
+  <x:String x:Key="Logs.AutoScroll">Автопрокрутка</x:String>
+  <x:String x:Key="Logs.FooterHint">Пауза останавливает обновление отфильтрованного вида; базовые журналы среды выполнения продолжают буферизоваться локально.</x:String>
+
+  <!-- V3 Relays -->
+  <x:String x:Key="Relays.Title">Браузер реле</x:String>
+  <x:String x:Key="Relays.Subtitle">Просмотр актуального каталога Tor без представления реле как обычных местоположений VPN.</x:String>
+  <x:String x:Key="Relays.Refresh">Обновить</x:String>
+  <x:String x:Key="Relays.Search">Поиск по псевдониму, отпечатку, стране или IP</x:String>
+  <x:String x:Key="Relays.AllCountries">Все страны</x:String>
+  <x:String x:Key="Relays.AllRoles">Все роли</x:String>
+  <x:String x:Key="Relays.AllFlags">Все флаги</x:String>
+  <x:String x:Key="Relays.AnyBandwidth">Любая пропускная способность</x:String>
+  <x:String x:Key="Relays.Warning">Ручной выбор реле и выхода может снизить анонимность.</x:String>
+  <x:String x:Key="Relays.WarningHint">Используйте ручные настройки только если понимаете компромиссы конфиденциальности и путь восстановления.</x:String>
+  <x:String x:Key="Relays.ColumnNickname">Псевдоним</x:String>
+  <x:String x:Key="Relays.ColumnCountry">Страна</x:String>
+  <x:String x:Key="Relays.ColumnRole">Роль</x:String>
+  <x:String x:Key="Relays.ColumnBandwidth">Пропускная способность</x:String>
+  <x:String x:Key="Relays.ColumnUptime">Время работы</x:String>
+  <x:String x:Key="Relays.EmptyTitle">Нет реле, соответствующих текущим фильтрам</x:String>
+  <x:String x:Key="Relays.EmptyDescription">Расширьте запрос или ослабьте фильтры пропускной способности и флагов.</x:String>
+  <x:String x:Key="Relays.Details">Выбранное реле</x:String>
+  <x:String x:Key="Relays.CopyFingerprint">Копировать отпечаток</x:String>
+  <x:String x:Key="Relays.SelectRelay">Выберите реле</x:String>
+  <x:String x:Key="Relays.SelectRelayHint">Здесь появятся сведения о реле, флаги и экспериментальные элементы управления выходом.</x:String>
+  <x:String x:Key="Relays.FieldFingerprint">Отпечаток</x:String>
+  <x:String x:Key="Relays.FieldCountry">Страна</x:String>
+  <x:String x:Key="Relays.FieldAddress">Адрес</x:String>
+  <x:String x:Key="Relays.FieldPort">Порт OR</x:String>
+  <x:String x:Key="Relays.FieldBandwidth">Пропускная способность</x:String>
+  <x:String x:Key="Relays.FieldUptime">Время работы</x:String>
+  <x:String x:Key="Relays.FieldAdded">Добавлено</x:String>
+  <x:String x:Key="Relays.FieldFlags">Флаги</x:String>
+  <x:String x:Key="Relays.UseAsPreferredExit">Использовать как предпочитаемый выход (экспериментально)</x:String>
+  <x:String x:Key="Relays.SelectExitRelayFirst">Сначала выберите выходное реле</x:String>
+  <x:String x:Key="Relays.UseAsPreferredExitHint">Закрепляет это реле как строгий ручной выход. Это может снизить анонимность и доступность.</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuard">Использовать как предпочитаемый сторож (экспериментально)</x:String>
+  <x:String x:Key="Relays.SelectGuardRelayFirst">Сначала выберите сторожевое реле</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuardHint">Закрепляет это реле как строгий ручной сторож. Это может снизить анонимность и доступность.</x:String>
+  <x:String x:Key="Relays.UseAsPreferredMiddle">Использовать как предпочитаемое промежуточное (экспериментально)</x:String>
+  <x:String x:Key="Relays.SelectMiddleRelayFirst">Сначала выберите промежуточное реле</x:String>
+  <x:String x:Key="Relays.UseAsPreferredMiddleHint">Закрепляет это реле как строгое ручное промежуточное. Это может снизить анонимность и доступность.</x:String>
+  <x:String x:Key="Relays.PreferenceSaved">Предпочитаемый {0} сохранён для {1}.</x:String>
+  <x:String x:Key="Relays.MapPlaceholderTitle">География сети</x:String>
+  <x:String x:Key="Relays.MapPlaceholderHint">Зарезервировано для будущего вида цепочки на основе карты. Текущая оболочка оставляет место честным, а не имитирует географию.</x:String>
+  <x:String x:Key="Relays.Bandwidth1Mb">Минимум 1 МБ/с</x:String>
+  <x:String x:Key="Relays.Bandwidth10Mb">Минимум 10 МБ/с</x:String>
+  <x:String x:Key="Relays.Bandwidth50Mb">Минимум 50 МБ/с</x:String>
+  <x:String x:Key="Relays.RoleGuard">Сторож</x:String>
+  <x:String x:Key="Relays.RoleMiddle">Промежуточный</x:String>
+  <x:String x:Key="Relays.RoleExit">Выход</x:String>
+
+  <!-- V3 Status -->
+  <x:String x:Key="Status.Connection">Подключение</x:String>
+  <x:String x:Key="Status.Protection">Защита</x:String>
+  <x:String x:Key="Status.Engine">Движок</x:String>
+  <x:String x:Key="Status.Update">Обновление</x:String>
+  <x:String x:Key="Status.ProtectionSystem">Системная маршрутизация активна</x:String>
+  <x:String x:Key="Status.ProtectionProxy">Маршрутизация через прокси активна</x:String>
+  <x:String x:Key="Status.ProtectionOff">Защита неактивна</x:String>
+  <x:String x:Key="Status.ProtectionOffDetail">Сейчас трафик использует ваш обычный сетевой путь.</x:String>
+  <x:String x:Key="Status.EngineClassicDetail">Классическая среда выполнения активна сегодня.</x:String>
+  <x:String x:Key="Status.EngineAutomaticDetail">Автоматически сейчас сводится к классической среде выполнения.</x:String>
+  <x:String x:Key="Status.UpdateChecksOff">Проверки обновлений отключены</x:String>
+  <x:String x:Key="Status.UpdateChecking">Проверка обновлений</x:String>
+  <x:String x:Key="Status.UpdateUnknown">Статус обновления недоступен</x:String>
+  <x:String x:Key="Status.UpdateAvailable">Доступно обновление: {0}</x:String>
+  <x:String x:Key="Status.UpdateCurrent">Актуальная версия</x:String>
 </ResourceDictionary>

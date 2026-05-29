@@ -1,27 +1,487 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- Simplified Chinese. Keys not present here fall back to English (see LocalizationService). -->
+  <!-- Common -->
   <x:String x:Key="Common.Search">搜索</x:String>
 
+  <!-- Navigation -->
   <x:String x:Key="Nav.Home">主页</x:String>
   <x:String x:Key="Nav.Settings">设置</x:String>
-  <x:String x:Key="Nav.Relays">中继</x:String>
   <x:String x:Key="Nav.Scanner">扫描器</x:String>
   <x:String x:Key="Nav.Logs">日志</x:String>
   <x:String x:Key="Nav.About">关于</x:String>
 
+  <!-- Bridge Scanner -->
+  <x:String x:Key="Scanner.Title">网桥扫描器</x:String>
+  <x:String x:Key="Scanner.Subtitle">通过 TCP-ping 测试网桥，找出可从你所在地区连接的网桥。绿色 = 可连接，琥珀色 = 慢，红色 = 被封锁/无法连接。导出可用网桥，或将其作为自定义网桥应用。</x:String>
+  <x:String x:Key="Scanner.Category">类别</x:String>
+  <x:String x:Key="Scanner.Transport">传输方式</x:String>
+  <x:String x:Key="Scanner.IpVersion">IP</x:String>
+  <x:String x:Key="Scanner.Workers">并发数</x:String>
+  <x:String x:Key="Scanner.Timeout">超时（秒）</x:String>
+  <x:String x:Key="Scanner.CustomSource">自定义列表</x:String>
+  <x:String x:Key="Scanner.CustomSourceHint">扫描你自己粘贴的网桥行，而不是收集器列表。</x:String>
+  <x:String x:Key="Scanner.CustomWatermark">在此粘贴网桥行，每行一条（例如 obfs4 1.2.3.4:443 FINGERPRINT cert=... iat-mode=0）</x:String>
+  <x:String x:Key="Scanner.Start">开始扫描</x:String>
+  <x:String x:Key="Scanner.Stop">停止</x:String>
+  <x:String x:Key="Scanner.Export">导出可用网桥</x:String>
+  <x:String x:Key="Scanner.ApplyAsCustom">将可用网桥用作网桥</x:String>
+  <x:String x:Key="Scanner.ColType">网桥类型</x:String>
+  <x:String x:Key="Scanner.ColHost">主机</x:String>
+  <x:String x:Key="Scanner.ColPort">端口</x:String>
+  <x:String x:Key="Scanner.ColPing">延迟（毫秒）</x:String>
+  <x:String x:Key="Scanner.ColStatus">状态</x:String>
+  <x:String x:Key="Scanner.EmptyTitle">暂无扫描结果</x:String>
+  <x:String x:Key="Scanner.EmptyDescription">选择一个类别/传输方式并点击“开始扫描”，或粘贴自定义列表。</x:String>
+
+  <!-- Home -->
+  <x:String x:Key="Home.Title">连接</x:String>
+  <x:String x:Key="Home.CurrentIp">当前 IP</x:String>
+  <x:String x:Key="Home.SocksPort">SOCKS 端口</x:String>
+  <x:String x:Key="Home.HttpPort">HTTP 端口</x:String>
+  <x:String x:Key="Home.ManualExitFingerprint">手动出口指纹</x:String>
   <x:String x:Key="Home.Connect">连接</x:String>
   <x:String x:Key="Home.Disconnect">断开连接</x:String>
   <x:String x:Key="Home.Cancel">取消</x:String>
   <x:String x:Key="Home.RefreshIp">刷新 IP</x:String>
   <x:String x:Key="Home.NewIdentity">新身份</x:String>
-  <x:String x:Key="Home.CurrentIp">当前 IP</x:String>
-  <x:String x:Key="Home.EngineMode">Tor 引擎</x:String>
-  <x:String x:Key="Home.RoutingPreferences">路由与首选项</x:String>
-  <x:String x:Key="Home.SmartConnect">智能连接（推荐）</x:String>
-  <x:String x:Key="Home.Mode">模式</x:String>
-  <x:String x:Key="Home.ExitLocation">出口位置</x:String>
-  <x:String x:Key="Home.RecentActivity">最近会话活动</x:String>
   <x:String x:Key="Home.SystemProxyOn">系统代理：开</x:String>
   <x:String x:Key="Home.SystemProxyOff">系统代理：关</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">在不断开 Tor 的情况下开启/关闭系统代理。关闭时，系统流量将直连（例如以使用单独的 VPN），而 Tor 保持连接；指向 SOCKS 端口的应用仍使用 Tor。</x:String>
+  <x:String x:Key="Home.BridgeDataAutoUpdates">网桥数据自动更新</x:String>
+  <x:String x:Key="Home.BridgeDataLastUpdateUnknown">网桥数据上次更新：尚未更新。</x:String>
+  <x:String x:Key="Home.BridgeDataLastUpdateValue">网桥数据上次更新：{0}</x:String>
+  <x:String x:Key="Home.Routing">路由</x:String>
+  <x:String x:Key="Home.SmartConnect">智能连接（推荐）</x:String>
+  <x:String x:Key="Home.SmartConnectHint">自动为你的网络和国家/地区情况选择最佳 Tor 连接策略。启用后，网桥/反审查设置可能会被覆盖。</x:String>
+  <x:String x:Key="Home.Mode">模式</x:String>
+  <x:String x:Key="Home.ModeProxy">代理模式（推荐）</x:String>
+  <x:String x:Key="Home.ModeTun">TUN/VPN 模式（管理员）</x:String>
+  <x:String x:Key="Home.Automatic">自动</x:String>
+  <x:String x:Key="Home.ExitLocation">出口位置</x:String>
+  <x:String x:Key="Home.ExitLocationManualHint">已设置手动出口指纹。出口位置已禁用。</x:String>
+  <x:String x:Key="Home.TorNetwork">Tor 网络</x:String>
+  <x:String x:Key="Home.TorNetworkHint">显示 Tor 自身的流量（来自控制端口）。</x:String>
+  <x:String x:Key="Home.TunOptions">TUN/VPN 选项</x:String>
+  <x:String x:Key="Home.HybridRouting">混合路由（分流隧道）</x:String>
+  <x:String x:Key="Home.KillSwitch">断网保护（仅限严格 TUN）</x:String>
+  <x:String x:Key="Home.KillSwitchHint">断网保护需要管理员权限，且在混合模式下被禁用。</x:String>
+  <x:String x:Key="Home.ConnectionElapsed">已连接</x:String>
+  <x:String x:Key="Home.DownloadingComponents">正在下载组件...</x:String>
+  <x:String x:Key="Home.QuickActions">快捷操作</x:String>
+
+  <!-- Logs -->
+  <x:String x:Key="Logs.Title">日志</x:String>
+  <x:String x:Key="Logs.TabApp">应用</x:String>
+  <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.TabXray">Xray</x:String>
+  <x:String x:Key="Logs.TabSingBox">Sing-box</x:String>
+  <x:String x:Key="Logs.Copy">复制</x:String>
+  <x:String x:Key="Logs.Export">导出...</x:String>
+  <x:String x:Key="Logs.Clear">清除</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">提示：日志仅保存在本地。</x:String>
+
+  <!-- About -->
+  <x:String x:Key="About.Title">关于</x:String>
+  <x:String x:Key="About.Links">链接</x:String>
+  <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
+  <x:String x:Key="About.Discord">Discord</x:String>
+  <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.Changelog">OnionHop 历史</x:String>
+  <x:String x:Key="About.Refresh">刷新</x:String>
+  <x:String x:Key="About.ChangelogDetails">详情</x:String>
+  <x:String x:Key="About.ChangelogDetailsExpand">详情 +</x:String>
+  <x:String x:Key="About.ChangelogDetailsCollapse">详情 -</x:String>
+  <x:String x:Key="About.ChangelogLoading">正在从 GitHub 加载更新日志条目...</x:String>
+  <x:String x:Key="About.ChangelogLoaded">更新日志已加载。</x:String>
+  <x:String x:Key="About.ChangelogFailed">目前无法加载更新日志历史。请检查你的连接并尝试刷新。</x:String>
+  <x:String x:Key="About.ChangelogEmpty">未找到任何发布条目。</x:String>
+  <x:String x:Key="About.ChangelogSummaryLoading">正在获取发布历史...</x:String>
+  <x:String x:Key="About.ChangelogSummaryEmpty">发布历史尚未加载。</x:String>
+  <x:String x:Key="About.ChangelogSummaryRange">显示从 {1} 到 {2} 的 {0} 个版本。</x:String>
+  <x:String x:Key="About.ChangelogTypeRelease">正式版</x:String>
+  <x:String x:Key="About.ChangelogTypeBeta">Beta / 预发布版</x:String>
+  <x:String x:Key="About.ChangelogDateUnknown">日期未知</x:String>
+  <x:String x:Key="About.ChangelogNotesMissing">此版本未提供更新日志说明。</x:String>
+  <x:String x:Key="About.Subtitle">OnionHop 历史、项目链接和发布说明。</x:String>
+  <x:String x:Key="About.ProductName">OnionHop V3</x:String>
+  <x:String x:Key="About.Tagline">用于 Tor 路由、身份切换和网桥感知连接选择的轻量级桌面控制界面。</x:String>
+  <x:String x:Key="About.BuildRuntime">构建与运行时</x:String>
+  <x:String x:Key="About.Version">版本</x:String>
+  <x:String x:Key="About.Engine">Tor 引擎</x:String>
+  <x:String x:Key="About.UpdateState">更新状态</x:String>
+  <x:String x:Key="About.LocalOnly">本地诊断</x:String>
+  <x:String x:Key="About.LocalOnlyHint">除非你明确导出，否则日志和会话活动将保留在此设备上。</x:String>
+  <x:String x:Key="About.LinksHint">项目链接将在你的默认浏览器中打开。</x:String>
+  <x:String x:Key="About.ShowHistory">显示历史</x:String>
+  <x:String x:Key="About.HideHistory">隐藏历史</x:String>
+
+  <!-- Settings -->
+  <x:String x:Key="Settings.TabGeneral">常规</x:String>
+  <x:String x:Key="Settings.TabNetwork">网络</x:String>
+  <x:String x:Key="Settings.TabAdvanced">高级</x:String>
+  <x:String x:Key="Settings.StartupBehavior">启动与行为</x:String>
+  <x:String x:Key="Settings.AutoConnect">启动时自动连接</x:String>
+  <x:String x:Key="Settings.AutoStart">开机自启</x:String>
+  <x:String x:Key="Settings.AutoStartOff">关闭</x:String>
+  <x:String x:Key="Settings.AutoStartOn">开启</x:String>
+  <x:String x:Key="Settings.AutoStartMinimized">开启（最小化）</x:String>
+  <x:String x:Key="Settings.MinimizeToTray">关闭时最小化到托盘</x:String>
+  <x:String x:Key="Settings.AutoUpdate">检查更新</x:String>
+  <x:String x:Key="Settings.Appearance">外观</x:String>
+  <x:String x:Key="Settings.AppearanceMode">主题模式</x:String>
+  <x:String x:Key="Settings.AppearanceSystemDefault">跟随系统</x:String>
+  <x:String x:Key="Settings.AppearanceDark">深色</x:String>
+  <x:String x:Key="Settings.AppearanceLight">浅色</x:String>
+  <x:String x:Key="Settings.DarkMode">深色模式</x:String>
+  <x:String x:Key="Settings.NativeChrome">使用原生窗口外框（标题栏/按钮）</x:String>
+  <x:String x:Key="Settings.Language">语言</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">在主页显示高级连接详情</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">在主页卡片上显示活动的 SOCKS/HTTP 端口和手动出口指纹状态。</x:String>
+  <x:String x:Key="Settings.Maintenance">维护</x:String>
+  <x:String x:Key="Settings.ResetHint">将所有 OnionHop V3 设置恢复为默认值。</x:String>
+  <x:String x:Key="Settings.RestoreDefaults">恢复默认设置</x:String>
+
+  <x:String x:Key="Settings.BridgesTitle">网桥与受审查网络</x:String>
+  <x:String x:Key="Settings.UseBridges">使用 Tor 网桥（obfs4/snowflake 等）</x:String>
+  <x:String x:Key="Settings.BridgeType">网桥类型</x:String>
+  <x:String x:Key="Settings.BridgeSource">网桥来源</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">“自动”会先尝试 Tor 网桥服务，如果获取失败再切换到本地离线列表。</x:String>
+  <x:String x:Key="Settings.BridgeSourceCredits">离线网桥备用数据：Tor-Bridges-Namer，由 Chara-Freedom 及贡献者提供。</x:String>
+  <x:String x:Key="Settings.CustomBridges">自定义网桥（可选，覆盖内置网桥）</x:String>
+  <x:String x:Key="Settings.CustomBridgesWatermark">从 bridges.torproject.org 粘贴网桥行...</x:String>
+  <x:String x:Key="Settings.CustomSni">自定义 SNI/前置主机（可选）</x:String>
+  <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Snowflake：使用 AMP 缓存（适用于被封锁的网络）</x:String>
+  <x:String x:Key="Settings.AmpCacheUrl">AMP 缓存 URL（可选）</x:String>
+  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
+  <x:String x:Key="Settings.ProxyModeTitle">代理模式</x:String>
+  <x:String x:Key="Settings.ProxyScope">代理行为</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">系统代理（所有应用）会设置 HTTP/HTTPS + SOCKS。SOCKS 浏览器/.onion 模式仅设置 SOCKS，以便在浏览器中获得更好的 .onion 兼容性。“仅本地”则保持系统代理设置不变，以便手动配置应用。</x:String>
+  <x:String x:Key="Settings.PreferredSocksPort">首选 SOCKS 端口</x:String>
+  <x:String x:Key="Settings.PreferredHttpPort">首选 HTTP 隧道端口</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccess">允许 LAN 代理访问</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccessHint">在本地网络接口上开放 Tor 代理端口，以便其他设备可以连接。除非你信任你的 LAN，否则请保持禁用。</x:String>
+
+  <x:String x:Key="Settings.SecureDns">VPN 模式下的安全 DNS（DoH）</x:String>
+  <x:String x:Key="Settings.DnsProvider">DNS 提供商</x:String>
+  <x:String x:Key="Settings.DnsProviderHint">“自动”会对内置 DoH 提供商进行性能测试，并选择最快且健康的一个。手动选择的提供商在无法连接时会自动回退。</x:String>
+  <x:String x:Key="Settings.CustomDohHost">自定义 DoH 主机 / URL</x:String>
+  <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com 或 https://dns.example:443</x:String>
+  <x:String x:Key="Settings.CustomDohPath">自定义 DoH 路径</x:String>
+  <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
+  <x:String x:Key="Settings.OnionDnsProxy">通过 Tor 代理 .onion DNS（管理员）</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">启用并以提升的权限运行时，.onion DNS 查询将通过 Tor 路由。</x:String>
+
+  <x:String x:Key="Settings.TorAdvanced">Tor 高级</x:String>
+  <x:String x:Key="Settings.TorAdvancedHint">分组控件有助于保持此部分易读。仅展开你需要的内容。</x:String>
+  <x:String x:Key="Settings.AdvancedPerformanceSection">性能与兼容性</x:String>
+  <x:String x:Key="Settings.AdvancedTunSection">TUN 引擎</x:String>
+  <x:String x:Key="Settings.AdvancedTunSectionHint">仅在 TUN/VPN 模式下生效。除非需要兼容性调整，否则请使用默认值。</x:String>
+  <x:String x:Key="Settings.TunCore">TUN 核心</x:String>
+  <x:String x:Key="Settings.TunStack">TUN 协议栈</x:String>
+  <x:String x:Key="Settings.TunMtu">TUN MTU（可选）</x:String>
+  <x:String x:Key="Settings.TunMtuWatermark">留空 = 默认（自动）</x:String>
+  <x:String x:Key="Settings.TunStrictRoute">严格路由</x:String>
+  <x:String x:Key="Settings.TunStrictRouteHint">启用后，路由必须保持在 TUN 路径中。仅在排查困难网络问题时禁用。</x:String>
+  <x:String x:Key="Settings.AdvancedTrafficRulesSection">流量限制</x:String>
+  <x:String x:Key="Settings.AdvancedManualExitSection">手动出口覆盖</x:String>
+  <x:String x:Key="Settings.EntryNode">入口节点（可选）</x:String>
+  <x:String x:Key="Settings.EntryNodeHint">入口节点不能与网桥同时使用。</x:String>
+  <x:String x:Key="Settings.IPv6Support">IPv6 支持</x:String>
+  <x:String x:Key="Settings.HardwareAccel">硬件加速</x:String>
+  <x:String x:Key="Settings.ConnectionPadding">连接填充</x:String>
+  <x:String x:Key="Settings.OptionDefault">默认</x:String>
+  <x:String x:Key="Settings.OptionEnabled">启用</x:String>
+  <x:String x:Key="Settings.OptionDisabled">禁用</x:String>
+  <x:String x:Key="Settings.ConnectionPaddingAuto">自动（推荐）</x:String>
+  <x:String x:Key="Settings.MaxCircuitInactivity">最大链路闲置时间（分钟）</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSeconds">连接超时（秒）</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">留空 = 自动，0 = 禁用</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">留空以使用 OnionHop 默认值，设为 0 以禁用超时，或输入 1-3600 以设置固定超时。</x:String>
+  <x:String x:Key="Settings.RestrictedFirewallMode">受限防火墙模式</x:String>
+  <x:String x:Key="Settings.AllowedPorts">允许的端口</x:String>
+  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
+  <x:String x:Key="Settings.EntryExitTip">提示：限制入口/出口节点可能会降低可靠性和速度。</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprint">手动出口节点指纹</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprintWatermark">可选（例如 $FINGERPRINT）</x:String>
+  <x:String x:Key="Settings.ManualEntryFingerprint">手动守卫节点指纹</x:String>
+  <x:String x:Key="Settings.ManualEntryFingerprintWatermark">可选守卫指纹（例如 $FINGERPRINT）</x:String>
+  <x:String x:Key="Settings.ManualMiddleFingerprint">手动中间节点指纹</x:String>
+  <x:String x:Key="Settings.ManualMiddleFingerprintWatermark">可选中间节点指纹（例如 $FINGERPRINT）</x:String>
+  <x:String x:Key="Settings.StrictManualEntryFingerprint">严格手动守卫指纹（不可用时失败）</x:String>
+  <x:String x:Key="Settings.StrictManualEntryFingerprintHint">禁用此项可在所选指纹不可用时允许回退守卫节点。</x:String>
+  <x:String x:Key="Settings.StrictManualMiddleFingerprint">严格手动中间节点指纹（不可用时失败）</x:String>
+  <x:String x:Key="Settings.StrictManualMiddleFingerprintHint">禁用此项可在所选指纹不可用时允许回退中间中继。</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprint">严格手动出口指纹（不可用时失败）</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprintHint">禁用此项可在所选指纹不可用时允许回退出口节点。</x:String>
+
+  <x:String x:Key="Settings.SplitTunnelingTitle">分流隧道（混合模式）</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">在混合模式下，你可以选择哪些应用使用 Tor、哪些直连。每行一个进程名（例如：在 Linux/macOS 上为 chrome，在 Windows 上为 chrome.exe）。</x:String>
+  <x:String x:Key="Settings.RouteAllWebTraffic">通过 Tor 路由所有 Web 流量（端口 80/443）</x:String>
+  <x:String x:Key="Settings.BlockQuic">为 Tor 应用阻止 QUIC/UDP（防止绕过泄露）</x:String>
+  <x:String x:Key="Settings.BlockUdp">阻止 UDP 流量</x:String>
+  <x:String x:Key="Settings.TorApps">通过 Tor 路由的应用（混合模式）</x:String>
+  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
+  <x:String x:Key="Settings.BypassApps">绕过 Tor 的应用（可选）</x:String>
+  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
+  <x:String x:Key="Settings.SplitTunnelingEnableHint">在主页上启用 TUN/VPN 模式 + 混合路由以使用分流隧道。</x:String>
+
+  <x:String x:Key="Settings.AutomationTitle">自动化</x:String>
+  <x:String x:Key="Settings.OpenConnectedPage">连接时打开页面</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPage">断开时打开页面</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageWatermark">https://support.torproject.org/</x:String>
+  <x:String x:Key="Settings.DiscordStatus">启用 Discord 状态</x:String>
+
+  <!-- Bridge type labels -->
+  <x:String x:Key="BridgeType.Automatic">自动（推荐）</x:String>
+  <x:String x:Key="BridgeType.Vanilla">vanilla 网桥</x:String>
+  <x:String x:Key="BridgeType.Obfs4">obfs4</x:String>
+  <x:String x:Key="BridgeType.Snowflake">snowflake</x:String>
+  <x:String x:Key="BridgeType.Conjure">conjure</x:String>
+  <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
+  <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
+  <x:String x:Key="BridgeType.Custom">自定义</x:String>
+  <x:String x:Key="BridgeSource.Auto">自动（Tor 网桥服务 -&gt; 离线）</x:String>
+  <x:String x:Key="BridgeSource.OnlineOnly">仅 Tor 网桥服务</x:String>
+  <x:String x:Key="BridgeSource.OfflineOnly">仅离线</x:String>
+  <x:String x:Key="ProxyScope.System">系统代理（所有应用）</x:String>
+  <x:String x:Key="ProxyScope.SystemSocks">系统代理（SOCKS 浏览器/.onion）</x:String>
+  <x:String x:Key="ProxyScope.LocalOnly">仅本地代理（手动应用）</x:String>
+  <x:String x:Key="TunStack.Mixed">混合（推荐）</x:String>
+  <x:String x:Key="TunStack.System">系统</x:String>
+  <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunCore.SingBox">sing-box（推荐）</x:String>
+  <x:String x:Key="TunCore.Xray">xray（实验性）</x:String>
+
+  <!-- Language names -->
+  <x:String x:Key="Language.English">英语</x:String>
+  <x:String x:Key="Language.German">德语</x:String>
+
+  <!-- Window controls -->
+  <x:String x:Key="Window.Minimize">最小化</x:String>
+  <x:String x:Key="Window.MaximizeRestore">最大化 / 还原</x:String>
+  <x:String x:Key="Window.Close">关闭</x:String>
+
+  <!-- Runtime status -->
+  <x:String x:Key="Status.Disconnected">已断开</x:String>
+  <x:String x:Key="Status.Connected">已连接</x:String>
+  <x:String x:Key="Status.Connecting">正在连接...</x:String>
+  <x:String x:Key="Status.Disconnecting">正在断开...</x:String>
+  <x:String x:Key="Status.ReadyToRoute">准备就绪，可通过 Tor 路由流量。</x:String>
+  <x:String x:Key="Status.Resolving">正在解析...</x:String>
+  <x:String x:Key="Status.DownloadingComponentsWait">正在下载组件。请稍候。</x:String>
+  <x:String x:Key="Status.AdminRequiredRequesting">Windows 网络更改需要管理员权限。正在启动特权助手...</x:String>
+  <x:String x:Key="Status.AdminRequiredCanceled">此 Windows 网络功能需要管理员权限。连接已取消。</x:String>
+  <x:String x:Key="Status.CancelingConnect">正在取消连接尝试...</x:String>
+  <x:String x:Key="Status.DefaultsRestored">已恢复默认设置。</x:String>
+  <x:String x:Key="Status.CheckingComponents">正在检查组件...</x:String>
+
+  <!-- Tray -->
+  <x:String x:Key="Tray.Tooltip">OnionHop V3</x:String>
+  <x:String x:Key="Tray.Show">显示</x:String>
+  <x:String x:Key="Tray.Connect">连接</x:String>
+  <x:String x:Key="Tray.Disconnect">断开连接</x:String>
+  <x:String x:Key="Tray.Exit">退出</x:String>
+
+  <!-- V3 Navigation -->
+  <x:String x:Key="Nav.Relays">中继</x:String>
+  <x:String x:Key="Nav.Navigation">导航</x:String>
+
+  <!-- Common -->
+  <x:String x:Key="Common.Idle">空闲</x:String>
+
+  <!-- Accent -->
+  <x:String x:Key="Accent.Violet">紫罗兰色</x:String>
+  <x:String x:Key="Accent.Indigo">靛蓝色</x:String>
+  <x:String x:Key="Accent.Cyan">青色</x:String>
+  <x:String x:Key="Accent.Rose">玫红色</x:String>
+
+  <!-- V3 Home -->
+  <x:String x:Key="Home.V3HeroTitle">连接概览</x:String>
+  <x:String x:Key="Home.V3HeroSubtitle">实时 Tor 路由、网桥和身份状态。</x:String>
+  <x:String x:Key="Home.EngineMode">Tor 引擎</x:String>
+  <x:String x:Key="Home.CopyIp">复制 IP</x:String>
+  <x:String x:Key="Home.NetworkOverview">网络概览</x:String>
+  <x:String x:Key="Home.Download">下载</x:String>
+  <x:String x:Key="Home.Upload">上传</x:String>
+  <x:String x:Key="Home.CircuitYou">你</x:String>
+  <x:String x:Key="Home.CircuitGuard">守卫</x:String>
+  <x:String x:Key="Home.CircuitMiddle">中间</x:String>
+  <x:String x:Key="Home.CircuitExit">出口</x:String>
+  <x:String x:Key="Home.CircuitInternet">互联网</x:String>
+  <x:String x:Key="Home.CircuitBridge">网桥 / 入口</x:String>
+  <x:String x:Key="Home.CircuitMiddleActive">中继网格</x:String>
+  <x:String x:Key="Home.CircuitMiddleIdle">正在等待链路</x:String>
+  <x:String x:Key="Home.CircuitInternetIdle">尚未路由</x:String>
+  <x:String x:Key="Home.CircuitGuardHint">所选入口首选项或网桥感知路径。</x:String>
+  <x:String x:Key="Home.CircuitExitHint">当前出口首选项或手动指纹。</x:String>
+  <x:String x:Key="Home.RoutingPreferences">路由与首选项</x:String>
+  <x:String x:Key="Home.ModeHint">在轻量级代理路由和全系统 VPN 模式之间切换。</x:String>
+  <x:String x:Key="Home.ExitLocationHint">手动出口选择属于高级功能，可能影响匿名性和可用性。</x:String>
+  <x:String x:Key="Home.AdvancedPreferences">打开高级首选项</x:String>
+  <x:String x:Key="Home.RecentActivity">最近会话活动</x:String>
+  <x:String x:Key="Home.NoRecentEvents">暂无最近事件</x:String>
+  <x:String x:Key="Home.NoRecentEventsHint">本会话期间的连接、网桥和网络操作将显示在此处。</x:String>
+  <x:String x:Key="Home.SessionTransfer">已传输数据</x:String>
+  <x:String x:Key="Home.SessionTransferHint">当前 Tor 会话中观察到的总流量。</x:String>
+  <x:String x:Key="Home.SessionCircuits">已建立链路</x:String>
+  <x:String x:Key="Home.SessionCircuitsHint">来自连接和身份切换的会话级链路计数器。</x:String>
+  <x:String x:Key="Home.SessionIdentityChanges">身份切换</x:String>
+  <x:String x:Key="Home.SessionIdentityChangesHint">本应用会话期间的新身份请求。</x:String>
+  <x:String x:Key="Home.SessionUptime">运行时间</x:String>
+  <x:String x:Key="Home.SessionUptimeHint">本会话当前的已连接运行时间。</x:String>
+  <x:String x:Key="Home.PortHint">为 Tor 感知客户端预留的 SOCKS 端点。</x:String>
+  <x:String x:Key="Home.HttpPortHint">本地 HTTP 隧道激活时使用的 HTTP 网桥端口。</x:String>
+
+  <!-- V3 Settings -->
+  <x:String x:Key="Settings.AutoConnectHint">启动应用后即可连接，无需额外点击。</x:String>
+  <x:String x:Key="Settings.AutoStartHint">控制 OnionHop 是否随桌面会话一起启动。</x:String>
+  <x:String x:Key="Settings.MinimizeToTrayHint">关闭窗口后，OnionHop 仍在托盘/菜单栏中保持运行。</x:String>
+  <x:String x:Key="Settings.AutoUpdateHint">检查 GitHub 发布元数据并提示更新的版本。</x:String>
+  <x:String x:Key="Settings.DiscordStatusHint">可选的丰富状态。不会共享任何流量或浏览内容。</x:String>
+  <x:String x:Key="Settings.AppearanceModeHint">为将来的浅色模式做准备，不改变后端行为。</x:String>
+  <x:String x:Key="Settings.AccentColor">强调色</x:String>
+  <x:String x:Key="Settings.AccentColorHint">切换 UI 强调色，不改变路由行为。</x:String>
+  <x:String x:Key="Settings.LanguageHint">仅 UI 本地化。连接行为不变。</x:String>
+  <x:String x:Key="Settings.NativeChromeHint">在平台集成效果更好的地方使用原生标题栏控件。</x:String>
+  <x:String x:Key="Settings.PrivacySecurity">隐私与安全</x:String>
+  <x:String x:Key="Settings.ClearSessionDataOnDisconnect">断开时清除会话数据</x:String>
+  <x:String x:Key="Settings.ClearSessionDataOnDisconnectHint">隧道停止后清除实时日志和会话计数器。</x:String>
+  <x:String x:Key="Settings.BlockLanAccess">阻止 LAN 访问</x:String>
+  <x:String x:Key="Settings.BlockLanAccessHint">默认情况下使本地代理监听器不暴露于你的 LAN。</x:String>
+  <x:String x:Key="Settings.DnsLeakProtection">DNS 泄露保护</x:String>
+  <x:String x:Key="Settings.DnsLeakProtectionHint">强制所有 DNS 通过 Tor，以使正常查询不会泄露给你的 ISP。在代理模式下这需要管理员权限（Windows）；TUN/VPN 模式始终通过 Tor 路由 DNS。注意：这不会阻止 WebRTC/UDP IP 泄露——为此请使用 TUN/VPN 模式。</x:String>
+  <x:String x:Key="Settings.ClipboardProtection">剪贴板保护</x:String>
+  <x:String x:Key="Settings.ClipboardProtectionHint">如果剪贴板未发生更改，则在短暂延迟后清除 OnionHop 复制的值。</x:String>
+  <x:String x:Key="Settings.ResetDescription">恢复默认设置并清除当前会话计数器。</x:String>
+  <x:String x:Key="Settings.TorEngineSection">Tor 引擎</x:String>
+  <x:String x:Key="Settings.TorEngine">运行时首选项</x:String>
+  <x:String x:Key="Settings.TorEngineAutomatic">自动（推荐）</x:String>
+  <x:String x:Key="Settings.TorEngineClassic">经典稳定版</x:String>
+  <x:String x:Key="Settings.TorEngineArti">Arti 新一代</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop 快速（2 跳）</x:String>
+  <x:String x:Key="Settings.TorEngineHint">除非选择了受支持的 Arti 运行时，否则“自动”将使用经典运行时。</x:String>
+  <x:String x:Key="Settings.TorEnginePreviewHint">当 arti 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTI_PATH 设置时，Arti 会启动本地 SOCKS 运行时。</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop 使用缩短的 2 跳（守卫→出口）链路以降低延迟——比标准 Tor 更快，但匿名性较弱。需要 artihop 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTIHOP_PATH 设置。</x:String>
+
+  <!-- Snowflake proxy (volunteer) -->
+  <x:String x:Key="Snowflake.SectionTitle">Snowflake 网桥（志愿者）</x:String>
+  <x:String x:Key="Snowflake.SectionHint">运行 Snowflake 代理以帮助受审查的用户连接 Tor。这会通过 WebRTC 中继他人的流量，且独立于你自己的连接——它不会路由你的流量。在无限制/全锥型 NAT 上效果最佳。</x:String>
+  <x:String x:Key="Snowflake.Enable">作为 Snowflake 代理运行</x:String>
+  <x:String x:Key="Snowflake.EnableHint">立即开始/停止志愿服务。需要 snowflake-proxy 二进制文件（由 download-deps.ps1 配合 Go 构建，或设置 ONIONHOP_SNOWFLAKE_PROXY_PATH）。</x:String>
+  <x:String x:Key="Snowflake.AutoStart">OnionHop 启动时启动 Snowflake 代理</x:String>
+  <x:String x:Key="Snowflake.AutoStartHint">每次应用启动时自动开始志愿服务。</x:String>
+  <x:String x:Key="Snowflake.Capacity">最大并发客户端数</x:String>
+  <x:String x:Key="Snowflake.CapacityHint">0 = 无限制。限制你同时服务的受审查用户数量。</x:String>
+  <x:String x:Key="Snowflake.Status">状态</x:String>
+  <x:String x:Key="Snowflake.StatusStopped">未运行。</x:String>
+  <x:String x:Key="Snowflake.StatusRunning">运行中 — NAT 类型：{0}，本会话已服务 {1} 个连接。</x:String>
+  <x:String x:Key="Snowflake.StatusUnavailable">未找到 Snowflake 代理二进制文件。请使用 download-deps.ps1 构建它（需要 Go）或设置 ONIONHOP_SNOWFLAKE_PROXY_PATH。</x:String>
+  <x:String x:Key="Settings.RelayRefreshInterval">中继数据刷新间隔</x:String>
+  <x:String x:Key="Settings.RelayRefreshIntervalHint">控制将来迭代中刷新中继元数据的频率。</x:String>
+  <x:String x:Key="Settings.RelayRefreshSixHours">每 6 小时</x:String>
+  <x:String x:Key="Settings.RelayRefreshTwelveHours">每 12 小时</x:String>
+  <x:String x:Key="Settings.RelayRefreshTwentyFourHours">每 24 小时</x:String>
+  <x:String x:Key="Settings.UpdateChannel">更新通道</x:String>
+  <x:String x:Key="Settings.UpdateChannelHint">“稳定”使用已发布的版本。“预览”为以后的 beta 界面预留空间。</x:String>
+  <x:String x:Key="Settings.UpdateChannelStable">稳定</x:String>
+  <x:String x:Key="Settings.UpdateChannelPreview">预览</x:String>
+  <x:String x:Key="Settings.UseBridgesHint">网桥用于抵抗审查，而非用于普通的位置切换。</x:String>
+  <x:String x:Key="Settings.BridgeTypeHint">选择启用网桥时 OnionHop 应优先使用的传输族。</x:String>
+  <x:String x:Key="Settings.PreferredSocksPortHint">当另一个本地服务已占用默认端口时很有用。</x:String>
+  <x:String x:Key="Settings.PreferredHttpPortHint">仅在启动本地 HTTP 网桥时预留。</x:String>
+  <x:String x:Key="Settings.ExitLocation">出口位置</x:String>
+  <x:String x:Key="Settings.ExitLocationAdvancedHint">手动出口调整属于高级功能，可能会降低匿名性或可靠性。</x:String>
+  <x:String x:Key="Settings.BlockQuicHint">防止 QUIC 在混合模式下绕过 Tor 路由的浏览器流量。</x:String>
+  <x:String x:Key="Settings.BlockUdpHint">默认在 TUN 模式下阻止 UDP，因为 Tor 不传输 UDP。</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageHint">连接成功后可选的打开目标。</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageHint">隧道停止时可选的重新打开页面。</x:String>
+
+  <!-- V3 Logs -->
+  <x:String x:Key="Logs.Subtitle">仅本地诊断，支持按来源和严重程度筛选。</x:String>
+  <x:String x:Key="Logs.Search">搜索日志</x:String>
+  <x:String x:Key="Logs.FilterAll">全部</x:String>
+  <x:String x:Key="Logs.LevelInfo">信息</x:String>
+  <x:String x:Key="Logs.LevelWarning">警告</x:String>
+  <x:String x:Key="Logs.LevelError">错误</x:String>
+  <x:String x:Key="Logs.ColumnTime">时间</x:String>
+  <x:String x:Key="Logs.ColumnLevel">级别</x:String>
+  <x:String x:Key="Logs.ColumnSource">来源</x:String>
+  <x:String x:Key="Logs.ColumnMessage">消息</x:String>
+  <x:String x:Key="Logs.EmptyTitle">没有日志条目与当前视图匹配</x:String>
+  <x:String x:Key="Logs.EmptyDescription">尝试切换其他标签页、清除搜索文本，或等待新的运行时活动。</x:String>
+  <x:String x:Key="Logs.Summary">摘要</x:String>
+  <x:String x:Key="Logs.TotalEntries">条目总数</x:String>
+  <x:String x:Key="Logs.ActiveSources">活动来源</x:String>
+  <x:String x:Key="Logs.LocalOnly">仅本地</x:String>
+  <x:String x:Key="Logs.Pause">暂停</x:String>
+  <x:String x:Key="Logs.AutoScroll">自动滚动</x:String>
+  <x:String x:Key="Logs.FooterHint">暂停会停止刷新筛选视图；底层运行时日志会继续在本地缓冲。</x:String>
+
+  <!-- V3 Relays -->
+  <x:String x:Key="Relays.Title">中继浏览器</x:String>
+  <x:String x:Key="Relays.Subtitle">查看实时 Tor 目录，而不将中继呈现为普通的 VPN 位置。</x:String>
+  <x:String x:Key="Relays.Refresh">刷新</x:String>
+  <x:String x:Key="Relays.Search">搜索昵称、指纹、国家/地区或 IP</x:String>
+  <x:String x:Key="Relays.AllCountries">所有国家/地区</x:String>
+  <x:String x:Key="Relays.AllRoles">所有角色</x:String>
+  <x:String x:Key="Relays.AllFlags">所有标志</x:String>
+  <x:String x:Key="Relays.AnyBandwidth">任意带宽</x:String>
+  <x:String x:Key="Relays.Warning">手动选择中继和出口可能会降低匿名性。</x:String>
+  <x:String x:Key="Relays.WarningHint">仅在你了解隐私权衡和恢复路径时才使用手动首选项。</x:String>
+  <x:String x:Key="Relays.ColumnNickname">昵称</x:String>
+  <x:String x:Key="Relays.ColumnCountry">国家/地区</x:String>
+  <x:String x:Key="Relays.ColumnRole">角色</x:String>
+  <x:String x:Key="Relays.ColumnBandwidth">带宽</x:String>
+  <x:String x:Key="Relays.ColumnUptime">运行时间</x:String>
+  <x:String x:Key="Relays.EmptyTitle">没有中继与当前筛选条件匹配</x:String>
+  <x:String x:Key="Relays.EmptyDescription">放宽查询条件，或放松带宽和标志筛选。</x:String>
+  <x:String x:Key="Relays.Details">选定的中继</x:String>
+  <x:String x:Key="Relays.CopyFingerprint">复制指纹</x:String>
+  <x:String x:Key="Relays.SelectRelay">选择一个中继</x:String>
+  <x:String x:Key="Relays.SelectRelayHint">中继详情、标志和实验性出口控件将显示在此处。</x:String>
+  <x:String x:Key="Relays.FieldFingerprint">指纹</x:String>
+  <x:String x:Key="Relays.FieldCountry">国家/地区</x:String>
+  <x:String x:Key="Relays.FieldAddress">地址</x:String>
+  <x:String x:Key="Relays.FieldPort">OR 端口</x:String>
+  <x:String x:Key="Relays.FieldBandwidth">带宽</x:String>
+  <x:String x:Key="Relays.FieldUptime">运行时间</x:String>
+  <x:String x:Key="Relays.FieldAdded">添加时间</x:String>
+  <x:String x:Key="Relays.FieldFlags">标志</x:String>
+  <x:String x:Key="Relays.UseAsPreferredExit">用作首选出口（实验性）</x:String>
+  <x:String x:Key="Relays.SelectExitRelayFirst">请先选择一个出口中继</x:String>
+  <x:String x:Key="Relays.UseAsPreferredExitHint">将此中继固定为严格手动出口。这可能会降低匿名性和可用性。</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuard">用作首选守卫（实验性）</x:String>
+  <x:String x:Key="Relays.SelectGuardRelayFirst">请先选择一个守卫中继</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuardHint">将此中继固定为严格手动守卫。这可能会降低匿名性和可用性。</x:String>
+  <x:String x:Key="Relays.UseAsPreferredMiddle">用作首选中间节点（实验性）</x:String>
+  <x:String x:Key="Relays.SelectMiddleRelayFirst">请先选择一个中间中继</x:String>
+  <x:String x:Key="Relays.UseAsPreferredMiddleHint">将此中继固定为严格手动中间节点。这可能会降低匿名性和可用性。</x:String>
+  <x:String x:Key="Relays.PreferenceSaved">已为 {1} 保存首选 {0}。</x:String>
+  <x:String x:Key="Relays.MapPlaceholderTitle">网络地理</x:String>
+  <x:String x:Key="Relays.MapPlaceholderHint">为将来基于地图的链路视图预留。当前外壳保持此空间真实，而不是伪造地理信息。</x:String>
+  <x:String x:Key="Relays.Bandwidth1Mb">最低 1 MB/s</x:String>
+  <x:String x:Key="Relays.Bandwidth10Mb">最低 10 MB/s</x:String>
+  <x:String x:Key="Relays.Bandwidth50Mb">最低 50 MB/s</x:String>
+  <x:String x:Key="Relays.RoleGuard">守卫</x:String>
+  <x:String x:Key="Relays.RoleMiddle">中间</x:String>
+  <x:String x:Key="Relays.RoleExit">出口</x:String>
+
+  <!-- V3 Status -->
+  <x:String x:Key="Status.Connection">连接</x:String>
+  <x:String x:Key="Status.Protection">保护</x:String>
+  <x:String x:Key="Status.Engine">引擎</x:String>
+  <x:String x:Key="Status.Update">更新</x:String>
+  <x:String x:Key="Status.ProtectionSystem">全系统路由已激活</x:String>
+  <x:String x:Key="Status.ProtectionProxy">代理路由已激活</x:String>
+  <x:String x:Key="Status.ProtectionOff">保护未激活</x:String>
+  <x:String x:Key="Status.ProtectionOffDetail">流量当前正在使用你的常规网络路径。</x:String>
+  <x:String x:Key="Status.EngineClassicDetail">经典运行时今天处于激活状态。</x:String>
+  <x:String x:Key="Status.EngineAutomaticDetail">“自动”当前解析为经典运行时。</x:String>
+  <x:String x:Key="Status.UpdateChecksOff">更新检查已禁用</x:String>
+  <x:String x:Key="Status.UpdateChecking">正在检查更新</x:String>
+  <x:String x:Key="Status.UpdateUnknown">更新状态不可用</x:String>
+  <x:String x:Key="Status.UpdateAvailable">有可用更新：{0}</x:String>
+  <x:String x:Key="Status.UpdateCurrent">已是最新</x:String>
 </ResourceDictionary>
