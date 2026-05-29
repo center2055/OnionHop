@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="OnionHopV3.App.Controls.MetricCard"
+             x:Name="Root">
+  <Border x:Name="CardBorder"
+          Classes="MetricTile"
+          Padding="10"
+          CornerRadius="18"
+          BorderThickness="1"
+          MinHeight="78">
+    <StackPanel Spacing="3">
+      <TextBlock Text="{Binding Title, ElementName=Root}"
+                 Classes="SectionCaption" />
+      <TextBlock Text="{Binding Value, ElementName=Root}"
+                 FontSize="18"
+                 FontWeight="SemiBold"
+                 TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Caption, ElementName=Root}"
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 FontSize="11"
+                 LineHeight="14"
+                 MaxLines="2"
+                 TextTrimming="CharacterEllipsis"
+                 TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</UserControl>

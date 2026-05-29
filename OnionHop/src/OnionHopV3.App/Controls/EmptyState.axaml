@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons;assembly=Material.Icons"
+             x:Class="OnionHopV3.App.Controls.EmptyState"
+             x:Name="Root">
+  <Border Classes="InsetPanel"
+          Padding="22">
+    <StackPanel Spacing="10"
+                HorizontalAlignment="Center">
+      <icons:MaterialIcon Kind="{Binding Icon, ElementName=Root}"
+                          Width="26"
+                          Height="26"
+                          Foreground="{DynamicResource TextMutedBrush}" />
+      <TextBlock Text="{Binding Title, ElementName=Root}"
+                 HorizontalAlignment="Center"
+                 FontWeight="SemiBold"
+                 FontSize="16" />
+      <TextBlock Text="{Binding Description, ElementName=Root}"
+                 HorizontalAlignment="Center"
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap"
+                 MaxWidth="320" />
+    </StackPanel>
+  </Border>
+</UserControl>

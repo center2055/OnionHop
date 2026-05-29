@@ -22,6 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OnionHopV2.Core\OnionHopV2.Core.csproj" />
+    <ProjectReference Include="..\OnionHopV3.Core\OnionHopV3.Core.csproj" />
   </ItemGroup>
 </Project>

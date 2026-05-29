@@ -18,7 +18,7 @@ dotnet build "OnionHop/OnionHopV2.sln" -c Release
 ## Run
 
 ```powershell
-dotnet run --project "OnionHop/src/OnionHopV2.App" -c Release
+dotnet run --project "OnionHop/src/OnionHopV3.App" -c Release
 ```
 
 On first connect, the app will ensure the required Tor/VPN dependencies are available for the active platform.

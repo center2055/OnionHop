@@ -1,9 +1,9 @@
 using System.Net;
 using System.Reflection;
 using System.Text;
-using OnionHopV2.Core;
-using OnionHopV2.Core.Platform;
-using OnionHopV2.Core.Services;
+using OnionHopV3.Core;
+using OnionHopV3.Core.Platform;
+using OnionHopV3.Core.Services;
 
 namespace OnionHopV2.Cli;
 

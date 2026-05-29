@@ -1,0 +1,112 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OnionHopV3.App.ViewModels"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="OnionHopV3.App.Views.MainWindow"
+        x:Name="WindowRoot"
+        x:DataType="vm:ShellViewModel"
+        d:DesignWidth="1280"
+        d:DesignHeight="840"
+        Icon="/Assets/OnionHop.ico"
+        Title="OnionHop"
+        Width="1280"
+        Height="840"
+        MinWidth="1040"
+        MinHeight="700"
+        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="0"
+        WindowStartupLocation="CenterScreen">
+
+  <Design.DataContext>
+    <vm:ShellViewModel />
+  </Design.DataContext>
+
+  <Window.Styles>
+    <!-- Custom Windows-style caption buttons (no OS title bar / icon / title at all). -->
+    <Style Selector="Button.CaptionButton">
+      <Setter Property="Width" Value="46" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons,Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="10" />
+    </Style>
+    <Style Selector="Button.CaptionButton:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.CaptionClose:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#C42B1C" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+  </Window.Styles>
+
+  <!-- Panel lets the caption buttons overlay the top-right of the NavigationView. -->
+  <Panel>
+    <ui:NavigationView x:Name="Nav"
+                       PaneDisplayMode="Left"
+                       IsBackButtonVisible="False"
+                       IsSettingsVisible="False"
+                       IsPaneToggleButtonVisible="True"
+                       OpenPaneLength="232"
+                       CompactPaneLength="48"
+                       Background="Transparent"
+                       MenuItemsSource="{Binding Pages}"
+                       SelectedItem="{Binding ActivePage, Mode=TwoWay}"
+                       PaneTitle="OnionHop">
+
+      <ui:NavigationView.MenuItemTemplate>
+        <DataTemplate x:DataType="vm:PageViewModelBase">
+          <ui:NavigationViewItem Content="{Binding DisplayName}">
+            <ui:NavigationViewItem.IconSource>
+              <ui:FontIconSource Glyph="{Binding NavGlyph}"
+                                 FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                 FontSize="16" />
+            </ui:NavigationViewItem.IconSource>
+          </ui:NavigationViewItem>
+        </DataTemplate>
+      </ui:NavigationView.MenuItemTemplate>
+
+      <!-- Content sits at the top; the page layout keeps the top-right clear for the caption
+           buttons. The top strip is a drag region (handled in code-behind). -->
+      <Border Padding="32,10,32,20">
+        <ContentControl ClipToBounds="True"
+                        Content="{Binding ActivePage}" />
+      </Border>
+    </ui:NavigationView>
+
+    <!-- Custom caption buttons, top-right, floating over the content. Shown only in the integrated
+         (chromeless) mode; hidden when the user opts into the native OS title bar. -->
+    <StackPanel Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Height="32"
+                Background="Transparent"
+                IsVisible="{Binding State.UseCustomChrome}">
+      <Button x:Name="MinimizeButton"
+              Classes="CaptionButton"
+              Click="OnMinimizeClick"
+              Content="&#xE921;"
+              ToolTip.Tip="Minimize" />
+      <Button x:Name="MaximizeButton"
+              Classes="CaptionButton"
+              Click="OnMaximizeClick"
+              Content="&#xE922;"
+              ToolTip.Tip="Maximize" />
+      <Button x:Name="CloseButton"
+              Classes="CaptionButton CaptionClose"
+              Click="OnCloseClick"
+              Content="&#xE8BB;"
+              ToolTip.Tip="Close" />
+    </StackPanel>
+  </Panel>
+</Window>

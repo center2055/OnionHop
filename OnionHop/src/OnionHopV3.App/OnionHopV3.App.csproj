@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AssemblyName>OnionHopV3</AssemblyName>
+    <Version>3.0.0</Version>
+    <ApplicationIcon>Assets\OnionHop.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\OnionHop\tor\**\*">
+      <Link>tor\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Include="..\..\..\OnionHop\vpn\**\*">
+      <Link>vpn\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <!-- ArtiHop engine binary (built from github.com/center2055/ArtiHop by download-deps.ps1).
+         The folder may be empty on a fresh checkout; that's fine (no files to copy). -->
+    <None Include="..\..\..\OnionHop\artihop\**\*">
+      <Link>artihop\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <!-- Snowflake volunteer proxy binary (built from source by download-deps.ps1).
+         The folder may be empty on a fresh checkout; that's fine (no files to copy). -->
+    <None Include="..\..\..\OnionHop\snowflake\**\*">
+      <Link>snowflake\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Include="Avalonia.Diagnostics">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="DiscordRichPresence" />
+    <PackageReference Include="FluentAvaloniaUI" />
+    <PackageReference Include="Material.Icons.Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OnionHopV3.Core\OnionHopV3.Core.csproj" />
+  </ItemGroup>
+
+  <!-- macOS: remove quarantine extended attributes from build output so Gatekeeper
+       does not block the app on first launch. Runs automatically after every build. -->
+  <Target Name="RemoveMacOSQuarantine" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Exec Command="xattr -cr &quot;$(OutputPath)&quot;" IgnoreExitCode="true" />
+  </Target>
+</Project>

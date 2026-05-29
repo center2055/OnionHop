@@ -122,8 +122,8 @@ function Copy-OptionalArtiRuntime {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop"
-$projectDir = Join-Path $solutionRoot "src\OnionHopV2.App"
-$csproj = Join-Path $projectDir "OnionHopV2.App.csproj"
+$projectDir = Join-Path $solutionRoot "src\OnionHopV3.App"
+$csproj = Join-Path $projectDir "OnionHopV3.App.csproj"
 
 if (!(Test-Path $csproj)) {
   throw "Could not find OnionHop app project at: $csproj"

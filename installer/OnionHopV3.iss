@@ -13,11 +13,11 @@
 #endif
 
 #ifndef PubDir
-  #define PubDir "..\\OnionHop\\src\\OnionHopV2.App\\bin\\Release\\net9.0\\win-x64\\publish"
+  #define PubDir "..\\OnionHop\\src\\OnionHopV3.App\\bin\\Release\\net9.0\\win-x64\\publish"
 #endif
 
 [Setup]
-SetupIconFile=..\OnionHop\src\OnionHopV2.App\Assets\OnionHop.ico
+SetupIconFile=..\OnionHop\src\OnionHopV3.App\Assets\OnionHop.ico
 AppId={{A7E27E1E-1598-41B3-B1C2-8A7F2F4F0D33}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}

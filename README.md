@@ -134,7 +134,7 @@ Output:
 Run the app from source:
 
 ```powershell
-dotnet run --project OnionHop/src/OnionHopV2.App -c Release
+dotnet run --project OnionHop/src/OnionHopV3.App -c Release
 ```
 
 The ArtiHop 2-hop engine is built from its own public repo, [center2055/ArtiHop](https://github.com/center2055/ArtiHop) — only the compiled binary is bundled; its source is not vendored.
