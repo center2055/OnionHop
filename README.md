@@ -9,7 +9,7 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/center2055/OnionHop-V3/releases">
+  <a href="https://github.com/center2055/OnionHop/releases">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge&logo=github" alt="Download Latest Release"/>
   </a>
   <a href="https://ko-fi.com/center2055">
@@ -42,7 +42,7 @@
 ## Getting started
 
 1. **Install**
-   - Download the latest release from [Releases](https://github.com/center2055/OnionHop-V3/releases).
+   - Download the latest release from [Releases](https://github.com/center2055/OnionHop/releases).
    - Run the Windows installer (`OnionHop-Setup-v3.exe`). It is self-contained — the .NET 9 runtime is bundled, so there's nothing else to install.
 
 2. **Choose a mode**
