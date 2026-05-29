@@ -54,10 +54,19 @@ public static class LocalizationService
         if (!string.Equals(code, "en", StringComparison.OrdinalIgnoreCase) &&
             LanguageResources.TryGetValue(code, out var overlaySource))
         {
-            app.Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://OnionHopV3/"))
+            try
             {
-                Source = new Uri(overlaySource)
-            });
+                var overlay = new ResourceInclude(new Uri("avares://OnionHopV3/"))
+                {
+                    Source = new Uri(overlaySource)
+                };
+                _ = overlay.Loaded.Count; // force the resource to load so a bad file fails here...
+                app.Resources.MergedDictionaries.Add(overlay);
+            }
+            catch
+            {
+                // ...and is contained: keep the English base so the UI never blanks out.
+            }
         }
 
         LanguageChanged?.Invoke(null, EventArgs.Empty);

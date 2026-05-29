@@ -543,7 +543,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         if (value == null)
         {
-            var fallbackIndex = string.Equals(SelectedLanguage, "de", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            var fallbackIndex = Array.IndexOf(SupportedLanguageCodes, NormalizeLanguageCode(SelectedLanguage));
+            if (fallbackIndex < 0)
+            {
+                fallbackIndex = 0;
+            }
             if (SelectedLanguageIndex != fallbackIndex)
             {
                 SelectedLanguageIndex = fallbackIndex;
@@ -790,16 +794,38 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
     }
 
+    // Order must match the entries added in RefreshLanguageOptions (en, de, fr, ru, zh).
+    private static readonly string[] SupportedLanguageCodes = { "en", "de", "fr", "ru", "zh" };
+
+    private static string NormalizeLanguageCode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "en";
+        }
+
+        var trimmed = value.Trim().ToLowerInvariant();
+        if (trimmed.StartsWith("de", StringComparison.Ordinal)) return "de";
+        if (trimmed.StartsWith("fr", StringComparison.Ordinal)) return "fr";
+        if (trimmed.StartsWith("ru", StringComparison.Ordinal)) return "ru";
+        if (trimmed.StartsWith("zh", StringComparison.Ordinal)) return "zh";
+        return "en";
+    }
+
     partial void OnSelectedLanguageChanged(string value)
     {
-        var normalized = value.StartsWith("de", StringComparison.OrdinalIgnoreCase) ? "de" : "en";
+        var normalized = NormalizeLanguageCode(value);
         if (!string.Equals(value, normalized, StringComparison.OrdinalIgnoreCase))
         {
             SelectedLanguage = normalized;
             return;
         }
 
-        var languageIndex = string.Equals(normalized, "de", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        var languageIndex = Array.IndexOf(SupportedLanguageCodes, normalized);
+        if (languageIndex < 0)
+        {
+            languageIndex = 0;
+        }
         if (SelectedLanguageIndex != languageIndex)
         {
             SelectedLanguageIndex = languageIndex;
@@ -818,7 +844,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedLanguageIndexChanged(int value)
     {
-        var language = value == 1 ? "de" : "en";
+        var language = value >= 0 && value < SupportedLanguageCodes.Length ? SupportedLanguageCodes[value] : "en";
         if (!string.Equals(SelectedLanguage, language, StringComparison.OrdinalIgnoreCase))
         {
             SelectedLanguage = language;
@@ -2424,8 +2450,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BlockUdpTraffic = settings.BlockUdpTraffic ?? true;
             HybridTorApps = settings.HybridTorApps ?? string.Empty;
             HybridBypassApps = settings.HybridBypassApps ?? string.Empty;
-            var language = string.IsNullOrWhiteSpace(settings.LanguageCode) ? "en" : settings.LanguageCode!;
-            SelectedLanguage = language.StartsWith("de", StringComparison.OrdinalIgnoreCase) ? "de" : "en";
+            SelectedLanguage = NormalizeLanguageCode(settings.LanguageCode);
             LoadV3Settings(settings);
         }
         finally

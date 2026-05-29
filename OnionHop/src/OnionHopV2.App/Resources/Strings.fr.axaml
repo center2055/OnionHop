@@ -458,7 +458,7 @@
   <x:String x:Key="Relays.UseAsPreferredMiddle">Utiliser comme intermédiaire préféré (expérimental)</x:String>
   <x:String x:Key="Relays.SelectMiddleRelayFirst">Sélectionnez d'abord un relais intermédiaire</x:String>
   <x:String x:Key="Relays.UseAsPreferredMiddleHint">Fixe ce relais comme intermédiaire manuel strict. Cela peut réduire l'anonymat et la disponibilité.</x:String>
-  <x:String x:Key="Relays.PreferenceSaved">{0} préféré(e) enregistré(e) pour {1}.</x:String>
+  <x:String x:Key="Relays.PreferenceSaved">{}{0} préféré(e) enregistré(e) pour {1}.</x:String>
   <x:String x:Key="Relays.MapPlaceholderTitle">Géographie du réseau</x:String>
   <x:String x:Key="Relays.MapPlaceholderHint">Réservé à une future vue de circuit basée sur une carte. La coque actuelle préserve honnêtement l'espace plutôt que de simuler la géographie.</x:String>
   <x:String x:Key="Relays.Bandwidth1Mb">1 Mo/s minimum</x:String>
