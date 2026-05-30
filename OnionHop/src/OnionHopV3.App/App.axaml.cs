@@ -38,7 +38,12 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
+            // The app lives in the tray; only an explicit Shutdown() (tray Exit, installer, or a
+            // non-tray window close) should quit it. The default OnLastWindowClose can race with
+            // the close-to-tray Hide() and terminate the app right after it minimizes to the tray.
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            // Avoid duplicate validations from both Avalonia and the CommunityToolkit.
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
             var shell = new ShellViewModel();
@@ -276,26 +281,39 @@ public partial class App : Application
         {
             if (_allowShutdown)
             {
-                return;
+                return; // an explicit shutdown is in progress; let the window close
             }
 
-            if (!shell.State.MinimizeToTray)
+            // A window close (the OS button or our chromeless caption close, which calls
+            // Window.Close() and is therefore "programmatic") minimizes to the tray when the
+            // option is on. Genuine shutdowns (tray Exit, installer, OS) set _allowShutdown above,
+            // so they fall through to close normally.
+            if (shell.State.MinimizeToTray)
             {
+                e.Cancel = true;
+                try
+                {
+                    desktop.MainWindow.Hide();
+                    if (_trayIcon != null)
+                    {
+                        _trayIcon.IsVisible = true;
+                    }
+                }
+                catch
+                {
+                    // If hiding fails, quit cleanly rather than wedging in a half-closed state.
+                    _allowShutdown = true;
+                    Dispatcher.UIThread.Post(() => desktop.Shutdown());
+                }
+
                 return;
             }
 
-            // Only intercept user-initiated closes. Allow programmatic closes so installers/updaters can shut down the app.
-            if (e.IsProgrammatic)
-            {
-                return;
-            }
-
+            // Otherwise (tray-on-close is off, or a programmatic close) this should quit the app.
+            // With OnExplicitShutdown the window closing alone won't exit, so request it explicitly.
             e.Cancel = true;
-            desktop.MainWindow.Hide();
-            if (_trayIcon != null)
-            {
-                _trayIcon.IsVisible = true;
-            }
+            _allowShutdown = true;
+            Dispatcher.UIThread.Post(() => desktop.Shutdown());
         };
     }
 
