@@ -20,7 +20,9 @@ public static class RunningAppsService
     {
         "OnionHopV3.exe", "OnionHopV2.exe", "explorer.exe", "ApplicationFrameHost.exe",
         "TextInputHost.exe", "SystemSettings.exe", "ShellExperienceHost.exe", "SearchHost.exe",
-        "StartMenuExperienceHost.exe", "LockApp.exe", "dwm.exe"
+        "StartMenuExperienceHost.exe", "LockApp.exe", "dwm.exe", "svchost.exe",
+        "RuntimeBroker.exe", "SearchApp.exe", "WidgetService.exe", "fontdrvhost.exe",
+        "csrss.exe", "winlogon.exe", "sihost.exe", "ctfmon.exe"
     };
 
     public static IReadOnlyList<RunningAppInfo> GetRunningApps()

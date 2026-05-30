@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OnionHopV3.App.Services;
@@ -28,7 +29,7 @@ public sealed partial class AppRouteItemViewModel : ObservableObject
     [ObservableProperty] private int _mode;
 }
 
-/// <summary>Backs the split-tunnel app picker dialog: scans running apps and tracks per-app routing choices.</summary>
+/// <summary>Backs the split-tunnel app picker dialog: lists running apps and tracks per-app routing choices.</summary>
 public sealed partial class AppPickerViewModel : ObservableObject
 {
     public const int ModeDefault = 0;
@@ -39,26 +40,38 @@ public sealed partial class AppPickerViewModel : ObservableObject
     private readonly HashSet<string> _torApps;
     private readonly HashSet<string> _bypassApps;
 
-    public AppPickerViewModel(IReadOnlyList<string> modeOptions, IEnumerable<string> torApps, IEnumerable<string> bypassApps)
+    public AppPickerViewModel(
+        IReadOnlyList<string> modeOptions,
+        IEnumerable<string> torApps,
+        IEnumerable<string> bypassApps,
+        IReadOnlyList<RunningAppInfo> initialApps)
     {
         _modeOptions = modeOptions;
         _torApps = new HashSet<string>(torApps, StringComparer.OrdinalIgnoreCase);
         _bypassApps = new HashSet<string>(bypassApps, StringComparer.OrdinalIgnoreCase);
-        Rescan();
+        Populate(initialApps);
     }
 
     public ObservableCollection<AppRouteItemViewModel> Apps { get; } = new();
 
     [ObservableProperty] private bool _isEmpty;
 
+    // The scan reads each process's module info from disk, so run it off the UI thread; the
+    // await resumes on the UI thread (Avalonia sync context), where the collection is rebuilt.
     [RelayCommand]
-    private void Rescan()
+    private async Task Rescan()
+    {
+        var apps = await Task.Run(RunningAppsService.GetRunningApps).ConfigureAwait(true);
+        Populate(apps);
+    }
+
+    private void Populate(IReadOnlyList<RunningAppInfo> apps)
     {
         // Preserve any choices the user already made this session, keyed by executable name.
         var priorChoices = Apps.ToDictionary(a => a.ExecutableName, a => a.Mode, StringComparer.OrdinalIgnoreCase);
 
         Apps.Clear();
-        foreach (var app in RunningAppsService.GetRunningApps())
+        foreach (var app in apps)
         {
             int mode;
             if (priorChoices.TryGetValue(app.ExecutableName, out var prior))
