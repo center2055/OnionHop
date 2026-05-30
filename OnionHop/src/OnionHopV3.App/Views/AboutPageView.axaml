@@ -13,7 +13,9 @@
              x:DataType="vm:AboutPageViewModel">
 
   <Grid>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  Margin="0,0,-32,0"
+                  Padding="0,0,32,0">
       <Grid ColumnDefinitions="4*,6*"
             ColumnSpacing="16">
         <StackPanel Spacing="16">

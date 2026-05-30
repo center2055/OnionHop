@@ -16,7 +16,9 @@
         <TextBlock Text="{DynamicResource Settings.TabGeneral}"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
       </TabItem.Header>
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    Margin="0,0,-32,0"
+                    Padding="0,0,32,0">
         <StackPanel Spacing="18"
                     Margin="0,12,0,0">
           <Border Classes="SectionCard">
@@ -138,7 +140,9 @@
         <TextBlock Text="{DynamicResource Settings.TabNetwork}"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
       </TabItem.Header>
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    Margin="0,0,-32,0"
+                    Padding="0,0,32,0">
         <StackPanel Spacing="18"
                     Margin="0,12,0,0">
           <Border Classes="SectionCard">
@@ -235,7 +239,9 @@
         <TextBlock Text="{DynamicResource Settings.TabAdvanced}"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
       </TabItem.Header>
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    Margin="0,0,-32,0"
+                    Padding="0,0,32,0">
         <StackPanel Spacing="18"
                     Margin="0,12,0,0">
           <Border Classes="SectionCard">

@@ -13,7 +13,9 @@
              x:Class="OnionHopV3.App.Views.HomePageView"
              x:DataType="vm:HomePageViewModel">
   <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto">
+                VerticalScrollBarVisibility="Auto"
+                Margin="0,0,-32,0"
+                Padding="0,0,32,0">
     <StackPanel Spacing="16"
                 MaxWidth="1120"
                 HorizontalAlignment="Stretch">

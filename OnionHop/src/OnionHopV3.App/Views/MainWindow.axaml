@@ -79,7 +79,9 @@
       <!-- Content sits at the top; the page layout keeps the top-right clear for the caption
            buttons. The top strip is a drag region (handled in code-behind). -->
       <Border Padding="32,10,32,20">
-        <ContentControl ClipToBounds="True"
+        <!-- ClipToBounds is off so full-width pages can pull their scrollbar out to the window
+             edge (via a -32 right margin) instead of leaving it inset at the card edge. -->
+        <ContentControl ClipToBounds="False"
                         Content="{Binding ActivePage}" />
       </Border>
     </ui:NavigationView>
