@@ -181,6 +181,12 @@
                        TextWrapping="Wrap"
                        VerticalContentAlignment="Top"
                        Watermark="{DynamicResource Settings.CustomBridgesWatermark}" />
+              <StackPanel Spacing="6">
+                <TextBlock Text="{DynamicResource Settings.CustomSni}"
+                           Classes="SectionCaption" />
+                <TextBox Text="{Binding State.CustomSniHosts}"
+                         Watermark="{DynamicResource Settings.CustomSniWatermark}" />
+              </StackPanel>
             </StackPanel>
           </Border>
 
