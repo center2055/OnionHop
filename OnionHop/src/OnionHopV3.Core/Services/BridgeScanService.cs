@@ -65,7 +65,7 @@ public static class BridgeScanService
     private static readonly HashSet<string> KnownTransports = new(StringComparer.OrdinalIgnoreCase)
     {
         "obfs4", "webtunnel", "snowflake", "meek_lite", "meek-azure", "meek", "conjure", "scramblesuit",
-        "obfs3", "obfs2", "vanilla"
+        "obfs3", "obfs2", "vanilla", "dnstt"
     };
 
     /// <summary>
@@ -75,7 +75,7 @@ public static class BridgeScanService
     /// </summary>
     private static readonly HashSet<string> FrontedTransports = new(StringComparer.OrdinalIgnoreCase)
     {
-        "snowflake", "meek", "meek_lite", "meek-azure", "conjure"
+        "snowflake", "meek", "meek_lite", "meek-azure", "conjure", "dnstt"
     };
 
     // RFC 5737 documentation ranges + unspecified addresses used as placeholders in fronted lines.
@@ -351,10 +351,10 @@ public static class BridgeScanService
     }
 
     /// <summary>
-    /// Pull the broker/front host from a fronted bridge line. Prefers the <c>url=</c> host, then the
-    /// first <c>fronts=</c> entry, then <c>front=</c>.
+    /// Pull the broker/front host from a fronted bridge line. Prefers the <c>url=</c> host, then a
+    /// dnstt <c>doh=</c>/<c>dot=</c> resolver host, then the first <c>fronts=</c> entry, then <c>front=</c>.
     /// </summary>
-    private static string? ExtractFrontHost(string line)
+    internal static string? ExtractFrontHost(string line)
     {
         var url = MatchKeyValue(line, "url");
         if (!string.IsNullOrWhiteSpace(url) &&
@@ -362,6 +362,23 @@ public static class BridgeScanService
             !string.IsNullOrWhiteSpace(uri.Host))
         {
             return uri.Host;
+        }
+
+        // dnstt rides a DNS-over-HTTPS/TLS resolver; probe that resolver host.
+        var doh = MatchKeyValue(line, "doh");
+        if (!string.IsNullOrWhiteSpace(doh) &&
+            Uri.TryCreate(doh, UriKind.Absolute, out var dohUri) &&
+            !string.IsNullOrWhiteSpace(dohUri.Host))
+        {
+            return dohUri.Host;
+        }
+
+        var dot = MatchKeyValue(line, "dot");
+        if (!string.IsNullOrWhiteSpace(dot))
+        {
+            // dot is host:port; strip the port for a TLS reachability probe.
+            var colon = dot.LastIndexOf(':');
+            return colon > 0 ? dot[..colon] : dot;
         }
 
         var fronts = MatchKeyValue(line, "fronts");

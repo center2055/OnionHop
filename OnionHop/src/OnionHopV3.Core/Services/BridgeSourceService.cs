@@ -52,7 +52,8 @@ public static class BridgeSourceService
         "vanilla",
         "snowflake",
         "meek-azure",
-        "conjure"
+        "conjure",
+        "dnstt"
     };
 
     /// <summary>Transports the collector publishes curated, region-tested files for.</summary>
@@ -83,6 +84,15 @@ public static class BridgeSourceService
             ["conjure"] = new[]
             {
                 "conjure 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://registration.refraction.network/api fronts=cdn.sstatic.net,assets.cloud.censys.io transport=min"
+            },
+            // dnstt tunnels Tor over DNS (DoH/DoT); it gets through where everything but DNS is
+            // blocked. Placeholder IP (reached via the DoH resolver + tunnel domain). Public bridges
+            // distributed for Iran via the Tor forum.
+            ["dnstt"] = new[]
+            {
+                "dnstt 192.0.2.4:1 A998F319ADB60EE344540EC4B21524CC484F96BE doh=https://dns.google/dns-query pubkey=241169008830694749fe96bb070c4855c5bb5b9c47b3833ed7d88521ba30a43f domain=t.ruhnama.net",
+                "dnstt 192.0.2.4:2 80EEFA4F4875ED2B7B5A86DF2D7588AD32E29F15 doh=https://dns.google/dns-query pubkey=a2fb71077eeaa54a02cda7a90be306af5d299ab21822a8b277d4eacbc9168631 domain=t2.bypasscensorship.org",
+                "dnstt 192.0.2.4:3 74D409BED3E2F881F365543A72C8F079CB84FFEB doh=https://dns.google/dns-query pubkey=c596c458fc3453dc40903ab235f5854a2609831075640c4c5584f76de05b8271 domain=t.arkadag.org"
             }
         };
 

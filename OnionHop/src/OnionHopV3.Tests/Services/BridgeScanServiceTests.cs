@@ -57,4 +57,20 @@ public sealed class BridgeScanServiceTests
     {
         Assert.Equal(expected, BridgeSourceService.BuildFileName(category, transport, ipVersion));
     }
+
+    [Fact]
+    public void Dnstt_is_a_seeded_builtin_transport()
+    {
+        Assert.Contains("dnstt", BridgeSourceService.Transports);
+        Assert.True(BridgeSourceService.BuiltInBridges.ContainsKey("dnstt"));
+        Assert.NotEmpty(BridgeSourceService.BuiltInBridges["dnstt"]);
+    }
+
+    [Theory]
+    [InlineData("dnstt 192.0.2.4:1 A998F319 doh=https://dns.google/dns-query pubkey=2411 domain=t.ruhnama.net", "dns.google")]
+    [InlineData("dnstt 192.0.2.4:2 80EEFA4F dot=dot.example:853 pubkey=a2fb domain=t2.example.org", "dot.example")]
+    public void ExtractFrontHost_resolves_dnstt_resolver_host(string line, string expected)
+    {
+        Assert.Equal(expected, BridgeScanService.ExtractFrontHost(line));
+    }
 }
