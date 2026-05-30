@@ -151,6 +151,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Custom SNI/front hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.AppPickerButton">Choose running apps…</x:String>
+  <x:String x:Key="Settings.AppPickerTitle">Split tunneling: choose apps</x:String>
+  <x:String x:Key="Settings.AppPickerHint">These are the apps you have open right now. Set each one to go through Tor or connect directly. Anything left on Default follows your global Hybrid setting.</x:String>
+  <x:String x:Key="Settings.AppPickerRescan">Rescan</x:String>
+  <x:String x:Key="Settings.AppPickerEmpty">No open apps with a window were found. Launch an app first, then Rescan.</x:String>
+  <x:String x:Key="Settings.AppPickerModeDefault">Default</x:String>
+  <x:String x:Key="Settings.AppPickerModeTor">Through Tor</x:String>
+  <x:String x:Key="Settings.AppPickerModeDirect">Direct</x:String>
+  <x:String x:Key="Settings.AppPickerNone">No per-app rules set.</x:String>
+  <x:String x:Key="Common.Apply">Apply</x:String>
+  <x:String x:Key="Common.Cancel">Cancel</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: Use AMP cache (for blocked networks)</x:String>
   <x:String x:Key="Settings.AmpCacheUrl">AMP cache URL (optional)</x:String>
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>

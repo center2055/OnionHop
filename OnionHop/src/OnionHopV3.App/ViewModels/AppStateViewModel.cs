@@ -431,6 +431,36 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _hybridTorApps = string.Empty;
     [ObservableProperty] private string _hybridBypassApps = string.Empty;
 
+    /// <summary>One-line summary of the per-app split-tunnel rules, shown under the picker button.</summary>
+    public string HybridAppsSummary
+    {
+        get
+        {
+            var tor = HybridAppList.Parse(HybridTorApps);
+            var bypass = HybridAppList.Parse(HybridBypassApps);
+            if (tor.Count == 0 && bypass.Count == 0)
+            {
+                return LocalizationService.Get("Settings.AppPickerNone");
+            }
+
+            var parts = new List<string>();
+            if (tor.Count > 0)
+            {
+                parts.Add($"{LocalizationService.Get("Settings.AppPickerModeTor")}: {string.Join(", ", tor)}");
+            }
+
+            if (bypass.Count > 0)
+            {
+                parts.Add($"{LocalizationService.Get("Settings.AppPickerModeDirect")}: {string.Join(", ", bypass)}");
+            }
+
+            return string.Join("    •    ", parts);
+        }
+    }
+
+    partial void OnHybridTorAppsChanged(string value) => OnPropertyChanged(nameof(HybridAppsSummary));
+    partial void OnHybridBypassAppsChanged(string value) => OnPropertyChanged(nameof(HybridAppsSummary));
+
     [ObservableProperty] private bool _autoConnect;
     [ObservableProperty] private string _autoStartMode = AutoStartModeOff;
     [ObservableProperty] private bool _startWithWindows;

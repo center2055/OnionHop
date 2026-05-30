@@ -151,6 +151,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Bridge-Zeilen von bridges.torproject.org einf&#252;gen...</x:String>
   <x:String x:Key="Settings.CustomSni">Eigene SNI/Front-Hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.AppPickerButton">Laufende Apps ausw&#228;hlen…</x:String>
+  <x:String x:Key="Settings.AppPickerTitle">Split-Tunneling: Apps ausw&#228;hlen</x:String>
+  <x:String x:Key="Settings.AppPickerHint">Das sind die Apps, die du gerade ge&#246;ffnet hast. Lege f&#252;r jede fest, ob sie &#252;ber Tor oder direkt verbindet. Alles auf Standard folgt deiner globalen Hybrid-Einstellung.</x:String>
+  <x:String x:Key="Settings.AppPickerRescan">Neu scannen</x:String>
+  <x:String x:Key="Settings.AppPickerEmpty">Keine offenen Apps mit Fenster gefunden. Starte zuerst eine App und scanne dann neu.</x:String>
+  <x:String x:Key="Settings.AppPickerModeDefault">Standard</x:String>
+  <x:String x:Key="Settings.AppPickerModeTor">&#220;ber Tor</x:String>
+  <x:String x:Key="Settings.AppPickerModeDirect">Direkt</x:String>
+  <x:String x:Key="Settings.AppPickerNone">Keine App-Regeln festgelegt.</x:String>
+  <x:String x:Key="Common.Apply">&#220;bernehmen</x:String>
+  <x:String x:Key="Common.Cancel">Abbrechen</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: AMP-Cache verwenden (f&#252;r gesperrte Netzwerke)</x:String>
   <x:String x:Key="Settings.AmpCacheUrl">AMP-Cache-URL (optional)</x:String>
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>

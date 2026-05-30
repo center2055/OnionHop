@@ -318,6 +318,15 @@
               <controls:ToggleRow Title="{DynamicResource Settings.RouteAllWebTraffic}"
                                   Description="{DynamicResource Settings.SplitTunnelingHint}"
                                   IsChecked="{Binding State.HybridRouteAllWebTraffic}" />
+              <StackPanel Spacing="6">
+                <Button Content="{DynamicResource Settings.AppPickerButton}"
+                        Click="OnPickAppsClick"
+                        HorizontalAlignment="Left" />
+                <TextBlock Text="{Binding State.HybridAppsSummary}"
+                           TextWrapping="Wrap"
+                           Opacity="0.7"
+                           FontSize="12" />
+              </StackPanel>
               <controls:ToggleRow Title="{DynamicResource Settings.BlockQuic}"
                                   Description="{DynamicResource Settings.BlockQuicHint}"
                                   IsChecked="{Binding State.HybridBlockQuicForTorApps}" />

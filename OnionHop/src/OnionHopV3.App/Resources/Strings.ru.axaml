@@ -151,6 +151,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Вставьте строки мостов с bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Свои хосты SNI/фронта (необязательно)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.AppPickerButton">Выбрать запущенные приложения…</x:String>
+  <x:String x:Key="Settings.AppPickerTitle">Раздельное туннелирование: выбор приложений</x:String>
+  <x:String x:Key="Settings.AppPickerHint">Это приложения, открытые у вас сейчас. Укажите для каждого: через Tor или напрямую. Всё со значением «По умолчанию» следует общей настройке гибридного режима.</x:String>
+  <x:String x:Key="Settings.AppPickerRescan">Сканировать снова</x:String>
+  <x:String x:Key="Settings.AppPickerEmpty">Открытые приложения с окном не найдены. Запустите приложение и просканируйте снова.</x:String>
+  <x:String x:Key="Settings.AppPickerModeDefault">По умолчанию</x:String>
+  <x:String x:Key="Settings.AppPickerModeTor">Через Tor</x:String>
+  <x:String x:Key="Settings.AppPickerModeDirect">Напрямую</x:String>
+  <x:String x:Key="Settings.AppPickerNone">Правила для приложений не заданы.</x:String>
+  <x:String x:Key="Common.Apply">Применить</x:String>
+  <x:String x:Key="Common.Cancel">Отмена</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: использовать кэш AMP (для заблокированных сетей)</x:String>
   <x:String x:Key="Settings.AmpCacheUrl">URL кэша AMP (необязательно)</x:String>
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>

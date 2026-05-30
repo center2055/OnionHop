@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:OnionHopV3.App.ViewModels"
+             x:Class="OnionHopV3.App.Views.AppPickerView"
+             x:DataType="vm:AppPickerViewModel"
+             Width="500">
+  <StackPanel Spacing="14">
+    <TextBlock Text="{DynamicResource Settings.AppPickerHint}"
+               TextWrapping="Wrap"
+               Opacity="0.85" />
+    <Button Content="{DynamicResource Settings.AppPickerRescan}"
+            Command="{Binding RescanCommand}"
+            HorizontalAlignment="Left" />
+    <TextBlock Text="{DynamicResource Settings.AppPickerEmpty}"
+               IsVisible="{Binding IsEmpty}"
+               TextWrapping="Wrap"
+               Opacity="0.7" />
+    <Border IsVisible="{Binding !IsEmpty}"
+            MaxHeight="420">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Apps}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AppRouteItemViewModel">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,5">
+                <StackPanel Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Spacing="1">
+                  <TextBlock Text="{Binding DisplayName}"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding ExecutableName}"
+                             Opacity="0.6"
+                             FontSize="12" />
+                </StackPanel>
+                <ComboBox Grid.Column="1"
+                          Width="160"
+                          VerticalAlignment="Center"
+                          ItemsSource="{Binding ModeOptions}"
+                          SelectedIndex="{Binding Mode}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+  </StackPanel>
+</UserControl>

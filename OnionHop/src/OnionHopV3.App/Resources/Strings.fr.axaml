@@ -151,6 +151,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Collez les lignes de ponts depuis bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Hôtes SNI/de façade personnalisés (facultatif)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.AppPickerButton">Choisir les applis ouvertes…</x:String>
+  <x:String x:Key="Settings.AppPickerTitle">Tunnel partagé : choisir les applis</x:String>
+  <x:String x:Key="Settings.AppPickerHint">Voici les applications actuellement ouvertes. Indiquez pour chacune si elle passe par Tor ou se connecte en direct. Tout ce qui reste sur Défaut suit votre réglage hybride global.</x:String>
+  <x:String x:Key="Settings.AppPickerRescan">Réanalyser</x:String>
+  <x:String x:Key="Settings.AppPickerEmpty">Aucune appli ouverte avec fenêtre trouvée. Lancez une appli, puis réanalysez.</x:String>
+  <x:String x:Key="Settings.AppPickerModeDefault">Défaut</x:String>
+  <x:String x:Key="Settings.AppPickerModeTor">Via Tor</x:String>
+  <x:String x:Key="Settings.AppPickerModeDirect">Direct</x:String>
+  <x:String x:Key="Settings.AppPickerNone">Aucune règle par appli définie.</x:String>
+  <x:String x:Key="Common.Apply">Appliquer</x:String>
+  <x:String x:Key="Common.Cancel">Annuler</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake : utiliser le cache AMP (pour les réseaux bloqués)</x:String>
   <x:String x:Key="Settings.AmpCacheUrl">URL du cache AMP (facultatif)</x:String>
   <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
