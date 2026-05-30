@@ -227,7 +227,7 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Disable this to allow fallback exits when the selected fingerprint is unavailable.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split Tunneling (Hybrid mode)</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, choose which apps use Tor and which go direct. One process name per line (e.g. chrome.exe; on Windows the .exe is added automatically). An app's real executable can differ from its Task Manager name: Yandex Browser is browser.exe. Open Task Manager and use the Details tab to find the true name.</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, choose which apps use Tor and which connect directly. Use the "Choose running apps…" button below to pick them.</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Route all web traffic (ports 80/443) through Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">Block QUIC/UDP for Tor apps (prevents bypass leaks)</x:String>
   <x:String x:Key="Settings.BlockUdp">Block UDP traffic</x:String>

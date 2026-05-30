@@ -120,7 +120,8 @@
             </Grid>
 
             <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto">
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="0,0,8,0">
               <ListBox x:Name="RelayList"
                        Background="Transparent"
                        BorderThickness="0"
@@ -229,7 +230,8 @@
             </Grid>
 
             <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto">
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="0,0,8,0">
               <Grid>
                 <controls:EmptyState Title="{DynamicResource Relays.SelectRelay}"
                                      Description="{DynamicResource Relays.SelectRelayHint}"

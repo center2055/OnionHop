@@ -227,7 +227,7 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Désactivez ceci pour autoriser des sorties de secours lorsque l'empreinte sélectionnée est indisponible.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Tunnellisation partagée (mode hybride)</x:String>
-  <x:String x:Key="Settings.SplitTunnelingHint">En mode hybride, choisissez quelles applications utilisent Tor et lesquelles passent en direct. Un nom de processus par ligne (ex. chrome.exe ; sous Windows, le .exe est ajouté automatiquement). Le vrai exécutable peut différer du nom affiché dans le Gestionnaire des tâches : Yandex Browser est browser.exe. Ouvrez le Gestionnaire des tâches et utilisez l'onglet Détails pour trouver le vrai nom.</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">En mode hybride, choisissez quelles applications passent par Tor et lesquelles vont en direct. Utilisez le bouton "Choisir les applis ouvertes…" ci-dessous pour les sélectionner.</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Acheminer tout le trafic web (ports 80/443) via Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">Bloquer QUIC/UDP pour les applications Tor (empêche les fuites de contournement)</x:String>
   <x:String x:Key="Settings.BlockUdp">Bloquer le trafic UDP</x:String>
