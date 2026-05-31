@@ -2,6 +2,10 @@
 **/bin/
 **/obj/
 
+# Dependency download scratch dirs (download-deps.ps1 / download-deps.sh)
+temp_deps/
+temp_deps_linux/
+
 # Visual Studio / Rider
 .vs/
 .idea/

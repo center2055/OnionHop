@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV3.Core;
+using OnionHopV3.Core.Platform;
 using OnionHopV3.Core.Tor;
 using Xunit;
 
@@ -84,7 +85,7 @@ public sealed class TorBridgeManagerTests
         {
             var dir = CreateTempDir();
             var bundledPtDir = Path.Combine(AppContext.BaseDirectory, "tor", "pluggable_transports");
-            var bundledClient = Path.Combine(bundledPtDir, "webtunnel-client.exe");
+            var bundledClient = Path.Combine(bundledPtDir, PlatformHelper.WebTunnelClientBinaryName);
             var hadBundledClient = File.Exists(bundledClient);
             byte[]? originalContent = null;
 
@@ -117,7 +118,7 @@ public sealed class TorBridgeManagerTests
                     null,
                     _ => { });
 
-                var restoredClient = Path.Combine(ptDir, "webtunnel-client.exe");
+                var restoredClient = Path.Combine(ptDir, PlatformHelper.WebTunnelClientBinaryName);
                 Assert.Single(plugins);
                 Assert.True(File.Exists(restoredClient));
                 Assert.Equal("test-webtunnel-client", File.ReadAllText(restoredClient));
