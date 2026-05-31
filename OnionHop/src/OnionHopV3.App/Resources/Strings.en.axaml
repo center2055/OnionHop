@@ -44,6 +44,8 @@
   <x:String x:Key="Home.Cancel">Cancel</x:String>
   <x:String x:Key="Home.RefreshIp">Refresh IP</x:String>
   <x:String x:Key="Home.NewIdentity">New Identity</x:String>
+  <x:String x:Key="Home.UpdateBridges">Update bridges</x:String>
+  <x:String x:Key="Home.UpdateBridgesTooltip">Fetch fresh, tested bridges over your normal connection (works behind a VPN). No need to be connected to Tor first.</x:String>
   <x:String x:Key="Home.SystemProxyOn">System Proxy: ON</x:String>
   <x:String x:Key="Home.SystemProxyOff">System Proxy: OFF</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">Turn the system proxy on/off without disconnecting Tor. When OFF, system traffic goes direct (e.g. to use a separate VPN) while Tor stays connected; apps pointed at the SOCKS port still use Tor.</x:String>

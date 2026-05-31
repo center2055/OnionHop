@@ -44,6 +44,8 @@
   <x:String x:Key="Home.Cancel">Abbrechen</x:String>
   <x:String x:Key="Home.RefreshIp">IP aktualisieren</x:String>
   <x:String x:Key="Home.NewIdentity">Neue Identit&#228;t</x:String>
+  <x:String x:Key="Home.UpdateBridges">Br&#252;cken aktualisieren</x:String>
+  <x:String x:Key="Home.UpdateBridgesTooltip">Frische, getestete Br&#252;cken &#252;ber deine normale Verbindung holen (auch hinter einem VPN). Du musst nicht zuerst mit Tor verbunden sein.</x:String>
   <x:String x:Key="Home.SystemProxyOn">System-Proxy: AN</x:String>
   <x:String x:Key="Home.SystemProxyOff">System-Proxy: AUS</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">System-Proxy an/aus schalten, ohne Tor zu trennen. Bei AUS l&#228;uft der System-Verkehr direkt (z.&#160;B. f&#252;r ein separates VPN), w&#228;hrend Tor verbunden bleibt; Apps, die direkt den SOCKS-Port nutzen, gehen weiterhin &#252;ber Tor.</x:String>

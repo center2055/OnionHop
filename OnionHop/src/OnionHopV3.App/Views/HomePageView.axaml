@@ -71,9 +71,16 @@
                       Command="{Binding State.ChangeIdentityCommand}"
                       Content="{DynamicResource Home.NewIdentity}" />
               <Button Height="40"
+                      Margin="0,0,8,8"
+                      Command="{Binding State.RefreshBridgeDataCommand}"
+                      IsVisible="{Binding State.UseTorBridges}"
+                      IsEnabled="{Binding !State.IsBridgeDataUpdateInProgress}"
+                      Content="{DynamicResource Home.UpdateBridges}"
+                      ToolTip.Tip="{DynamicResource Home.UpdateBridgesTooltip}" />
+              <Button Height="40"
                       Margin="0,0,0,8"
                       Command="{Binding State.ToggleSystemProxyCommand}"
-                      IsVisible="{Binding State.CanToggleSystemProxy}"
+                      IsEnabled="{Binding State.CanToggleSystemProxy}"
                       Content="{Binding State.SystemProxyButtonText}"
                       ToolTip.Tip="{DynamicResource Home.SystemProxyTooltip}" />
             </WrapPanel>

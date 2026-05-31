@@ -44,6 +44,8 @@
   <x:String x:Key="Home.Cancel">Annuler</x:String>
   <x:String x:Key="Home.RefreshIp">Actualiser l'IP</x:String>
   <x:String x:Key="Home.NewIdentity">Nouvelle identité</x:String>
+  <x:String x:Key="Home.UpdateBridges">Mettre à jour les ponts</x:String>
+  <x:String x:Key="Home.UpdateBridgesTooltip">Récupère des ponts testés récents via votre connexion normale (fonctionne derrière un VPN). Pas besoin d'être connecté à Tor d'abord.</x:String>
   <x:String x:Key="Home.SystemProxyOn">Proxy système : ACTIVÉ</x:String>
   <x:String x:Key="Home.SystemProxyOff">Proxy système : DÉSACTIVÉ</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">Activez/désactivez le proxy système sans déconnecter Tor. Lorsqu'il est désactivé, le trafic système passe en direct (par ex. pour utiliser un VPN distinct) tandis que Tor reste connecté ; les applications dirigées vers le port SOCKS continuent d'utiliser Tor.</x:String>

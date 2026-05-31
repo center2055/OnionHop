@@ -44,6 +44,8 @@
   <x:String x:Key="Home.Cancel">取消</x:String>
   <x:String x:Key="Home.RefreshIp">刷新 IP</x:String>
   <x:String x:Key="Home.NewIdentity">新身份</x:String>
+  <x:String x:Key="Home.UpdateBridges">更新网桥</x:String>
+  <x:String x:Key="Home.UpdateBridgesTooltip">通过普通连接获取最新的已测试网桥（在 VPN 后也可用）。无需先连接 Tor。</x:String>
   <x:String x:Key="Home.SystemProxyOn">系统代理：开</x:String>
   <x:String x:Key="Home.SystemProxyOff">系统代理：关</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">在不断开 Tor 的情况下开启/关闭系统代理。关闭时，系统流量将直连（例如以使用单独的 VPN），而 Tor 保持连接；指向 SOCKS 端口的应用仍使用 Tor。</x:String>
