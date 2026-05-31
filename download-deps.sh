@@ -29,8 +29,9 @@ tar -xzf "$TOR_ARCHIVE" -C "$TEMP_DIR"
 
 cp "$TEMP_DIR/tor/tor" "$TOR_DIR/"
 cp "$TEMP_DIR/tor/tor-gencert" "$TOR_DIR/" 2>/dev/null || true
-cp "$TEMP_DIR/tor/geoip" "$TOR_DIR/"
-cp "$TEMP_DIR/tor/geoip6" "$TOR_DIR/"
+# geoip/geoip6 live under data/ in the Linux Tor expert bundle (verified on Linux).
+cp "$TEMP_DIR/data/geoip" "$TOR_DIR/"
+cp "$TEMP_DIR/data/geoip6" "$TOR_DIR/"
 
 echo "Installing Pluggable Transports..."
 cp -r "$TEMP_DIR/tor/pluggable_transports/"* "$PT_DIR/"
