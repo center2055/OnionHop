@@ -148,41 +148,55 @@
                            Classes="SectionCaption" />
               </Grid>
 
-              <ScrollViewer x:Name="EntriesScrollViewer"
-                            Grid.Row="1"
-                            VerticalScrollBarVisibility="Auto"
-                            MinHeight="0">
-                <ItemsControl x:Name="EntriesItemsControl"
-                              ItemsSource="{Binding VisibleEntries}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:StructuredLogEntry">
-                      <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                              BorderThickness="0,1,0,0"
-                              Padding="14,10">
-                        <Grid ColumnDefinitions="82,86,138,*"
-                              ColumnSpacing="10">
-                          <TextBlock Text="{Binding Time}"
-                                     FontFamily="Consolas"
-                                     VerticalAlignment="Top"
-                                     Foreground="{DynamicResource TextSecondaryBrush}" />
-                          <controls:StatusBadge Grid.Column="1"
-                                                VerticalAlignment="Top"
-                                                Text="{Binding LevelLabel}"
-                                                Tone="{Binding LevelTone}" />
-                          <TextBlock Grid.Column="2"
-                                     Text="{Binding Source}"
-                                     VerticalAlignment="Top"
-                                     Foreground="{DynamicResource TextSecondaryBrush}" />
-                          <TextBlock Grid.Column="3"
-                                     Text="{Binding Message}"
-                                     FontFamily="Consolas"
-                                     TextWrapping="Wrap" />
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </ScrollViewer>
+              <!-- ListBox (not ItemsControl) so the log rows are virtualized: only the visible
+                   rows get realized, instead of building a visual for every one of up to 2000
+                   entries. That, plus incremental append in the view model, is what stops the log
+                   view from pegging CPU and ballooning memory during long/failed connects. -->
+              <ListBox x:Name="EntriesListBox"
+                       Grid.Row="1"
+                       ItemsSource="{Binding VisibleEntries}"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                       MinHeight="0"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Padding="0">
+                <ListBox.Styles>
+                  <!-- Keep the custom row template flush: the ListBoxItem chrome adds its own
+                       padding/min-height otherwise. -->
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:StructuredLogEntry">
+                    <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="14,10">
+                      <Grid ColumnDefinitions="82,86,138,*"
+                            ColumnSpacing="10">
+                        <TextBlock Text="{Binding Time}"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Top"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <controls:StatusBadge Grid.Column="1"
+                                              VerticalAlignment="Top"
+                                              Text="{Binding LevelLabel}"
+                                              Tone="{Binding LevelTone}" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Source}"
+                                   VerticalAlignment="Top"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Grid.Column="3"
+                                   Text="{Binding Message}"
+                                   FontFamily="Consolas"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
 
               <controls:EmptyState Grid.Row="1"
                                    Margin="20"

@@ -123,9 +123,67 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
 
     private void OnSourceLogsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (!IsPaused)
+        if (IsPaused)
         {
-            RebuildVisibleEntries();
+            return;
+        }
+
+        // Only changes to the currently-selected source affect the visible list. Skipping the other
+        // two collections avoids a full rebuild every time another source streams - e.g. the engine
+        // /Tor log firehose while the user is on the App tab. That O(N) rebuild-per-line (Clear +
+        // re-add of up to 2000 entries on a non-virtualized list) was pegging CPU and ballooning
+        // memory during long or failing connects.
+        if (!ReferenceEquals(sender, GetSourceLines()))
+        {
+            OnPropertyChanged(nameof(ActiveSourcesSummary));
+            return;
+        }
+
+        // Fast path: newly appended lines are parsed and appended in place, instead of tearing down
+        // and rebuilding the whole collection on every single incoming line.
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is { Count: > 0 })
+        {
+            AppendNewEntries(e.NewItems);
+            return;
+        }
+
+        // Trim / clear / replace are infrequent (a trim happens once per ~200 lines past the cap),
+        // so a full rebuild there is fine.
+        RebuildVisibleEntries();
+    }
+
+    private void AppendNewEntries(System.Collections.IList newItems)
+    {
+        var appended = 0;
+        foreach (var item in newItems)
+        {
+            if (item is not string line)
+            {
+                continue;
+            }
+
+            var entry = ParseLine(line, SelectedSource);
+            if (!FilterEntry(entry))
+            {
+                continue;
+            }
+
+            VisibleEntries.Add(entry);
+            TotalEntries++;
+            switch (entry.Level)
+            {
+                case LevelError: ErrorEntries++; break;
+                case LevelWarning: WarningEntries++; break;
+                case LevelInfo: InfoEntries++; break;
+            }
+
+            appended++;
+        }
+
+        if (appended > 0)
+        {
+            OnPropertyChanged(nameof(ActiveSourcesSummary));
+            OnPropertyChanged(nameof(ShowEmptyState));
         }
     }
 

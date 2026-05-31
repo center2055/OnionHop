@@ -38,9 +38,12 @@ public partial class LogsPageView : UserControl
             return;
         }
 
-        if (EntriesScrollViewer != null)
+        // Scroll the newest entry into view. With the virtualizing ListBox this realizes only the
+        // tail rows, so auto-scroll no longer forces the whole list to materialize.
+        var entries = ViewModel.VisibleEntries;
+        if (EntriesListBox != null && entries.Count > 0)
         {
-            EntriesScrollViewer.Offset = new Vector(EntriesScrollViewer.Offset.X, double.MaxValue);
+            EntriesListBox.ScrollIntoView(entries[^1]);
         }
     }
 
