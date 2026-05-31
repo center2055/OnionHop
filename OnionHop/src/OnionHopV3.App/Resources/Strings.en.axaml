@@ -151,7 +151,7 @@
   <x:String x:Key="Settings.UseBridges">Use Tor bridges (obfs4/snowflake/etc)</x:String>
   <x:String x:Key="Settings.BridgeType">Bridge type</x:String>
   <x:String x:Key="Settings.BridgeSource">Bridge source</x:String>
-  <x:String x:Key="Settings.BridgeSourceHint">Auto tries the Tor bridge service first, then switches to local offline lists if fetch fails.</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Auto tries the OnionHop collector and Tor bridge service, then falls back to local offline lists. "OnionHop collector only" pulls pre-tested bridges from the collector (obfs4, webtunnel, vanilla).</x:String>
   <x:String x:Key="Settings.BridgeSourceCredits">Offline bridge fallback data: Tor-Bridges-Namer by Chara-Freedom and contributors.</x:String>
   <x:String x:Key="Settings.CustomBridges">Custom bridges (optional, overrides built-in)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
@@ -260,7 +260,7 @@
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Dnstt">DNS tunnel (dnstt)</x:String>
   <x:String x:Key="BridgeType.Custom">custom</x:String>
-  <x:String x:Key="BridgeSource.Auto">Auto (Tor bridge service -> Offline)</x:String>
+  <x:String x:Key="BridgeSource.Auto">Auto (collector, bridge service, then offline)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Tor bridge service only</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Offline only</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">OnionHop collector only</x:String>

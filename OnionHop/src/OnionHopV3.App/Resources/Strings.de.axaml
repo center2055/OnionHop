@@ -151,7 +151,7 @@
   <x:String x:Key="Settings.UseBridges">Tor-Bridges verwenden (obfs4/snowflake/etc)</x:String>
   <x:String x:Key="Settings.BridgeType">Bridge-Typ</x:String>
   <x:String x:Key="Settings.BridgeSource">Bridge-Quelle</x:String>
-  <x:String x:Key="Settings.BridgeSourceHint">Auto probiert zuerst den Tor-Bridge-Dienst und wechselt bei Fehlern auf lokale Offline-Listen.</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Auto probiert den OnionHop-Sammler und den Tor-Bridge-Dienst und wechselt sonst auf lokale Offline-Listen. &#8222;Nur OnionHop-Sammler&#8220; holt vorab getestete Br&#252;cken vom Sammler (obfs4, webtunnel, vanilla).</x:String>
   <x:String x:Key="Settings.BridgeSourceCredits">Offline-Bridge-Fallback: Tor-Bridges-Namer von Chara-Freedom und Mitwirkenden.</x:String>
   <x:String x:Key="Settings.CustomBridges">Eigene Bridges (optional, &#252;berschreibt eingebaute)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Bridge-Zeilen von bridges.torproject.org einf&#252;gen...</x:String>
@@ -260,9 +260,10 @@
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Dnstt">DNS-Tunnel (dnstt)</x:String>
   <x:String x:Key="BridgeType.Custom">benutzerdefiniert</x:String>
-  <x:String x:Key="BridgeSource.Auto">Auto (Tor-Bridge-Dienst -&gt; Offline)</x:String>
+  <x:String x:Key="BridgeSource.Auto">Auto (Sammler, Bridge-Dienst, dann Offline)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Nur Tor-Bridge-Dienst</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Nur Offline</x:String>
+  <x:String x:Key="BridgeSource.CollectorOnly">Nur OnionHop-Sammler</x:String>
   <x:String x:Key="ProxyScope.System">System-Proxy (alle Apps)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">System-Proxy (SOCKS Browser/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Nur lokaler Proxy (manuelle Apps)</x:String>

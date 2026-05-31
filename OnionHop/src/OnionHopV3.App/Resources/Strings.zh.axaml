@@ -151,7 +151,7 @@
   <x:String x:Key="Settings.UseBridges">使用 Tor 网桥（obfs4/snowflake 等）</x:String>
   <x:String x:Key="Settings.BridgeType">网桥类型</x:String>
   <x:String x:Key="Settings.BridgeSource">网桥来源</x:String>
-  <x:String x:Key="Settings.BridgeSourceHint">“自动”会先尝试 Tor 网桥服务，如果获取失败再切换到本地离线列表。</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">“自动”会尝试 OnionHop 收集器和 Tor 网桥服务，否则切换到本地离线列表。“仅 OnionHop 收集器”从收集器获取预先测试的网桥（obfs4、webtunnel、vanilla）。</x:String>
   <x:String x:Key="Settings.BridgeSourceCredits">离线网桥备用数据：Tor-Bridges-Namer，由 Chara-Freedom 及贡献者提供。</x:String>
   <x:String x:Key="Settings.CustomBridges">自定义网桥（可选，覆盖内置网桥）</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">从 bridges.torproject.org 粘贴网桥行...</x:String>

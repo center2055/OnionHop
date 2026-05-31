@@ -151,7 +151,7 @@
   <x:String x:Key="Settings.UseBridges">Использовать мосты Tor (obfs4/snowflake/и т.д.)</x:String>
   <x:String x:Key="Settings.BridgeType">Тип моста</x:String>
   <x:String x:Key="Settings.BridgeSource">Источник мостов</x:String>
-  <x:String x:Key="Settings.BridgeSourceHint">Авто сначала пробует службу мостов Tor, затем переключается на локальные офлайн-списки, если получить не удалось.</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Авто пробует коллектор OnionHop и службу мостов Tor, затем переключается на локальные офлайн-списки. «Только коллектор OnionHop» берёт заранее проверенные мосты из коллектора (obfs4, webtunnel, vanilla).</x:String>
   <x:String x:Key="Settings.BridgeSourceCredits">Данные офлайн-резерва мостов: Tor-Bridges-Namer от Chara-Freedom и участников.</x:String>
   <x:String x:Key="Settings.CustomBridges">Пользовательские мосты (необязательно, переопределяют встроенные)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Вставьте строки мостов с bridges.torproject.org...</x:String>
@@ -260,7 +260,7 @@
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Dnstt">DNS-туннель (dnstt)</x:String>
   <x:String x:Key="BridgeType.Custom">пользовательские</x:String>
-  <x:String x:Key="BridgeSource.Auto">Авто (служба мостов Tor -&gt; Офлайн)</x:String>
+  <x:String x:Key="BridgeSource.Auto">Авто (коллектор, служба мостов, затем офлайн)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Только служба мостов Tor</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Только офлайн</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">Только коллектор OnionHop</x:String>

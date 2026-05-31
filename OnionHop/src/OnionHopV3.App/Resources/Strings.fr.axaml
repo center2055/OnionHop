@@ -151,7 +151,7 @@
   <x:String x:Key="Settings.UseBridges">Utiliser des ponts Tor (obfs4/snowflake/etc)</x:String>
   <x:String x:Key="Settings.BridgeType">Type de pont</x:String>
   <x:String x:Key="Settings.BridgeSource">Source des ponts</x:String>
-  <x:String x:Key="Settings.BridgeSourceHint">Auto essaie d'abord le service de ponts Tor, puis bascule sur les listes locales hors ligne si la récupération échoue.</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">Auto essaie le collecteur OnionHop et le service de ponts Tor, puis bascule sur les listes locales hors ligne. « Collecteur OnionHop uniquement » récupère des ponts pré-testés depuis le collecteur (obfs4, webtunnel, vanilla).</x:String>
   <x:String x:Key="Settings.BridgeSourceCredits">Données de secours hors ligne des ponts : Tor-Bridges-Namer par Chara-Freedom et les contributeurs.</x:String>
   <x:String x:Key="Settings.CustomBridges">Ponts personnalisés (facultatif, remplace les ponts intégrés)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Collez les lignes de ponts depuis bridges.torproject.org...</x:String>
@@ -260,7 +260,7 @@
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Dnstt">Tunnel DNS (dnstt)</x:String>
   <x:String x:Key="BridgeType.Custom">personnalisé</x:String>
-  <x:String x:Key="BridgeSource.Auto">Auto (service de ponts Tor -> Hors ligne)</x:String>
+  <x:String x:Key="BridgeSource.Auto">Auto (collecteur, service de ponts, puis hors ligne)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Service de ponts Tor uniquement</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Hors ligne uniquement</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">Collecteur OnionHop uniquement</x:String>
