@@ -34,8 +34,11 @@
     <SolidColorBrush x:Key="AccentOutlineBrush" Color="{DynamicResource SystemAccentColor}" Opacity="0.55" />
 
     <!-- Status -->
-    <SolidColorBrush x:Key="InfoBrush" Color="{DynamicResource SystemFillColorAttention}" />
-    <SolidColorBrush x:Key="InfoSoftBrush" Color="{DynamicResource SystemFillColorAttentionBackground}" />
+    <!-- Info uses a fixed blue rather than SystemFillColorAttention: that key does not resolve in
+         all FluentAvalonia theme variants (notably light), which left info text invisible. This
+         blue reads clearly on both light and dark surfaces. -->
+    <SolidColorBrush x:Key="InfoBrush" Color="#3B82F6" />
+    <SolidColorBrush x:Key="InfoSoftBrush" Color="#3B82F6" Opacity="0.18" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SystemFillColorSuccess}" />
     <SolidColorBrush x:Key="SuccessSoftBrush" Color="{DynamicResource SystemFillColorSuccessBackground}" />
     <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource SystemFillColorCaution}" />
