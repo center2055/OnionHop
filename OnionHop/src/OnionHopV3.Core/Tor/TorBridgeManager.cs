@@ -347,8 +347,12 @@ internal sealed class TorBridgeManager
     {
         BridgeValidationMessage = null;
         var sourcePreference = ResolveBridgeSourcePreference(options.BridgeSourceMode);
+        var collectorOnly = sourcePreference == BridgeSourcePreference.CollectorOnly;
         var allowBridgeServiceFetch = sourcePreference != BridgeSourcePreference.OfflineOnly;
-        var allowOfflineFallback = sourcePreference != BridgeSourcePreference.OnlineOnly;
+        // CollectorOnly fetches online (from the collector) but, like OnlineOnly, should not silently
+        // drop back to offline lists - if the collector has nothing, surface that instead.
+        var allowOfflineFallback = sourcePreference != BridgeSourcePreference.OnlineOnly
+                                   && sourcePreference != BridgeSourcePreference.CollectorOnly;
         var selectedBridgeType = ResolveSelectedBridgeType(options, config, log);
         IReadOnlyList<string> selected = Array.Empty<string>();
         var usingCustom = false;
@@ -381,7 +385,7 @@ internal sealed class TorBridgeManager
         {
             if (allowBridgeServiceFetch)
             {
-                var fetched = await TryFetchBridgeLinesAsync(selectedBridgeType, log, token).ConfigureAwait(false);
+                var fetched = await TryFetchBridgeLinesAsync(selectedBridgeType, log, token, collectorOnly: collectorOnly).ConfigureAwait(false);
                 if (fetched.Count > 0)
                 {
                     selected = fetched;
@@ -508,6 +512,9 @@ internal sealed class TorBridgeManager
             {
                 BridgeSourcePreference.OnlineOnly => "No usable bridge lines were fetched from the Tor bridge service.",
                 BridgeSourcePreference.OfflineOnly => "No usable offline bridge lines were found.",
+                BridgeSourcePreference.CollectorOnly => IsCollectorSupportedType(selectedBridgeType)
+                    ? "No usable bridge lines were fetched from the OnionHop collector."
+                    : $"The OnionHop collector does not provide '{selectedBridgeType}' bridges. It covers obfs4, webtunnel, and vanilla. Pick one of those, or use a different bridge source.",
                 _ => "No usable bridge lines were found (Tor bridge service and offline fallback both failed)."
             };
         }
@@ -585,7 +592,8 @@ internal sealed class TorBridgeManager
         Action<string> log,
         CancellationToken token,
         bool forceRefresh = false,
-        HttpClient? httpClientOverride = null)
+        HttpClient? httpClientOverride = null,
+        bool collectorOnly = false)
     {
         if (string.IsNullOrWhiteSpace(bridgeType) || string.Equals(bridgeType, "custom", StringComparison.OrdinalIgnoreCase))
         {
@@ -659,6 +667,23 @@ internal sealed class TorBridgeManager
 
             try
             {
+                // "OnionHop collector only" skips Moat and the Tor bridge service entirely and pulls
+                // straight from the collector mirrors.
+                if (collectorOnly)
+                {
+                    var onlyCollector = await TryFetchBridgeLinesFromCollectorAsync(httpClient, bridgeType, log, token).ConfigureAwait(false);
+                    if (onlyCollector.Count > 0)
+                    {
+                        _runtimeFetchedBridges[bridgeType] = onlyCollector;
+                        SaveCachedBridgeLines(bridgeType, onlyCollector);
+                        log($"Loaded {onlyCollector.Count} {bridgeType} bridges from the OnionHop bridge collector.");
+                        return onlyCollector;
+                    }
+
+                    log($"OnionHop collector returned no usable {bridgeType} bridges.");
+                    return Array.Empty<string>();
+                }
+
                 var moatLines = await TryFetchBridgeLinesViaMoatAsync(httpClient, bridgeType, token).ConfigureAwait(false);
                 if (moatLines.Count > 0)
                 {
