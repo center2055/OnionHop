@@ -86,6 +86,10 @@
   <x:String x:Key="About.GitHubIssues">GitHub-Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.BridgeSources">Br&#252;ckenquellen</x:String>
+  <x:String x:Key="About.BridgeSourcesIntro">Woher OnionHop seine Tor-Br&#252;cken bezieht:</x:String>
+  <x:String x:Key="About.CollectorDerived">Unser Collector ist von Delta-Kroneckers Tor-Bridges-Collector abgeleitet (AGPL-3.0):</x:String>
+  <x:String x:Key="About.FrontedDefaults">Snowflake, meek und conjure nutzen die mit dem Tor Browser gelieferten Standard-Br&#252;ckenzeilen.</x:String>
   <x:String x:Key="About.Changelog">Historie von OnionHop</x:String>
   <x:String x:Key="About.Refresh">Aktualisieren</x:String>
   <x:String x:Key="About.ChangelogDetails">Details</x:String>

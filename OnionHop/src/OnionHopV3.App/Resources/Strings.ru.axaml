@@ -86,6 +86,10 @@
   <x:String x:Key="About.GitHubIssues">Задачи на GitHub</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.BridgeSources">Источники мостов</x:String>
+  <x:String x:Key="About.BridgeSourcesIntro">Откуда OnionHop берёт мосты Tor:</x:String>
+  <x:String x:Key="About.CollectorDerived">Наш сборщик основан на Tor-Bridges-Collector от Delta-Kronecker (AGPL-3.0):</x:String>
+  <x:String x:Key="About.FrontedDefaults">Snowflake, meek и conjure используют стандартные строки мостов из Tor Browser.</x:String>
   <x:String x:Key="About.Changelog">История OnionHop</x:String>
   <x:String x:Key="About.Refresh">Обновить</x:String>
   <x:String x:Key="About.ChangelogDetails">Подробнее</x:String>

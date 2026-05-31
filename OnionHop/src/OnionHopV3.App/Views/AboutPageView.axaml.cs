@@ -30,6 +30,16 @@ public partial class AboutPageView : UserControl
         OpenUri(KoFiUri);
     }
 
+    // Generic link button: opens the URL stored in the control's Tag.
+    private void OnOpenLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { Tag: string url } &&
+            Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            OpenUri(uri);
+        }
+    }
+
     private static void OpenUri(Uri uri)
     {
         try

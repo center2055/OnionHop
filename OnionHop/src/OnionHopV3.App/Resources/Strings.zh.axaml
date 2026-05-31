@@ -86,6 +86,10 @@
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.BridgeSources">网桥来源</x:String>
+  <x:String x:Key="About.BridgeSourcesIntro">OnionHop 的 Tor 网桥来自：</x:String>
+  <x:String x:Key="About.CollectorDerived">我们的收集器衍生自 Delta-Kronecker 的 Tor-Bridges-Collector（AGPL-3.0）：</x:String>
+  <x:String x:Key="About.FrontedDefaults">Snowflake、meek 和 conjure 使用 Tor Browser 自带的默认网桥行。</x:String>
   <x:String x:Key="About.Changelog">OnionHop 历史</x:String>
   <x:String x:Key="About.Refresh">刷新</x:String>
   <x:String x:Key="About.ChangelogDetails">详情</x:String>
