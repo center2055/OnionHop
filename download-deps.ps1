@@ -493,7 +493,9 @@ try {
             $DnsttClone = Join-Path $TempDir "dnstt"
             if (Test-Path $DnsttClone) { Remove-Item -Recurse -Force $DnsttClone }
             Write-Host "Cloning dnstt (David Fifield) and building dnstt-client from source..."
-            & git clone --depth 1 https://www.bamsoftware.com/git/dnstt.git $DnsttClone
+            # NOTE: no --depth 1 here. bamsoftware.com serves git over "dumb HTTP", which does not
+            # support shallow clones ("dumb http transport does not support shallow capabilities").
+            & git clone https://www.bamsoftware.com/git/dnstt.git $DnsttClone
             if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
 
             $prevCgo = $env:CGO_ENABLED; $prevGoos = $env:GOOS; $prevGoarch = $env:GOARCH
