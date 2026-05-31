@@ -48,7 +48,7 @@
   <x:String x:Key="Home.UpdateBridgesTooltip">Frische, getestete Br&#252;cken &#252;ber deine normale Verbindung holen (auch hinter einem VPN). Du musst nicht zuerst mit Tor verbunden sein.</x:String>
   <x:String x:Key="Home.SystemProxyOn">System-Proxy: AN</x:String>
   <x:String x:Key="Home.SystemProxyOff">System-Proxy: AUS</x:String>
-  <x:String x:Key="Home.SystemProxyTooltip">System-Proxy an/aus schalten, ohne Tor zu trennen. Bei AUS l&#228;uft der System-Verkehr direkt (z.&#160;B. f&#252;r ein separates VPN), w&#228;hrend Tor verbunden bleibt; Apps, die direkt den SOCKS-Port nutzen, gehen weiterhin &#252;ber Tor.</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">Legt fest, ob der System-Verkehr im Proxy-Modus &#252;ber Tor l&#228;uft. Vor dem Verbinden umschalten, um das Verhalten vorab festzulegen, oder w&#228;hrend der Verbindung live umschalten, ohne Tor zu trennen. Bei AUS l&#228;uft der System-Verkehr direkt (z.&#160;B. separates VPN); Apps am SOCKS-Port nutzen weiterhin Tor.</x:String>
   <x:String x:Key="Home.BridgeDataAutoUpdates">Bridge-Daten aktualisieren automatisch</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">Bridge-Daten zuletzt aktualisiert: noch nicht aktualisiert.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">Bridge-Daten zuletzt aktualisiert: {0}</x:String>
@@ -379,7 +379,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop schnell (2 Hops)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Automatisch nutzt die klassische Runtime, außer eine unterstützte Arti-Runtime ist ausgewählt.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti startet eine lokale SOCKS-Runtime, wenn die arti-Datei gebündelt, im PATH oder per ONIONHOP_ARTI_PATH gesetzt ist.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop nutzt verkürzte 2-Hop-Schaltkreise (Guard→Exit) für geringere Latenz – schneller als normales Tor, aber schwächere Anonymität. Benötigt die artihop-Datei gebündelt, im PATH oder per ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop nutzt verkürzte 2-Hop-Schaltkreise (Guard→Exit) für geringere Latenz. Schneller als normales Tor, aber schwächere Anonymität. Benötigt die artihop-Datei gebündelt, im PATH oder per ONIONHOP_ARTIHOP_PATH.</x:String>
 
   <!-- Snowflake-Proxy (freiwillig) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake-Bridge (freiwillig)</x:String>
@@ -470,7 +470,7 @@
   <x:String x:Key="Relays.UseAsPreferredExitHint">Setzt diesen Relay als strikten manuellen Exit. Das kann Anonymität und Verfügbarkeit verringern.</x:String>
   <x:String x:Key="Relays.UseAsPreferredGuard">Als bevorzugten Guard verwenden (experimentell)</x:String>
   <x:String x:Key="Relays.SelectGuardRelayFirst">Zuerst einen Guard-Relay ausw&#228;hlen</x:String>
-  <x:String x:Key="Relays.UseAsPreferredGuardHint">Setzt diesen Relay als strikten manuellen Guard. Das kann AnonymitÃ¤t und VerfÃ¼gbarkeit verringern.</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuardHint">Setzt diesen Relay als strikten manuellen Guard. Das kann Anonymit&#228;t und Verf&#252;gbarkeit verringern.</x:String>
   <x:String x:Key="Relays.UseAsPreferredMiddle">Als bevorzugten Middle verwenden (experimentell)</x:String>
   <x:String x:Key="Relays.SelectMiddleRelayFirst">Zuerst einen Middle-Relay ausw&#228;hlen</x:String>
   <x:String x:Key="Relays.UseAsPreferredMiddleHint">Setzt diesen Relay als strikten manuellen Middle. Das kann Anonymit&#228;t und Verf&#252;gbarkeit verringern.</x:String>

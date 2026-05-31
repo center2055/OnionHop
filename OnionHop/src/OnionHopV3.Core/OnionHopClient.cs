@@ -692,11 +692,21 @@ public sealed class OnionHopClient : IDisposable
             {
                 if (UsesSystemProxyScope(resolvedOptions))
                 {
-                    var systemHttpPort = UsesSocksOnlySystemProxyScope(resolvedOptions) ? null : _activeHttpPort;
-                    _proxyService.ApplyTorProxy(_activeSocksPort, systemHttpPort, RaiseLog);
-                    if (systemHttpPort is null)
+                    if (resolvedOptions.ApplySystemProxyOnConnect)
                     {
-                        RaiseLog($"System proxy SOCKS browser/.onion mode enabled (socks={_activeProxyBindAddress}:{_activeSocksPort}).");
+                        var systemHttpPort = UsesSocksOnlySystemProxyScope(resolvedOptions) ? null : _activeHttpPort;
+                        _proxyService.ApplyTorProxy(_activeSocksPort, systemHttpPort, RaiseLog);
+                        if (systemHttpPort is null)
+                        {
+                            RaiseLog($"System proxy SOCKS browser/.onion mode enabled (socks={_activeProxyBindAddress}:{_activeSocksPort}).");
+                        }
+                    }
+                    else
+                    {
+                        // User pre-set the system proxy to OFF for this connection; leave OS settings
+                        // untouched. Apps pointed at the SOCKS port still go through Tor, and the
+                        // Home "System proxy" toggle can flip it on live without reconnecting.
+                        RaiseLog($"System proxy left OFF by preference; system traffic goes direct. Point apps at socks5://{_activeProxyBindAddress}:{_activeSocksPort} for Tor, or toggle System proxy ON from Home.");
                     }
                 }
                 else
@@ -725,7 +735,9 @@ public sealed class OnionHopClient : IDisposable
                         ? "Tor is running. xray compatibility proxy is active (browser traffic via Tor)."
                     : "Tor is running. VPN tunnel is active (all traffic via Tor).")
                 : UsesSystemProxyScope(resolvedOptions)
-                    ? "Tor is running. System proxy mode is active."
+                    ? (resolvedOptions.ApplySystemProxyOnConnect
+                        ? "Tor is running. System proxy mode is active."
+                        : "Tor is running. System proxy is off (apps can use the SOCKS port directly).")
                     : "Tor is running. Local proxy mode is active (configure apps manually).";
             PublishStatus();
 
@@ -2901,13 +2913,10 @@ public sealed class OnionHopClient : IDisposable
 
         if (_isConnecting)
         {
-            var message = $"ArtiHop exited with code {exitCode}.";
-            if (!string.IsNullOrWhiteSpace(recentOutput))
-            {
-                message += $"\n\nArtiHop output:\n{recentOutput}";
-            }
-
-            _bootstrapSource?.TrySetException(new InvalidOperationException(message));
+            // recentOutput was already written to the log above; keep the exception one line so the
+            // Home status shows a concise reason instead of a wall of engine output.
+            _bootstrapSource?.TrySetException(new InvalidOperationException(
+                $"ArtiHop exited with code {exitCode} before the connection was ready. See the Logs tab for details."));
             return;
         }
 

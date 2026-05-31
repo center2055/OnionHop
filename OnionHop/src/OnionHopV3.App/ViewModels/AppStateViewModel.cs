@@ -706,6 +706,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
         SelectedProxyScopeModeOption = ProxyScopeModeOptions
             .FirstOrDefault(option => string.Equals(option.Value, normalized, StringComparison.Ordinal));
+
+        OnPropertyChanged(nameof(IsSystemProxyScope));
+        OnPropertyChanged(nameof(ShowSystemProxyButton));
+        CanToggleSystemProxy = ComputeCanToggleSystemProxy();
     }
 
     partial void OnSelectedProxyScopeModeOptionChanged(LocalizedOption? value)
@@ -957,6 +961,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsProxyMode));
         OnPropertyChanged(nameof(CanUseKillSwitch));
         OnPropertyChanged(nameof(CanConfigureSplitTunneling));
+        OnPropertyChanged(nameof(ShowSystemProxyButton));
+        CanToggleSystemProxy = ComputeCanToggleSystemProxy();
     }
 
     partial void OnSelectedLocationChanged(string value)
@@ -1605,13 +1611,50 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             OnionHopV3.Core.Services.StartupLogger.Write($"ConnectAsync EXCEPTION: {ex.GetType().Name}: {ex.Message}");
             OnionHopV3.Core.Services.StartupLogger.Write($"Stack trace: {ex.StackTrace}");
             ConnectionStatus = LocalizationService.Get("Status.Disconnected");
-            StatusMessage = $"Connection failed: {ex.Message}";
+            // Full detail (which can be many lines of engine output) goes to the in-app log; the Home
+            // hero only shows a short, single-line reason so it does not turn into a wall of text.
+            AppendLog($"Connection failed: {ex.Message}");
+            StatusMessage = BuildShortConnectionError(ex.Message);
             ConnectionProgress = 0;
         }
         finally
         {
             IsPreparingConnection = false;
         }
+    }
+
+    // Collapse a possibly multi-line, engine-dumped error into one short line for the Home status.
+    // The complete text is always written to the log; this just keeps the hero readable.
+    private static string BuildShortConnectionError(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return "Connection failed. See the Logs tab for details.";
+        }
+
+        var firstLine = raw
+            .Split('\n', '\r')
+            .Select(line => line.Trim())
+            .FirstOrDefault(line => line.Length > 0) ?? raw.Trim();
+
+        // Some engines append a "Recent output:" dump after the reason; drop it from the hero line.
+        foreach (var marker in new[] { "Recent output:", " output:" })
+        {
+            var idx = firstLine.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx > 0)
+            {
+                firstLine = firstLine[..idx].TrimEnd(' ', '.', ':');
+                break;
+            }
+        }
+
+        const int maxLength = 200;
+        if (firstLine.Length > maxLength)
+        {
+            firstLine = firstLine[..maxLength].TrimEnd() + "...";
+        }
+
+        return $"Connection failed: {firstLine}";
     }
 
     private void BeginConnectionPreparation(bool smartConnect)
@@ -1751,18 +1794,47 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         ? LocalizationService.Get("Home.SystemProxyOn")
         : LocalizationService.Get("Home.SystemProxyOff");
 
+    // The system proxy only means something in Proxy Mode with a system scope. It does nothing in
+    // TUN/VPN mode (the OS-level tunnel already captures all traffic) or in local-only scope (no
+    // system proxy is ever installed), so the button is hidden there.
+    public bool IsSystemProxyScope => !string.Equals(ProxyScopeMode, ProxyScopeLocalOnly, StringComparison.Ordinal);
+    public bool ShowSystemProxyButton => !IsTunMode && IsSystemProxyScope;
+
+    // Enabled when there is something to do: live-toggle while connected in a system-scope Proxy
+    // Mode, or pre-set the desired post-connect behavior while disconnected.
+    private bool ComputeCanToggleSystemProxy()
+    {
+        if (IsTunMode || !IsSystemProxyScope)
+        {
+            return false;
+        }
+
+        return _client.CanToggleSystemProxy || (!IsConnected && !IsConnecting);
+    }
+
     [RelayCommand]
     private void ToggleSystemProxy()
     {
-        if (!_client.CanToggleSystemProxy)
+        if (IsTunMode || !IsSystemProxyScope)
         {
             return;
         }
 
-        // Flip the system proxy without touching Tor, then mirror the resulting state.
-        _client.SetSystemProxyEnabled(!_client.IsSystemProxyEnabled);
-        SystemProxyEnabled = _client.IsSystemProxyEnabled;
-        CanToggleSystemProxy = _client.CanToggleSystemProxy;
+        if (_client.CanToggleSystemProxy)
+        {
+            // Connected in a system-scope Proxy Mode: flip the live OS proxy without touching Tor.
+            _client.SetSystemProxyEnabled(!_client.IsSystemProxyEnabled);
+            SystemProxyEnabled = _client.IsSystemProxyEnabled;
+        }
+        else
+        {
+            // Disconnected (or not live-toggleable): record the desired post-connect behavior. It is
+            // applied on the next connect via OnionHopConnectOptions.ApplySystemProxyOnConnect.
+            SystemProxyEnabled = !SystemProxyEnabled;
+        }
+
+        SaveSettings();
+        CanToggleSystemProxy = ComputeCanToggleSystemProxy();
     }
 
     // --- Snowflake proxy (volunteer as a Snowflake bridge) ------------------------------------
@@ -2203,6 +2275,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
             ProxyScopeMode = ProxyScopeMode,
+            ApplySystemProxyOnConnect = SystemProxyEnabled,
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             AllowLanProxyAccess = AllowLanProxyAccess,
@@ -2252,8 +2325,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         CurrentIp = update.CurrentIp;
         SocksProxyPort = update.SocksPort.ToString();
         HttpProxyPort = update.HttpPort.HasValue ? update.HttpPort.Value.ToString() : "--";
-        SystemProxyEnabled = _client.IsSystemProxyEnabled;
-        CanToggleSystemProxy = _client.CanToggleSystemProxy;
+        // While connected, mirror the live OS proxy state. While disconnected, keep the user's
+        // desired (persisted) value so the Home toggle shows what will happen on the next connect.
+        if (update.IsConnected)
+        {
+            SystemProxyEnabled = _client.IsSystemProxyEnabled;
+        }
+        CanToggleSystemProxy = ComputeCanToggleSystemProxy();
         var latestBridgeDataUpdate = _client.GetLastBridgeDataUpdateUtc();
         if (latestBridgeDataUpdate != LastBridgeDataUpdateUtc)
         {
@@ -2438,6 +2516,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             CustomDohHost = settings.CustomDohHost ?? string.Empty;
             CustomDohPath = string.IsNullOrWhiteSpace(settings.CustomDohPath) ? "/dns-query" : settings.CustomDohPath;
             ProxyScopeMode = NormalizeProxyScopeMode(settings.ProxyScopeMode);
+            // Desired post-connect system-proxy state (defaults to enabled, matching prior behavior).
+            SystemProxyEnabled = settings.SystemProxyEnabledByDefault ?? true;
             PreferredSocksPort = (settings.PreferredSocksPort is >= 1 and <= 65535
                 ? settings.PreferredSocksPort.Value
                 : OnionHopConnectOptions.DefaultSocksPort).ToString();
@@ -2610,6 +2690,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
             ProxyScopeMode = ProxyScopeMode,
+            SystemProxyEnabledByDefault = SystemProxyEnabled,
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
             AllowLanProxyAccess = AllowLanProxyAccess,

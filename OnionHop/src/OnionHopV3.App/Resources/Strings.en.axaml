@@ -48,7 +48,7 @@
   <x:String x:Key="Home.UpdateBridgesTooltip">Fetch fresh, tested bridges over your normal connection (works behind a VPN). No need to be connected to Tor first.</x:String>
   <x:String x:Key="Home.SystemProxyOn">System Proxy: ON</x:String>
   <x:String x:Key="Home.SystemProxyOff">System Proxy: OFF</x:String>
-  <x:String x:Key="Home.SystemProxyTooltip">Turn the system proxy on/off without disconnecting Tor. When OFF, system traffic goes direct (e.g. to use a separate VPN) while Tor stays connected; apps pointed at the SOCKS port still use Tor.</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">Whether system traffic routes through Tor in Proxy Mode. Toggle before connecting to pre-set the behavior, or while connected to switch live without dropping Tor. When OFF, system traffic goes direct (e.g. a separate VPN); apps pointed at the SOCKS port still use Tor.</x:String>
   <x:String x:Key="Home.BridgeDataAutoUpdates">Bridge data auto-updates</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">bridge data last update: not updated yet.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">bridge data last update: {0}</x:String>
@@ -381,7 +381,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop fast (2-hop)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Automatic uses the classic runtime unless a supported Arti runtime is selected.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti starts a local SOCKS runtime when the arti binary is bundled, on PATH, or set through ONIONHOP_ARTI_PATH.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop uses shortened 2-hop (Guard→Exit) circuits for lower latency — faster than standard Tor, but weaker anonymity. Needs the artihop binary bundled, on PATH, or set via ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop uses shortened 2-hop (Guard→Exit) circuits for lower latency. Faster than standard Tor, but weaker anonymity. Needs the artihop binary bundled, on PATH, or set via ONIONHOP_ARTIHOP_PATH.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake bridge (volunteer)</x:String>

@@ -48,7 +48,7 @@
   <x:String x:Key="Home.UpdateBridgesTooltip">Получить свежие проверенные мосты через обычное соединение (работает за VPN). Не нужно сначала подключаться к Tor.</x:String>
   <x:String x:Key="Home.SystemProxyOn">Системный прокси: ВКЛ</x:String>
   <x:String x:Key="Home.SystemProxyOff">Системный прокси: ВЫКЛ</x:String>
-  <x:String x:Key="Home.SystemProxyTooltip">Включает/выключает системный прокси без отключения Tor. Когда ВЫКЛ, системный трафик идёт напрямую (например, для использования отдельного VPN), а Tor остаётся подключённым; приложения, нацеленные на порт SOCKS, по-прежнему используют Tor.</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">Определяет, идёт ли системный трафик через Tor в режиме прокси. Переключите до подключения, чтобы заранее задать поведение, или во время подключения, чтобы изменить вживую без отключения Tor. Когда ВЫКЛ, системный трафик идёт напрямую (например, отдельный VPN); приложения, нацеленные на порт SOCKS, по-прежнему используют Tor.</x:String>
   <x:String x:Key="Home.BridgeDataAutoUpdates">Данные мостов обновляются автоматически</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">последнее обновление данных мостов: ещё не обновлялось.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">последнее обновление данных мостов: {0}</x:String>
@@ -381,7 +381,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop быстрый (2 узла)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Автоматически использует классическую среду выполнения, если не выбрана поддерживаемая среда Arti.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti запускает локальную среду SOCKS, когда бинарник arti встроен, находится в PATH или задан через ONIONHOP_ARTI_PATH.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop использует укороченные цепочки из 2 узлов (Сторож→Выход) для меньшей задержки — быстрее стандартного Tor, но слабее анонимность. Требует бинарник artihop встроенным, в PATH или заданным через ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop использует укороченные цепочки из 2 узлов (Сторож→Выход) для меньшей задержки. Быстрее стандартного Tor, но слабее анонимность. Требует бинарник artihop встроенным, в PATH или заданным через ONIONHOP_ARTIHOP_PATH.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Мост Snowflake (волонтёрский)</x:String>

@@ -79,6 +79,9 @@ public sealed record OnionHopConnectOptions
     public int PreferredSocksPort { get; init; } = DefaultSocksPort;
     public int PreferredHttpPort { get; init; } = DefaultHttpPort;
     public bool AllowLanProxyAccess { get; init; }
+    // Proxy Mode only. When false, connecting does NOT point the OS system proxy at Tor (apps can
+    // still use the SOCKS port directly). Lets the user pre-decide post-connect behavior from Home.
+    public bool ApplySystemProxyOnConnect { get; init; } = true;
     public string TunCoreMode { get; init; } = TunCoreSingBox;
     public string TunStackMode { get; init; } = TunStackMixed;
     public int? TunMtu { get; init; }

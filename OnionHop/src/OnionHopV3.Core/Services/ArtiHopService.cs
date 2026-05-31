@@ -55,6 +55,12 @@ internal sealed class ArtiHopService : IDisposable
         }
 
         Stop();
+        // Start each launch with a clean diagnostic buffer so a failure only reports THIS attempt's
+        // output (otherwise lines from prior retries pile up and bloat the error).
+        lock (_recentOutputLines)
+        {
+            _recentOutputLines.Clear();
+        }
         token.ThrowIfCancellationRequested();
 
         if (string.IsNullOrWhiteSpace(config.ArtiHopPath))
@@ -65,7 +71,9 @@ internal sealed class ArtiHopService : IDisposable
         var endpoint = FormatPortEndpoint(config.SocksListenAddress, config.SocksPort, "127.0.0.1");
         var mode = string.IsNullOrWhiteSpace(config.Mode) ? "short-2" : config.Mode.Trim();
         var logFilter = string.IsNullOrWhiteSpace(config.LogFilter)
-            ? "artihop=info,arti_client=warn,tor_proto=warn,tor_circmgr=info"
+            // arti_client at info surfaces bootstrap progress, which is what we need to diagnose a
+            // "SOCKS port did not become ready" failure (stuck at directory fetch vs. circuit build).
+            ? "artihop=info,arti_client=info,tor_proto=warn,tor_circmgr=info"
             : config.LogFilter.Trim();
 
         var arguments = new List<string> { "--mode", mode, "--socks", endpoint, "--log", logFilter };
@@ -121,17 +129,26 @@ internal sealed class ArtiHopService : IDisposable
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
 
+        var readinessTimeout = TimeSpan.FromSeconds(45);
         if (!await WaitForSocksPortReadyAsync(
                 config.SocksPort,
                 token,
-                TimeSpan.FromSeconds(45),
+                readinessTimeout,
                 () => _process?.HasExited == true).ConfigureAwait(false))
         {
+            // Keep the user-facing exception short; the full recent output goes to the log so the
+            // Home screen shows a one-line reason instead of a wall of engine text.
             var details = RecentOutput;
+            if (!string.IsNullOrWhiteSpace(details))
+            {
+                _log($"ArtiHop did not open its SOCKS port in time. Recent output:{Environment.NewLine}{details}");
+            }
+
+            var exitedEarly = _process?.HasExited == true;
             Stop();
-            throw new InvalidOperationException(string.IsNullOrWhiteSpace(details)
-                ? $"ArtiHop started but SOCKS port {config.SocksPort} did not become ready."
-                : $"ArtiHop started but SOCKS port {config.SocksPort} did not become ready. Recent output: {details}");
+            throw new InvalidOperationException(exitedEarly
+                ? $"ArtiHop exited before its SOCKS port {config.SocksPort} became ready. See the Logs tab for details."
+                : $"ArtiHop started but its SOCKS port {config.SocksPort} was not ready within {(int)readinessTimeout.TotalSeconds}s. See the Logs tab for details.");
         }
     }
 

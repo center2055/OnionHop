@@ -48,7 +48,7 @@
   <x:String x:Key="Home.UpdateBridgesTooltip">Récupère des ponts testés récents via votre connexion normale (fonctionne derrière un VPN). Pas besoin d'être connecté à Tor d'abord.</x:String>
   <x:String x:Key="Home.SystemProxyOn">Proxy système : ACTIVÉ</x:String>
   <x:String x:Key="Home.SystemProxyOff">Proxy système : DÉSACTIVÉ</x:String>
-  <x:String x:Key="Home.SystemProxyTooltip">Activez/désactivez le proxy système sans déconnecter Tor. Lorsqu'il est désactivé, le trafic système passe en direct (par ex. pour utiliser un VPN distinct) tandis que Tor reste connecté ; les applications dirigées vers le port SOCKS continuent d'utiliser Tor.</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">Indique si le trafic système passe par Tor en mode proxy. Basculez avant de vous connecter pour prérégler le comportement, ou pendant la connexion pour changer en direct sans déconnecter Tor. Lorsqu'il est désactivé, le trafic système passe en direct (par ex. un VPN distinct) ; les applications dirigées vers le port SOCKS continuent d'utiliser Tor.</x:String>
   <x:String x:Key="Home.BridgeDataAutoUpdates">Mise à jour auto des données de ponts</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">dernière mise à jour des données de ponts : pas encore mises à jour.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">dernière mise à jour des données de ponts : {0}</x:String>
@@ -381,7 +381,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop rapide (2 sauts)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Automatique utilise l'exécution classique sauf si une exécution Arti prise en charge est sélectionnée.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti démarre une exécution SOCKS locale lorsque le binaire arti est inclus, dans le PATH, ou défini via ONIONHOP_ARTI_PATH.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop utilise des circuits raccourcis à 2 sauts (Garde→Sortie) pour une latence réduite — plus rapide que Tor standard, mais un anonymat plus faible. Nécessite le binaire artihop inclus, dans le PATH, ou défini via ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop utilise des circuits raccourcis à 2 sauts (Garde→Sortie) pour une latence réduite. Plus rapide que Tor standard, mais anonymat plus faible. Nécessite le binaire artihop inclus, dans le PATH, ou défini via ONIONHOP_ARTIHOP_PATH.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Pont Snowflake (bénévole)</x:String>

@@ -36,6 +36,8 @@ public sealed class UserSettings
     public string? CustomDohHost { get; set; }
     public string? CustomDohPath { get; set; }
     public string? ProxyScopeMode { get; set; }
+    // Desired post-connect system-proxy state for Proxy Mode (null defaults to enabled).
+    public bool? SystemProxyEnabledByDefault { get; set; }
     public int? PreferredSocksPort { get; set; }
     public int? PreferredHttpPort { get; set; }
     public bool AllowLanProxyAccess { get; set; }

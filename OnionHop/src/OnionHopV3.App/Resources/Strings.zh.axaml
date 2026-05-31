@@ -48,7 +48,7 @@
   <x:String x:Key="Home.UpdateBridgesTooltip">通过普通连接获取最新的已测试网桥（在 VPN 后也可用）。无需先连接 Tor。</x:String>
   <x:String x:Key="Home.SystemProxyOn">系统代理：开</x:String>
   <x:String x:Key="Home.SystemProxyOff">系统代理：关</x:String>
-  <x:String x:Key="Home.SystemProxyTooltip">在不断开 Tor 的情况下开启/关闭系统代理。关闭时，系统流量将直连（例如以使用单独的 VPN），而 Tor 保持连接；指向 SOCKS 端口的应用仍使用 Tor。</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">决定在代理模式下系统流量是否经过 Tor。连接前切换可预设行为，连接中切换可在不断开 Tor 的情况下实时生效。关闭时，系统流量将直连（例如使用单独的 VPN）；指向 SOCKS 端口的应用仍使用 Tor。</x:String>
   <x:String x:Key="Home.BridgeDataAutoUpdates">网桥数据自动更新</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">网桥数据上次更新：尚未更新。</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">网桥数据上次更新：{0}</x:String>
@@ -381,7 +381,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop 快速（2 跳）</x:String>
   <x:String x:Key="Settings.TorEngineHint">除非选择了受支持的 Arti 运行时，否则“自动”将使用经典运行时。</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">当 arti 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTI_PATH 设置时，Arti 会启动本地 SOCKS 运行时。</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop 使用缩短的 2 跳（守卫→出口）链路以降低延迟——比标准 Tor 更快，但匿名性较弱。需要 artihop 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTIHOP_PATH 设置。</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop 使用缩短的 2 跳（守卫→出口）链路以降低延迟。比标准 Tor 更快，但匿名性较弱。需要 artihop 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTIHOP_PATH 设置。</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake 网桥（志愿者）</x:String>

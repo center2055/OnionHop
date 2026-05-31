@@ -39,9 +39,13 @@
                      Height="40"
                      Margin="0,0,10,0" />
       </WrapPanel>
+      <!-- Right margin keeps Copy/Export/Clear clear of the window caption buttons (minimize /
+           maximize / close), which float over the top-right corner of the content in custom-chrome
+           mode. Without it they sit underneath and cannot be clicked. -->
       <StackPanel Grid.Column="1"
                   Orientation="Horizontal"
                   Spacing="12"
+                  Margin="0,0,116,0"
                   VerticalAlignment="Center">
         <Button Classes="ActionGhost"
                 Click="OnCopyCurrentTabClick"

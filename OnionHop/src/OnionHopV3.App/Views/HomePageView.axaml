@@ -33,6 +33,8 @@
             <TextBlock Text="{Binding State.StatusMessage}"
                        FontSize="22"
                        FontWeight="SemiBold"
+                       MaxLines="3"
+                       TextTrimming="CharacterEllipsis"
                        TextWrapping="Wrap" />
             <TextBlock Text="{Binding State.ProtectionStatusDetail}"
                        Classes="Caption"
@@ -80,6 +82,7 @@
               <Button Height="40"
                       Margin="0,0,0,8"
                       Command="{Binding State.ToggleSystemProxyCommand}"
+                      IsVisible="{Binding State.ShowSystemProxyButton}"
                       IsEnabled="{Binding State.CanToggleSystemProxy}"
                       Content="{Binding State.SystemProxyButtonText}"
                       ToolTip.Tip="{DynamicResource Home.SystemProxyTooltip}" />
