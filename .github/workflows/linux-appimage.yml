@@ -1,0 +1,117 @@
+name: Build Linux AppImage
+
+# Builds a self-contained x86_64 AppImage of OnionHop V3 on Linux (the desktop
+# app can't be packaged for Linux from the Windows dev box). Run it manually and
+# optionally attach the result to an existing release.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to attach the AppImage to (e.g. v3.0.0-pre.3). Leave blank to only produce a build artifact."
+        required: false
+        default: ""
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Install AppImage tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 wget unzip
+
+      - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray)
+        run: |
+          chmod +x download-deps.sh
+          bash download-deps.sh
+
+      - name: Publish app (linux-x64, self-contained)
+        run: |
+          dotnet publish OnionHop/src/OnionHopV3.App/OnionHopV3.App.csproj \
+            -c Release -r linux-x64 --self-contained true \
+            /p:PublishSingleFile=false /p:PublishReadyToRun=false \
+            -o publish
+
+      - name: Strip Windows-only artifacts from publish
+        run: |
+          find publish -type f -name '*.exe' -delete || true
+          find publish -type f -name 'wintun.dll' -delete || true
+          # Make bundled native helpers executable.
+          chmod +x publish/OnionHopV3 || true
+          for d in publish/tor publish/tor/pluggable_transports publish/vpn publish/snowflake publish/artihop; do
+            [ -d "$d" ] && chmod +x "$d"/* 2>/dev/null || true
+          done
+
+      - name: Assemble AppDir
+        run: |
+          APPDIR=OnionHop.AppDir
+          mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+          cp -r publish/* "$APPDIR/usr/bin/"
+
+          # Icon
+          cp OnionHop/src/OnionHopV3.App/Assets/logo.png "$APPDIR/OnionHop.png"
+          cp OnionHop/src/OnionHopV3.App/Assets/logo.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/OnionHop.png"
+          cp OnionHop/src/OnionHopV3.App/Assets/logo.png "$APPDIR/.DirIcon"
+
+          # Desktop entry
+          cat > "$APPDIR/OnionHop.desktop" <<'DESK'
+          [Desktop Entry]
+          Type=Application
+          Name=OnionHop
+          Comment=Tor client with bridges, pluggable transports, and VPN/TUN routing
+          Exec=OnionHopV3
+          Icon=OnionHop
+          Categories=Network;Security;
+          Terminal=false
+          DESK
+
+          # AppRun launcher
+          cat > "$APPDIR/AppRun" <<'RUN'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          cd "${HERE}/usr/bin"
+          exec "${HERE}/usr/bin/OnionHopV3" "$@"
+          RUN
+          chmod +x "$APPDIR/AppRun"
+
+      - name: Build AppImage
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool OnionHop.AppDir OnionHop-x86_64.AppImage
+          ls -lh OnionHop-x86_64.AppImage
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnionHop-x86_64.AppImage
+          path: OnionHop-x86_64.AppImage
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: ${{ github.event_name == 'release' || inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
+          echo "Attaching AppImage to release $TAG"
+          gh release upload "$TAG" OnionHop-x86_64.AppImage --repo "${{ github.repository }}" --clobber
