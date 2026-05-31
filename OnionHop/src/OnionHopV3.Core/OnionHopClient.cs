@@ -229,6 +229,11 @@ public sealed class OnionHopClient : IDisposable
     {
         try
         {
+            // Merge any bridge types newly shipped in the bundle (e.g. dnstt) into the cached runtime
+            // pt_config before reading it, so upgrading users see new transports without a connect or
+            // reinstall. No-op when the runtime config is absent or already current.
+            var ptConfigPath = Path.Combine(_baseDir, "tor", "pluggable_transports", "pt_config.json");
+            DependencyManager.EnsurePluggableTransportConfig(ptConfigPath, RaiseLog);
             _ptConfig = DependencyManager.TryLoadPluggableTransportConfig(_baseDir, RaiseLog);
         }
         catch (Exception ex)

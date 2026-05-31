@@ -221,6 +221,41 @@ internal sealed class DependencyManager
 
             config.RecommendedDefault ??= "obfs4";
 
+            // Merge bridge types present in the bundled config but missing from this (possibly older,
+            // cached) runtime config. New transports like dnstt ship in the bundle; the runtime
+            // pt_config lives under LocalAppData and is only seeded "if missing", so without this an
+            // upgraded install keeps a stale config and the new type never appears in the UI. We only
+            // ADD missing/empty types, so fetched/updated bridge lines for existing types are kept.
+            try
+            {
+                var bundledPath = Path.Combine(AppContext.BaseDirectory, "tor", "pluggable_transports", "pt_config.json");
+                if (File.Exists(bundledPath) &&
+                    !string.Equals(Path.GetFullPath(bundledPath), Path.GetFullPath(configPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    var bundled = JsonSerializer.Deserialize<PluggableTransportConfig>(
+                        File.ReadAllText(bundledPath),
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (bundled?.Bridges is { Count: > 0 })
+                    {
+                        config.Bridges ??= new Dictionary<string, List<string>>();
+                        foreach (var kvp in bundled.Bridges)
+                        {
+                            var hasUsable = config.Bridges.TryGetValue(kvp.Key, out var existing) && existing is { Count: > 0 };
+                            if (!hasUsable && kvp.Value is { Count: > 0 })
+                            {
+                                config.Bridges[kvp.Key] = new List<string>(kvp.Value);
+                                updated = true;
+                                log($"pt_config: added bundled bridge type '{kvp.Key}' to the runtime config.");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log($"pt_config bridge-type merge skipped: {ex.Message}");
+            }
+
             if (updated)
             {
                 File.WriteAllText(configPath, JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
