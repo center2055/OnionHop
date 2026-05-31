@@ -20,6 +20,7 @@ public static class PlatformHelper
     public static string SnowflakeProxyBinaryName => IsWin ? "snowflake-proxy.exe" : "snowflake-proxy";
     public static string Obfs4ProxyBinaryName => IsWin ? "obfs4proxy.exe" : "obfs4proxy";
     public static string WebTunnelClientBinaryName => IsWin ? "webtunnel-client.exe" : "webtunnel-client";
+    public static string DnsttClientBinaryName => IsWin ? "dnstt-client.exe" : "dnstt-client";
     public static string WintunLibraryName => IsWin ? "wintun.dll" : string.Empty;
 
     public static bool NeedsWintun => IsWin;

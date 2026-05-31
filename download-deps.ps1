@@ -478,6 +478,41 @@ try {
         }
     }
 
+    Write-Host "`n[2b/4] Preparing dnstt-client (DNS-tunnel transport)..."
+    # dnstt-client is a standalone DNS-tunnel forwarder (not a Tor PT); OnionHop launches it and
+    # points Tor at its local listener. Built from David Fifield's dnstt. Optional: if Go is missing
+    # or the build fails, the app still runs but dnstt connect mode is unavailable.
+    $DnsttOutput = Join-Path $PtDir "dnstt-client.exe"
+    $DnsttGo = Get-Command "go" -ErrorAction SilentlyContinue
+    if (Test-Path $DnsttOutput) {
+        Write-Host "dnstt-client.exe already present."
+    } elseif (-not $DnsttGo) {
+        Write-Warning "Go not found. Skipping dnstt-client build; dnstt connect mode will be unavailable."
+    } else {
+        try {
+            $DnsttClone = Join-Path $TempDir "dnstt"
+            if (Test-Path $DnsttClone) { Remove-Item -Recurse -Force $DnsttClone }
+            Write-Host "Cloning dnstt (David Fifield) and building dnstt-client from source..."
+            & git clone --depth 1 https://www.bamsoftware.com/git/dnstt.git $DnsttClone
+            if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
+
+            $prevCgo = $env:CGO_ENABLED; $prevGoos = $env:GOOS; $prevGoarch = $env:GOARCH
+            $env:CGO_ENABLED = "0"; $env:GOOS = "windows"; $env:GOARCH = "amd64"
+            Push-Location (Join-Path $DnsttClone "dnstt-client")
+            go build -ldflags "-s -w" -o $DnsttOutput "."
+            Pop-Location
+            $env:CGO_ENABLED = $prevCgo; $env:GOOS = $prevGoos; $env:GOARCH = $prevGoarch
+
+            if (Test-Path $DnsttOutput) {
+                Write-Host "Built dnstt-client.exe."
+            } else {
+                Write-Warning "dnstt-client build produced no binary; dnstt connect mode will be unavailable."
+            }
+        } catch {
+            Write-Warning "dnstt-client build failed: $($_.Exception.Message). dnstt connect mode will be unavailable until built."
+        }
+    }
+
     $PtConfigPath = Join-Path $PtDir "pt_config.json"
     if (Test-Path $PtConfigPath) {
         $ptConfig = Get-Content $PtConfigPath -Raw | ConvertFrom-Json

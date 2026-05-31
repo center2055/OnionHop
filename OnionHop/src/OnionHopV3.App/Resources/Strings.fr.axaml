@@ -258,6 +258,7 @@
   <x:String x:Key="BridgeType.Conjure">conjure</x:String>
   <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
+  <x:String x:Key="BridgeType.Dnstt">Tunnel DNS (dnstt)</x:String>
   <x:String x:Key="BridgeType.Custom">personnalisé</x:String>
   <x:String x:Key="BridgeSource.Auto">Auto (service de ponts Tor -> Hors ligne)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Service de ponts Tor uniquement</x:String>

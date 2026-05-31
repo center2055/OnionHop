@@ -291,6 +291,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         BridgeTypes.Add("conjure");
         BridgeTypes.Add("meek-azure");
         BridgeTypes.Add("webtunnel");
+        BridgeTypes.Add("dnstt");
         BridgeTypes.Add("custom");
 
         _settingsService = new SettingsService(Program.OverrideBaseDirectory);
@@ -3004,6 +3005,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             "webtunnel" => LocalizationService.Get("BridgeType.Webtunnel"),
             "meek" => LocalizationService.Get("BridgeType.MeekAzure"),
             "meek-azure" => LocalizationService.Get("BridgeType.MeekAzure"),
+            "dnstt" => LocalizationService.Get("BridgeType.Dnstt"),
             "custom" => LocalizationService.Get("BridgeType.Custom"),
             _ => bridgeType
         };

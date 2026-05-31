@@ -71,6 +71,7 @@ public sealed class OnionHopClient : IDisposable
     private readonly ArtiService _artiService;
     private readonly ArtiHopService _artiHopService;
     private readonly SnowflakeProxyService _snowflakeProxyService;
+    private readonly DnsttForwarderService _dnsttForwarder;
     private readonly VpnService _vpnService;
     private readonly AdminHelperClient _adminHelper = new();
 
@@ -119,6 +120,7 @@ public sealed class OnionHopClient : IDisposable
         _artiService = new ArtiService(RaiseLog);
         _artiHopService = new ArtiHopService(RaiseLog);
         _snowflakeProxyService = new SnowflakeProxyService(RaiseLog);
+        _dnsttForwarder = new DnsttForwarderService(RaiseLog);
         _vpnService = new VpnService(RaiseLog);
         _httpProxyBridgeService = new HttpProxyBridgeService(RaiseLog);
 
@@ -989,6 +991,91 @@ public sealed class OnionHopClient : IDisposable
             : null;
     }
 
+    private string? ResolveDnsttClientPath()
+    {
+        var envPath = Environment.GetEnvironmentVariable("ONIONHOP_DNSTT_PATH");
+        if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+        {
+            return envPath;
+        }
+
+        var name = PlatformHelper.DnsttClientBinaryName;
+        var candidates = new[]
+        {
+            Path.Combine(_baseDir, "tor", "pluggable_transports", name),
+            Path.Combine(AppContext.BaseDirectory, "tor", "pluggable_transports", name),
+            Path.Combine(_baseDir, "tor", name),
+            Path.Combine(AppContext.BaseDirectory, name)
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return PlatformHelper.IsCommandAvailable(name) ? name : null;
+    }
+
+    /// <summary>
+    /// dnstt is a local forwarder, not a Tor pluggable transport. For each dnstt bridge line, start a
+    /// dnstt-client tunnel on a local port and replace the line with a vanilla Bridge pointing at that
+    /// port; non-dnstt lines pass through unchanged. Forwarders are torn down in StopTorProcess.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> StartDnsttForwardersAsync(IReadOnlyList<string> bridgeLines, CancellationToken token)
+    {
+        _dnsttForwarder.StopAll();
+
+        if (bridgeLines.Count == 0 || bridgeLines.All(line => DnsttForwarderService.TryParse(line) == null))
+        {
+            return bridgeLines;
+        }
+
+        var exePath = ResolveDnsttClientPath();
+        var result = new List<string>(bridgeLines.Count);
+        var usedPorts = new List<int> { _activeSocksPort };
+        if (_activeDnsPort.HasValue)
+        {
+            usedPorts.Add(_activeDnsPort.Value);
+        }
+
+        var nextPreferred = 8000;
+
+        foreach (var line in bridgeLines)
+        {
+            token.ThrowIfCancellationRequested();
+            var bridge = DnsttForwarderService.TryParse(line);
+            if (bridge == null)
+            {
+                result.Add(line);
+                continue;
+            }
+
+            var port = PortSelector.FindAvailablePort(nextPreferred, 50, usedPorts);
+            usedPorts.Add(port);
+            nextPreferred = port + 1;
+
+            if (!_dnsttForwarder.Start(exePath, bridge, port))
+            {
+                RaiseLog($"Skipping dnstt bridge (domain {bridge.Domain}); the dnstt-client forwarder did not start.");
+                continue;
+            }
+
+            // dnstt-client opens its local listener right away; wait for it before pointing Tor at it.
+            if (!await WaitForSocksPortReadyAsync(port, token, 8000).ConfigureAwait(false))
+            {
+                RaiseLog($"dnstt forwarder for {bridge.Domain} did not open 127.0.0.1:{port} in time; skipping.");
+                continue;
+            }
+
+            result.Add($"127.0.0.1:{port} {bridge.Fingerprint}");
+        }
+
+        return result;
+    }
+
     public async Task RefreshIpAsync(bool updateStatusMessage, CancellationToken token)
     {
         var torFirst = _isConnected && IsTorRuntimeRunning;
@@ -1417,6 +1504,7 @@ public sealed class OnionHopClient : IDisposable
         _vpnService.Dispose();
         _artiService.Dispose();
         _artiHopService.Dispose();
+        _dnsttForwarder.Dispose();
         _torService.Dispose();
     }
 
@@ -2127,6 +2215,14 @@ public sealed class OnionHopClient : IDisposable
             }
 
             bridgeLines = LimitBridgeLinesForLaunch(bridgeLines, RaiseLog);
+
+            // dnstt bridges aren't pluggable transports: spin up a local dnstt-client forwarder for
+            // each and replace it with a vanilla Bridge to the local port (so Tor needs no PT for it).
+            bridgeLines = await StartDnsttForwardersAsync(bridgeLines, token).ConfigureAwait(false);
+            if (bridgeLines.Count == 0)
+            {
+                throw new InvalidOperationException("Bridges enabled but no usable bridges remained (dnstt forwarders could not start; build dnstt-client via download-deps.ps1).");
+            }
 
             var pluginLines = _bridgeManager.GetClientTransportPlugins(options, bridgeLines, torDir, _ptConfig, RaiseLog);
             if (pluginLines.Count == 0 && TorBridgeManager.BridgeLinesNeedClientTransportPlugins(bridgeLines))
@@ -2951,6 +3047,7 @@ public sealed class OnionHopClient : IDisposable
         _torService.Stop();
         _artiService.Stop();
         _artiHopService.Stop();
+        _dnsttForwarder.StopAll();
         _lastNewnymUtc = DateTime.MinValue;
     }
 
