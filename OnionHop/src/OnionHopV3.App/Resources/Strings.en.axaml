@@ -263,6 +263,7 @@
   <x:String x:Key="BridgeSource.Auto">Auto (Tor bridge service -> Offline)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Tor bridge service only</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Offline only</x:String>
+  <x:String x:Key="BridgeSource.CollectorOnly">OnionHop collector only</x:String>
   <x:String x:Key="ProxyScope.System">System proxy (all apps)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">System proxy (SOCKS browser/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Local proxy only (manual apps)</x:String>

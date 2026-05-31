@@ -263,6 +263,7 @@
   <x:String x:Key="BridgeSource.Auto">Авто (служба мостов Tor -&gt; Офлайн)</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">Только служба мостов Tor</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Только офлайн</x:String>
+  <x:String x:Key="BridgeSource.CollectorOnly">Только коллектор OnionHop</x:String>
   <x:String x:Key="ProxyScope.System">Системный прокси (все приложения)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">Системный прокси (SOCKS браузер/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Только локальный прокси (ручные приложения)</x:String>

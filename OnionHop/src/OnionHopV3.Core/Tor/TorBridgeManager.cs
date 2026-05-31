@@ -47,7 +47,8 @@ internal sealed class TorBridgeManager
     {
         Auto,
         OnlineOnly,
-        OfflineOnly
+        OfflineOnly,
+        CollectorOnly
     }
 
     private readonly string _baseDir;
@@ -264,6 +265,11 @@ internal sealed class TorBridgeManager
         if (string.Equals(mode, OnionHopConnectOptions.BridgeSourceOfflineOnly, StringComparison.OrdinalIgnoreCase))
         {
             return BridgeSourcePreference.OfflineOnly;
+        }
+
+        if (string.Equals(mode, OnionHopConnectOptions.BridgeSourceCollectorOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourcePreference.CollectorOnly;
         }
 
         return BridgeSourcePreference.Auto;

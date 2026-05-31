@@ -260,9 +260,10 @@
   <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
   <x:String x:Key="BridgeType.Dnstt">DNS 隧道 (dnstt)</x:String>
   <x:String x:Key="BridgeType.Custom">自定义</x:String>
-  <x:String x:Key="BridgeSource.Auto">自动（Tor 网桥服务 -&gt; 离线）</x:String>
+  <x:String x:Key="BridgeSource.Auto">自动（收集器、网桥服务，然后离线）</x:String>
   <x:String x:Key="BridgeSource.OnlineOnly">仅 Tor 网桥服务</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">仅离线</x:String>
+  <x:String x:Key="BridgeSource.CollectorOnly">仅 OnionHop 收集器</x:String>
   <x:String x:Key="ProxyScope.System">系统代理（所有应用）</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">系统代理（SOCKS 浏览器/.onion）</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">仅本地代理（手动应用）</x:String>

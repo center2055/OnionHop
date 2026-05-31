@@ -34,6 +34,7 @@ public sealed record OnionHopConnectOptions
     public const string BridgeSourceAuto = "Auto (Tor bridge service -> Offline)";
     public const string BridgeSourceOnlineOnly = "Tor bridge service only";
     public const string BridgeSourceOfflineOnly = "Offline only";
+    public const string BridgeSourceCollectorOnly = "OnionHop collector only";
 
     public const string DnsProviderCloudflare = "Cloudflare (DoH)";
     public const string DnsProviderGoogle = "Google (DoH)";

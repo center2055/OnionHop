@@ -67,6 +67,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string BridgeSourceAuto = OnionHopConnectOptions.BridgeSourceAuto;
     public const string BridgeSourceOnlineOnly = OnionHopConnectOptions.BridgeSourceOnlineOnly;
     public const string BridgeSourceOfflineOnly = OnionHopConnectOptions.BridgeSourceOfflineOnly;
+    public const string BridgeSourceCollectorOnly = OnionHopConnectOptions.BridgeSourceCollectorOnly;
     private static readonly Regex ExitFingerprintRegex = new("^[A-F0-9]{40}$", RegexOptions.Compiled);
     /// <summary>
     /// Maps runtime status text to localization resource keys.
@@ -278,6 +279,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         [
             BridgeSourceAuto,
             BridgeSourceOnlineOnly,
+            BridgeSourceCollectorOnly,
             BridgeSourceOfflineOnly
         ];
 
@@ -3099,6 +3101,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BridgeSourceAuto => LocalizationService.Get("BridgeSource.Auto"),
             BridgeSourceOnlineOnly => LocalizationService.Get("BridgeSource.OnlineOnly"),
             BridgeSourceOfflineOnly => LocalizationService.Get("BridgeSource.OfflineOnly"),
+            BridgeSourceCollectorOnly => LocalizationService.Get("BridgeSource.CollectorOnly"),
             _ => sourceMode
         };
     }
@@ -3161,6 +3164,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (string.Equals(sourceMode, BridgeSourceOfflineOnly, StringComparison.OrdinalIgnoreCase))
         {
             return BridgeSourceOfflineOnly;
+        }
+
+        if (string.Equals(sourceMode, BridgeSourceCollectorOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourceCollectorOnly;
         }
 
         return BridgeSourceAuto;
