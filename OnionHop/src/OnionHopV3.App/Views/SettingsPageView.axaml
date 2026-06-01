@@ -86,6 +86,10 @@
               <controls:ToggleRow Title="{DynamicResource Settings.ClipboardProtection}"
                                   Description="{DynamicResource Settings.ClipboardProtectionHint}"
                                   IsChecked="{Binding State.ClipboardProtectionEnabled}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.PersistentHelper}"
+                                  Description="{DynamicResource Settings.PersistentHelperHint}"
+                                  IsChecked="{Binding State.PersistentAdminHelperEnabled}"
+                                  IsVisible="{Binding State.ShowWindowsOnlySettings}" />
               <controls:SettingRow Title="{DynamicResource Settings.ResetHint}"
                                    Description="{DynamicResource Settings.ResetDescription}">
                 <controls:SettingRow.RowContent>

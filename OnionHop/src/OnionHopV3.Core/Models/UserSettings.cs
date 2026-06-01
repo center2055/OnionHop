@@ -73,6 +73,11 @@ public sealed class UserSettings
     public bool? DnsLeakProtectionEnabled { get; set; }
     public bool ClipboardProtectionEnabled { get; set; }
 
+    // Opt-in (default false): when true, OnionHop installs an at-logon scheduled task that keeps an
+    // elevated helper running so TUN/VPN mode does not prompt for UAC on every connect. When false,
+    // no startup task is installed and any leftover task is removed.
+    public bool PersistentAdminHelperEnabled { get; set; }
+
     // Snowflake proxy (volunteer as a Snowflake bridge).
     public bool SnowflakeProxyAutoStart { get; set; }
     public int? SnowflakeProxyCapacity { get; set; }

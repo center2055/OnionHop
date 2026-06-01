@@ -379,6 +379,8 @@
   <x:String x:Key="Settings.DnsLeakProtectionHint">强制所有 DNS 通过 Tor，以使正常查询不会泄露给你的 ISP。在代理模式下这需要管理员权限（Windows）；TUN/VPN 模式始终通过 Tor 路由 DNS。注意：这不会阻止 WebRTC/UDP IP 泄露——为此请使用 TUN/VPN 模式。</x:String>
   <x:String x:Key="Settings.ClipboardProtection">剪贴板保护</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">如果剪贴板未发生更改，则在短暂延迟后清除 OnionHop 复制的值。</x:String>
+  <x:String x:Key="Settings.PersistentHelper">保持管理员助手运行</x:String>
+  <x:String x:Key="Settings.PersistentHelperHint">安装一个在登录时启动的后台助手，这样 TUN/VPN 模式就不会在每次连接时都请求管理员权限。默认关闭；关闭时，OnionHop 不会添加任何启动任务。</x:String>
   <x:String x:Key="Settings.ResetDescription">恢复默认设置并清除当前会话计数器。</x:String>
   <x:String x:Key="Settings.TorEngineSection">Tor 引擎</x:String>
   <x:String x:Key="Settings.TorEngine">运行时首选项</x:String>

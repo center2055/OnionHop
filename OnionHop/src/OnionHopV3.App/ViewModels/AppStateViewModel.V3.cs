@@ -51,6 +51,7 @@ public sealed partial class AppStateViewModel
     [ObservableProperty] private bool _clearSessionDataOnDisconnect;
     [ObservableProperty] private bool _dnsLeakProtectionEnabled = true;
     [ObservableProperty] private bool _clipboardProtectionEnabled;
+    [ObservableProperty] private bool _persistentAdminHelperEnabled;
     [ObservableProperty] private bool _blockUdpTraffic = true;
     [ObservableProperty] private string _updateStatusText = "Checking updates";
     [ObservableProperty] private string _updateStatusTone = "neutral";
@@ -59,6 +60,31 @@ public sealed partial class AppStateViewModel
     [ObservableProperty] private long _sessionBytesSent;
     [ObservableProperty] private int _sessionCircuitCount;
     [ObservableProperty] private int _sessionIdentityChanges;
+
+    partial void OnPersistentAdminHelperEnabledChanged(bool value)
+    {
+        // Keep the runtime gate in sync immediately so the next connect sees the right value.
+        _client.SetPersistentAdminHelperOptIn(value);
+
+        if (_loadingSettings)
+        {
+            return;
+        }
+
+        // Turning the helper off should start removing any existing at-logon task right away, not only
+        // on the next connect. This is a best-effort non-elevated attempt; the elevated cleanup still
+        // runs on the next connect. Swallow failures (e.g. no rights / task absent).
+        if (!value && OperatingSystem.IsWindows())
+        {
+            try
+            {
+                _client.TryRemovePersistentAdminHelper();
+            }
+            catch
+            {
+            }
+        }
+    }
 
     public bool BlockLanAccess
     {
@@ -388,6 +414,7 @@ public sealed partial class AppStateViewModel
         ClearSessionDataOnDisconnect = false;
         DnsLeakProtectionEnabled = true;
         ClipboardProtectionEnabled = false;
+        PersistentAdminHelperEnabled = false;
         BlockUdpTraffic = true;
         MiddleNodeFingerprint = string.Empty;
         StrictManualMiddleNodeFingerprint = true;
@@ -435,6 +462,7 @@ public sealed partial class AppStateViewModel
         ClearSessionDataOnDisconnect = settings.ClearSessionDataOnDisconnect;
         DnsLeakProtectionEnabled = settings.DnsLeakProtectionEnabled ?? true;
         ClipboardProtectionEnabled = settings.ClipboardProtectionEnabled;
+        PersistentAdminHelperEnabled = settings.PersistentAdminHelperEnabled;
         SnowflakeProxyAutoStart = settings.SnowflakeProxyAutoStart;
         SnowflakeProxyCapacity = settings.SnowflakeProxyCapacity is >= 0 ? settings.SnowflakeProxyCapacity.Value : 0;
 
@@ -451,6 +479,7 @@ public sealed partial class AppStateViewModel
         settings.ClearSessionDataOnDisconnect = ClearSessionDataOnDisconnect;
         settings.DnsLeakProtectionEnabled = DnsLeakProtectionEnabled;
         settings.ClipboardProtectionEnabled = ClipboardProtectionEnabled;
+        settings.PersistentAdminHelperEnabled = PersistentAdminHelperEnabled;
         settings.SnowflakeProxyAutoStart = SnowflakeProxyAutoStart;
         settings.SnowflakeProxyCapacity = SnowflakeProxyCapacity;
     }

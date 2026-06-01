@@ -377,6 +377,8 @@
   <x:String x:Key="Settings.DnsLeakProtectionHint">Leitet das gesamte DNS über Tor, damit normale Abfragen nicht an deinen Provider lecken. Im Proxy-Modus sind dafür Admin-Rechte nötig (Windows); der TUN/VPN-Modus leitet DNS immer über Tor. Hinweis: verhindert keine WebRTC-/UDP-IP-Lecks – dafür den TUN/VPN-Modus nutzen.</x:String>
   <x:String x:Key="Settings.ClipboardProtection">Zwischenablagen-Schutz</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">Löscht von OnionHop kopierte Werte nach kurzer Zeit, wenn die Zwischenablage nicht geändert wurde.</x:String>
+  <x:String x:Key="Settings.PersistentHelper">Admin-Helfer aktiv halten</x:String>
+  <x:String x:Key="Settings.PersistentHelperHint">Installiert einen Hintergrund-Helfer, der bei der Anmeldung startet, damit der TUN/VPN-Modus nicht bei jeder Verbindung nach Administratorrechten fragt. Standardmäßig aus; ist er aus, legt OnionHop keine Autostart-Aufgabe an.</x:String>
   <x:String x:Key="Settings.ResetDescription">Setzt Einstellungen zurück und löscht aktuelle Sitzungszähler.</x:String>
   <x:String x:Key="Settings.TorEngineSection">Tor-Engine</x:String>
   <x:String x:Key="Settings.TorEngine">Laufzeit-Präferenz</x:String>

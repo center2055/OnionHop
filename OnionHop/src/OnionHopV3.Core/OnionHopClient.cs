@@ -550,6 +550,33 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
+    // Sync the persistent-helper opt-in gate immediately so a settings-toggle change is reflected
+    // without waiting for the next connect (connect also sets this from the connect options).
+    public void SetPersistentAdminHelperOptIn(bool enabled)
+    {
+        AdminHelperClient.PersistentHelperOptIn = enabled;
+    }
+
+    // Best-effort, non-elevated removal of the at-logon persistent helper task. Used when the user
+    // turns the opt-in setting off so an existing task starts going away before the next connect. The
+    // elevated path (RemovePersistentHelper) still runs on the next connect as a guaranteed cleanup.
+    public void TryRemovePersistentAdminHelper()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            WindowsPersistentAdminHelper.TryRemoveForCurrentUser(message => StartupLogger.Write(message));
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write($"OnionHopClient.TryRemovePersistentAdminHelper failed: {ex.Message}");
+        }
+    }
+
     public async Task ConnectAsync(OnionHopConnectOptions options, CancellationToken token)
     {
         StartupLogger.Write("OnionHopClient.ConnectAsync: Starting...");
@@ -568,6 +595,11 @@ public sealed class OnionHopClient : IDisposable
         }
 
         ClearPreparedMacVpnLaunchConfig();
+
+        // Gate the at-logon persistent admin helper to the opt-in setting (default false). When false,
+        // the elevated helper removes any leftover startup task instead of installing one.
+        AdminHelperClient.PersistentHelperOptIn = options.PersistentAdminHelperEnabled;
+
         SetStatus(
             isConnecting: true,
             isConnected: false,

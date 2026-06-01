@@ -168,6 +168,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(ClearSessionDataOnDisconnect),
         nameof(DnsLeakProtectionEnabled),
         nameof(ClipboardProtectionEnabled),
+        nameof(PersistentAdminHelperEnabled),
         nameof(SnowflakeProxyAutoStart),
         nameof(SnowflakeProxyCapacity)
     };
@@ -2423,7 +2424,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             HybridBlockQuicForTorApps = HybridBlockQuicForTorApps,
             BlockUdpTraffic = BlockUdpTraffic,
             HybridTorApps = HybridTorApps,
-            HybridBypassApps = HybridBypassApps
+            HybridBypassApps = HybridBypassApps,
+            PersistentAdminHelperEnabled = PersistentAdminHelperEnabled
         };
     }
 

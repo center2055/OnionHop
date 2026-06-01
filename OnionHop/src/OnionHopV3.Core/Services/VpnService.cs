@@ -326,10 +326,66 @@ internal sealed class VpnService : IDisposable
             }
         }
 
-        if (killedAny)
+        if (OperatingSystem.IsWindows())
         {
-            // Give Wintun a moment to tear down the adapter before we recreate it.
+            // Killing the holder isn't always enough: a hard-killed core can leave the "OnionHop"
+            // Wintun adapter behind with no owning process, and then there is nothing for the loop
+            // above to find - yet the next TUN start still fails with "Cannot create a file when that
+            // file already exists." Explicitly remove the leftover adapter (best effort) and always
+            // give Wintun a moment to settle, even when no orphaned core was found.
+            RemoveStaleWindowsTunAdapter();
+            try { Thread.Sleep(killedAny ? 800 : 400); } catch { }
+        }
+        else if (killedAny)
+        {
+            // Give the tun device a moment to tear down before we recreate it.
             try { Thread.Sleep(500); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Removes any leftover "OnionHop" Wintun adapter from a previous session (Windows only). A core
+    /// that was hard-killed can leave the adapter registered with no owning process, which makes the
+    /// next sing-box TUN start fail with "Cannot create a file when that file already exists." This
+    /// runs elevated in TUN mode, so Remove-NetAdapter is available. Best effort - never throws.
+    /// </summary>
+    private void RemoveStaleWindowsTunAdapter()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            var psi = new ProcessStartInfo("powershell")
+            {
+                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
+                            $"\"Get-NetAdapter -Name '{TunInterfaceName}' -ErrorAction SilentlyContinue | " +
+                            "Remove-NetAdapter -Confirm:$false -ErrorAction SilentlyContinue\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using var cleanup = Process.Start(psi);
+            if (cleanup == null)
+            {
+                return;
+            }
+
+            if (!cleanup.WaitForExit(5000))
+            {
+                try { cleanup.Kill(true); } catch { }
+                return;
+            }
+
+            _log($"Cleared any leftover {TunInterfaceName} TUN adapter before starting.");
+        }
+        catch (Exception ex)
+        {
+            _log($"TUN adapter cleanup skipped: {ex.Message}");
         }
     }
 

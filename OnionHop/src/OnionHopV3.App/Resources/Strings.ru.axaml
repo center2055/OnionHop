@@ -379,6 +379,8 @@
   <x:String x:Key="Settings.DnsLeakProtectionHint">Принудительно направляет весь DNS через Tor, чтобы обычные запросы не утекали к вашему ISP. В режиме прокси требуются права администратора (Windows); режим TUN/VPN всегда маршрутизирует DNS через Tor. Примечание: не останавливает утечки IP через WebRTC/UDP — для этого используйте режим TUN/VPN.</x:String>
   <x:String x:Key="Settings.ClipboardProtection">Защита буфера обмена</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">Очищает скопированные OnionHop значения через короткую задержку, если буфер обмена не изменялся.</x:String>
+  <x:String x:Key="Settings.PersistentHelper">Держать помощник администратора запущенным</x:String>
+  <x:String x:Key="Settings.PersistentHelperHint">Устанавливает фоновый помощник, который запускается при входе в систему, чтобы режим TUN/VPN не запрашивал права администратора при каждом подключении. По умолчанию выключено; когда выключено, OnionHop не добавляет задачу автозапуска.</x:String>
   <x:String x:Key="Settings.ResetDescription">Восстановить настройки по умолчанию и очистить текущие счётчики сессии.</x:String>
   <x:String x:Key="Settings.TorEngineSection">Движок Tor</x:String>
   <x:String x:Key="Settings.TorEngine">Предпочтение среды выполнения</x:String>

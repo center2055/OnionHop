@@ -94,4 +94,29 @@ public sealed class UserSettingsTests
         Assert.False(loaded.StartWithWindows);
         Assert.Null(loaded.SelectedLocation);
     }
+
+    [Fact]
+    public void PersistentAdminHelperEnabled_defaults_to_false()
+    {
+        // The persistent admin helper is opt-in: a fresh settings object and missing-key JSON must
+        // both leave it off so no startup task is ever installed by default.
+        Assert.False(new UserSettings().PersistentAdminHelperEnabled);
+
+        var loaded = JsonSerializer.Deserialize<UserSettings>("{}", LoadOptions);
+        Assert.NotNull(loaded);
+        Assert.False(loaded.PersistentAdminHelperEnabled);
+
+        // The connect option that drives the gate also defaults off.
+        Assert.False(new OnionHopConnectOptions().PersistentAdminHelperEnabled);
+    }
+
+    [Fact]
+    public void PersistentAdminHelperEnabled_round_trips()
+    {
+        var original = new UserSettings { PersistentAdminHelperEnabled = true };
+        var json = JsonSerializer.Serialize(original, SaveOptions);
+        var deserialized = JsonSerializer.Deserialize<UserSettings>(json, LoadOptions);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.PersistentAdminHelperEnabled);
+    }
 }

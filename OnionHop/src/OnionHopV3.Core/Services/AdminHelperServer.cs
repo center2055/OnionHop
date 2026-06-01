@@ -330,6 +330,17 @@ public sealed class AdminHelperServer
                         ? Ok(request, null)
                         : Fail(request, error ?? "Persistent admin helper install failed.");
                 }
+                case "RemovePersistentHelper":
+                {
+                    var payload = DeserializePayload<PersistentAdminHelperRequest>(request.Payload);
+                    var success = WindowsPersistentAdminHelper.TryRemove(
+                        payload?.UserSid ?? string.Empty,
+                        LogVpnHelperLine,
+                        out var error);
+                    return success
+                        ? Ok(request, null)
+                        : Fail(request, error ?? "Persistent admin helper removal failed.");
+                }
                 case "GetStatus":
                     return Ok(request, new AdminHelperStatus
                     {

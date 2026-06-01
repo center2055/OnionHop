@@ -139,6 +139,45 @@ internal static class WindowsPersistentAdminHelper
         }
     }
 
+    public static bool TryRemoveForCurrentUser(Action<string>? log = null)
+    {
+        var sid = WindowsIdentity.GetCurrent().User?.Value;
+        if (string.IsNullOrWhiteSpace(sid))
+        {
+            log?.Invoke("Persistent admin helper: current user SID was unavailable for removal.");
+            return false;
+        }
+
+        return TryRemove(sid, log, out _);
+    }
+
+    public static bool TryRemove(string userSid, Action<string>? log, out string? error)
+    {
+        error = null;
+
+        if (!OperatingSystem.IsWindows())
+        {
+            error = "Persistent admin helper is only supported on Windows.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(userSid))
+        {
+            error = "Persistent admin helper removal skipped because the user SID was unavailable.";
+            return false;
+        }
+
+        // schtasks returns a non-zero exit code when the task does not exist. That is the desired end
+        // state (no startup task), so treat "already gone" as success rather than an error.
+        if (RunSchTasksAllowMissing($"/Delete /TN \"{BuildTaskName(userSid)}\" /F", log, out var deleteError))
+        {
+            return true;
+        }
+
+        error = deleteError;
+        return false;
+    }
+
     public static string BuildTaskName(string userSid)
     {
         var sidBytes = Encoding.UTF8.GetBytes(userSid);
@@ -275,6 +314,64 @@ Start-ScheduledTask -TaskName $taskName
             }
 
             return false;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            log?.Invoke($"Persistent admin helper exception: {ex.Message}");
+            return false;
+        }
+    }
+
+    // Like RunSchTasks, but used for /Delete: a non-zero exit code typically means the task does not
+    // exist, which is the desired end state for removal. So missing-task failures are treated as
+    // success and only a launch/timeout failure is reported as an error.
+    private static bool RunSchTasksAllowMissing(string arguments, Action<string>? log, out string? error)
+    {
+        error = null;
+        try
+        {
+            var psi = new ProcessStartInfo("schtasks", arguments)
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null)
+            {
+                error = "Failed to start schtasks.exe.";
+                return false;
+            }
+
+            if (!process.WaitForExit(10_000))
+            {
+                try { process.Kill(entireProcessTree: true); } catch { }
+                error = "schtasks.exe timed out.";
+                return false;
+            }
+
+            var stdOut = process.StandardOutput.ReadToEnd().Trim();
+            var stdErr = process.StandardError.ReadToEnd().Trim();
+
+            if (process.ExitCode == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(stdOut))
+                {
+                    log?.Invoke($"Persistent admin helper: {stdOut}");
+                }
+            }
+            else
+            {
+                // Non-zero exit on delete almost always means the task was already gone. Log for
+                // diagnostics but report success so the caller treats the end state as clean.
+                var detail = string.IsNullOrWhiteSpace(stdErr) ? stdOut : stdErr;
+                log?.Invoke($"Persistent admin helper: task already absent or could not be deleted ({detail}).");
+            }
+
+            return true;
         }
         catch (Exception ex)
         {

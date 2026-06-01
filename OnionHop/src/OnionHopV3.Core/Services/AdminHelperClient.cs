@@ -33,6 +33,10 @@ internal sealed class AdminHelperClient : IDisposable
     private bool _persistentInstallAttempted;
     private bool _disposed;
 
+    // Opt-in gate (default false). When false, no at-logon persistent helper task is installed and any
+    // leftover task from a prior version is removed once per session. Set from the connect options.
+    internal static bool PersistentHelperOptIn { get; set; }
+
     public bool IsConnected => _pipe?.IsConnected == true;
 
     public async Task<bool> TryConnectWithoutStartAsync()
@@ -523,6 +527,54 @@ internal sealed class AdminHelperClient : IDisposable
         }
     }
 
+    [SupportedOSPlatform("windows")]
+    private async Task TryRemovePersistentHelperInlineAsync()
+    {
+        if (_connectionKind != AdminHelperConnectionKind.TransientHelper || _persistentInstallAttempted)
+        {
+            StartupLogger.Write($"AdminHelperClient: skipping persistent helper removal. ConnectionKind={_connectionKind}, Attempted={_persistentInstallAttempted}");
+            return;
+        }
+
+        _persistentInstallAttempted = true;
+
+        string? userSid = null;
+        string? userName = null;
+        try
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            userSid = identity.User?.Value;
+            userName = identity.Name;
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write("AdminHelperClient: failed to resolve current user identity for persistent helper removal.", ex);
+        }
+
+        if (string.IsNullOrWhiteSpace(userSid) || string.IsNullOrWhiteSpace(userName))
+        {
+            StartupLogger.Write("AdminHelperClient: persistent helper removal skipped because user identity was incomplete.");
+            return;
+        }
+
+        var response = await SendCoreWithoutLockAsync(
+            "RemovePersistentHelper",
+            new PersistentAdminHelperRequest
+            {
+                UserSid = userSid,
+                UserName = userName
+            }).ConfigureAwait(false);
+
+        if (response?.Success == true)
+        {
+            StartupLogger.Write("AdminHelperClient: persistent admin helper task removed (or already absent).");
+        }
+        else if (!string.IsNullOrWhiteSpace(response?.Error))
+        {
+            StartupLogger.Write($"AdminHelperClient: persistent admin helper removal skipped: {response.Error}");
+        }
+    }
+
     private async Task<HelperResponse?> SendAsync(string command, object? payload)
     {
         return await SendCoreAsync(command, payload, ensureConnected: true).ConfigureAwait(false);
@@ -562,11 +614,22 @@ internal sealed class AdminHelperClient : IDisposable
             var response = await SendCoreWithoutLockAsync(command, payload).ConfigureAwait(false);
             if (response != null
                 && ensureConnected
+                && OperatingSystem.IsWindows()
                 && !string.Equals(command, "EnsurePersistentHelper", StringComparison.Ordinal)
+                && !string.Equals(command, "RemovePersistentHelper", StringComparison.Ordinal)
                 && _connectionKind == AdminHelperConnectionKind.TransientHelper
                 && !_persistentInstallAttempted)
             {
-                await TryInstallPersistentHelperInlineAsync().ConfigureAwait(false);
+                if (PersistentHelperOptIn)
+                {
+                    await TryInstallPersistentHelperInlineAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    // Opt-out (default): make sure a task left over from a prior version is removed via
+                    // the elevated (transient) helper. Runs at most once per session.
+                    await TryRemovePersistentHelperInlineAsync().ConfigureAwait(false);
+                }
             }
 
             return response;
