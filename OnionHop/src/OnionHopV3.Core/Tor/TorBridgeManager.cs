@@ -1514,9 +1514,12 @@ internal sealed class TorBridgeManager
     /// <summary>
     /// Makes a pluggable-transport executable path safe to pass on a single, unquoted Tor
     /// <c>ClientTransportPlugin ... exec &lt;path&gt;</c> token. Tor splits that line on whitespace
-    /// and ignores quotes, so on Windows a path containing a space is collapsed to its 8.3 short
-    /// form (which has no spaces). Returns the original path unchanged when it has no space, when
-    /// the short form cannot be obtained, or on non-Windows platforms.
+    /// and ignores quotes, so a path containing a space is truncated at the first space and the
+    /// managed proxy fails to launch. On Windows the path is collapsed to its space-free 8.3 short
+    /// form; on macOS/Linux (e.g. the "~/Library/Application Support/..." data dir, which has a
+    /// space) we materialize a space-free symlink to the real binary in the temp dir and return
+    /// that. Returns the original path unchanged when it has no space or no space-free form can be
+    /// produced (the caller then quotes it as a last resort).
     /// </summary>
     internal static string MakeExecutablePathTokenSafe(string executablePath)
     {
@@ -1525,17 +1528,26 @@ internal sealed class TorBridgeManager
             return executablePath;
         }
 
-        if (!OperatingSystem.IsWindows())
-        {
-            return executablePath;
-        }
-
         try
         {
-            var shortPath = GetWindowsShortPath(executablePath);
-            if (!string.IsNullOrEmpty(shortPath) && shortPath!.IndexOf(' ') < 0)
+            if (OperatingSystem.IsWindows())
             {
-                return shortPath!;
+                var shortPath = GetWindowsShortPath(executablePath);
+                if (!string.IsNullOrEmpty(shortPath) && shortPath!.IndexOf(' ') < 0)
+                {
+                    return shortPath!;
+                }
+            }
+            else
+            {
+                // No 8.3 equivalent on macOS/Linux. Tor needs an absolute, space-free path it can
+                // exec regardless of working directory, so point a symlink in the (space-free) temp
+                // dir at the real binary and hand Tor the link.
+                var linked = TryCreateSpaceFreeSymlink(executablePath);
+                if (!string.IsNullOrEmpty(linked) && linked!.IndexOf(' ') < 0)
+                {
+                    return linked!;
+                }
             }
         }
         catch
@@ -1544,6 +1556,59 @@ internal sealed class TorBridgeManager
         }
 
         return executablePath;
+    }
+
+    /// <summary>
+    /// Creates (or refreshes) a space-free symlink to <paramref name="targetPath"/> under the temp
+    /// directory and returns the link path, or null if the temp dir itself has a space or the
+    /// target is missing. Used so Tor can exec a pluggable transport whose real path contains a
+    /// space (Tor's transport-line parser splits on whitespace and ignores quotes).
+    /// </summary>
+    private static string? TryCreateSpaceFreeSymlink(string targetPath)
+    {
+        if (!File.Exists(targetPath))
+        {
+            return null;
+        }
+
+        var tempRoot = Path.GetTempPath();
+        if (string.IsNullOrEmpty(tempRoot) || tempRoot.IndexOf(' ') >= 0)
+        {
+            return null;
+        }
+
+        var linkDir = Path.Combine(tempRoot, "onionhop-pt");
+        Directory.CreateDirectory(linkDir);
+
+        var linkPath = Path.Combine(linkDir, Path.GetFileName(targetPath));
+        if (linkPath.IndexOf(' ') >= 0)
+        {
+            return null;
+        }
+
+        // Recreate the link if it is missing or points somewhere else (e.g. after an update moved
+        // the real binary). File.Delete is a no-op when the path does not exist and removes the
+        // link itself (not the target) when it does.
+        var current = TryReadLinkTarget(linkPath);
+        if (!string.Equals(current, targetPath, StringComparison.Ordinal))
+        {
+            try { File.Delete(linkPath); } catch { /* best effort */ }
+            File.CreateSymbolicLink(linkPath, targetPath);
+        }
+
+        return linkPath;
+    }
+
+    private static string? TryReadLinkTarget(string linkPath)
+    {
+        try
+        {
+            return File.ResolveLinkTarget(linkPath, returnFinalTarget: false)?.FullName;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     [SupportedOSPlatform("windows")]

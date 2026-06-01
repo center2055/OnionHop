@@ -321,4 +321,46 @@ public sealed class TorBridgeManagerTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Fact]
+    public void NormalizeClientTransportPlugin_symlinks_space_paths_on_unix()
+    {
+        // On macOS/Linux there is no 8.3 short path, and the data dir
+        // ("~/Library/Application Support/OnionHop/...") contains a space. The exec token must still
+        // come out space-free and unquoted, via a symlink in the temp dir pointing at the binary.
+        if (OperatingSystem.IsWindows())
+        {
+            return; // Windows uses the 8.3 short-path branch (covered above).
+        }
+
+        if (Path.GetTempPath().IndexOf(' ') >= 0)
+        {
+            return; // Cannot produce a space-free link if even the temp dir has a space.
+        }
+
+        var root = Path.Combine(Path.GetTempPath(), "OnionHop Space Test " + Guid.NewGuid().ToString("N"));
+        var ptDir = Path.Combine(root, "pluggable transports");
+        Directory.CreateDirectory(ptDir);
+        var exePath = Path.Combine(ptDir, "webtunnel-client");
+        File.WriteAllText(exePath, "stub");
+
+        try
+        {
+            var normalized = TorBridgeManager.NormalizeClientTransportPlugin(
+                $"ClientTransportPlugin webtunnel exec {exePath}");
+
+            var execPart = normalized[(normalized.IndexOf(" exec ", StringComparison.Ordinal) + " exec ".Length)..];
+            Assert.DoesNotContain(' ', execPart);   // space-free token
+            Assert.DoesNotContain('"', normalized); // unquoted
+
+            // The token is a symlink that resolves back to the real binary.
+            var resolved = File.ResolveLinkTarget(execPart, returnFinalTarget: true)?.FullName ?? execPart;
+            Assert.Equal(exePath, resolved);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+            try { File.Delete(Path.Combine(Path.GetTempPath(), "onionhop-pt", "webtunnel-client")); } catch { }
+        }
+    }
 }
