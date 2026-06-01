@@ -423,6 +423,12 @@ public sealed class SmartConnectAdvisor
         }
     }
 
+    // Per-strategy fail-fast budgets. A reachable bridge / direct path bootstraps well within these;
+    // anything slower is almost certainly blocked, so we escalate to the next strategy rather than
+    // waiting out a multi-minute timeout on a dead path.
+    internal const int DirectAttemptTimeoutSeconds = 30;
+    internal const int BridgeAttemptTimeoutSeconds = 45;
+
     private static void AddDirect(ICollection<Strategy> target, OnionHopConnectOptions baseOptions, string reason)
     {
         target.Add(new Strategy(
@@ -435,7 +441,8 @@ public sealed class SmartConnectAdvisor
                 SelectedBridgeType = AutomaticBridgeType,
                 BridgeSourceMode = OnionHopConnectOptions.BridgeSourceAuto,
                 CustomBridges = null,
-                ExitNodeFingerprint = null
+                ExitNodeFingerprint = null,
+                SmartConnectAttemptTimeoutSeconds = DirectAttemptTimeoutSeconds
             }));
     }
 
@@ -465,7 +472,8 @@ public sealed class SmartConnectAdvisor
                 CustomSniHosts = null,
                 SelectedEntryLocation = OnionHopConnectOptions.AutomaticLocationLabel,
                 ExitNodeFingerprint = null,
-                UseSnowflakeAmp = useSnowflakeAmp
+                UseSnowflakeAmp = useSnowflakeAmp,
+                SmartConnectAttemptTimeoutSeconds = BridgeAttemptTimeoutSeconds
             }));
     }
 

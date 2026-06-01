@@ -63,6 +63,23 @@ public sealed class SmartConnectAdvisorTests
     }
 
     [Fact]
+    public void Strategies_carry_fail_fast_attempt_timeouts()
+    {
+        // Every Smart Connect strategy must set a short per-attempt timeout so a dead strategy
+        // escalates quickly instead of waiting out the multi-minute automatic default.
+        var strategies = SmartConnectAdvisor.BuildStrategiesForRisk(
+            new OnionHopConnectOptions(), SmartConnectAdvisor.RiskLevel.Severe);
+
+        Assert.All(strategies, s => Assert.True(s.Options.SmartConnectAttemptTimeoutSeconds is > 0));
+
+        var direct = strategies.First(s => s.Name == "direct");
+        Assert.Equal(SmartConnectAdvisor.DirectAttemptTimeoutSeconds, direct.Options.SmartConnectAttemptTimeoutSeconds);
+
+        var bridge = strategies.First(s => s.Name.StartsWith("bridge:"));
+        Assert.Equal(SmartConnectAdvisor.BridgeAttemptTimeoutSeconds, bridge.Options.SmartConnectAttemptTimeoutSeconds);
+    }
+
+    [Fact]
     public void BuildStrategiesForRisk_Severe_LeadsWithSnowflakeAmp()
     {
         var options = new OnionHopConnectOptions { UseSnowflakeAmp = false };

@@ -88,6 +88,10 @@ public sealed record OnionHopConnectOptions
     public int? TunMtu { get; init; }
     public bool TunStrictRoute { get; init; } = true;
     public int? ConnectionTimeoutSeconds { get; init; }
+    // Smart Connect sets this to fail a single strategy fast and move to the next one (a vetted,
+    // reachable bridge bootstraps in well under this). It overrides the longer automatic default but
+    // never overrides an explicit user-configured ConnectionTimeoutSeconds. Null = not set.
+    public int? SmartConnectAttemptTimeoutSeconds { get; init; }
 
     public bool RestrictedFirewallMode { get; init; }
     public string? AllowedPorts { get; init; }

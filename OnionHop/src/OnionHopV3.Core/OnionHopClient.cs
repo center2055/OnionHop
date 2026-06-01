@@ -598,6 +598,16 @@ public sealed class OnionHopClient : IDisposable
                 : TimeSpan.FromSeconds(240)
             : TimeSpan.FromSeconds(60);
 
+        // Smart Connect fails each strategy fast so it can escalate to the next one. Because bridges
+        // are now reachability-vetted before launch, a working strategy bootstraps in well under a
+        // minute; a long per-strategy wait just delays the fallback that would actually connect. This
+        // applies only when Smart Connect set it AND the user hasn't pinned an explicit timeout.
+        if (options.SmartConnectAttemptTimeoutSeconds is > 0 and var attemptSeconds &&
+            !options.ConnectionTimeoutSeconds.HasValue)
+        {
+            automaticConnectTimeout = TimeSpan.FromSeconds(attemptSeconds);
+        }
+
         var connectTimeout = ResolveConnectTimeout(options.ConnectionTimeoutSeconds, automaticConnectTimeout);
         if (connectTimeout.HasValue)
         {
