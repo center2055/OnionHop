@@ -748,7 +748,18 @@ public sealed class OnionHopClient : IDisposable
                     // Full system-wide DNS-over-Tor only applies in Proxy Mode. In TUN/VPN mode the
                     // tunnel core (sing-box/xray) already hijacks and forces DNS through Tor, so an
                     // additional system-wide DNS rule would conflict with it.
-                    var routeAllDns = resolvedOptions.FullDnsOverTor && !IsTunMode(resolvedOptions);
+                    //
+                    // It must ALSO follow the system-proxy state: if the user pre-set the system proxy
+                    // OFF, system traffic goes direct, so pinning all DNS to Tor's resolver would send
+                    // lookups to a resolver the direct traffic can't reach -> ERR_NAME_NOT_RESOLVED and
+                    // nothing loads. DNS and the proxy go together (both on or both off); we still keep
+                    // the .onion rule so onion addresses resolve either way.
+                    var systemProxyActive = !UsesSystemProxyScope(resolvedOptions) || resolvedOptions.ApplySystemProxyOnConnect;
+                    var routeAllDns = resolvedOptions.FullDnsOverTor && !IsTunMode(resolvedOptions) && systemProxyActive;
+                    if (resolvedOptions.FullDnsOverTor && !routeAllDns && !IsTunMode(resolvedOptions) && !systemProxyActive)
+                    {
+                        RaiseLog("DNS leak protection is on but the system proxy is off, so system-wide DNS-over-Tor is not applied (it would break name resolution while traffic is direct). Turn the system proxy ON to route DNS through Tor too.");
+                    }
 
                     if (OperatingSystem.IsWindows() && !PlatformHelper.IsAdministrator())
                     {
