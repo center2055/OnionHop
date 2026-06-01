@@ -28,13 +28,30 @@ public sealed class SmartConnectAdvisorTests
 
     [Theory]
     [InlineData(0.05, true, SmartConnectAdvisor.RiskLevel.Open)]
-    [InlineData(0.25, true, SmartConnectAdvisor.RiskLevel.Moderate)]
-    [InlineData(0.50, true, SmartConnectAdvisor.RiskLevel.Restricted)]
+    // ~0.21 is the kind of score a free country (e.g. Germany) gets from OONI vanilla_tor noise; it
+    // must stay Open so Smart Connect leads with direct, not bridges.
+    [InlineData(0.21, true, SmartConnectAdvisor.RiskLevel.Open)]
+    [InlineData(0.25, true, SmartConnectAdvisor.RiskLevel.Open)]
+    [InlineData(0.50, true, SmartConnectAdvisor.RiskLevel.Moderate)]
+    [InlineData(0.70, true, SmartConnectAdvisor.RiskLevel.Restricted)]
     [InlineData(0.85, true, SmartConnectAdvisor.RiskLevel.Severe)]
     [InlineData(0.85, false, SmartConnectAdvisor.RiskLevel.Unknown)]
     public void DetermineRiskLevel_MapsExpectedBuckets(double score, bool reliable, SmartConnectAdvisor.RiskLevel expected)
     {
         Assert.Equal(expected, SmartConnectAdvisor.DetermineRiskLevel(score, reliable));
+    }
+
+    [Theory]
+    [InlineData(SmartConnectAdvisor.RiskLevel.Open)]
+    [InlineData(SmartConnectAdvisor.RiskLevel.Unknown)]
+    public void BuildStrategiesForRisk_DirectIsPrimary_GetsFullBootstrapBudget(SmartConnectAdvisor.RiskLevel risk)
+    {
+        // Where direct is the expected path, it must get the generous bootstrap budget so a slow-but-
+        // working cold start isn't cut off at the brief fail-fast and pushed onto bridges.
+        var strategies = SmartConnectAdvisor.BuildStrategiesForRisk(new OnionHopConnectOptions(), risk);
+
+        var direct = strategies.First(s => s.Name == "direct");
+        Assert.Equal(SmartConnectAdvisor.DirectPrimaryAttemptTimeoutSeconds, direct.Options.SmartConnectAttemptTimeoutSeconds);
     }
 
     [Fact]

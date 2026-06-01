@@ -38,9 +38,17 @@ public sealed class SmartConnectAdvisor
     private static readonly object CsvBaselineCacheLock = new();
     private static IReadOnlyDictionary<string, BaselineSummary>? _csvBaselineByCountry;
 
-    internal const double OpenThreshold = 0.18;
-    internal const double ModerateThreshold = 0.38;
-    internal const double RestrictedThreshold = 0.62;
+    // Risk-band cutoffs on the blended restriction score (0 = wide open, 1 = fully blocked). These
+    // are deliberately tolerant of background noise: OONI's vanilla_tor test reports ~15-30% benign
+    // "failures" even in completely uncensored countries (measurement-infra flakiness, transient
+    // timeouts, the test's own methodology), so a low score is NOT evidence of censorship. Setting
+    // the Open cutoff well above that noise floor keeps free countries (e.g. DE at ~0.21) on a
+    // direct-first plan instead of needlessly leading with bridges. Genuinely censored countries
+    // score far higher AND are pinned by the offline CensorshipProfiles floor, so raising these
+    // cutoffs does not weaken protection where it matters.
+    internal const double OpenThreshold = 0.35;
+    internal const double ModerateThreshold = 0.55;
+    internal const double RestrictedThreshold = 0.78;
 
     public enum RiskLevel
     {
@@ -368,7 +376,11 @@ public sealed class SmartConnectAdvisor
         switch (risk)
         {
             case RiskLevel.Open:
-                AddDirect(strategies, baseOptions, "Open network profile. Try direct Tor first.");
+                // Direct is the expected path here, so give it a full bootstrap budget (not the brief
+                // fail-fast) - a cold Tor start can take longer than 30s, and escalating to bridges
+                // before direct has even finished bootstrapping is exactly the "why is it using
+                // bridges when direct works?" surprise we want to avoid.
+                AddDirect(strategies, baseOptions, "Open network profile. Try direct Tor first.", DirectPrimaryAttemptTimeoutSeconds);
                 AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
                 AddBridgeLadder(strategies, baseOptions, BridgeLadder(OpenLadder), "Fallback");
                 break;
@@ -393,7 +405,9 @@ public sealed class SmartConnectAdvisor
                 break;
 
             default:
-                AddDirect(strategies, baseOptions, "Unknown network profile. Start direct.");
+                // Unknown profile (thin/no live data): direct is still the most likely path, so give
+                // it the same full bootstrap budget as Open before falling back to bridges.
+                AddDirect(strategies, baseOptions, "Unknown network profile. Start direct.", DirectPrimaryAttemptTimeoutSeconds);
                 AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
                 AddBridgeLadder(strategies, baseOptions, BridgeLadder(["obfs4", "snowflake"]), "Fallback");
                 break;
@@ -429,7 +443,17 @@ public sealed class SmartConnectAdvisor
     internal const int DirectAttemptTimeoutSeconds = 30;
     internal const int BridgeAttemptTimeoutSeconds = 45;
 
-    private static void AddDirect(ICollection<Strategy> target, OnionHopConnectOptions baseOptions, string reason)
+    // When direct Tor is the *primary* expected path (Open / Unknown profiles), give it a full cold-
+    // bootstrap budget instead of the brief fail-fast - otherwise a direct connect that works fine
+    // manually gets cut off at 30s and the plan needlessly escalates to bridges. The brief budget is
+    // reserved for risk tiers where direct is only a quick probe or a last resort.
+    internal const int DirectPrimaryAttemptTimeoutSeconds = 90;
+
+    private static void AddDirect(
+        ICollection<Strategy> target,
+        OnionHopConnectOptions baseOptions,
+        string reason,
+        int timeoutSeconds = DirectAttemptTimeoutSeconds)
     {
         target.Add(new Strategy(
             Name: "direct",
@@ -442,7 +466,7 @@ public sealed class SmartConnectAdvisor
                 BridgeSourceMode = OnionHopConnectOptions.BridgeSourceAuto,
                 CustomBridges = null,
                 ExitNodeFingerprint = null,
-                SmartConnectAttemptTimeoutSeconds = DirectAttemptTimeoutSeconds
+                SmartConnectAttemptTimeoutSeconds = timeoutSeconds
             }));
     }
 
