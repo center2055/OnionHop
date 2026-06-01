@@ -89,6 +89,10 @@
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.Donate">支持 OnionHop</x:String>
+  <x:String x:Key="About.DonateIntro">OnionHop 免费且开源。如果它对你有帮助，你可以用比特币支持开发：</x:String>
+  <x:String x:Key="About.CopyAddress">复制地址</x:String>
+  <x:String x:Key="About.Copy">复制</x:String>
   <x:String x:Key="About.BridgeSources">网桥来源</x:String>
   <x:String x:Key="About.BridgeSourcesIntro">OnionHop 的 Tor 网桥来自：</x:String>
   <x:String x:Key="About.CollectorDerived">我们的收集器衍生自 Delta-Kronecker 的 Tor-Bridges-Collector（AGPL-3.0）：</x:String>

@@ -89,6 +89,10 @@
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.Donate">Support OnionHop</x:String>
+  <x:String x:Key="About.DonateIntro">OnionHop is free and open source. If it helps you, you can support development with Bitcoin:</x:String>
+  <x:String x:Key="About.CopyAddress">Copy address</x:String>
+  <x:String x:Key="About.Copy">Copy</x:String>
   <x:String x:Key="About.BridgeSources">Bridge sources</x:String>
   <x:String x:Key="About.BridgeSourcesIntro">Where OnionHop sources its Tor bridges:</x:String>
   <x:String x:Key="About.CollectorDerived">Our collector is derived from Delta-Kronecker's Tor-Bridges-Collector (AGPL-3.0):</x:String>

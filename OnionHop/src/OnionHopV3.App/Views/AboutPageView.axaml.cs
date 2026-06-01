@@ -1,7 +1,9 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using OnionHopV3.App.Services;
 
 namespace OnionHopV3.App.Views;
 
@@ -9,10 +11,40 @@ public partial class AboutPageView : UserControl
 {
     private static readonly Uri DiscordUri = new("https://discord.gg/y3MVspPzKQ");
     private static readonly Uri KoFiUri = new("https://ko-fi.com/center2055");
+    private const string BitcoinAddress = "bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2";
 
     public AboutPageView()
     {
         InitializeComponent();
+    }
+
+    // Copy the Bitcoin donation address to the clipboard and briefly flash "Copied!" on the button.
+    private async void OnCopyBitcoinClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await ClipboardHelper.SetTextAsync(this, BitcoinAddress);
+        }
+        catch
+        {
+            return;
+        }
+
+        if (BitcoinCopyLabel is null)
+        {
+            return;
+        }
+
+        var original = BitcoinCopyLabel.Text;
+        BitcoinCopyLabel.Text = "Copied!";
+        try
+        {
+            await Task.Delay(1500);
+        }
+        finally
+        {
+            BitcoinCopyLabel.Text = original;
+        }
     }
 
     private void OnOpenReleasesClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

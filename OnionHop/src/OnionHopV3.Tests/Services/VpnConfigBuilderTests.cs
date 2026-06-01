@@ -264,4 +264,63 @@ public sealed class VpnConfigBuilderTests
         Assert.True(tunInbound.GetProperty("strict_route").GetBoolean());
         Assert.False(tunInbound.TryGetProperty("mtu", out _));
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PluggableTransport_direct_rule_precedes_dns_hijack(bool hybridRouting)
+    {
+        // A transport's own DNS lookups (snowflake's broker/front domain, webtunnel's url host) must
+        // bypass the Tor-detoured resolver, otherwise they can't resolve until Tor is up - which the
+        // transport is trying to bootstrap. So the pluggable-transport "direct" rule must come BEFORE
+        // the dns hijack rule in the route table.
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: hybridRouting,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: ["firefox.exe"],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: true,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
+
+        var rules = JsonDocument.Parse(json).RootElement.GetProperty("route").GetProperty("rules");
+        var ruleList = rules.EnumerateArray().ToList();
+
+        int hijackIndex = -1;
+        int ptDirectIndex = -1;
+        for (var i = 0; i < ruleList.Count; i++)
+        {
+            var rule = ruleList[i];
+            if (hijackIndex < 0 &&
+                rule.TryGetProperty("action", out var action) &&
+                action.GetString() == "hijack-dns")
+            {
+                hijackIndex = i;
+            }
+
+            // The first process_name + outbound=direct rule is the pluggable-transport bypass rule
+            // (its names are platform-specific, e.g. "tor" vs "tor.exe", so match structurally).
+            if (ptDirectIndex < 0 &&
+                rule.TryGetProperty("process_name", out var pn) &&
+                pn.ValueKind == JsonValueKind.Array &&
+                pn.EnumerateArray().Any(e => (e.GetString() ?? string.Empty).StartsWith("tor", System.StringComparison.OrdinalIgnoreCase)) &&
+                rule.TryGetProperty("outbound", out var ob) &&
+                ob.GetString() == "direct")
+            {
+                ptDirectIndex = i;
+            }
+        }
+
+        Assert.True(ptDirectIndex >= 0, "Config should route pluggable-transport processes direct.");
+        Assert.True(hijackIndex >= 0, "Config should hijack DNS.");
+        Assert.True(ptDirectIndex < hijackIndex,
+            $"PT-direct rule (index {ptDirectIndex}) must precede the dns hijack rule (index {hijackIndex}).");
+    }
 }

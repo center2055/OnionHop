@@ -86,6 +86,46 @@
 
           <Border Classes="SectionCard">
             <StackPanel Spacing="10">
+              <TextBlock Text="{DynamicResource About.Donate}"
+                         Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource About.DonateIntro}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <Border Classes="InsetPanel">
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="10">
+                  <icons:MaterialIcon Grid.Column="0"
+                                      Kind="{x:Static mi:MaterialIconKind.Bitcoin}"
+                                      Width="24"
+                                      Height="24"
+                                      VerticalAlignment="Center"
+                                      Foreground="#F7931A" />
+                  <SelectableTextBlock Grid.Column="1"
+                                       Text="bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Consolas, Menlo, monospace"
+                                       TextWrapping="Wrap" />
+                  <Button Grid.Column="2"
+                          Classes="ActionGhost"
+                          VerticalAlignment="Center"
+                          Click="OnCopyBitcoinClick"
+                          ToolTip.Tip="{DynamicResource About.CopyAddress}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                      <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}"
+                                          Width="16"
+                                          Height="16" />
+                      <TextBlock x:Name="BitcoinCopyLabel"
+                                 Text="{DynamicResource About.Copy}" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </Border>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="10">
               <TextBlock Text="{DynamicResource About.BridgeSources}"
                          Classes="SectionTitle" />
               <TextBlock Text="{DynamicResource About.BridgeSourcesIntro}"

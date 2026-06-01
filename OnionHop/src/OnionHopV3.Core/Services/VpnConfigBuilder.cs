@@ -39,12 +39,19 @@ internal static class VpnConfigBuilder
 
         if (!hybridRouting)
         {
-            rules.Insert(1, new { protocol = "dns", action = "hijack-dns" });
+            // Insert at index 2 (after sniff + the pluggable-transport direct rule), NOT index 1.
+            // hijack-dns must come AFTER the PT-direct rule so a transport's own DNS lookups (e.g.
+            // snowflake resolving its broker/front domain, webtunnel resolving its url host) go out
+            // directly instead of being captured and sent to the Tor-detoured resolver - which can't
+            // answer until Tor is bootstrapped, the very thing the transport is trying to do. Putting
+            // it before PT-direct deadlocks snowflake with "broker failure: no answer".
+            rules.Insert(2, new { protocol = "dns", action = "hijack-dns" });
             rules.Add(new { network = "udp", outbound = "block" });
         }
         else
         {
-            rules.Insert(1, new { protocol = "dns", action = "hijack-dns" });
+            // Same ordering rule as above: PT DNS must bypass the hijack so transports can bootstrap.
+            rules.Insert(2, new { protocol = "dns", action = "hijack-dns" });
 
             if (bypassAppProcessNames.Count > 0)
             {
