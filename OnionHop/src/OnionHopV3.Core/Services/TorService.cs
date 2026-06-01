@@ -74,6 +74,15 @@ internal sealed class TorService : IDisposable
         TryDeleteFile(Path.Combine(_dataDirectory, ControlPortFileName));
         TryDeleteFile(Path.Combine(_dataDirectory, ControlAuthCookieFileName));
 
+        // Stop() only kills the process THIS instance tracked. A previous session can leave an
+        // orphaned tor.exe behind (crash, force-close, a failed connect whose cleanup didn't reach
+        // Tor) that keeps holding the data directory lock and the SOCKS/DNS ports - so the new Tor
+        // exits with "another Tor process is running with the same data directory." Kill any orphaned
+        // copy of OUR tor binary (scoped by path, so a separate Tor Browser install is untouched) and
+        // clear the stale lock before launching.
+        KillStaleOnionHopTor(config.TorPath);
+        TryDeleteFile(Path.Combine(_dataDirectory, "lock"));
+
         var arguments = BuildArguments(config, _dataDirectory);
         _log($"Tor arguments: {FormatArgumentsForLog(arguments)}");
         var torDirectory = config.WorkingDirectory
@@ -289,6 +298,61 @@ internal sealed class TorService : IDisposable
             _process = null;
             _controlPort = null;
             _dataDirectory = null;
+        }
+    }
+
+    /// <summary>
+    /// Kills any orphaned copy of OUR tor binary left running from a previous session (matched by
+    /// executable path, so a separate Tor Browser install is never affected). Such an orphan keeps
+    /// holding the data directory lock and the SOCKS/DNS ports, which makes a fresh Tor refuse to
+    /// start with "another Tor process is running with the same data directory." Best effort.
+    /// </summary>
+    private void KillStaleOnionHopTor(string torPath)
+    {
+        string targetPath;
+        try
+        {
+            targetPath = Path.GetFullPath(torPath);
+        }
+        catch
+        {
+            return;
+        }
+
+        Process[] processes;
+        try
+        {
+            processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(torPath));
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var process in processes)
+        {
+            try
+            {
+                // Only touch the orphan if it's the same executable we're about to launch.
+                string? exePath = null;
+                try { exePath = process.MainModule?.FileName; } catch { }
+                if (string.IsNullOrEmpty(exePath) ||
+                    !string.Equals(Path.GetFullPath(exePath!), targetPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(4000);
+                _log($"Released Tor data directory: stopped orphaned {Path.GetFileName(torPath)} (pid {process.Id}).");
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { process.Dispose(); } catch { }
+            }
         }
     }
 
