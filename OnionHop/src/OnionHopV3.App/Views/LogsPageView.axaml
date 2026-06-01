@@ -47,56 +47,38 @@
           ColumnSpacing="18"
           MinHeight="0">
       <Border Classes="SectionCard">
-        <Grid RowDefinitions="Auto,Auto,Auto,*"
+        <Grid RowDefinitions="Auto,Auto,*"
               RowSpacing="12"
               MinHeight="0">
-          <!-- Dedicated action row at the top of the log card: Copy / Export / Clear act on the log
-               below them, and sit clear of the window caption buttons. -->
-          <StackPanel Orientation="Horizontal"
-                      Spacing="8"
-                      HorizontalAlignment="Right">
-            <Button Classes="ActionGhost"
-                    Click="OnCopyCurrentTabClick"
-                    Content="{DynamicResource Logs.Copy}" />
-            <Button Classes="ActionGhost"
-                    Click="OnExportCurrentTabClick"
-                    Content="{DynamicResource Logs.Export}" />
-            <Button Classes="ActionDanger"
-                    Command="{Binding ClearSelectedLogsCommand}"
-                    Content="{DynamicResource Logs.Clear}" />
-          </StackPanel>
-
-          <Grid Grid.Row="1"
-                ColumnDefinitions="*,Auto,Auto"
-                ColumnSpacing="10">
+          <!-- Top row: search bar on the left aligned with the Copy / Export / Clear actions on the
+               right, so the search field lines up with the buttons. -->
+          <Grid ColumnDefinitions="*,Auto"
+                ColumnSpacing="12">
             <TextBox Text="{Binding SearchText}"
+                     VerticalAlignment="Center"
                      Watermark="{DynamicResource Logs.Search}" />
             <StackPanel Grid.Column="1"
                         Orientation="Horizontal"
                         Spacing="8"
                         VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Logs.Pause}"
-                         Classes="SectionCaption"
-                         VerticalAlignment="Center" />
-              <ToggleButton Classes="V3Switch"
-                            IsChecked="{Binding IsPaused}"
-                            ToolTip.Tip="{DynamicResource Logs.Pause}" />
-            </StackPanel>
-            <StackPanel Grid.Column="2"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Logs.AutoScroll}"
-                         Classes="SectionCaption"
-                         VerticalAlignment="Center" />
-              <ToggleButton Classes="V3Switch"
-                            IsChecked="{Binding AutoScroll}"
-                            ToolTip.Tip="{DynamicResource Logs.AutoScroll}" />
+              <Button Classes="ActionGhost"
+                      Click="OnCopyCurrentTabClick"
+                      Content="{DynamicResource Logs.Copy}" />
+              <Button Classes="ActionGhost"
+                      Click="OnExportCurrentTabClick"
+                      Content="{DynamicResource Logs.Export}" />
+              <Button Classes="ActionDanger"
+                      Command="{Binding ClearSelectedLogsCommand}"
+                      Content="{DynamicResource Logs.Clear}" />
             </StackPanel>
           </Grid>
 
-          <WrapPanel Grid.Row="2"
-                     Orientation="Horizontal">
+          <!-- Second row: level filters on the left, Pause / Auto-scroll toggles on the right. -->
+          <Grid Grid.Row="1"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="12">
+            <WrapPanel Orientation="Horizontal"
+                       VerticalAlignment="Center">
             <RadioButton Classes="FilterChip"
                          GroupName="LogLevel"
                          IsChecked="{Binding IsAllSelected}"
@@ -124,9 +106,36 @@
                          Content="{DynamicResource Logs.LevelError}"
                          Width="120"
                          Height="38" />
-          </WrapPanel>
+            </WrapPanel>
 
-          <Border Grid.Row="3"
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="16"
+                        VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal"
+                          Spacing="8"
+                          VerticalAlignment="Center">
+                <TextBlock Text="{DynamicResource Logs.Pause}"
+                           Classes="SectionCaption"
+                           VerticalAlignment="Center" />
+                <ToggleButton Classes="V3Switch"
+                              IsChecked="{Binding IsPaused}"
+                              ToolTip.Tip="{DynamicResource Logs.Pause}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal"
+                          Spacing="8"
+                          VerticalAlignment="Center">
+                <TextBlock Text="{DynamicResource Logs.AutoScroll}"
+                           Classes="SectionCaption"
+                           VerticalAlignment="Center" />
+                <ToggleButton Classes="V3Switch"
+                              IsChecked="{Binding AutoScroll}"
+                              ToolTip.Tip="{DynamicResource Logs.AutoScroll}" />
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+
+          <Border Grid.Row="2"
                   Classes="InsetPanel"
                   Padding="0"
                   MinHeight="0">

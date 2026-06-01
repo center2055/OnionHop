@@ -45,7 +45,14 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
     [ObservableProperty] private int _infoEntries;
 
     public string EngineTabLabel => State.VpnLogTabHeader;
-    public string ActiveSourcesSummary => string.Join(", ", GetActiveSources());
+    // The Summary panel describes the currently-selected source, so it shows that source's label
+    // rather than a global list (which read confusingly as "App" while sitting on an empty DNS tab).
+    public string ActiveSourcesSummary => SelectedSource switch
+    {
+        SourceDns => LocalizationService.Get("Logs.TabDns"),
+        SourceEngine => EngineTabLabel,
+        _ => LocalizationService.Get("Logs.TabApp")
+    };
     public bool ShowEmptyState => VisibleEntries.Count == 0;
     public bool IsAppSelected { get => SelectedSource == SourceApp; set { if (value) SelectedSource = SourceApp; } }
     public bool IsDnsSelected { get => SelectedSource == SourceDns; set { if (value) SelectedSource = SourceDns; } }
@@ -93,6 +100,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         OnPropertyChanged(nameof(IsAppSelected));
         OnPropertyChanged(nameof(IsDnsSelected));
         OnPropertyChanged(nameof(IsEngineSelected));
+        OnPropertyChanged(nameof(ActiveSourcesSummary));
         RebuildVisibleEntries();
     }
 
@@ -163,12 +171,9 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             }
 
             var entry = ParseLine(line, SelectedSource);
-            if (!FilterEntry(entry))
-            {
-                continue;
-            }
 
-            VisibleEntries.Add(entry);
+            // The Summary counts describe the whole selected source, so every new entry counts -
+            // independent of the level/search filter applied to the visible list.
             TotalEntries++;
             switch (entry.Level)
             {
@@ -177,29 +182,35 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
                 case LevelInfo: InfoEntries++; break;
             }
 
-            appended++;
+            if (FilterEntry(entry))
+            {
+                VisibleEntries.Add(entry);
+                appended++;
+            }
         }
 
         if (appended > 0)
         {
-            OnPropertyChanged(nameof(ActiveSourcesSummary));
             OnPropertyChanged(nameof(ShowEmptyState));
         }
     }
 
     private void RebuildVisibleEntries()
     {
+        // The visible list honors the level + search filter...
         var sourceEntries = GetSourceLines()
             .Select(line => ParseLine(line, SelectedSource))
-            .Where(FilterEntry)
             .ToList();
 
         VisibleEntries.Clear();
-        foreach (var entry in sourceEntries)
+        foreach (var entry in sourceEntries.Where(FilterEntry))
         {
             VisibleEntries.Add(entry);
         }
 
+        // ...but the Summary counts describe the entire selected source (all levels), so switching
+        // the level filter or typing a search never changes the stats - only switching the source tab
+        // does. They're computed from the unfiltered source, not from VisibleEntries.
         TotalEntries = sourceEntries.Count;
         ErrorEntries = sourceEntries.Count(entry => entry.Level == LevelError);
         WarningEntries = sourceEntries.Count(entry => entry.Level == LevelWarning);
