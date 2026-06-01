@@ -80,7 +80,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 
 Notes
 - `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox "Proxy DNS when using SOCKS v5").
-- Bridges, country/relay pinning and control-port New Identity require the **Classic** engine; Arti/ArtiHop run as a SOCKS proxy runtime.
+- Bridges, country/relay pinning and control-port New Identity require the **Classic** engine today — the **Arti**/**ArtiHop** engines run bridgeless in OnionHop for now (native bridge support is planned; upstream Arti itself supports bridges).
 
 ---
 
@@ -89,8 +89,10 @@ Notes
 | Engine | Hops | Admin | Bridges / pinning / NEWNYM | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **Classic** (`tor.exe`) | 3 | no (Proxy) | yes | Most features; recommended for censorship + control |
-| **Arti** | 3 | no | no | Rust Tor implementation (SOCKS runtime) |
+| **Arti** | 3 | no | not yet in OnionHop | Rust Tor implementation (SOCKS runtime) |
 | **ArtiHop** | 2 (Guard→Exit) | no | New Identity only | Lower latency, weaker anonymity |
+
+> Upstream **Arti** supports bridges and pluggable transports, but OnionHop currently runs its **Arti** and **ArtiHop** engines as a plain SOCKS runtime without bridge/PT config — so use the **Classic** engine for bridged/censored networks. Native bridge support for the Arti engines is planned for a future release.
 
 ---
 
