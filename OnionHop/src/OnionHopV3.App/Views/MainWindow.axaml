@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:OnionHopV3.App.ViewModels"
         xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -25,6 +26,13 @@
   <Design.DataContext>
     <vm:ShellViewModel />
   </Design.DataContext>
+
+  <Window.Resources>
+    <!-- Turns a page's MaterialIconKind into vector geometry. Material Icons is bundled with the
+         app (Material.Icons.Avalonia), so nav icons render on Windows, macOS and Linux alike -
+         unlike the old Segoe Fluent Icons font, which only exists on Windows. -->
+    <icons:MaterialIconKindToGeometryConverter x:Key="IconKindToGeometry" />
+  </Window.Resources>
 
   <Window.Styles>
     <!-- Custom Windows-style caption buttons (no OS title bar / icon / title at all). -->
@@ -68,9 +76,7 @@
         <DataTemplate x:DataType="vm:PageViewModelBase">
           <ui:NavigationViewItem Content="{Binding DisplayName}">
             <ui:NavigationViewItem.IconSource>
-              <ui:FontIconSource Glyph="{Binding NavGlyph}"
-                                 FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
-                                 FontSize="16" />
+              <ui:PathIconSource Data="{Binding Icon, Converter={StaticResource IconKindToGeometry}}" />
             </ui:NavigationViewItem.IconSource>
           </ui:NavigationViewItem>
         </DataTemplate>
