@@ -61,11 +61,11 @@ function Assert-RequiredRuntimeDependencies {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop"
-$projectDir = Join-Path $solutionRoot "src\OnionHopV2.Cli"
-$csproj = Join-Path $projectDir "OnionHopV2.Cli.csproj"
+$projectDir = Join-Path $solutionRoot "src\OnionHopV3.Cli"
+$csproj = Join-Path $projectDir "OnionHopV3.Cli.csproj"
 
 if (!(Test-Path $csproj)) {
-  throw "Could not find OnionHopV2.Cli.csproj at: $csproj"
+  throw "Could not find OnionHopV3.Cli.csproj at: $csproj"
 }
 
 $depsScript = Join-Path $repoRoot "download-deps.ps1"

@@ -1,22 +1,22 @@
 ; Inno Setup script for OnionHop CLI
 ; Build with:
-;   ISCC.exe installer\OnionHopV2.Cli.iss /DMyAppVersion=2.4.0 /DPubDir="..."
+;   ISCC.exe installer\OnionHopV3.Cli.iss /DMyAppVersion=3.0.0 /DPubDir="..."
 
 #define MyAppName "OnionHop CLI"
-#define MyAppExeName "OnionHopV2.Cli.exe"
+#define MyAppExeName "OnionHopV3.Cli.exe"
 #define MyAppPublisher "center2055"
 #define MyAppURL "https://github.com/center2055/OnionHop"
 
 #ifndef MyAppVersion
-  #define MyAppVersion "2.4.0"
+  #define MyAppVersion "3.0.0"
 #endif
 
 #ifndef PubDir
-  #define PubDir "..\\OnionHop\\src\\OnionHopV2.Cli\\bin\\Release\\net9.0\\win-x64\\publish"
+  #define PubDir "..\\OnionHop\\src\\OnionHopV3.Cli\\bin\\Release\\net9.0\\win-x64\\publish"
 #endif
 
 [Setup]
-SetupIconFile=..\OnionHop\src\OnionHopV2.App\Assets\OnionHop.ico
+SetupIconFile=..\OnionHop\src\OnionHopV3.App\Assets\OnionHop.ico
 AppId={{E8B6A29F-4B6E-45D8-A17E-5BB4679A49F4}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}

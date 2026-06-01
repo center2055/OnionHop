@@ -61,11 +61,11 @@ function Assert-RequiredRuntimeDependencies {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solutionRoot = Join-Path $repoRoot "OnionHop"
-$projectDir = Join-Path $solutionRoot "src\OnionHopV2.Cli"
-$csproj = Join-Path $projectDir "OnionHopV2.Cli.csproj"
+$projectDir = Join-Path $solutionRoot "src\OnionHopV3.Cli"
+$csproj = Join-Path $projectDir "OnionHopV3.Cli.csproj"
 
 if (!(Test-Path $csproj)) {
-  throw "Could not find OnionHopV2.Cli.csproj at: $csproj"
+  throw "Could not find OnionHopV3.Cli.csproj at: $csproj"
 }
 
 $depsScript = Join-Path $repoRoot "download-deps.ps1"
@@ -99,7 +99,7 @@ if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"
 }
 
-$iss = Join-Path $PSScriptRoot "OnionHopV2.Cli.iss"
+$iss = Join-Path $PSScriptRoot "OnionHopV3.Cli.iss"
 if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
 }
@@ -114,8 +114,23 @@ try {
 
 $possible = @(
   "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-  "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+  "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+  "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
 )
+
+# Also honor the install location recorded in the registry so a non-default install drive
+# (e.g. D:\Programs\Inno Setup 6) or a winget/user-scope install is still found.
+try {
+  $uninstallKeys = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+  )
+  Get-ItemProperty $uninstallKeys -ErrorAction SilentlyContinue |
+    Where-Object { $_.DisplayName -like "Inno Setup*" -and $_.InstallLocation } |
+    ForEach-Object { $possible += (Join-Path $_.InstallLocation "ISCC.exe") }
+} catch {
+}
 
 $iscc = $possible | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $iscc) {
