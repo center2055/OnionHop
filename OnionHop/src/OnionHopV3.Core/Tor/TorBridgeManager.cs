@@ -38,6 +38,11 @@ internal sealed class TorBridgeManager
     private const string BundledBridgeFilePrefix = "bridges-";
     private const string CommunityBridgeFilePrefix = "bridges-community-";
     private const string BundledBridgeFileExtension = ".txt";
+
+    // A live bridge-service fetch under this many bridges is "thin" and gets topped up from the
+    // offline lists, capped at MaxSupplementedBridgeCount so Tor isn't handed an unwieldy bridge set.
+    private const int MinHealthyBridgeCount = 8;
+    private const int MaxSupplementedBridgeCount = 14;
     private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromHours(12);
     private const int RuntimeBridgeFailureThreshold = 3;
     private static readonly TimeSpan RuntimeBridgeFailureWindow = TimeSpan.FromMinutes(15);
@@ -422,6 +427,51 @@ internal sealed class TorBridgeManager
                 if (fetched.Count > 0)
                 {
                     selected = fetched;
+                }
+            }
+
+            // The Tor bridge service (and its on-disk cache) commonly returns only 2-3 bridges. For a
+            // slow transport like webtunnel, if those few happen to be overloaded the bootstrap stalls
+            // even though the transport itself works. When the live set is thin, top it up with offline
+            // /bundled bridges of the same transport so Tor has more entry options to find a working
+            // one. The live bridges are kept; offline ones are appended (shuffled, de-duplicated) up to
+            // a healthy total. Does not run when the user supplied custom bridges or offline is disabled.
+            if (selected.Count > 0 && selected.Count < MinHealthyBridgeCount && allowOfflineFallback)
+            {
+                var supplement = TryLoadOfflineBridgeLines(selectedBridgeType, log);
+                if (supplement.Count == 0)
+                {
+                    supplement = TryLoadBundledBridgeLines(selectedBridgeType, log);
+                }
+
+                if (supplement.Count > 0)
+                {
+                    var extras = new List<string>(supplement);
+                    if (extras.Count > 1)
+                    {
+                        ShuffleInPlace(extras);
+                    }
+
+                    var merged = new List<string>(selected);
+                    var seen = new HashSet<string>(selected, StringComparer.OrdinalIgnoreCase);
+                    foreach (var line in extras)
+                    {
+                        if (merged.Count >= MaxSupplementedBridgeCount)
+                        {
+                            break;
+                        }
+
+                        if (seen.Add(line))
+                        {
+                            merged.Add(line);
+                        }
+                    }
+
+                    if (merged.Count > selected.Count)
+                    {
+                        log($"Supplemented {selected.Count} live {selectedBridgeType} bridge(s) with {merged.Count - selected.Count} offline bridge(s) for a healthier set.");
+                        selected = merged;
+                    }
                 }
             }
 

@@ -281,7 +281,17 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="MinHeight" Value="36" />
   </Style>
-  <Style Selector="ComboBox /template/ ContentControl#ContentPresenter">
+  <!-- Center the selection presenter regardless of the theme template's internal part name/type:
+       target every ContentControl and ContentPresenter inside the ComboBox template and pin their
+       vertical alignment to center, with no asymmetric padding. Naming the part explicitly was
+       fragile (FluentAvalonia's part didn't match on every platform), which left the selected text
+       sitting high in the box on macOS. -->
+  <Style Selector="ComboBox /template/ ContentControl">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ComboBox /template/ ContentPresenter">
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
