@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnionHopV3.App", "src\Onion
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnionHopV3.Tests", "src\OnionHopV3.Tests\OnionHopV3.Tests.csproj", "{B8E8A1F2-3C4D-4E5F-A6B7-8C9D0E1F2A3B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnionHopV2.Cli", "src\OnionHopV2.Cli\OnionHopV2.Cli.csproj", "{0D04DAE2-B0BD-4D9F-8B87-E3ABCD61E4F8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnionHopV3.Cli", "src\OnionHopV3.Cli\OnionHopV3.Cli.csproj", "{0D04DAE2-B0BD-4D9F-8B87-E3ABCD61E4F8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

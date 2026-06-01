@@ -220,6 +220,22 @@ public sealed class OnionHopClient : IDisposable
         return _ptConfig?.RecommendedDefault;
     }
 
+    /// <summary>
+    /// Resolve the raw bridge lines that <paramref name="options"/> would use (collector / bridge
+    /// service / offline, per the selected source), without connecting. Used by the CLI bridge
+    /// scanner to fetch candidates to probe.
+    /// </summary>
+    public Task<IReadOnlyList<string>> GetBridgeLinesForTypeAsync(OnionHopConnectOptions options, CancellationToken token = default)
+    {
+        return _bridgeManager.GetBridgeLinesAsync(options, _ptConfig, RaiseLog, token);
+    }
+
+    /// <summary>True for the meta "automatic" bridge type.</summary>
+    public static bool IsAutomaticBridgeType(string? bridgeType) => TorBridgeManager.IsAutomaticBridgeType(bridgeType);
+
+    /// <summary>True when a bridge transport has a fixed IP:port that can be reachability-probed.</summary>
+    public static bool BridgeTypeHasProbeableEndpoint(string? bridgeType) => TorBridgeManager.BridgeTypeHasProbeableEndpoint(bridgeType);
+
     public DateTimeOffset? GetLastBridgeDataUpdateUtc()
     {
         return _bridgeManager.GetLatestBridgeCacheUpdateUtc();
@@ -1164,6 +1180,17 @@ public sealed class OnionHopClient : IDisposable
         }
 
         var exePath = ResolveDnsttClientPath();
+        if (string.IsNullOrWhiteSpace(exePath))
+        {
+            // dnstt bridges were selected but no dnstt-client binary is bundled/available for this
+            // platform. Log it once clearly (rather than once per bridge) and drop the dnstt lines so
+            // any non-dnstt bridges in the set can still be used. download-deps.(ps1|sh) builds it.
+            var depsScript = OperatingSystem.IsWindows() ? "download-deps.ps1" : "download-deps.sh";
+            RaiseLog($"dnstt bridges were selected but no dnstt-client binary is available on this platform. Build/bundle it with {depsScript} or set ONIONHOP_DNSTT_PATH. Ignoring dnstt bridges for this connection.");
+            var nonDnstt = bridgeLines.Where(line => DnsttForwarderService.TryParse(line) == null).ToList();
+            return nonDnstt;
+        }
+
         var result = new List<string>(bridgeLines.Count);
         var usedPorts = new List<int> { _activeSocksPort };
         if (_activeDnsPort.HasValue)
