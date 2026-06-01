@@ -97,7 +97,7 @@ internal sealed class CliHost : IAsyncDisposable
     {
         var version = ResolveVersion();
         WriteLine(string.Empty, ConsoleColor.Gray);
-        WriteLine(@"   ___        _           _  _", ConsoleColor.Magenta);
+        WriteLine(@"   ___       _          _  _", ConsoleColor.Magenta);
         WriteLine(@"  / _ \ _ _ (_)___ _ _ | || |___ _ __", ConsoleColor.Magenta);
         WriteLine(@" | (_) | ' \| / _ \ ' \| __ / _ \ '_ \", ConsoleColor.Magenta);
         WriteLine(@"  \___/|_||_|_\___/_||_|_||_\___/ .__/", ConsoleColor.Magenta);
