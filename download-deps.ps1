@@ -231,6 +231,72 @@ function Get-WebTunnelBridgeLines([string[]]$urls) {
     return @($lines)
 }
 
+# Fetch additional built-in bridges from the igareck/vpn-configs-for-russia project (free to use)
+# and merge them into the bundled community bridge lists, deduplicated. These refresh on every build.
+# Source: https://github.com/igareck/vpn-configs-for-russia (TOR-BRIDGES). Bridge lines are public
+# network addresses; we keep them in the existing bridges-community-<type>.txt files with attribution.
+function Update-RussiaBridges($ptDir) {
+    $base = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/TOR-BRIDGES"
+    # Map the upstream files to our community bridge file per transport, and the line prefix that
+    # identifies a real bridge line for that transport.
+    $sources = @(
+        @{ Url = "$base/TOR_BRIDGES_OBFS4.txt";     File = "bridges-community-obfs4.txt";     Prefix = "obfs4 " },
+        @{ Url = "$base/TOR_BRIDGES_WEBTUNNEL.txt"; File = "bridges-community-webtunnel.txt"; Prefix = "webtunnel " }
+    )
+
+    foreach ($src in $sources) {
+        try {
+            $content = Get-RemoteText -url $src.Url
+            if ([string]::IsNullOrWhiteSpace($content)) {
+                Write-Warning "Russia bridges: empty response for $($src.File); keeping existing list."
+                continue
+            }
+
+            # Extract only the real bridge lines (skip '#' comments / blank lines).
+            $fetched = New-Object System.Collections.Generic.List[string]
+            foreach ($raw in ($content -split "`r?`n")) {
+                $line = $raw.Trim()
+                if ($line.Length -eq 0 -or $line.StartsWith("#")) { continue }
+                if ($line.StartsWith($src.Prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $fetched.Add($line)
+                }
+            }
+
+            if ($fetched.Count -eq 0) {
+                Write-Warning "Russia bridges: no usable lines parsed from $($src.Url)."
+                continue
+            }
+
+            # Merge with the existing committed list, deduplicated (case-insensitive), order preserved
+            # (existing first, then new).
+            $targetPath = Join-Path $ptDir $src.File
+            $seen = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+            $merged = New-Object System.Collections.Generic.List[string]
+            if (Test-Path $targetPath) {
+                foreach ($existing in (Get-Content $targetPath)) {
+                    $e = $existing.Trim()
+                    if ($e.Length -eq 0) { continue }
+                    if ($seen.Add($e)) { $merged.Add($existing) }
+                }
+            }
+            $added = 0
+            foreach ($f in $fetched) {
+                if ($seen.Add($f)) { $merged.Add($f); $added++ }
+            }
+
+            $header = @(
+                "# OnionHop built-in $($src.Prefix.Trim()) bridges.",
+                "# Includes bridges from the Tor community and from igareck/vpn-configs-for-russia",
+                "# (https://github.com/igareck/vpn-configs-for-russia), refreshed at build time."
+            )
+            Set-Content -Path $targetPath -Value ($header + $merged) -Encoding UTF8
+            Write-Host "Russia bridges: merged $added new $($src.Prefix.Trim()) line(s) into $($src.File) (total $($merged.Count))."
+        } catch {
+            Write-Warning "Russia bridges: failed to update $($src.File): $($_.Exception.Message). Keeping existing list."
+        }
+    }
+}
+
 # Helper to verify file checksum (SHA256)
 function Verify-FileHash($filePath, $expectedHash) {
     if ([string]::IsNullOrWhiteSpace($expectedHash)) {
@@ -559,6 +625,10 @@ try {
         $ptConfig | ConvertTo-Json -Depth 6 | Set-Content -Path $PtConfigPath
         Write-Host "Updated pt_config.json for webtunnel-client."
     }
+
+    # --- 2c. Refresh built-in bridges from the Russia configs project ---
+    Write-Host "`n[2c/4] Refreshing built-in bridges (igareck/vpn-configs-for-russia)..."
+    Update-RussiaBridges -ptDir $PtDir
 
     # --- 3-5. Sing-box, xray and Wintun (parallel download) ---
     Write-Host "`n[3-5/5] Downloading Sing-box, xray and Wintun in parallel..."

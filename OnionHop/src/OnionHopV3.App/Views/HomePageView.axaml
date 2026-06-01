@@ -88,6 +88,13 @@
                       ToolTip.Tip="{DynamicResource Home.SystemProxyTooltip}" />
             </WrapPanel>
 
+            <!-- Last successful bridge-data update, shown right under the Update bridges button
+                 (only when bridges are enabled). Mirrors v2's behavior. -->
+            <TextBlock Text="{Binding State.BridgeDataLastUpdateText}"
+                       Classes="Caption"
+                       Margin="0,-2,0,0"
+                       IsVisible="{Binding State.UseTorBridges}" />
+
             <ProgressBar Minimum="0"
                          Maximum="1"
                          Value="{Binding State.ConnectionProgress}"

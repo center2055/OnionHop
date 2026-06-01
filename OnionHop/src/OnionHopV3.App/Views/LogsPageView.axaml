@@ -283,7 +283,7 @@
                     Grid.Column="1"
                     Classes="InsetPanel">
               <StackPanel Spacing="4">
-                <TextBlock Text="{DynamicResource Logs.LocalOnly}"
+                <TextBlock Text="{DynamicResource Logs.TipHeader}"
                            Classes="SectionCaption" />
                 <TextBlock Text="{DynamicResource Logs.TipLocalOnly}"
                            TextWrapping="Wrap" />

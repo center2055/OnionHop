@@ -80,7 +80,8 @@
   <x:String x:Key="Logs.Copy">Копировать</x:String>
   <x:String x:Key="Logs.Export">Экспорт...</x:String>
   <x:String x:Key="Logs.Clear">Очистить</x:String>
-  <x:String x:Key="Logs.TipLocalOnly">Совет: журналы хранятся только локально.</x:String>
+  <x:String x:Key="Logs.TipHeader">Совет</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">Журналы хранятся только локально.</x:String>
 
   <!-- About -->
   <x:String x:Key="About.Title">О программе</x:String>
@@ -91,6 +92,7 @@
   <x:String x:Key="About.BridgeSources">Источники мостов</x:String>
   <x:String x:Key="About.BridgeSourcesIntro">Откуда OnionHop берёт мосты Tor:</x:String>
   <x:String x:Key="About.CollectorDerived">Наш сборщик основан на Tor-Bridges-Collector от Delta-Kronecker (AGPL-3.0):</x:String>
+  <x:String x:Key="About.RussiaBridges">Встроенные мосты также включают списки из проекта vpn-configs-for-russia от igareck:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake, meek и conjure используют стандартные строки мостов из Tor Browser.</x:String>
   <x:String x:Key="About.Changelog">История OnionHop</x:String>
   <x:String x:Key="About.Refresh">Обновить</x:String>

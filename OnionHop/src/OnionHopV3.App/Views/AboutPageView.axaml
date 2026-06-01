@@ -130,6 +130,21 @@
                   <TextBlock Text="Delta-Kronecker/Tor-Bridges-Collector" />
                 </StackPanel>
               </Button>
+              <TextBlock Text="{DynamicResource About.RussiaBridges}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <Button Classes="ActionGhost"
+                      HorizontalAlignment="Left"
+                      Tag="https://github.com/igareck/vpn-configs-for-russia"
+                      Click="OnOpenLinkClick">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Github}"
+                                      Width="18"
+                                      Height="18" />
+                  <TextBlock Text="igareck/vpn-configs-for-russia" />
+                </StackPanel>
+              </Button>
               <TextBlock Text="{DynamicResource About.FrontedDefaults}"
                          Classes="SectionCaption"
                          TextWrapping="Wrap" />

@@ -80,7 +80,8 @@
   <x:String x:Key="Logs.Copy">Copier</x:String>
   <x:String x:Key="Logs.Export">Exporter...</x:String>
   <x:String x:Key="Logs.Clear">Effacer</x:String>
-  <x:String x:Key="Logs.TipLocalOnly">Astuce : les journaux restent locaux uniquement.</x:String>
+  <x:String x:Key="Logs.TipHeader">Astuce</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">Les journaux restent locaux uniquement.</x:String>
 
   <!-- About -->
   <x:String x:Key="About.Title">À propos</x:String>
@@ -91,6 +92,7 @@
   <x:String x:Key="About.BridgeSources">Sources de ponts</x:String>
   <x:String x:Key="About.BridgeSourcesIntro">D'où OnionHop tire ses ponts Tor :</x:String>
   <x:String x:Key="About.CollectorDerived">Notre collecteur est dérivé du Tor-Bridges-Collector de Delta-Kronecker (AGPL-3.0) :</x:String>
+  <x:String x:Key="About.RussiaBridges">Les ponts intégrés incluent aussi des listes du projet vpn-configs-for-russia d'igareck :</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake, meek et conjure utilisent les lignes de pont par défaut fournies avec le Navigateur Tor.</x:String>
   <x:String x:Key="About.Changelog">Historique d'OnionHop</x:String>
   <x:String x:Key="About.Refresh">Actualiser</x:String>

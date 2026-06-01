@@ -105,6 +105,8 @@ internal sealed class TorBridgeManager
             return new BridgeDataRefreshSummary(0, 0, GetLatestBridgeCacheUpdateUtc());
         }
 
+        log($"Bridge data refresh: updating {targets.Count} bridge type(s): {string.Join(", ", targets)}.");
+
         var updated = 0;
         foreach (var bridgeType in targets)
         {
@@ -115,9 +117,16 @@ internal sealed class TorBridgeManager
                 token,
                 forceRefresh: true,
                 httpClientOverride: httpClient).ConfigureAwait(false);
+            // Explicit per-type result so the user can see at a glance which sources succeeded.
+            // (The fetch above already logs WHERE each set came from - collector / bridge service.)
             if (lines.Count > 0)
             {
                 updated++;
+                log($"Bridge data refresh: {bridgeType} OK - {lines.Count} bridge line(s).");
+            }
+            else
+            {
+                log($"Bridge data refresh: {bridgeType} FAILED - no usable bridges from any source.");
             }
         }
 

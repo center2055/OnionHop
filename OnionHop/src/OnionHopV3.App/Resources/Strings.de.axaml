@@ -80,7 +80,8 @@
   <x:String x:Key="Logs.Copy">Kopieren</x:String>
   <x:String x:Key="Logs.Export">Exportieren...</x:String>
   <x:String x:Key="Logs.Clear">Leeren</x:String>
-  <x:String x:Key="Logs.TipLocalOnly">Tipp: Protokolle bleiben lokal.</x:String>
+  <x:String x:Key="Logs.TipHeader">Tipp</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">Protokolle bleiben lokal.</x:String>
 
   <!-- About -->
   <x:String x:Key="About.Title">&#220;ber</x:String>
@@ -91,6 +92,7 @@
   <x:String x:Key="About.BridgeSources">Br&#252;ckenquellen</x:String>
   <x:String x:Key="About.BridgeSourcesIntro">Woher OnionHop seine Tor-Br&#252;cken bezieht:</x:String>
   <x:String x:Key="About.CollectorDerived">Unser Collector ist von Delta-Kroneckers Tor-Bridges-Collector abgeleitet (AGPL-3.0):</x:String>
+  <x:String x:Key="About.RussiaBridges">Eingebaute Br&#252;cken umfassen auch Listen aus igarecks Projekt vpn-configs-for-russia:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake, meek und conjure nutzen die mit dem Tor Browser gelieferten Standard-Br&#252;ckenzeilen.</x:String>
   <x:String x:Key="About.Changelog">Historie von OnionHop</x:String>
   <x:String x:Key="About.Refresh">Aktualisieren</x:String>
