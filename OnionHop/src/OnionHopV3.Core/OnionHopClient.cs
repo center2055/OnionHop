@@ -2252,6 +2252,12 @@ public sealed class OnionHopClient : IDisposable
                 throw new InvalidOperationException(message);
             }
 
+            // Reachability-first: before handing Tor a pile of bridges (many of which are blocked in
+            // censored regions), TCP-probe them in parallel and keep only the ones that are actually
+            // reachable from this network, fastest first. This turns "wait up to minutes for Tor to
+            // bootstrap against dead bridges" into "in a few seconds, only try bridges that respond".
+            bridgeLines = await FilterReachableBridgesAsync(bridgeLines, token).ConfigureAwait(false);
+
             bridgeLines = LimitBridgeLinesForLaunch(bridgeLines, RaiseLog);
 
             // dnstt bridges aren't pluggable transports: spin up a local dnstt-client forwarder for
@@ -3209,4 +3215,86 @@ public sealed class OnionHopClient : IDisposable
 
     private static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, Action<string> log)
         => TorLogHelper.LimitBridgeLinesForLaunch(bridgeLines, MaxBridgeLinesForLaunch, MaxBridgeArgumentCharsForLaunch, log);
+
+    /// <summary>
+    /// From a set of bridge probe results, keep only the working ones, ordered fastest first. Pure
+    /// selection logic, factored out for testing.
+    /// </summary>
+    internal static IReadOnlyList<string> SelectReachableBridges(IReadOnlyList<BridgeScanResult> results)
+    {
+        return results
+            .Where(r => r.IsWorking)
+            .OrderBy(r => r.PingMs ?? int.MaxValue)
+            .Select(r => r.RawLine)
+            .ToList();
+    }
+
+    // How long the whole reachability pre-scan is allowed to take. It runs many probes in parallel,
+    // so the wall-clock is roughly one probe timeout, not the sum.
+    private static readonly TimeSpan BridgeReachabilityScanBudget = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan BridgeReachabilityProbeTimeout = TimeSpan.FromSeconds(3);
+    private const int BridgeReachabilityWorkers = 24;
+    // Below this many candidates, scanning isn't worth the latency - just try them all.
+    private const int BridgeReachabilityMinCandidates = 4;
+
+    /// <summary>
+    /// TCP-probe the fetched bridge lines and return only the reachable ones, fastest first. Fronted
+    /// transports (snowflake/meek/conjure/dnstt) have no fixed endpoint to ping, so they pass through
+    /// unfiltered (the scanner reports them as "Fronted"/working when their broker answers). If the
+    /// scan can't confirm anything (all blocked, or nothing probeable), the original list is returned
+    /// so we never strip ourselves down to zero bridges on a flaky scan.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> FilterReachableBridgesAsync(IReadOnlyList<string> bridgeLines, CancellationToken token)
+    {
+        if (bridgeLines.Count < BridgeReachabilityMinCandidates)
+        {
+            return bridgeLines;
+        }
+
+        try
+        {
+            using var scanCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            scanCts.CancelAfter(BridgeReachabilityScanBudget);
+
+            IReadOnlyList<BridgeScanResult> results;
+            try
+            {
+                results = await BridgeScanService.ScanAsync(
+                    bridgeLines,
+                    BridgeReachabilityWorkers,
+                    BridgeReachabilityProbeTimeout,
+                    progress: null,
+                    scanCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                // The scan budget elapsed - fall back to the unfiltered list rather than blocking.
+                RaiseLog("Bridge reachability scan timed out; using bridges without pre-filtering.");
+                return bridgeLines;
+            }
+
+            // Keep working bridges ordered fastest-first; fronted/unparsed (no pingable endpoint) are
+            // treated as usable and ordered after the timed ones.
+            var working = SelectReachableBridges(results);
+
+            if (working.Count == 0)
+            {
+                RaiseLog($"Bridge reachability scan: none of {bridgeLines.Count} bridges responded; trying them anyway.");
+                return bridgeLines;
+            }
+
+            var unreachableCount = bridgeLines.Count - working.Count;
+            RaiseLog($"Bridge reachability scan: {working.Count}/{bridgeLines.Count} bridges reachable (dropped {unreachableCount} blocked/dead), fastest first.");
+            return working;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"Bridge reachability scan failed ({ex.Message}); using bridges without pre-filtering.");
+            return bridgeLines;
+        }
+    }
 }
