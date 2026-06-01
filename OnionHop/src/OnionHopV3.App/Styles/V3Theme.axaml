@@ -271,4 +271,21 @@
   <Style Selector="controls|EmptyState">
     <Setter Property="Margin" Value="0" />
   </Style>
+
+  <!-- Vertically center the selected text in ComboBoxes. The default leaves the text sitting high
+       in the box (most visible on macOS, where font metrics differ), so the selection looks
+       mismatched against its chevron. Forcing VerticalContentAlignment on the box and its content
+       presenter centers it consistently on every platform. A steady MinHeight keeps the three
+       Home dropdowns the same size. -->
+  <Style Selector="ComboBox">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="MinHeight" Value="36" />
+  </Style>
+  <Style Selector="ComboBox /template/ ContentControl#ContentPresenter">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ComboBoxItem">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
 </Styles>
