@@ -177,6 +177,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private readonly TorNodeDatabaseService _nodeDatabaseService = new();
     private readonly DiscordPresenceService _discordPresence = new();
     private readonly SmartConnectAdvisor _smartConnectAdvisor = new();
+    private readonly SmartConnectMemory _smartConnectMemory = new();
+    // The network key (country + IP prefix) for the in-flight Smart Connect attempt, so a success can
+    // be remembered / a stale memory invalidated against the right network.
+    private string? _smartConnectNetworkKey;
     private CancellationTokenSource? _connectCts;
     private CancellationTokenSource? _settingsSaveCts;
     private DispatcherTimer? _bridgeRefreshTimer;
@@ -1583,7 +1587,21 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 await _client.ConnectAsync(attemptOptions, _connectCts.Token);
                 OnionHopV3.Core.Services.StartupLogger.Write("ConnectAsync: _client.ConnectAsync completed");
 
-                if (IsConnected || index >= strategies.Count - 1)
+                if (IsConnected)
+                {
+                    // Remember the winning transport for this network so the next connect leads with it.
+                    if (SmartConnectEnabled)
+                    {
+                        _smartConnectMemory.RecordSuccess(
+                            _smartConnectNetworkKey,
+                            SmartConnectAdvisor.GetStrategyTransport(strategy),
+                            attemptOptions.UseTorBridges);
+                    }
+
+                    break;
+                }
+
+                if (index >= strategies.Count - 1)
                 {
                     break;
                 }
@@ -1596,6 +1614,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
             if (SmartConnectEnabled && !IsConnected && !_connectCts.IsCancellationRequested)
             {
+                // Everything failed - whatever we remembered for this network no longer works
+                // (censors move), so forget it and re-derive fresh next time.
+                _smartConnectMemory.Invalidate(_smartConnectNetworkKey);
                 StatusMessage = "Smart Connect exhausted all fallback strategies. Try manual settings if needed.";
             }
         }
@@ -1687,6 +1708,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         if (!SmartConnectEnabled)
         {
+            _smartConnectNetworkKey = null;
             return [new SmartConnectAdvisor.Strategy("manual", "Smart Connect disabled.", baseOptions)];
         }
 
@@ -1695,9 +1717,27 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             var plan = await _smartConnectAdvisor.BuildPlanAsync(baseOptions, AppendLog, token);
             if (plan.Strategies.Count > 0)
             {
+                // Success memory: if a strategy is known to have worked on this network before, try it
+                // first. The rest of the ladder stays as the fallback. A failed remembered strategy is
+                // invalidated after the attempt loop (see ConnectAsync).
+                _smartConnectNetworkKey = SmartConnectMemory.BuildNetworkKey(plan.CountryCode, plan.PublicIp);
+                var remembered = _smartConnectMemory.TryGet(_smartConnectNetworkKey);
+                if (remembered != null)
+                {
+                    var promoted = SmartConnectAdvisor.PromoteRememberedStrategy(plan.Strategies, remembered.Transport);
+                    if (!ReferenceEquals(promoted, plan.Strategies) && promoted.Count > 0 &&
+                        !string.Equals(promoted[0].Name, plan.Strategies[0].Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        AppendLog($"Smart Connect: trying '{remembered.Transport}' first (worked on this network before).");
+                    }
+
+                    return promoted;
+                }
+
                 return plan.Strategies;
             }
 
+            _smartConnectNetworkKey = null;
             AppendLog("Smart Connect planner returned no strategies. Falling back to generic profile.");
         }
         catch (OperationCanceledException)

@@ -477,6 +477,64 @@ public sealed class SmartConnectAdvisor
             }));
     }
 
+    /// <summary>
+    /// Promote the strategy matching a remembered-successful transport to the front, so a repeat
+    /// connect from the same network tries what worked last time first. The rest of the ladder keeps
+    /// its order as the fallback. <paramref name="rememberedTransport"/> is the transport name
+    /// ("snowflake", "obfs4", ... or "direct"). No-op when it isn't in the list.
+    /// </summary>
+    public static IReadOnlyList<Strategy> PromoteRememberedStrategy(
+        IReadOnlyList<Strategy> strategies,
+        string? rememberedTransport)
+    {
+        if (string.IsNullOrWhiteSpace(rememberedTransport) || strategies.Count < 2)
+        {
+            return strategies;
+        }
+
+        var wantedName = string.Equals(rememberedTransport, "direct", StringComparison.OrdinalIgnoreCase)
+            ? "direct"
+            : $"bridge:{rememberedTransport.Trim().ToLowerInvariant()}";
+
+        var index = -1;
+        for (var i = 0; i < strategies.Count; i++)
+        {
+            if (string.Equals(strategies[i].Name, wantedName, StringComparison.OrdinalIgnoreCase))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index <= 0)
+        {
+            return strategies; // not found, or already first
+        }
+
+        var reordered = new List<Strategy>(strategies.Count) { strategies[index] };
+        for (var i = 0; i < strategies.Count; i++)
+        {
+            if (i != index)
+            {
+                reordered.Add(strategies[i]);
+            }
+        }
+
+        return reordered;
+    }
+
+    /// <summary>The transport name a strategy represents ("direct" or the bridge transport).</summary>
+    public static string GetStrategyTransport(Strategy strategy)
+    {
+        var name = strategy.Name;
+        if (name.StartsWith("bridge:", StringComparison.OrdinalIgnoreCase))
+        {
+            return name["bridge:".Length..];
+        }
+
+        return name; // "direct", "manual", etc.
+    }
+
     private static IReadOnlyList<Strategy> DeduplicateStrategies(IEnumerable<Strategy> strategies)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
