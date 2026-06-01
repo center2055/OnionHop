@@ -76,19 +76,32 @@ internal sealed class TorService : IDisposable
 
         var arguments = BuildArguments(config, _dataDirectory);
         _log($"Tor arguments: {FormatArgumentsForLog(arguments)}");
+        var torDirectory = config.WorkingDirectory
+            ?? Path.GetDirectoryName(config.TorPath)
+            ?? AppContext.BaseDirectory;
         var psi = new ProcessStartInfo(config.TorPath)
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            WorkingDirectory = config.WorkingDirectory
-                ?? Path.GetDirectoryName(config.TorPath)
-                ?? AppContext.BaseDirectory
+            WorkingDirectory = torDirectory
         };
         foreach (var argument in arguments)
         {
             psi.ArgumentList.Add(argument);
+        }
+
+        // On Linux the Tor expert bundle ships its own libssl/libcrypto/libevent next to the tor
+        // binary; point the loader at that directory so tor uses the matching libraries instead of
+        // an incompatible system libevent (which surfaces as e.g. "undefined symbol:
+        // evutil_secure_rng_add_bytes"). Prepend so the bundled libs win, then the system path.
+        if (OperatingSystem.IsLinux())
+        {
+            var existing = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+            psi.Environment["LD_LIBRARY_PATH"] = string.IsNullOrEmpty(existing)
+                ? torDirectory
+                : $"{torDirectory}:{existing}";
         }
 
         _process = new Process

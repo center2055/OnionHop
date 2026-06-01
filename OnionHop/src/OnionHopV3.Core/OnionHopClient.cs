@@ -1933,7 +1933,7 @@ public sealed class OnionHopClient : IDisposable
         string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal) ||
         string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal);
 
-    private static string ResolveEffectiveTorEngine(OnionHopConnectOptions options)
+    private string ResolveEffectiveTorEngine(OnionHopConnectOptions options)
     {
         if (string.Equals(options.TorEngineMode, OnionHopConnectOptions.TorEngineArti, StringComparison.OrdinalIgnoreCase))
         {
@@ -1942,10 +1942,31 @@ public sealed class OnionHopClient : IDisposable
 
         if (string.Equals(options.TorEngineMode, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.OrdinalIgnoreCase))
         {
+            // ArtiHop is a bridge-less 2-hop SOCKS runtime: it cannot use bridges or pluggable
+            // transports. If this connection needs bridges (e.g. a censored network, or Smart Connect
+            // falling back to bridge strategies), ArtiHop would just fail to bootstrap and the
+            // "fallback" would retry the same bridge-less engine. Use the classic Tor engine instead,
+            // which actually applies the bridges. Direct (bridge-less) connections still use ArtiHop.
+            if (RequiresClassicTorEngine(options))
+            {
+                RaiseLog("ArtiHop cannot use bridges or pluggable transports; switching to the classic Tor engine for this bridged connection.");
+                return OnionHopConnectOptions.TorEngineClassic;
+            }
+
             return OnionHopConnectOptions.TorEngineArtiHop;
         }
 
         return OnionHopConnectOptions.TorEngineClassic;
+    }
+
+    // True when the connection needs capabilities ArtiHop does not have (bridges / pluggable
+    // transports). Country/relay pinning is intentionally NOT included here - ArtiHop ignores it but
+    // can still connect, so we keep the fast 2-hop path for those.
+    internal static bool RequiresClassicTorEngine(OnionHopConnectOptions options)
+    {
+        return options.UseTorBridges
+               || options.UseCensoredMode
+               || !string.IsNullOrWhiteSpace(options.CustomBridges);
     }
 
     private static bool IsArtiFamilyEngine(string engine) =>

@@ -33,6 +33,12 @@ cp "$TEMP_DIR/tor/tor-gencert" "$TOR_DIR/" 2>/dev/null || true
 cp "$TEMP_DIR/data/geoip" "$TOR_DIR/"
 cp "$TEMP_DIR/data/geoip6" "$TOR_DIR/"
 
+# Bundle the shared libraries the expert-bundle tor is built against (libssl/libcrypto/libevent).
+# Without these, tor falls back to the system libs and can fail with errors like
+# "undefined symbol: evutil_secure_rng_add_bytes" when the host libevent is older/incompatible.
+# tor has an rpath of $ORIGIN, so libraries next to the binary are found automatically.
+cp "$TEMP_DIR/tor/"*.so* "$TOR_DIR/" 2>/dev/null || true
+
 echo "Installing Pluggable Transports..."
 cp -r "$TEMP_DIR/tor/pluggable_transports/"* "$PT_DIR/"
 
