@@ -179,6 +179,28 @@ internal sealed class TorBridgeManager
         return string.Equals(bridgeType, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase);
     }
 
+    // Transports that reach Tor through a broker / domain fronting and have no fixed bridge IP:port
+    // to TCP-probe (their bridge lines carry placeholder addresses). Reachability pre-probing can't
+    // measure these, so Smart Connect leaves them in their default ladder position.
+    private static readonly HashSet<string> NonProbeableTransports = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "snowflake", "meek", "meek_lite", "meek-azure", "conjure", "dnstt"
+    };
+
+    /// <summary>
+    /// True when a bridge transport connects to a fixed IP:port that can be TCP-probed for
+    /// reachability (obfs4/webtunnel/vanilla), false for fronted/brokered transports.
+    /// </summary>
+    public static bool BridgeTypeHasProbeableEndpoint(string? bridgeType)
+    {
+        if (string.IsNullOrWhiteSpace(bridgeType))
+        {
+            return false;
+        }
+
+        return !NonProbeableTransports.Contains(bridgeType.Trim());
+    }
+
     public void ReportRuntimeBridgeFailure(string bridgeType, string endpoint, Action<string>? log = null)
     {
         var safeBridgeType = NormalizeBridgeTypeKey(bridgeType);

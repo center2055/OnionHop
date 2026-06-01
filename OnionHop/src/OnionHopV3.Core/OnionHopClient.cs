@@ -247,6 +247,98 @@ public sealed class OnionHopClient : IDisposable
         return MacNetworkExtensionService.IsConfigured();
     }
 
+    /// <summary>
+    /// Concurrently measure which bridge transports have reachable bridges from this network, so
+    /// Smart Connect can lead with the transport that actually works here instead of trying them in a
+    /// fixed order. For each transport we fetch its candidate bridges and TCP-probe them in parallel
+    /// (the same reachability scan used before launch); the result maps transport -> (reachable count,
+    /// fastest ping). Fronted transports (snowflake/dnstt) have no probeable endpoint and are omitted
+    /// (the caller leaves them in their default position). This is the safe form of "racing": we race
+    /// cheap reachability probes up front, then run a single clean connect - never multiple live Tor
+    /// processes mutating system proxy/DNS/TUN state at once.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, (int ReachableCount, int? FastestPingMs)>> ProbeTransportReachabilityAsync(
+        OnionHopConnectOptions options,
+        IReadOnlyList<string> transports,
+        TimeSpan budget,
+        CancellationToken token)
+    {
+        var result = new Dictionary<string, (int, int?)>(StringComparer.OrdinalIgnoreCase);
+        if (transports.Count == 0)
+        {
+            return result;
+        }
+
+        using var budgetCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        budgetCts.CancelAfter(budget);
+
+        try
+        {
+            foreach (var transport in transports.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                budgetCts.Token.ThrowIfCancellationRequested();
+
+                // Skip the meta "automatic" type and fronted transports with no pingable endpoint.
+                if (TorBridgeManager.IsAutomaticBridgeType(transport) ||
+                    !TorBridgeManager.BridgeTypeHasProbeableEndpoint(transport))
+                {
+                    continue;
+                }
+
+                IReadOnlyList<string> lines;
+                try
+                {
+                    var probeOptions = options with { SelectedBridgeType = transport, UseTorBridges = true };
+                    lines = await _bridgeManager.GetBridgeLinesAsync(probeOptions, _ptConfig, _ => { }, budgetCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    break; // budget elapsed
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (lines.Count == 0)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<BridgeScanResult> scan;
+                try
+                {
+                    scan = await BridgeScanService.ScanAsync(lines, 24, TimeSpan.FromSeconds(3), progress: null, budgetCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var working = scan.Where(r => r.IsWorking).ToList();
+                if (working.Count > 0)
+                {
+                    var fastest = working.Where(r => r.PingMs.HasValue).Select(r => r.PingMs!.Value).DefaultIfEmpty(int.MaxValue).Min();
+                    result[transport] = (working.Count, fastest == int.MaxValue ? null : fastest);
+                }
+                else
+                {
+                    result[transport] = (0, null);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            // budget elapsed - return what we have
+        }
+
+        return result;
+    }
+
     public async Task<BridgeDataRefreshStatus> RefreshBridgeDistributionAsync(OnionHopConnectOptions options, CancellationToken token = default)
     {
         if (!await EnsureTorDependenciesAsync(token).ConfigureAwait(false))

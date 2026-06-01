@@ -1717,6 +1717,17 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             var plan = await _smartConnectAdvisor.BuildPlanAsync(baseOptions, AppendLog, token);
             if (plan.Strategies.Count > 0)
             {
+                var strategies = plan.Strategies;
+
+                // Reachability racing: for restricted/severe networks, concurrently probe which bridge
+                // transports actually have live bridges here and lead with the one that does, instead
+                // of trying them in a fixed order. This is the safe form of racing - cheap probes up
+                // front, then a single clean connect (never multiple live Tor processes at once).
+                if (plan.Risk is SmartConnectAdvisor.RiskLevel.Restricted or SmartConnectAdvisor.RiskLevel.Severe)
+                {
+                    strategies = await ApplyReachabilityRacingAsync(baseOptions, strategies, token);
+                }
+
                 // Success memory: if a strategy is known to have worked on this network before, try it
                 // first. The rest of the ladder stays as the fallback. A failed remembered strategy is
                 // invalidated after the attempt loop (see ConnectAsync).
@@ -1724,9 +1735,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 var remembered = _smartConnectMemory.TryGet(_smartConnectNetworkKey);
                 if (remembered != null)
                 {
-                    var promoted = SmartConnectAdvisor.PromoteRememberedStrategy(plan.Strategies, remembered.Transport);
-                    if (!ReferenceEquals(promoted, plan.Strategies) && promoted.Count > 0 &&
-                        !string.Equals(promoted[0].Name, plan.Strategies[0].Name, StringComparison.OrdinalIgnoreCase))
+                    var promoted = SmartConnectAdvisor.PromoteRememberedStrategy(strategies, remembered.Transport);
+                    if (promoted.Count > 0 &&
+                        !string.Equals(promoted[0].Name, strategies[0].Name, StringComparison.OrdinalIgnoreCase))
                     {
                         AppendLog($"Smart Connect: trying '{remembered.Transport}' first (worked on this network before).");
                     }
@@ -1734,7 +1745,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                     return promoted;
                 }
 
-                return plan.Strategies;
+                return strategies;
             }
 
             _smartConnectNetworkKey = null;
@@ -1756,6 +1767,70 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return [new SmartConnectAdvisor.Strategy("manual", "Fallback to current settings.", baseOptions)];
+    }
+
+    // Total wall-clock budget for the up-front reachability race. Probes run concurrently, so this is
+    // roughly one round of probing, not the sum across transports.
+    private static readonly TimeSpan ReachabilityRaceBudget = TimeSpan.FromSeconds(8);
+
+    /// <summary>
+    /// Concurrently measure which bridge transports have live bridges on this network and reorder the
+    /// strategy ladder to lead with the most reachable one. Best-effort: any failure / timeout leaves
+    /// the ladder unchanged. This is the "racing" win without the danger of multiple live Tor stacks.
+    /// </summary>
+    private async Task<IReadOnlyList<SmartConnectAdvisor.Strategy>> ApplyReachabilityRacingAsync(
+        OnionHopConnectOptions baseOptions,
+        IReadOnlyList<SmartConnectAdvisor.Strategy> strategies,
+        CancellationToken token)
+    {
+        try
+        {
+            // Probe the distinct probeable bridge transports that appear in the ladder.
+            var transports = strategies
+                .Where(s => s.Options.UseTorBridges)
+                .Select(SmartConnectAdvisor.GetStrategyTransport)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (transports.Count < 2)
+            {
+                return strategies;
+            }
+
+            UpdatePreparationStatus("Smart Connect is checking which bridges are reachable...", 0.05);
+            var reachability = await _client.ProbeTransportReachabilityAsync(
+                baseOptions, transports, ReachabilityRaceBudget, token).ConfigureAwait(false);
+
+            if (reachability.Count == 0)
+            {
+                return strategies;
+            }
+
+            foreach (var kvp in reachability)
+            {
+                AppendLog($"Smart Connect reachability: {kvp.Key} -> {kvp.Value.ReachableCount} reachable" +
+                          (kvp.Value.FastestPingMs.HasValue ? $" (fastest {kvp.Value.FastestPingMs} ms)." : "."));
+            }
+
+            var reordered = SmartConnectAdvisor.ReorderByReachability(strategies, reachability);
+            if (reordered.Count > 0 &&
+                !string.Equals(reordered[0].Name, strategies[0].Name, StringComparison.OrdinalIgnoreCase))
+            {
+                AppendLog($"Smart Connect: leading with '{SmartConnectAdvisor.GetStrategyTransport(reordered[0])}' (most reachable here).");
+            }
+
+            return reordered;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Smart Connect: reachability race skipped ({ex.Message}).");
+            return strategies;
+        }
     }
 
     private async Task<bool> EnsureAdminRequirementsForConnectAsync(OnionHopConnectOptions options)
