@@ -9,7 +9,7 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/center2055/OnionHop/releases">
+  <a href="https://github.com/center2055/OnionHop/releases/latest">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge&logo=github" alt="Download Latest Release"/>
   </a>
   <a href="https://ko-fi.com/center2055">
@@ -17,63 +17,70 @@
   </a>
 </div>
 
-**OnionHop V3** is a modern Windows desktop app that routes your traffic through **Tor**, with a redesigned native Windows 11 / Fluent interface and a chromeless, integrated title bar. It can run Tor as a local SOCKS proxy or as a system-wide tunnel, scan and pick working bridges for censored networks, and even let you volunteer as a Snowflake proxy.
+<div align="center">
+  <img src="https://img.shields.io/badge/Windows-0078D6?style=flat&logo=windows&logoColor=white" alt="Windows"/>
+  <img src="https://img.shields.io/badge/macOS-000000?style=flat&logo=apple&logoColor=white" alt="macOS"/>
+  <img src="https://img.shields.io/badge/Linux-FCC624?style=flat&logo=linux&logoColor=black" alt="Linux"/>
+</div>
+
+**OnionHop V3** is a modern, **cross-platform** desktop app (Windows, macOS and Linux) that routes your traffic through **Tor**. It can run Tor as a local SOCKS proxy or as a system-wide tunnel, automatically pick a working connection strategy for your network with **Smart Connect**, scan and apply working bridges for censored networks across every transport, and even let you volunteer as a Snowflake proxy.
 
 > **Disclaimer**
 > OnionHop is provided "as-is". Tor usage can be illegal or restricted in some jurisdictions. You are responsible for complying with local laws and regulations.
 
 ---
 
-## What's new in V3
+## What's new in V3 (since v2.7)
 
-- **Redesigned UI** — native Windows 11 / Fluent look (FluentAvalonia), light/dark/follow-system themes, an accent picker, and an integrated chromeless title bar (no separate OS title bar, still fully draggable).
-- **Three Tor engines** — choose per connection:
-  - **Classic** (`tor.exe`): full control — bridges, country/entry/exit pinning, and control-port **New Identity** (NEWNYM).
-  - **Arti**: the Rust Tor implementation.
-  - **ArtiHop (2-hop)**: shortened Guard→Exit circuits for lower latency (faster than standard 3-hop, with correspondingly weaker anonymity), now with live **New Identity** support.
-- **Bridge Scanner** — fetch and TCP-test bridges of **every transport type** (obfs4, webtunnel, vanilla, snowflake, meek, conjure), see color-coded reachability/latency, and export or one-click apply the bridges that actually work on your network. Fronted transports (snowflake/meek/conjure) are tested by probing their broker/front host.
+V3 is a ground-up rebuild on a new cross-platform UI stack, with a much smarter connection engine and a far wider set of censorship-resistant transports.
+
+- **Now cross-platform** — native desktop builds for **Windows**, **macOS** (signed & notarized universal app) and **Linux** (AppImage). Same app, native look on each OS.
+- **Redesigned UI** — Fluent/native look (FluentAvalonia), light/dark/follow-system themes, an accent picker, an integrated chromeless title bar on Windows and native window chrome on macOS, and **5 languages** (English, German, French, Chinese, Russian).
+- **Smart Connect** — an offline censorship "brain" that auto-picks the best connection strategy for your network and country: it knows where Tor is blocked, prefers transports that survive there, pre-tests bridge reachability, races strategies in parallel, fails fast off dead paths, and remembers what worked on each network so the next connect is instant.
+- **Three Tor engines** — **Classic** (`tor.exe`, full control: bridges, country/entry/exit pinning, control-port New Identity), **Arti** (the Rust Tor implementation), and **ArtiHop** (shortened 2-hop Guard→Exit circuits for lower latency, with live New Identity).
+- **More censorship-resistant transports** — obfs4, **snowflake** (with optional AMP-cache fronting), **webtunnel**, **conjure**, meek, and **dnstt** (a DNS tunnel that gets Tor through when only DNS is allowed).
+- **Bridge Scanner** — fetch and reachability-test bridges of every transport, see color-coded latency, and one-click apply the ones that actually work on your network.
+- **More bridge sources** — the official Tor bridge service, the censorship-resistant [OnionHop Bridges Collector](https://github.com/center2055/OnionHop-Bridges-Collector) (derived from [Delta-Kronecker/Tor-Bridges-Collector](https://github.com/Delta-Kronecker/Tor-Bridges-Collector)), built-in community bridges, and a thin-set top-up so a tiny live fetch is automatically backed by bundled bridges.
+- **Relays browser** — search the live Tor relay list by nickname, country, role, flags and bandwidth, and pin a preferred entry/middle/exit.
+- **Command-line interface** — a full-featured TUI (`OnionHopV3.Cli`) with a live status dashboard, connect/scan/bridges/snowflake/relays commands and settings persistence. *(Windows now; Linux & macOS CLI coming soon.)*
+- **Stronger leak protection** — optional full DNS-over-Tor, a kill switch, UDP blocking in TUN mode, and an in-app WebRTC/UDP privacy notice.
 - **Volunteer as a Snowflake proxy** — help censored users reach Tor, straight from Settings.
-- **Decoupled system-proxy toggle** — turn the Windows system proxy off while Tor stays connected.
-- **Stronger leak protection** — optional full DNS-over-Tor so system DNS doesn't bypass Tor in Proxy Mode, plus an in-app WebRTC/UDP privacy notice.
-- **Extra bridge source** — an additional, censorship-resistant [bridge collector](https://github.com/center2055/OnionHop-Bridges-Collector) endpoint is used as a fallback when the official bridge service is unavailable.
+- **Quality-of-life** — decoupled system-proxy toggle (turn it off while Tor stays connected), an opt-in persistent admin helper to skip repeat UAC prompts in TUN mode (off by default), an in-app changelog, and Bitcoin donations.
+
+---
+
+## Download
+
+Grab the latest build for your platform from **[Releases](https://github.com/center2055/OnionHop/releases/latest)**:
+
+| Platform | File | Notes |
+| :--- | :--- | :--- |
+| **Windows** | `OnionHop-Setup-v3.exe` | Installer (self-contained, .NET runtime bundled) |
+| **Windows** | `OnionHopV3-Portable-…win-x64.zip` | Portable, no install |
+| **Linux** | `OnionHop-x86_64.AppImage` | `chmod +x` and run |
+| **macOS** | `OnionHop-3.0.0-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
+| **Windows CLI** | `OnionHop-CLI-Setup-3.0.0.exe` / `…Portable…zip` | Terminal interface |
+
+> The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
 
 ---
 
 ## Getting started
 
-1. **Install**
-   - Download the latest release from [Releases](https://github.com/center2055/OnionHop/releases).
-   - Run the Windows installer (`OnionHop-Setup-v3.exe`). It is self-contained — the .NET 9 runtime is bundled, so there's nothing else to install.
+1. **Install** the build for your OS (above). The Windows installer and the macOS/Linux bundles are self-contained — the .NET 9 runtime is bundled.
 
 2. **Choose a mode**
-   - **Proxy Mode (recommended, no admin):** starts Tor locally and points the Windows system proxy at Tor's local SOCKS5 endpoint. Best compatibility for proxy-aware apps.
-   - **TUN/VPN Mode (admin):** system-wide routing via **sing-box** + **Wintun**; needed for apps that ignore proxy settings. Leak-resistant (DNS through Tor, UDP blocked).
+   - **Proxy Mode (recommended, no admin):** runs Tor locally and points the OS system proxy at Tor's local SOCKS5 endpoint. Best compatibility for proxy-aware apps.
+   - **TUN/VPN Mode (admin):** system-wide routing via **sing-box** (Wintun on Windows, the system TUN on macOS/Linux); needed for apps that ignore proxy settings. Leak-resistant (DNS through Tor, UDP blocked).
 
 3. **Connect**
-   - Optionally pick a **Tor engine**, an **Exit Location** (and an **Entry Node** in Advanced settings).
-   - Enable **Bridges** if your network blocks Tor — or open the **Scanner** to find bridges that work in your region.
+   - Leave **Smart Connect** on to let OnionHop pick the best strategy automatically, **or** pick a **Tor engine** / **Exit Location** / **Bridges** yourself.
+   - In a censored network, enable **Bridges** or open the **Scanner** to find bridges that work in your region.
    - Click **Connect**.
 
 Notes
 - `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox "Proxy DNS when using SOCKS v5").
 - Bridges, country/relay pinning and control-port New Identity require the **Classic** engine; Arti/ArtiHop run as a SOCKS proxy runtime.
-
----
-
-## Startup activity and permissions
-
-On startup OnionHop runs a few background tasks so the UI shows status immediately and is ready when you connect. It may:
-
-- look up your current public IP status,
-- refresh the Tor relay country list (Onionoo),
-- fetch GitHub release/changelog metadata for update and About surfaces,
-- ensure Tor / pluggable-transport dependencies exist (first run can download Tor components).
-
-### Permissions
-
-- **Network access** — IP checks, Onionoo country data, GitHub release metadata, bridge sources, and dependency downloads.
-- **Administrator** — only for features that change system networking: **TUN/VPN mode**, **kill switch**, or system **DNS/proxy** changes.
-- **Folder access** — store settings, startup logs, runtime data, downloaded Tor/VPN binaries, bridge cache, and any log export location you choose.
 
 ---
 
@@ -90,22 +97,23 @@ On startup OnionHop runs a few background tasks so the UI shows status immediate
 ## Modes explained
 
 ### Proxy Mode (recommended)
-Starts Tor locally and sets the Windows proxy to Tor's SOCKS5 endpoint. No admin required. You can toggle the system proxy off without disconnecting Tor.
+Runs Tor locally and sets the OS proxy to Tor's SOCKS5 endpoint. No admin required. You can toggle the system proxy off without disconnecting Tor.
 
 ### TUN/VPN Mode (admin)
-Starts Tor + **sing-box** and routes traffic at the OS level (Wintun on Windows). Requires Administrator. Most leak-resistant.
+Runs Tor + **sing-box** and routes traffic at the OS level (Wintun on Windows, system TUN on macOS/Linux). Requires Administrator. Most leak-resistant.
 
 ### Hybrid (split tunneling)
 Only in TUN/VPN Mode — route selected apps through Tor while others stay direct.
 
 ---
 
-## Settings storage
+## Permissions
 
-OnionHop stores settings and runtime data in the OS application-data folders, e.g.:
+- **Network access** — IP checks, Onionoo relay/country data, GitHub release metadata, bridge sources, and dependency downloads.
+- **Administrator / root** — only for features that change system networking: **TUN/VPN mode**, **kill switch**, or system **DNS/proxy** changes.
+- **Folder access** — store settings, logs, runtime data, downloaded Tor/transport binaries, the bridge cache, and any log export location you choose.
 
-- `%AppData%\OnionHop\settings.json`
-- `%LocalAppData%\OnionHop\startup.log`
+Settings and runtime data live in the OS application-data folders, e.g. `%AppData%\OnionHop\settings.json` (Windows) or `~/Library/Application Support/OnionHop/` (macOS).
 
 ---
 
@@ -113,27 +121,27 @@ OnionHop stores settings and runtime data in the OS application-data folders, e.
 
 Prerequisites:
 - .NET SDK 9
-- Inno Setup 6 (for the installer)
-- *(optional)* Rust toolchain to build the **ArtiHop** engine, and Go to build the **Snowflake proxy** / **webtunnel** client — these are fetched/built by `download-deps.ps1`; if a toolchain is missing, that engine/feature is simply skipped.
+- Inno Setup 6 (Windows installer)
+- *(optional)* Rust toolchain to build the **ArtiHop** engine, and Go to build the **Snowflake proxy** / **webtunnel** / **dnstt** clients — these are fetched/built by the dependency scripts; if a toolchain is missing, that engine/feature is simply skipped.
 
-Fetch runtime dependencies (Tor, pluggable transports, sing-box, xray, Wintun, ArtiHop, Snowflake proxy):
+Fetch runtime dependencies (Tor, pluggable transports, sing-box, Wintun, ArtiHop, Snowflake proxy):
 
 ```powershell
+# Windows
 powershell -NoProfile -ExecutionPolicy Bypass -File download-deps.ps1
 ```
-
-Build the V3 installer (self-contained, Windows x64):
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-v3.ps1
+```bash
+# macOS / Linux
+./download-deps.sh
 ```
 
-Output:
-- `installer/output/OnionHop-Setup-v3.exe`
-
-Run the app from source:
+Build & run:
 
 ```powershell
+# Windows installer (self-contained, x64) -> installer/output/OnionHop-Setup-v3.exe
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-v3.ps1
+
+# Run from source
 dotnet run --project OnionHop/src/OnionHopV3.App -c Release
 ```
 
