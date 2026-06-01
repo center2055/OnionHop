@@ -56,8 +56,8 @@
   <x:String x:Key="Home.SmartConnect">智能连接（推荐）</x:String>
   <x:String x:Key="Home.SmartConnectHint">自动为你的网络和国家/地区情况选择最佳 Tor 连接策略。启用后，网桥/反审查设置可能会被覆盖。</x:String>
   <x:String x:Key="Home.Mode">模式</x:String>
-  <x:String x:Key="Home.ModeProxy">代理模式（推荐）</x:String>
-  <x:String x:Key="Home.ModeTun">TUN/VPN 模式（管理员）</x:String>
+  <x:String x:Key="Home.ModeProxy">代理模式</x:String>
+  <x:String x:Key="Home.ModeTun">TUN/VPN 模式</x:String>
   <x:String x:Key="Home.Automatic">自动</x:String>
   <x:String x:Key="Home.ExitLocation">出口位置</x:String>
   <x:String x:Key="Home.ExitLocationManualHint">已设置手动出口指纹。出口位置已禁用。</x:String>

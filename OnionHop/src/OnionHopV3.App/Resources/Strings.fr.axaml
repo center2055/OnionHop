@@ -56,8 +56,8 @@
   <x:String x:Key="Home.SmartConnect">Connexion intelligente (recommandé)</x:String>
   <x:String x:Key="Home.SmartConnectHint">Choisit automatiquement la meilleure stratégie de connexion Tor pour votre réseau et votre profil de pays. Lorsqu'elle est activée, les paramètres de ponts/censure peuvent être remplacés.</x:String>
   <x:String x:Key="Home.Mode">Mode</x:String>
-  <x:String x:Key="Home.ModeProxy">Mode proxy (recommandé)</x:String>
-  <x:String x:Key="Home.ModeTun">Mode TUN/VPN (Admin)</x:String>
+  <x:String x:Key="Home.ModeProxy">Mode proxy</x:String>
+  <x:String x:Key="Home.ModeTun">Mode TUN/VPN</x:String>
   <x:String x:Key="Home.Automatic">Automatique</x:String>
   <x:String x:Key="Home.ExitLocation">Emplacement de sortie</x:String>
   <x:String x:Key="Home.ExitLocationManualHint">Une empreinte de sortie manuelle est définie. L'emplacement de sortie est désactivé.</x:String>

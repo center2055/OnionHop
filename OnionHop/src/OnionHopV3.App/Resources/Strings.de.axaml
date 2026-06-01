@@ -56,8 +56,8 @@
   <x:String x:Key="Home.SmartConnect">Smart Connect (empfohlen)</x:String>
   <x:String x:Key="Home.SmartConnectHint">W&#228;hlt automatisch die beste Tor-Verbindungsstrategie f&#252;r dein Netzwerk und L&#228;nderprofil. Wenn aktiviert, k&#246;nnen Bridge-/Zensur-Einstellungen &#252;berschrieben werden.</x:String>
   <x:String x:Key="Home.Mode">Modus</x:String>
-  <x:String x:Key="Home.ModeProxy">Proxy-Modus (Empfohlen)</x:String>
-  <x:String x:Key="Home.ModeTun">TUN/VPN-Modus (Admin)</x:String>
+  <x:String x:Key="Home.ModeProxy">Proxy-Modus</x:String>
+  <x:String x:Key="Home.ModeTun">TUN/VPN-Modus</x:String>
   <x:String x:Key="Home.Automatic">Automatisch</x:String>
   <x:String x:Key="Home.ExitLocation">Austrittsort</x:String>
   <x:String x:Key="Home.ExitLocationManualHint">Ein manueller Exit-Fingerprint ist gesetzt. Die Exit-Auswahl ist deaktiviert.</x:String>

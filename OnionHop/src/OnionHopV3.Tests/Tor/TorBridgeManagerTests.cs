@@ -278,4 +278,47 @@ public sealed class TorBridgeManagerTests
 
         Assert.Equal(plugin, normalized);
     }
+
+    [Fact]
+    public void NormalizeClientTransportPlugin_collapses_windows_space_paths_to_short_form()
+    {
+        // Tor's ClientTransportPlugin parser splits the line on whitespace and ignores quotes, so a
+        // path with a space (e.g. a Windows user folder "C:\Users\First Last\...") must come out as
+        // a space-free token. On Windows we collapse it to its 8.3 short form and emit it unquoted.
+        if (!OperatingSystem.IsWindows())
+        {
+            return; // Short-path collapse is a Windows-only concern.
+        }
+
+        var root = Path.Combine(Path.GetTempPath(), "OnionHop Space Test " + Guid.NewGuid().ToString("N"));
+        var ptDir = Path.Combine(root, "pluggable transports");
+        Directory.CreateDirectory(ptDir);
+        var exePath = Path.Combine(ptDir, "webtunnel-client.exe");
+        File.WriteAllText(exePath, "stub");
+
+        try
+        {
+            var normalized = TorBridgeManager.NormalizeClientTransportPlugin(
+                $"ClientTransportPlugin webtunnel exec {exePath}");
+
+            var shortExe = TorBridgeManager.MakeExecutablePathTokenSafe(exePath);
+            if (shortExe.IndexOf(' ') < 0)
+            {
+                // 8.3 short names available (the common case): unquoted, space-free token.
+                Assert.Equal($"ClientTransportPlugin webtunnel exec {shortExe}", normalized);
+                Assert.DoesNotContain('"', normalized);
+                var execPart = normalized[(normalized.IndexOf(" exec ", StringComparison.Ordinal) + " exec ".Length)..];
+                Assert.DoesNotContain(' ', execPart);
+            }
+            else
+            {
+                // 8.3 disabled on this volume: best-effort quoting fallback (unchanged behavior).
+                Assert.Equal($"ClientTransportPlugin webtunnel exec \"{exePath}\"", normalized);
+            }
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

@@ -56,8 +56,8 @@
   <x:String x:Key="Home.SmartConnect">Умное подключение (рекомендуется)</x:String>
   <x:String x:Key="Home.SmartConnectHint">Автоматически выбирает лучшую стратегию подключения к Tor для вашей сети и профиля страны. При включении настройки мостов/обхода цензуры могут быть переопределены.</x:String>
   <x:String x:Key="Home.Mode">Режим</x:String>
-  <x:String x:Key="Home.ModeProxy">Режим прокси (рекомендуется)</x:String>
-  <x:String x:Key="Home.ModeTun">Режим TUN/VPN (Администратор)</x:String>
+  <x:String x:Key="Home.ModeProxy">Режим прокси</x:String>
+  <x:String x:Key="Home.ModeTun">Режим TUN/VPN</x:String>
   <x:String x:Key="Home.Automatic">Автоматически</x:String>
   <x:String x:Key="Home.ExitLocation">Точка выхода</x:String>
   <x:String x:Key="Home.ExitLocationManualHint">Задан ручной отпечаток выхода. Точка выхода отключена.</x:String>

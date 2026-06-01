@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -1477,11 +1479,28 @@ internal sealed class TorBridgeManager
             return trimmed;
         }
 
+        // Tor's ClientTransportPlugin parser splits the line on whitespace and does NOT honor
+        // quotes around the exec path. A path with a space (e.g. a Windows user folder like
+        // "C:\Users\First Last\...") therefore gets truncated at the first space and the managed
+        // proxy fails to launch ("there is no configured transport called ..."). On Windows,
+        // collapse the path to its space-free 8.3 short form so the unquoted token survives the
+        // splitter. Quoting is only a last resort when the space cannot be removed (e.g. 8.3 short
+        // names disabled on the volume, or a non-Windows path).
+        var safeExecutablePath = MakeExecutablePathTokenSafe(executablePath);
+        var stillHasSpace = safeExecutablePath.IndexOf(' ') >= 0;
+
         var builder = new StringBuilder(prefix.Length + suffix.Length + 4);
         builder.Append(prefix);
-        builder.Append('"');
-        builder.Append(executablePath.Replace("\"", "\\\"", StringComparison.Ordinal));
-        builder.Append('"');
+        if (stillHasSpace)
+        {
+            builder.Append('"');
+            builder.Append(safeExecutablePath.Replace("\"", "\\\"", StringComparison.Ordinal));
+            builder.Append('"');
+        }
+        else
+        {
+            builder.Append(safeExecutablePath);
+        }
 
         if (executableTokenCount < tokens.Length)
         {
@@ -1491,6 +1510,68 @@ internal sealed class TorBridgeManager
 
         return builder.ToString();
     }
+
+    /// <summary>
+    /// Makes a pluggable-transport executable path safe to pass on a single, unquoted Tor
+    /// <c>ClientTransportPlugin ... exec &lt;path&gt;</c> token. Tor splits that line on whitespace
+    /// and ignores quotes, so on Windows a path containing a space is collapsed to its 8.3 short
+    /// form (which has no spaces). Returns the original path unchanged when it has no space, when
+    /// the short form cannot be obtained, or on non-Windows platforms.
+    /// </summary>
+    internal static string MakeExecutablePathTokenSafe(string executablePath)
+    {
+        if (string.IsNullOrEmpty(executablePath) || executablePath.IndexOf(' ') < 0)
+        {
+            return executablePath;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return executablePath;
+        }
+
+        try
+        {
+            var shortPath = GetWindowsShortPath(executablePath);
+            if (!string.IsNullOrEmpty(shortPath) && shortPath!.IndexOf(' ') < 0)
+            {
+                return shortPath!;
+            }
+        }
+        catch
+        {
+            // Fall through and return the original path; the caller quotes it as a last resort.
+        }
+
+        return executablePath;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static string? GetWindowsShortPath(string longPath)
+    {
+        // GetShortPathNameW requires the full path (including the final component) to exist.
+        var buffer = new StringBuilder(longPath.Length + 16);
+        var length = GetShortPathNameW(longPath, buffer, (uint)buffer.Capacity);
+        if (length == 0)
+        {
+            return null;
+        }
+
+        if (length > buffer.Capacity)
+        {
+            buffer.EnsureCapacity((int)length);
+            length = GetShortPathNameW(longPath, buffer, (uint)buffer.Capacity);
+            if (length == 0)
+            {
+                return null;
+            }
+        }
+
+        return buffer.ToString();
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetShortPathNameW(string lpszLongPath, StringBuilder lpszShortPath, uint cchBuffer);
 
     private static bool LooksLikeTransportExecutablePath(string value)
     {
