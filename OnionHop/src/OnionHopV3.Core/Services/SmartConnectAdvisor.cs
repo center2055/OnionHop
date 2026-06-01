@@ -167,8 +167,20 @@ public sealed class SmartConnectAdvisor
 
         (score, totalConfidence) = CombineSignalScores(signals);
         var hasReliableData = totalConfidence >= 0.35d;
-        var risk = DetermineRiskLevel(score, hasReliableData);
-        var strategies = BuildStrategiesForRisk(baseOptions, risk);
+        var liveRisk = DetermineRiskLevel(score, hasReliableData);
+
+        // Apply the offline censorship prior: in a country known to block Tor, never act on a risk
+        // lower than that country's floor - even if the live signal was thin or optimistic (OONI is
+        // frequently blocked in exactly those countries). The floor can only raise risk, never lower
+        // it, and live signals can still push above the floor.
+        var risk = CensorshipProfiles.ApplyFloor(liveRisk, countryCode);
+        if (risk != liveRisk)
+        {
+            log?.Invoke($"Smart Connect: country {countryCode} censorship prior raised risk {liveRisk} -> {risk} (offline profile).");
+        }
+
+        var preferredTransports = CensorshipProfiles.GetPreferredTransports(countryCode);
+        var strategies = BuildStrategiesForRisk(baseOptions, risk, preferredTransports);
 
         if (stats.HasValue)
         {
@@ -331,45 +343,84 @@ public sealed class SmartConnectAdvisor
     }
 
     public static IReadOnlyList<Strategy> BuildStrategiesForRisk(OnionHopConnectOptions baseOptions, RiskLevel risk)
+        => BuildStrategiesForRisk(baseOptions, risk, Array.Empty<string>());
+
+    // Default transport ladders per risk tier, ordered by what tends to survive that level of
+    // censorship. "automatic" lets the bridge manager pick across types; the explicit entries that
+    // follow give deterministic fallbacks. dnstt is the last-resort DNS tunnel for the hardest case.
+    private static readonly string[] OpenLadder = ["obfs4"];
+    private static readonly string[] ModerateLadder = [AutomaticBridgeType, "snowflake", "obfs4"];
+    private static readonly string[] RestrictedLadder = [AutomaticBridgeType, "snowflake", "webtunnel", "obfs4"];
+    private static readonly string[] SevereLadder = ["snowflake", "webtunnel", "conjure", "obfs4", "dnstt"];
+
+    public static IReadOnlyList<Strategy> BuildStrategiesForRisk(
+        OnionHopConnectOptions baseOptions,
+        RiskLevel risk,
+        IReadOnlyList<string> preferredTransports)
     {
         var strategies = new List<Strategy>();
+
+        // A country's preferred transports (from the offline profile) lead the bridge ladder, then
+        // the risk-tier defaults fill in anything not already covered. Deduplicated downstream.
+        IEnumerable<string> BridgeLadder(IReadOnlyList<string> tierDefaults)
+            => (preferredTransports ?? Array.Empty<string>()).Concat(tierDefaults);
+
         switch (risk)
         {
             case RiskLevel.Open:
                 AddDirect(strategies, baseOptions, "Open network profile. Try direct Tor first.");
                 AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
-                AddBridge(strategies, baseOptions, "obfs4", "Fallback: obfs4 bridge.");
+                AddBridgeLadder(strategies, baseOptions, BridgeLadder(OpenLadder), "Fallback");
                 break;
 
             case RiskLevel.Moderate:
-                AddDirect(strategies, baseOptions, "Moderately restricted profile. Start direct.");
-                AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
-                AddBridge(strategies, baseOptions, "snowflake", "Fallback: snowflake bridge.");
+                // Try direct briefly, but bridges are the real plan here.
+                AddDirect(strategies, baseOptions, "Moderately restricted profile. Try a brief direct attempt.");
+                AddBridgeLadder(strategies, baseOptions, BridgeLadder(ModerateLadder), "Bridge");
                 break;
 
             case RiskLevel.Restricted:
-                AddBridge(strategies, baseOptions, AutomaticBridgeType, "Restricted profile. Start with automatic bridges.");
-                AddBridge(strategies, baseOptions, "obfs4", "Fallback: obfs4 bridge.");
-                AddBridge(strategies, baseOptions, "snowflake", "Fallback: snowflake bridge.");
+                // No direct first - Tor is commonly blocked here. Bridges lead; direct is a last resort.
+                AddBridgeLadder(strategies, baseOptions, BridgeLadder(RestrictedLadder), "Restricted profile bridge");
                 AddDirect(strategies, baseOptions, "Last fallback: direct Tor.");
                 break;
 
             case RiskLevel.Severe:
-                AddBridge(strategies, baseOptions, AutomaticBridgeType, "Heavily restricted profile. Start with aggressive bridge fallback.", forceSnowflakeAmp: true);
-                AddBridge(strategies, baseOptions, "snowflake", "Fallback: snowflake bridge.", forceSnowflakeAmp: true);
-                AddBridge(strategies, baseOptions, "obfs4", "Fallback: obfs4 bridge.");
-                AddBridge(strategies, baseOptions, "webtunnel", "Fallback: webtunnel bridge.");
+                // Aggressive, modern ladder. Snowflake with AMP fronting first, ending in dnstt
+                // (works where only DNS gets through). Direct only as an absolute last resort.
+                AddBridgeLadder(strategies, baseOptions, BridgeLadder(SevereLadder), "Heavily restricted profile bridge", forceSnowflakeAmp: true);
                 AddDirect(strategies, baseOptions, "Last fallback: direct Tor.");
                 break;
 
             default:
                 AddDirect(strategies, baseOptions, "Unknown network profile. Start direct.");
                 AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
-                AddBridge(strategies, baseOptions, "obfs4", "Fallback: obfs4 bridge.");
+                AddBridgeLadder(strategies, baseOptions, BridgeLadder(["obfs4", "snowflake"]), "Fallback");
                 break;
         }
 
         return DeduplicateStrategies(strategies);
+    }
+
+    private static void AddBridgeLadder(
+        ICollection<Strategy> target,
+        OnionHopConnectOptions baseOptions,
+        IEnumerable<string> transports,
+        string reasonPrefix,
+        bool forceSnowflakeAmp = false)
+    {
+        foreach (var transport in transports)
+        {
+            if (string.IsNullOrWhiteSpace(transport))
+            {
+                continue;
+            }
+
+            var label = string.Equals(transport, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase)
+                ? "automatic bridges"
+                : $"{transport} bridge";
+            AddBridge(target, baseOptions, transport, $"{reasonPrefix}: {label}.", forceSnowflakeAmp);
+        }
     }
 
     private static void AddDirect(ICollection<Strategy> target, OnionHopConnectOptions baseOptions, string reason)

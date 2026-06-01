@@ -63,15 +63,20 @@ public sealed class SmartConnectAdvisorTests
     }
 
     [Fact]
-    public void BuildStrategiesForRisk_Severe_EnablesSnowflakeAmpForAutomaticFallback()
+    public void BuildStrategiesForRisk_Severe_LeadsWithSnowflakeAmp()
     {
         var options = new OnionHopConnectOptions { UseSnowflakeAmp = false };
 
+        // Severe (no country preference) leads with the snowflake bridge and forces AMP fronting,
+        // which is the most blocking-resistant first move.
         var strategies = SmartConnectAdvisor.BuildStrategiesForRisk(options, SmartConnectAdvisor.RiskLevel.Severe);
 
         Assert.NotEmpty(strategies);
-        Assert.Equal("bridge:automatic", strategies[0].Name);
+        Assert.Equal("bridge:snowflake", strategies[0].Name);
         Assert.True(strategies[0].Options.UseSnowflakeAmp);
+        // dnstt is present as the last-resort transport, and direct is the final fallback.
+        Assert.Contains(strategies, s => s.Name == "bridge:dnstt");
+        Assert.Equal("direct", strategies[^1].Name);
     }
 
     [Fact]
