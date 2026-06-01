@@ -102,11 +102,6 @@ internal sealed class VpnService : IDisposable
         Stop();
         _lastExitCode = null;
 
-        if (OperatingSystem.IsWindows())
-        {
-            KillStaleVpnCores();
-        }
-
         var psi = new ProcessStartInfo(launch.VpnCorePath, $"run -c \"{launch.ConfigPath}\"")
         {
             UseShellExecute = false,
@@ -116,55 +111,70 @@ internal sealed class VpnService : IDisposable
             WorkingDirectory = launch.WorkDir
         };
 
-        // Capture startup output for crash diagnostics.
-        var startupLines = new List<string>();
-        void CaptureStartupOutput(object s, DataReceivedEventArgs args)
+        // A leftover TUN adapter from a previous session makes sing-box fail at startup with
+        // "configure tun interface: Cannot create a file when that file already exists." The cleanup
+        // below clears it, but Wintun adapter teardown is asynchronous, so retry a couple of times -
+        // re-running the cleanup and waiting longer each round - before giving up.
+        const int maxTunStartAttempts = 3;
+        for (var attempt = 1; ; attempt++)
         {
-            if (!string.IsNullOrWhiteSpace(args.Data))
+            if (OperatingSystem.IsWindows())
             {
-                lock (startupLines)
+                KillStaleVpnCores();
+            }
+
+            // Capture startup output for crash diagnostics.
+            var startupLines = new List<string>();
+            void CaptureStartupOutput(object s, DataReceivedEventArgs args)
+            {
+                if (!string.IsNullOrWhiteSpace(args.Data))
                 {
-                    startupLines.Add(args.Data);
+                    lock (startupLines)
+                    {
+                        startupLines.Add(args.Data);
+                    }
                 }
             }
-        }
 
-        _process = new Process
-        {
-            StartInfo = psi,
-            EnableRaisingEvents = true
-        };
+            _process = new Process
+            {
+                StartInfo = psi,
+                EnableRaisingEvents = true
+            };
 
-        _process.Exited += HandleExited;
-        _process.OutputDataReceived += HandleOutput;
-        _process.OutputDataReceived += CaptureStartupOutput;
-        _process.ErrorDataReceived += HandleOutput;
-        _process.ErrorDataReceived += CaptureStartupOutput;
+            _process.Exited += HandleExited;
+            _process.OutputDataReceived += HandleOutput;
+            _process.OutputDataReceived += CaptureStartupOutput;
+            _process.ErrorDataReceived += HandleOutput;
+            _process.ErrorDataReceived += CaptureStartupOutput;
 
-        if (!_process.Start())
-        {
-            throw new InvalidOperationException($"Unable to launch {launch.VpnCoreLabel}.");
-        }
+            if (!_process.Start())
+            {
+                throw new InvalidOperationException($"Unable to launch {launch.VpnCoreLabel}.");
+            }
 
-        config.ProcessStarted?.Invoke(_process);
+            config.ProcessStarted?.Invoke(_process);
 
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
+            _process.BeginOutputReadLine();
+            _process.BeginErrorReadLine();
 
-        await Task.Delay(launch.StartupDelayMs, token);
+            await Task.Delay(launch.StartupDelayMs, token);
 
-        // Detach startup capture.
-        try
-        {
-            _process.OutputDataReceived -= CaptureStartupOutput;
-            _process.ErrorDataReceived -= CaptureStartupOutput;
-        }
-        catch
-        {
-        }
+            // Detach startup capture.
+            try
+            {
+                _process.OutputDataReceived -= CaptureStartupOutput;
+                _process.ErrorDataReceived -= CaptureStartupOutput;
+            }
+            catch
+            {
+            }
 
-        if (_process.HasExited)
-        {
+            if (!_process.HasExited)
+            {
+                break; // started successfully
+            }
+
             string crashDetail;
             lock (startupLines)
             {
@@ -173,9 +183,35 @@ internal sealed class VpnService : IDisposable
                     : "(no output captured)";
             }
 
+            var exitCode = _process.ExitCode;
+
+            // The TUN adapter from a previous session was still present. Tear down the failed process,
+            // clean the adapter harder, wait, and try again.
+            var tunAdapterBusy = OperatingSystem.IsWindows()
+                && crashDetail.Contains("already exist", StringComparison.OrdinalIgnoreCase);
+            if (tunAdapterBusy && attempt < maxTunStartAttempts)
+            {
+                _log($"{launch.VpnCoreLabel} couldn't create the TUN adapter (it was still present); cleaning up and retrying ({attempt}/{maxTunStartAttempts - 1}).");
+                try
+                {
+                    _process.OutputDataReceived -= HandleOutput;
+                    _process.ErrorDataReceived -= HandleOutput;
+                    _process.Exited -= HandleExited;
+                    _process.Dispose();
+                }
+                catch
+                {
+                }
+
+                _process = null;
+                RemoveStaleWindowsTunAdapter();
+                try { await Task.Delay(1500, token).ConfigureAwait(false); } catch { }
+                continue;
+            }
+
             _log($"{launch.VpnCoreLabel} crash output:\n{crashDetail}");
             throw new InvalidOperationException(
-                $"{launch.VpnCoreLabel} exited unexpectedly during startup (exit code {_process.ExitCode}).\n{crashDetail}");
+                $"{launch.VpnCoreLabel} exited unexpectedly during startup (exit code {exitCode}).\n{crashDetail}");
         }
 
         // Xray creates the TUN interface but does NOT set up system routes (unlike sing-box auto_route).
@@ -358,11 +394,18 @@ internal sealed class VpnService : IDisposable
 
         try
         {
+            // Match the adapter by name (its sing-box interface_name), including hidden adapters, and
+            // also catch a Wintun adapter whose alias is ours - so a leftover survives even if it's
+            // hidden or its friendly name drifted. Scoped to "OnionHop" so other apps' Wintun adapters
+            // (e.g. WireGuard) are never touched.
+            var script =
+                $"$ErrorActionPreference='SilentlyContinue';" +
+                $"$a=Get-NetAdapter -Name '{TunInterfaceName}' -IncludeHidden;" +
+                $"if(-not $a){{$a=Get-NetAdapter -IncludeHidden|Where-Object{{$_.Name -eq '{TunInterfaceName}' -or $_.InterfaceAlias -eq '{TunInterfaceName}'}}}};" +
+                "$a|Remove-NetAdapter -Confirm:$false";
             var psi = new ProcessStartInfo("powershell")
             {
-                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
-                            $"\"Get-NetAdapter -Name '{TunInterfaceName}' -ErrorAction SilentlyContinue | " +
-                            "Remove-NetAdapter -Confirm:$false -ErrorAction SilentlyContinue\"",
+                Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{script}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,

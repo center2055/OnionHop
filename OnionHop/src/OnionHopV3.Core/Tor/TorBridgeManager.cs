@@ -34,6 +34,7 @@ internal sealed class TorBridgeManager
     private const string SnowflakeBridgeType = "snowflake";
     private const string Obfs4BridgeType = "obfs4";
     private const string ConjureBridgeType = "conjure";
+    private const string DnsttBridgeType = "dnstt";
     private static readonly string[] AutomaticBridgeFallbackChain = [WebTunnelBridgeType, SnowflakeBridgeType, Obfs4BridgeType];
     private const string BundledBridgeFilePrefix = "bridges-";
     private const string CommunityBridgeFilePrefix = "bridges-community-";
@@ -118,6 +119,25 @@ internal sealed class TorBridgeManager
         foreach (var bridgeType in targets)
         {
             token.ThrowIfCancellationRequested();
+
+            // dnstt is a DNS tunnel, not a Tor pluggable transport - it isn't served by the Tor bridge
+            // service or the collector, so an online refresh always comes back empty. Its bridges ship
+            // built-in, so report those instead of a misleading "FAILED - no usable bridges".
+            if (string.Equals(bridgeType, DnsttBridgeType, StringComparison.OrdinalIgnoreCase))
+            {
+                var builtIn = TryLoadBundledBridgeLines(bridgeType, static _ => { });
+                if (builtIn.Count == 0)
+                {
+                    builtIn = TryLoadOfflineBridgeLines(bridgeType, static _ => { });
+                }
+
+                updated++;
+                log(builtIn.Count > 0
+                    ? $"Bridge data refresh: {bridgeType} uses {builtIn.Count} built-in bridge(s) (not online-refreshable)."
+                    : $"Bridge data refresh: {bridgeType} uses built-in bridges (not online-refreshable).");
+                continue;
+            }
+
             var lines = await TryFetchBridgeLinesAsync(
                 bridgeType,
                 log,
