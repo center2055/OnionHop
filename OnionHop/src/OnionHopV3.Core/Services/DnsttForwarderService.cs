@@ -106,7 +106,10 @@ internal sealed class DnsttForwarderService : IDisposable
 
         if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
         {
-            _log("dnstt-client binary was not found. Build it with download-deps.ps1 (needs the Go toolchain), bundle it under tor/pluggable_transports, or set ONIONHOP_DNSTT_PATH.");
+            // Platform-accurate guidance: Windows uses download-deps.ps1, Unix/macOS uses
+            // download-deps.sh. Both build dnstt-client from source (needs the Go toolchain).
+            var depsScript = OperatingSystem.IsWindows() ? "download-deps.ps1" : "download-deps.sh";
+            _log($"dnstt-client binary was not found. Build it with {depsScript} (needs the Go toolchain), bundle it under tor/pluggable_transports, or set ONIONHOP_DNSTT_PATH.");
             return false;
         }
 

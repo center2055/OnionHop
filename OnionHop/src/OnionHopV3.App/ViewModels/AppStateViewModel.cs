@@ -531,8 +531,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public string ManualEntryFingerprintSummary => BuildFingerprintSummary(EntryNodeFingerprint);
     public string ManualMiddleFingerprintSummary => BuildFingerprintSummary(MiddleNodeFingerprint);
     public string ManualExitFingerprintSummary => BuildFingerprintSummary(ExitNodeFingerprint);
-    public bool UseCustomChrome => !UseNativeTheme;
-    public bool UseNativeMacChrome => IsMacOS && UseNativeTheme;
+    // macOS always uses native window chrome: the chromeless custom caption buttons are a Windows/
+    // Linux design (top-right, Segoe icons) and look broken next to macOS traffic lights. So custom
+    // chrome is never used on macOS regardless of the UseNativeTheme toggle.
+    public bool UseCustomChrome => !IsMacOS && !UseNativeTheme;
+    public bool UseNativeMacChrome => IsMacOS;
     public bool SupportsNativeWindowChrome => true;
     public bool CanConfigureSplitTunneling => IsTunMode && UseHybridRouting;
     public string BridgeDataLastUpdateText

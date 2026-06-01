@@ -74,12 +74,14 @@ public partial class App : Application
                 return Task.CompletedTask;
             };
 
-            ApplyWindowChrome(desktop.MainWindow, shell.State.UseNativeTheme);
+            // Use native OS chrome when the user opted in OR we're on macOS (where the custom chrome
+            // is never used). UseCustomChrome is the macOS-aware source of truth.
+            ApplyWindowChrome(desktop.MainWindow, !shell.State.UseCustomChrome);
             shell.State.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(shell.State.UseNativeTheme) && desktop.MainWindow != null)
                 {
-                    ApplyWindowChrome(desktop.MainWindow, shell.State.UseNativeTheme);
+                    ApplyWindowChrome(desktop.MainWindow, !shell.State.UseCustomChrome);
                 }
             };
 
