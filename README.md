@@ -30,11 +30,8 @@
 
 ---
 
-## What's new in V3 (since v2.7)
+## What's new in V3 
 
-V3 is a ground-up rebuild on a new cross-platform UI stack, with a much smarter connection engine and a far wider set of censorship-resistant transports.
-
-- **Now cross-platform** — native desktop builds for **Windows**, **macOS** (signed & notarized universal app) and **Linux** (AppImage). Same app, native look on each OS.
 - **Redesigned UI** — Fluent/native look (FluentAvalonia), light/dark/follow-system themes, an accent picker, an integrated chromeless title bar on Windows and native window chrome on macOS, and **5 languages** (English, German, French, Chinese, Russian).
 - **Smart Connect** — an offline censorship "brain" that auto-picks the best connection strategy for your network and country: it knows where Tor is blocked, prefers transports that survive there, pre-tests bridge reachability, races strategies in parallel, fails fast off dead paths, and remembers what worked on each network so the next connect is instant.
 - **Three Tor engines** — **Classic** (`tor.exe`, full control: bridges, country/entry/exit pinning, control-port New Identity), **Arti** (the Rust Tor implementation), and **ArtiHop** (shortened 2-hop Guard→Exit circuits for lower latency, with live New Identity).
