@@ -44,7 +44,12 @@ internal sealed class TorBridgeManager
     // offline lists, capped at MaxSupplementedBridgeCount so Tor isn't handed an unwieldy bridge set.
     private const int MinHealthyBridgeCount = 8;
     private const int MaxSupplementedBridgeCount = 14;
-    private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromHours(12);
+    // How long a cached bridge set is considered "fresh" before we proactively try to re-fetch. Kept
+    // generous (a week) so a reinstall, app update, or restart reuses the bridges that already worked
+    // instead of going back to the network every 12 hours - and if a re-fetch fails (e.g. a censored
+    // network blocking the bridge sources), GetStaleCacheFallbackBridgeLines still serves the old cache
+    // rather than nothing. Users can always force a refresh from the Home/Scanner "Update bridges" button.
+    private static readonly TimeSpan BridgeCacheTtl = TimeSpan.FromDays(7);
     private const int RuntimeBridgeFailureThreshold = 3;
     private static readonly TimeSpan RuntimeBridgeFailureWindow = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan RuntimeBridgePenaltyDuration = TimeSpan.FromMinutes(30);
@@ -784,7 +789,7 @@ internal sealed class TorBridgeManager
                     }
 
                     log($"OnionHop collector returned no usable {bridgeType} bridges.");
-                    return Array.Empty<string>();
+                    return GetStaleCacheFallbackBridgeLines(bridgeType, log);
                 }
 
                 var moatLines = await TryFetchBridgeLinesViaMoatAsync(httpClient, bridgeType, token).ConfigureAwait(false);
@@ -833,7 +838,7 @@ internal sealed class TorBridgeManager
                 }
 
                 log($"Bridge auto-fetch for {bridgeType} returned no usable lines (the Tor bridge service may require an interactive challenge).");
-                return Array.Empty<string>();
+                return GetStaleCacheFallbackBridgeLines(bridgeType, log);
             }
             finally
             {
@@ -846,7 +851,7 @@ internal sealed class TorBridgeManager
         catch (Exception ex)
         {
             log($"Bridge auto-fetch for {bridgeType} failed: {ex.Message}");
-            return Array.Empty<string>();
+            return GetStaleCacheFallbackBridgeLines(bridgeType, log);
         }
         finally
         {
@@ -2336,7 +2341,23 @@ internal sealed class TorBridgeManager
         yield return Path.Combine(_baseDir, "tor", fileName);
     }
 
-    private IReadOnlyList<string> GetCachedBridgeLines(string bridgeType)
+    // When live fetching fails (network blocked, SSL intercepted, censorship), fall back to whatever we
+    // cached before, even if it is older than the freshness window - stale working bridges beat no
+    // bridges at all, which is exactly the situation in heavily censored networks where the bridge
+    // sources are unreachable. Marks the result as the runtime set so the rest of the session reuses it.
+    private IReadOnlyList<string> GetStaleCacheFallbackBridgeLines(string bridgeType, Action<string> log)
+    {
+        var stale = GetCachedBridgeLines(bridgeType, ignoreAge: true);
+        if (stale.Count > 0)
+        {
+            _runtimeFetchedBridges[bridgeType] = stale;
+            log($"Using {stale.Count} previously cached {bridgeType} bridge(s) as a fallback (could not reach the bridge sources; the cache may be old).");
+        }
+
+        return stale;
+    }
+
+    private IReadOnlyList<string> GetCachedBridgeLines(string bridgeType, bool ignoreAge = false)
     {
         EnsureBridgeCacheLoaded();
         if (_cacheStore?.Items == null)
@@ -2352,7 +2373,7 @@ internal sealed class TorBridgeManager
         }
 
         var age = DateTimeOffset.UtcNow - entry.UpdatedUtc;
-        if (age > BridgeCacheTtl)
+        if (!ignoreAge && age > BridgeCacheTtl)
         {
             return Array.Empty<string>();
         }

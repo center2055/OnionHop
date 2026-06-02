@@ -81,6 +81,11 @@ internal sealed class TorService : IDisposable
         // copy of OUR tor binary (scoped by path, so a separate Tor Browser install is untouched) and
         // clear the stale lock before launching.
         KillStaleOnionHopTor(config.TorPath);
+        // Pluggable transports (lyrebird/snowflake/webtunnel/conjure/dnstt) are launched by Tor as
+        // managed proxies. If a previous Tor was force-killed its transport can be orphaned and keep
+        // holding its SOCKS/state, so the new Tor's managed proxy dies on launch ("Managed proxy ...
+        // terminated with status code 2"), killing obfs4/snowflake bridges. Clear those too.
+        KillStaleOnionHopPluggableTransports(config.TorPath);
         TryDeleteFile(Path.Combine(_dataDirectory, "lock"));
 
         var arguments = BuildArguments(config, _dataDirectory);
@@ -355,6 +360,83 @@ internal sealed class TorService : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// Kills any orphaned pluggable-transport helper (lyrebird, snowflake-client, webtunnel-client,
+    /// conjure-client, dnstt-client) left running from a previous session, matched strictly by the
+    /// binary living under OUR tor\pluggable_transports directory - so an unrelated process that
+    /// happens to share a name (or the Snowflake volunteer proxy, which lives elsewhere) is never
+    /// touched. An orphan keeps holding its managed-proxy SOCKS/state, which makes the new Tor's
+    /// managed proxy exit immediately with "terminated with status code 2". Best effort.
+    /// </summary>
+    private void KillStaleOnionHopPluggableTransports(string torPath)
+    {
+        string ptDirectory;
+        try
+        {
+            var torDirectory = Path.GetDirectoryName(Path.GetFullPath(torPath));
+            if (string.IsNullOrEmpty(torDirectory))
+            {
+                return;
+            }
+
+            ptDirectory = Path.GetFullPath(Path.Combine(torDirectory, "pluggable_transports"));
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var transportName in PluggableTransportProcessNames)
+        {
+            Process[] processes;
+            try
+            {
+                processes = Process.GetProcessesByName(transportName);
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var process in processes)
+            {
+                try
+                {
+                    string? exePath = null;
+                    try { exePath = process.MainModule?.FileName; } catch { }
+                    if (string.IsNullOrEmpty(exePath))
+                    {
+                        continue;
+                    }
+
+                    // Only ours: the binary must sit directly inside our pluggable_transports folder.
+                    var exeDirectory = Path.GetDirectoryName(Path.GetFullPath(exePath!));
+                    if (!string.Equals(exeDirectory, ptDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(4000);
+                    _log($"Stopped orphaned pluggable transport {Path.GetFileName(exePath)} (pid {process.Id}).");
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    try { process.Dispose(); } catch { }
+                }
+            }
+        }
+    }
+
+    // Process names (no extension) of the managed proxies we ship under tor\pluggable_transports.
+    private static readonly string[] PluggableTransportProcessNames =
+    {
+        "lyrebird", "snowflake-client", "webtunnel-client", "conjure-client", "dnstt-client"
+    };
 
     public void Dispose()
     {
