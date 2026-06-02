@@ -99,6 +99,19 @@ if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"
 }
 
+# Guard against the intermittent "dropped apphost" race (real-time AV briefly locking the freshly
+# published exe so it is absent when Inno packages the folder -> launcher-less installer). Retry once,
+# then fail loudly rather than ship a CLI installer that can't start.
+$cliHost = Join-Path $publishDir "OnionHopV3.Cli.exe"
+if (!(Test-Path $cliHost)) {
+  Write-Warning "OnionHopV3.Cli.exe is missing from the publish output (likely an AV/file-lock race). Re-running publish once..."
+  Start-Sleep -Seconds 2
+  & dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=false
+}
+if (!(Test-Path $cliHost)) {
+  throw "Build aborted: OnionHopV3.Cli.exe (the CLI launcher) is missing from '$publishDir'. The installer would be broken (CreateProcess failed; code 2)."
+}
+
 $iss = Join-Path $PSScriptRoot "OnionHopV3.Cli.iss"
 if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"

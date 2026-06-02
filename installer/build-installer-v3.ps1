@@ -173,6 +173,22 @@ if (!(Test-Path $publishDir)) {
 
 Copy-OptionalArtiRuntime -RepoRoot $repoRoot -PublishDir $publishDir -ArtiPath $ArtiPath
 
+# Guard against the intermittent "dropped apphost" race: real-time AV can briefly lock the freshly
+# published OnionHopV3.exe so it is absent when Inno packages the folder, producing an installer that
+# is missing the main launcher -> users get "CreateProcess failed; code 2 - file not found" and the app
+# never starts (this actually shipped in v3.0.2). Verify the apphost is present; retry publish once if a
+# transient scan ate it, then fail loudly rather than ever shipping a launcher-less installer.
+$appHost = Join-Path $publishDir "OnionHopV3.exe"
+if (!(Test-Path $appHost)) {
+  Write-Warning "OnionHopV3.exe is missing from the publish output (likely an AV/file-lock race). Re-running publish once..."
+  Start-Sleep -Seconds 2
+  & dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=true
+}
+if (!(Test-Path $appHost)) {
+  throw "Build aborted: OnionHopV3.exe (the app launcher) is missing from '$publishDir'. The installer would be broken (CreateProcess failed; code 2). Add a Microsoft Defender exclusion for the build output folder, then rebuild."
+}
+Write-Host "Verified app launcher present: $appHost" -ForegroundColor Green
+
 $iss = Join-Path $PSScriptRoot "OnionHopV3.iss"
 if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
