@@ -163,7 +163,6 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Collez les lignes de ponts depuis bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Hôtes SNI/de façade personnalisés (facultatif)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
-  <x:String x:Key="Settings.SnowflakeAmp">Façade via cache AMP (Snowflake)</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Atteint le broker Snowflake via le cache AMP de Google au lieu de le contacter directement. Activez ceci si vous voyez « Broker Snowflake injoignable » — utile sur les réseaux qui bloquent le broker. N'affecte que le type de pont snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choisir les applis ouvertes…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Tunnel partagé : choisir les applis</x:String>

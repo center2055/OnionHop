@@ -58,8 +58,8 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 | **Windows** | `OnionHop-Setup-v3.exe` | Installer (self-contained, .NET runtime bundled) |
 | **Windows** | `OnionHopV3-Portable-…win-x64.zip` | Portable, no install |
 | **Linux** | `OnionHop-x86_64.AppImage` | `chmod +x` and run |
-| **macOS** | `OnionHop-3.0.1-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
-| **Windows CLI** | `OnionHop-CLI-Setup-3.0.1.exe` / `…Portable…zip` | Terminal interface |
+| **macOS** | `OnionHop-3.0.2-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
+| **Windows CLI** | `OnionHop-CLI-Setup-3.0.2.exe` / `…Portable…zip` | Terminal interface |
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
 
