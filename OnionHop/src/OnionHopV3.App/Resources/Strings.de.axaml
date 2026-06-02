@@ -163,6 +163,8 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Bridge-Zeilen von bridges.torproject.org einf&#252;gen...</x:String>
   <x:String x:Key="Settings.CustomSni">Eigene SNI/Front-Hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Snowflake AMP-Cache-Fronting</x:String>
+  <x:String x:Key="Settings.SnowflakeAmpHint">Erreicht den Snowflake-Broker über Googles AMP-Cache statt ihn direkt zu kontaktieren. Aktivieren Sie dies, wenn „Snowflake-Broker nicht erreichbar" erscheint — es hilft in Netzwerken, die den Broker blockieren. Betrifft nur den Bridge-Typ Snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Laufende Apps ausw&#228;hlen…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Split-Tunneling: Apps ausw&#228;hlen</x:String>
   <x:String x:Key="Settings.AppPickerHint">Das sind die Apps, die du gerade ge&#246;ffnet hast. Lege f&#252;r jede fest, ob sie &#252;ber Tor oder direkt verbindet. Alles auf Standard folgt deiner globalen Hybrid-Einstellung.</x:String>

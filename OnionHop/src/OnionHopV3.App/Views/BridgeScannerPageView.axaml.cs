@@ -41,7 +41,23 @@ public partial class BridgeScannerPageView : UserControl
         {
             Title = "Export working bridges",
             SuggestedFileName = $"onionhop-working-bridges-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
-            DefaultExtension = "txt"
+            DefaultExtension = "txt",
+            // Without an explicit text file type the OS Save dialog defaults to "All files" and does
+            // not append .txt, so the export landed as an extension-less / unknown file type. Offering
+            // a Text file type (and a catch-all) makes the picker save a proper .txt document.
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Text file")
+                {
+                    Patterns = new[] { "*.txt" },
+                    MimeTypes = new[] { "text/plain" },
+                    AppleUniformTypeIdentifiers = new[] { "public.plain-text" }
+                },
+                new FilePickerFileType("All files")
+                {
+                    Patterns = new[] { "*" }
+                }
+            }
         });
 
         if (file == null)

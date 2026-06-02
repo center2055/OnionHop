@@ -163,6 +163,8 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Вставьте строки мостов с bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Свои хосты SNI/фронта (необязательно)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Фронтинг через AMP-кэш (Snowflake)</x:String>
+  <x:String x:Key="Settings.SnowflakeAmpHint">Подключается к брокеру Snowflake через AMP-кэш Google вместо прямого обращения. Включите, если видите «Брокер Snowflake недоступен» — помогает в сетях, где брокер заблокирован. Влияет только на тип моста snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Выбрать запущенные приложения…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Раздельное туннелирование: выбор приложений</x:String>
   <x:String x:Key="Settings.AppPickerHint">Это приложения, открытые у вас сейчас. Укажите для каждого: через Tor или напрямую. Всё со значением «По умолчанию» следует общей настройке гибридного режима.</x:String>

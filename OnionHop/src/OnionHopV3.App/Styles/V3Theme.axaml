@@ -298,4 +298,24 @@
   <Style Selector="ComboBoxItem">
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
+
+  <!-- Always-visible scrollbars. FluentAvalonia's default overlay scrollbars auto-hide and fade to a
+       near-invisible thin line, so long lists (DNS-hop providers, bridge scanner, app picker) looked
+       like they had no scrollbar at all and users could not tell the content was scrollable. Disabling
+       auto-hide keeps the bar on screen, and a comfortable minimum thickness makes the thumb easy to
+       grab. AllowAutoHide is set on both ScrollViewer (propagates to its bars) and ScrollBar directly. -->
+  <Style Selector="ScrollViewer">
+    <Setter Property="ScrollViewer.AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ScrollBar">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ScrollBar:vertical">
+    <Setter Property="MinWidth" Value="12" />
+    <Setter Property="Width" Value="12" />
+  </Style>
+  <Style Selector="ScrollBar:horizontal">
+    <Setter Property="MinHeight" Value="12" />
+    <Setter Property="Height" Value="12" />
+  </Style>
 </Styles>

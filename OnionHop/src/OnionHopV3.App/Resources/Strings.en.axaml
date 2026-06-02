@@ -163,6 +163,8 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Custom SNI/front hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Snowflake AMP cache fronting</x:String>
+  <x:String x:Key="Settings.SnowflakeAmpHint">Reach the Snowflake broker through Google's AMP cache instead of contacting it directly. Turn this on if you see "Snowflake broker unreachable" — it helps in networks that block the broker. Only affects the snowflake bridge type.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choose running apps…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Split tunneling: choose apps</x:String>
   <x:String x:Key="Settings.AppPickerHint">These are the apps you have open right now. Set each one to go through Tor or connect directly. Anything left on Default follows your global Hybrid setting.</x:String>

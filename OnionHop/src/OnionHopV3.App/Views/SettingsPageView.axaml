@@ -195,6 +195,9 @@
                 <TextBox Text="{Binding State.CustomSniHosts}"
                          Watermark="{DynamicResource Settings.CustomSniWatermark}" />
               </StackPanel>
+              <controls:ToggleRow Title="{DynamicResource Settings.SnowflakeAmp}"
+                                  Description="{DynamicResource Settings.SnowflakeAmpHint}"
+                                  IsChecked="{Binding State.UseSnowflakeAmp}" />
             </StackPanel>
           </Border>
 

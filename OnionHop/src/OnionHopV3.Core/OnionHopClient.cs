@@ -802,8 +802,13 @@ public sealed class OnionHopClient : IDisposable
                     // lookups to a resolver the direct traffic can't reach -> ERR_NAME_NOT_RESOLVED and
                     // nothing loads. DNS and the proxy go together (both on or both off); we still keep
                     // the .onion rule so onion addresses resolve either way.
-                    var systemProxyActive = !UsesSystemProxyScope(resolvedOptions) || resolvedOptions.ApplySystemProxyOnConnect;
-                    var routeAllDns = resolvedOptions.FullDnsOverTor && !IsTunMode(resolvedOptions) && systemProxyActive;
+                    //
+                    // "Local proxy only (manual apps)" scope NEVER touches the system proxy, so system
+                    // traffic is always direct there -> full DNS-over-Tor must NOT be applied (otherwise
+                    // every app's name resolution is pinned to Tor while its traffic stays direct, which
+                    // is exactly the "network stops working for all programs" regression we are fixing).
+                    var systemProxyActive = UsesSystemProxyScope(resolvedOptions) && resolvedOptions.ApplySystemProxyOnConnect;
+                    var routeAllDns = ShouldRouteAllSystemDnsOverTor(resolvedOptions, IsTunMode(resolvedOptions));
                     if (resolvedOptions.FullDnsOverTor && !routeAllDns && !IsTunMode(resolvedOptions) && !systemProxyActive)
                     {
                         RaiseLog("DNS leak protection is on but the system proxy is off, so system-wide DNS-over-Tor is not applied (it would break name resolution while traffic is direct). Turn the system proxy ON to route DNS through Tor too.");
@@ -885,8 +890,12 @@ public sealed class OnionHopClient : IDisposable
                     "WebRTC, QUIC/HTTP3 (UDP), and apps that ignore the system proxy can still expose your real IP " +
                     "and are a common reason some geo-blocked or sanctioned sites fail to load. " +
                     (resolvedOptions.FullDnsOverTor
+                        && UsesSystemProxyScope(resolvedOptions)
+                        && resolvedOptions.ApplySystemProxyOnConnect
                         ? "DNS is forced through Tor (DNS leak protection). "
-                        : "DNS may leak (DNS leak protection is off). ") +
+                        : resolvedOptions.FullDnsOverTor
+                            ? "System DNS is left direct in this mode, so only apps pointed at the SOCKS port get Tor DNS (full DNS-over-Tor needs the system proxy ON). "
+                            : "DNS may leak (DNS leak protection is off). ") +
                     "For leak-free routing (no WebRTC/DNS/IP leaks), use TUN/VPN Mode (Admin), or disable WebRTC in your browser " +
                     "(Firefox: media.peerconnection.enabled=false; Chromium: a WebRTC-leak-prevent extension).");
             }
@@ -2729,10 +2738,35 @@ public sealed class OnionHopClient : IDisposable
 
         if (!isAdmin && !OperatingSystem.IsMacOS())
         {
+            if (OperatingSystem.IsLinux())
+            {
+                throw new InvalidOperationException(BuildLinuxTunElevationHelp());
+            }
+
             throw new InvalidOperationException("TUN/VPN mode requires elevated privileges (run as Administrator/root).");
         }
 
         await _vpnService.StartAsync(config, token).ConfigureAwait(false);
+    }
+
+    // TUN/VPN mode on Linux creates a system TUN device, which needs root. Unlike Windows (UAC helper)
+    // and macOS (privileged tunnel / Network Extension), the Linux build launches the VPN core as a
+    // child of the app, so the whole app must already be elevated. Running a packaged AppImage under
+    // plain `sudo` usually fails silently (the GUI can't reach the user's X/Wayland display), so give
+    // the user the exact, env-preserving command for their actual launch target instead of a generic
+    // "run as root" error.
+    private static string BuildLinuxTunElevationHelp()
+    {
+        var appImage = Environment.GetEnvironmentVariable("APPIMAGE");
+        var launchTarget = !string.IsNullOrWhiteSpace(appImage)
+            ? appImage
+            : (Environment.ProcessPath ?? "OnionHop");
+
+        return
+            "TUN/VPN mode needs root on Linux (it creates a system TUN device). Proxy Mode works without root. " +
+            "To use TUN/VPN mode, quit OnionHop and relaunch it elevated while keeping your graphical session, e.g.:\n" +
+            $"    sudo -E \"{launchTarget}\"\n" +
+            "If the window does not appear (common on Wayland), first run:  xhost +SI:localuser:root  then the sudo command above.";
     }
 
     private async Task PrepareMacPrivilegedTunnelAsync(OnionHopConnectOptions options, CancellationToken token)
@@ -3329,6 +3363,24 @@ public sealed class OnionHopClient : IDisposable
             options.ProxyScopeMode,
             OnionHopConnectOptions.ProxyScopeLocalOnly,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Whether the system's *entire* DNS should be pinned to Tor's resolver (Proxy Mode "full DNS
+    /// leak protection"). This is fail-closed and only valid when system traffic is actually flowing
+    /// through Tor: i.e. a system-proxy scope AND the proxy is applied. In "Local proxy only" scope
+    /// (or with the system proxy pre-set OFF) system traffic goes direct, so forcing all DNS through
+    /// Tor would strand every app's name resolution at a resolver its direct traffic can't reach —
+    /// the "network stops working for all programs" regression. TUN mode handles DNS in the tunnel
+    /// core, so the system-wide rule never applies there either. The narrower ".onion" rule is added
+    /// separately by the caller and is unaffected by this decision.
+    /// </summary>
+    internal static bool ShouldRouteAllSystemDnsOverTor(OnionHopConnectOptions options, bool isTunMode)
+    {
+        return options.FullDnsOverTor
+            && !isTunMode
+            && UsesSystemProxyScope(options)
+            && options.ApplySystemProxyOnConnect;
     }
 
     private static bool UsesSocksOnlySystemProxyScope(OnionHopConnectOptions options)

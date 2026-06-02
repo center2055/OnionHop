@@ -79,7 +79,22 @@ public partial class LogsPageView : UserControl
         {
             Title = "Export logs",
             SuggestedFileName = $"onionhop-{name.ToLowerInvariant()}-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
-            DefaultExtension = "txt"
+            DefaultExtension = "txt",
+            // Offer an explicit text file type so the OS dialog appends .txt instead of saving an
+            // extension-less / unknown file type (defaults to "All files" otherwise).
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Text file")
+                {
+                    Patterns = new[] { "*.txt" },
+                    MimeTypes = new[] { "text/plain" },
+                    AppleUniformTypeIdentifiers = new[] { "public.plain-text" }
+                },
+                new FilePickerFileType("All files")
+                {
+                    Patterns = new[] { "*" }
+                }
+            }
         });
 
         if (file == null)
