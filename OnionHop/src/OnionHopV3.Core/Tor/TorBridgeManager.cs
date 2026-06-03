@@ -1612,6 +1612,18 @@ internal sealed class TorBridgeManager
                 {
                     return shortPath!;
                 }
+
+                // 8.3 short-name creation is disabled on many modern Windows volumes (fsutil
+                // 8dot3name), so GetShortPathName returns the long, spaced path. Tor's transport
+                // parser then truncates the exec token at the first space and the managed proxy never
+                // launches ("CreateProcessA() failed: The system cannot find the file specified"),
+                // breaking every bridge for anyone whose folder has a space (e.g. "C:\Users\First Last").
+                // Mirror the binary into a guaranteed space-free directory and hand Tor that path.
+                var copied = TryCreateWindowsSpaceFreeCopy(executablePath);
+                if (!string.IsNullOrEmpty(copied) && copied!.IndexOf(' ') < 0)
+                {
+                    return copied!;
+                }
             }
             else
             {
@@ -1684,6 +1696,65 @@ internal sealed class TorBridgeManager
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Windows fallback when 8.3 short names are unavailable: copy the pluggable-transport binary into
+    /// a directory that is guaranteed to be space-free and writable without admin (e.g.
+    /// <c>C:\Users\Public\OnionHop\pt</c>) and return that path, so Tor's whitespace-splitting transport
+    /// parser can exec it. The transports are single static Go binaries, so a plain copy is sufficient;
+    /// re-copies only when size or timestamp changes (i.e. after an app update). Returns null if no
+    /// space-free base directory exists or the copy fails.
+    /// </summary>
+    private static string? TryCreateWindowsSpaceFreeCopy(string targetPath)
+    {
+        if (!File.Exists(targetPath))
+        {
+            return null;
+        }
+
+        string? baseDir = null;
+        foreach (var candidate in new[]
+                 {
+                     Environment.GetEnvironmentVariable("PUBLIC"),
+                     Environment.GetEnvironmentVariable("ProgramData"),
+                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)
+                 })
+        {
+            if (!string.IsNullOrEmpty(candidate) && candidate!.IndexOf(' ') < 0 && Directory.Exists(candidate))
+            {
+                baseDir = candidate;
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(baseDir))
+        {
+            return null;
+        }
+
+        var dir = Path.Combine(baseDir!, "OnionHop", "pt");
+        if (dir.IndexOf(' ') >= 0)
+        {
+            return null;
+        }
+
+        Directory.CreateDirectory(dir);
+        var dest = Path.Combine(dir, Path.GetFileName(targetPath));
+        if (dest.IndexOf(' ') >= 0)
+        {
+            return null;
+        }
+
+        var src = new FileInfo(targetPath);
+        var dst = new FileInfo(dest);
+        if (!dst.Exists || dst.Length != src.Length || dst.LastWriteTimeUtc != src.LastWriteTimeUtc)
+        {
+            File.Copy(targetPath, dest, overwrite: true);
+            try { File.SetLastWriteTimeUtc(dest, src.LastWriteTimeUtc); } catch { /* best effort */ }
+        }
+
+        return dest;
     }
 
     [SupportedOSPlatform("windows")]
