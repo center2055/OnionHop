@@ -154,6 +154,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteSection("Config & misc");
         WriteHint("  config", "show saved default connect options");
         WriteHint("  config save", "save the last connect options as defaults");
+        WriteHint("  config set proxy-scope <system|socks|local>", "set the default proxy scope (local = never touch system proxy)");
         WriteHint("  deps", "download/verify Tor + transport dependencies");
         WriteHint("  logs <on|off>", "show or hide the live engine/Tor log stream");
         WriteHint("  json <on|off>", "machine-readable output for status/plan/scan");
@@ -169,6 +170,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteHint("  --bridges <on|off>", "force bridges (manual mode)");
         WriteHint("  --bridge-type <type>", "automatic, obfs4, snowflake, webtunnel, conjure, dnstt, meek-azure, vanilla, custom");
         WriteHint("  --bridge-source <auto|online|collector|offline>", "where bridges come from");
+        WriteHint("  --proxy-scope <system|socks|local>", "system = all apps, socks = browser/.onion, local = don't touch system proxy");
         WriteHint("  --exit <auto|cc>", "exit country, e.g. us, de");
         WriteHint("  --entry <auto|cc>", "entry country (ignored with bridges)");
         WriteHint("  --exit-fingerprint <hex40>", "pin an exit relay");
@@ -847,6 +849,31 @@ internal sealed class CliHost : IAsyncDisposable
             return;
         }
 
+        if (sub == "set")
+        {
+            var key = rest.Count > 1 ? rest[1].Trim().ToLowerInvariant() : string.Empty;
+            var value = rest.Count > 2 ? rest[2].Trim().ToLowerInvariant() : string.Empty;
+            if (key is "proxy-scope" or "proxyscope" or "proxy")
+            {
+                if (value is not ("system" or "socks" or "local"))
+                {
+                    WriteWarning("Usage: config set proxy-scope <system|socks|local>");
+                    return;
+                }
+
+                var s = _settingsService.Load() ?? new UserSettings();
+                s.ProxyScopeMode = MapProxyScopeToken(value);
+                _settingsService.Save(s);
+                WriteInfo(value == "local"
+                    ? "Default proxy scope set to 'local'. OnionHop will no longer change your system proxy on connect - point apps at the SOCKS address shown in `status`."
+                    : $"Default proxy scope set to '{value}'. OnionHop will route system traffic through Tor on connect.");
+                return;
+            }
+
+            WriteWarning("Usage: config set proxy-scope <system|socks|local>");
+            return;
+        }
+
         var settings = _settingsService.Load();
         WriteSection("Saved defaults");
         if (settings == null)
@@ -860,6 +887,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine($"  bridge src  : {settings.BridgeSourceMode ?? "auto"}", ConsoleColor.Gray);
         WriteLine($"  exit/entry  : {settings.SelectedLocation ?? "auto"} / {settings.SelectedEntryLocation ?? "auto"}", ConsoleColor.Gray);
         WriteLine($"  dns         : {settings.SelectedDnsProvider ?? "auto"}", ConsoleColor.Gray);
+        WriteLine($"  proxy scope : {NormalizeStoredProxyScope(settings.ProxyScopeMode)}", ConsoleColor.Gray);
     }
 
     // ----- Status / watch dashboard -----------------------------------------------------------
@@ -957,12 +985,11 @@ internal sealed class CliHost : IAsyncDisposable
             ? OnionHopConnectOptions.ConnectionModeTun
             : OnionHopConnectOptions.ConnectionModeProxy;
 
-        var proxyScope = request.ProxyScope.ToLowerInvariant() switch
-        {
-            "system" => OnionHopConnectOptions.ProxyScopeSystem,
-            "local" => OnionHopConnectOptions.ProxyScopeLocalOnly,
-            _ => OnionHopConnectOptions.ProxyScopeSystemSocks
-        };
+        // An explicit --proxy-scope wins; otherwise honor the saved default (so `config set proxy-scope
+        // local` actually sticks across connects), falling back to system SOCKS.
+        var proxyScope = request.ProxyScopeProvided
+            ? MapProxyScopeToken(request.ProxyScope)
+            : NormalizeStoredProxyScope(_settingsService.Load()?.ProxyScopeMode);
 
         var bridgeType = NormalizeBridgeType(request.BridgeType);
         var useBridges = request.UseBridges || request.BridgeTypeProvided;
@@ -996,8 +1023,25 @@ internal sealed class CliHost : IAsyncDisposable
 
     private static ConnectRequest DefaultRequest() => new(
         "proxy", true, false, false, "automatic", false, null,
-        "sing-box", "socks", "auto", false, false,
+        "sing-box", "socks", false, "auto", false, false,
         OnionHopConnectOptions.AutomaticLocationLabel, OnionHopConnectOptions.AutomaticLocationLabel, null, true, "auto", "auto");
+
+    // Map the short CLI token (system|socks|local) to the stored proxy-scope constant.
+    private static string MapProxyScopeToken(string token) => token.Trim().ToLowerInvariant() switch
+    {
+        "system" => OnionHopConnectOptions.ProxyScopeSystem,
+        "local" => OnionHopConnectOptions.ProxyScopeLocalOnly,
+        _ => OnionHopConnectOptions.ProxyScopeSystemSocks
+    };
+
+    // Accept a stored proxy-scope value (from settings) only if it's one we recognize, else fall back
+    // to system SOCKS - protects against a missing/garbage settings value.
+    private static string NormalizeStoredProxyScope(string? stored) =>
+        stored == OnionHopConnectOptions.ProxyScopeSystem
+        || stored == OnionHopConnectOptions.ProxyScopeLocalOnly
+        || stored == OnionHopConnectOptions.ProxyScopeSystemSocks
+            ? stored!
+            : OnionHopConnectOptions.ProxyScopeSystemSocks;
 
     private static string NormalizeBridgeType(string bridgeType) => bridgeType.Trim().ToLowerInvariant() switch
     {
@@ -1079,6 +1123,7 @@ internal sealed class CliHost : IAsyncDisposable
             UseCensoredMode: GetNullableBool(o, "censored"),
             TunCore: GetOption(o, "tun-core", "sing-box"),
             ProxyScope: GetOption(o, "proxy-scope", "socks"),
+            ProxyScopeProvided: o.ContainsKey("proxy-scope"),
             DnsProvider: GetOption(o, "dns", "auto"),
             UseOnionDnsProxy: GetBool(o, "onion-dns-proxy", false),
             UseSnowflakeAmp: GetBool(o, "snowflake-amp", false),
@@ -1231,7 +1276,9 @@ internal sealed class CliHost : IAsyncDisposable
         {
             var prev = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write(cmd.PadRight(34));
+            // Pad to a column for alignment, but keep a 2-space gap when the label overruns the column
+            // so long option lines don't butt right up against their description.
+            Console.Write(cmd.Length < 34 ? cmd.PadRight(34) : cmd + "  ");
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine(desc);
             Console.ForegroundColor = prev;
@@ -1346,6 +1393,7 @@ internal sealed class CliHost : IAsyncDisposable
         bool? UseCensoredMode,
         string TunCore,
         string ProxyScope,
+        bool ProxyScopeProvided,
         string DnsProvider,
         bool UseOnionDnsProxy,
         bool UseSnowflakeAmp,
