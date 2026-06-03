@@ -237,6 +237,60 @@
                                     SelectedItem="{Binding State.SelectedDnsProvider}" />
             </StackPanel>
           </Border>
+
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.UpstreamProxyTitle}"
+                         Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource Settings.UpstreamProxyHint}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <controls:ToggleRow Title="{DynamicResource Settings.UpstreamProxyEnable}"
+                                  Description="{DynamicResource Settings.UpstreamProxyEnableHint}"
+                                  IsChecked="{Binding State.UpstreamProxyEnabled}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.UpstreamProxyHttps}"
+                                  Description="{DynamicResource Settings.UpstreamProxyHttpsHint}"
+                                  IsChecked="{Binding State.UpstreamProxyUseHttps}" />
+              <Grid ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
+                <controls:SettingRow Grid.Column="0"
+                                     Title="{DynamicResource Settings.UpstreamProxyHost}"
+                                     Description="{DynamicResource Settings.UpstreamProxyHostHint}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="220"
+                             Text="{Binding State.UpstreamProxyHost}"
+                             Watermark="127.0.0.1" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+                <controls:SettingRow Grid.Column="1"
+                                     Title="{DynamicResource Settings.UpstreamProxyPort}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="120"
+                             Text="{Binding State.UpstreamProxyPort}"
+                             Watermark="1080" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+              </Grid>
+              <Grid ColumnDefinitions="*,*"
+                    ColumnSpacing="12">
+                <controls:SettingRow Grid.Column="0"
+                                     Title="{DynamicResource Settings.UpstreamProxyUsername}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="180"
+                             Text="{Binding State.UpstreamProxyUsername}" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+                <controls:SettingRow Grid.Column="1"
+                                     Title="{DynamicResource Settings.UpstreamProxyPassword}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="180"
+                             PasswordChar="●"
+                             Text="{Binding State.UpstreamProxyPassword}" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+              </Grid>
+            </StackPanel>
+          </Border>
         </StackPanel>
       </ScrollViewer>
     </TabItem>

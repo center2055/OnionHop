@@ -163,6 +163,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">从 bridges.torproject.org 粘贴网桥行...</x:String>
   <x:String x:Key="Settings.CustomSni">自定义 SNI/前置主机（可选）</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.UpstreamProxyTitle">上游代理（高级）</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHint">让 Tor 先通过另一个代理向外连接——适合将 OnionHop 运行在公司/SOCKS 网关或 Proxifier 之类的工具之后，而不是在网络栈中相互冲突。需要 Classic Tor 引擎。</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnable">使用上游代理</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnableHint">将 Tor 的所有出站流量通过下面的代理转发。</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttps">使用 HTTPS 代理而非 SOCKS5</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttpsHint">关闭 = SOCKS5（最常见）。开启 = HTTPS（HTTP CONNECT）代理。</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHost">代理主机</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHostHint">上游代理的 IP 或主机名。</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPort">端口</x:String>
+  <x:String x:Key="Settings.UpstreamProxyUsername">用户名（可选）</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPassword">密码（可选）</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">通过 Google 的 AMP 缓存而非直接连接来访问 Snowflake broker。如果看到“Snowflake broker 无法连接”，请开启此项——它对屏蔽 broker 的网络有帮助。仅影响 snowflake 网桥类型。</x:String>
   <x:String x:Key="Settings.AppPickerButton">选择正在运行的应用…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">分流：选择应用</x:String>

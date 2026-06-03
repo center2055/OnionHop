@@ -10,6 +10,11 @@ public sealed record OnionHopConnectOptions
     public const string ProxyScopeSystemSocks = "System proxy (SOCKS browser/.onion)";
     public const string ProxyScopeLocalOnly = "Local proxy only (manual apps)";
 
+    // Upstream (outbound) proxy that Tor itself dials through — lets OnionHop sit *behind* another
+    // proxy (a corporate/SOCKS gateway, Proxifier's output, a Psiphon-style front, etc.).
+    public const string UpstreamProxyKindSocks5 = "socks5";
+    public const string UpstreamProxyKindHttps = "https";
+
     public const string ToggleModeDefault = "Default";
     public const string ToggleModeEnabled = "Enabled";
     public const string ToggleModeDisabled = "Disabled";
@@ -127,4 +132,13 @@ public sealed record OnionHopConnectOptions
     // so subsequent connects skip the UAC prompt. When false, no startup task is installed and any
     // leftover task from a prior version is removed.
     public bool PersistentAdminHelperEnabled { get; init; }
+
+    // Upstream proxy: when enabled, Tor dials all of its outbound connections through this proxy.
+    // Requires the Classic Tor engine. Kind is socks5 (default) or https (HTTP CONNECT).
+    public bool UpstreamProxyEnabled { get; init; }
+    public string UpstreamProxyKind { get; init; } = UpstreamProxyKindSocks5;
+    public string? UpstreamProxyHost { get; init; }
+    public int UpstreamProxyPort { get; init; }
+    public string? UpstreamProxyUsername { get; init; }
+    public string? UpstreamProxyPassword { get; init; }
 }

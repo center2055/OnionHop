@@ -163,6 +163,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Custom SNI/front hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.UpstreamProxyTitle">Upstream proxy (advanced)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHint">Make Tor connect out through another proxy first — useful to run OnionHop behind a corporate/SOCKS gateway or a tool like Proxifier instead of fighting it in the network stack. Requires the Classic Tor engine.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnable">Use an upstream proxy</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnableHint">Route all of Tor's outbound traffic through the proxy below.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttps">HTTPS proxy instead of SOCKS5</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttpsHint">Off = SOCKS5 (most common). On = HTTPS (HTTP CONNECT) proxy.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHost">Proxy host</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHostHint">IP or hostname of the upstream proxy.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPort">Port</x:String>
+  <x:String x:Key="Settings.UpstreamProxyUsername">Username (optional)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPassword">Password (optional)</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Reach the Snowflake broker through Google's AMP cache instead of contacting it directly. Turn this on if you see "Snowflake broker unreachable" — it helps in networks that block the broker. Only affects the snowflake bridge type.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choose running apps…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Split tunneling: choose apps</x:String>

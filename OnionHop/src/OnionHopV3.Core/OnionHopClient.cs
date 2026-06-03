@@ -2155,7 +2155,8 @@ public sealed class OnionHopClient : IDisposable
     {
         return options.UseTorBridges
                || options.UseCensoredMode
-               || !string.IsNullOrWhiteSpace(options.CustomBridges);
+               || !string.IsNullOrWhiteSpace(options.CustomBridges)
+               || (options.UpstreamProxyEnabled && !string.IsNullOrWhiteSpace(options.UpstreamProxyHost));
     }
 
     private static bool IsArtiFamilyEngine(string engine) =>
@@ -2558,6 +2559,11 @@ public sealed class OnionHopClient : IDisposable
             ClientUseIpv6 = ParseToggleMode(options.TorIpv6Mode),
             HardwareAccel = ParseToggleMode(options.HardwareAccelerationMode),
             ConnectionPadding = ParseConnectionPaddingMode(options.ConnectionPaddingMode),
+            UpstreamProxyKind = options.UpstreamProxyEnabled ? options.UpstreamProxyKind : null,
+            UpstreamProxyHost = options.UpstreamProxyEnabled ? options.UpstreamProxyHost : null,
+            UpstreamProxyPort = options.UpstreamProxyEnabled ? options.UpstreamProxyPort : (int?)null,
+            UpstreamProxyUsername = options.UpstreamProxyEnabled ? options.UpstreamProxyUsername : null,
+            UpstreamProxyPassword = options.UpstreamProxyEnabled ? options.UpstreamProxyPassword : null,
             DataDirectory = Path.Combine(_baseDir, "tor-data")
         };
 

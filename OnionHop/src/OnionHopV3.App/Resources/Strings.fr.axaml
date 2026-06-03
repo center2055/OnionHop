@@ -163,6 +163,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Collez les lignes de ponts depuis bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Hôtes SNI/de façade personnalisés (facultatif)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.UpstreamProxyTitle">Proxy en amont (avancé)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHint">Fait passer Tor par un autre proxy en premier — utile pour exécuter OnionHop derrière une passerelle SOCKS/d'entreprise ou un outil comme Proxifier, au lieu d'entrer en conflit dans la pile réseau. Nécessite le moteur Tor Classic.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnable">Utiliser un proxy en amont</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnableHint">Acheminer tout le trafic sortant de Tor via le proxy ci-dessous.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttps">Proxy HTTPS au lieu de SOCKS5</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttpsHint">Désactivé = SOCKS5 (le plus courant). Activé = proxy HTTPS (HTTP CONNECT).</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHost">Hôte du proxy</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHostHint">IP ou nom d'hôte du proxy en amont.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPort">Port</x:String>
+  <x:String x:Key="Settings.UpstreamProxyUsername">Nom d'utilisateur (facultatif)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPassword">Mot de passe (facultatif)</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Atteint le broker Snowflake via le cache AMP de Google au lieu de le contacter directement. Activez ceci si vous voyez « Broker Snowflake injoignable » — utile sur les réseaux qui bloquent le broker. N'affecte que le type de pont snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choisir les applis ouvertes…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Tunnel partagé : choisir les applis</x:String>

@@ -163,6 +163,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Bridge-Zeilen von bridges.torproject.org einf&#252;gen...</x:String>
   <x:String x:Key="Settings.CustomSni">Eigene SNI/Front-Hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.UpstreamProxyTitle">Vorgeschalteter Proxy (erweitert)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHint">Lässt Tor zuerst über einen anderen Proxy nach außen verbinden — nützlich, um OnionHop hinter einem Firmen-/SOCKS-Gateway oder einem Tool wie Proxifier zu betreiben, statt im Netzwerkstack zu kollidieren. Erfordert die Classic-Tor-Engine.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnable">Vorgeschalteten Proxy verwenden</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnableHint">Den gesamten ausgehenden Tor-Verkehr über den Proxy unten leiten.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttps">HTTPS-Proxy statt SOCKS5</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttpsHint">Aus = SOCKS5 (am häufigsten). Ein = HTTPS-Proxy (HTTP CONNECT).</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHost">Proxy-Host</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHostHint">IP oder Hostname des vorgeschalteten Proxys.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPort">Port</x:String>
+  <x:String x:Key="Settings.UpstreamProxyUsername">Benutzername (optional)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPassword">Passwort (optional)</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Erreicht den Snowflake-Broker über Googles AMP-Cache statt ihn direkt zu kontaktieren. Aktivieren Sie dies, wenn „Snowflake-Broker nicht erreichbar" erscheint — es hilft in Netzwerken, die den Broker blockieren. Betrifft nur den Bridge-Typ Snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Laufende Apps ausw&#228;hlen…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Split-Tunneling: Apps ausw&#228;hlen</x:String>

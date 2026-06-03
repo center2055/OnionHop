@@ -36,6 +36,13 @@ public sealed class UserSettings
     public string? CustomDohHost { get; set; }
     public string? CustomDohPath { get; set; }
     public string? ProxyScopeMode { get; set; }
+    // Upstream proxy that Tor dials through (lets OnionHop run behind another SOCKS5/HTTPS proxy).
+    public bool? UpstreamProxyEnabled { get; set; }
+    public bool? UpstreamProxyUseHttps { get; set; }
+    public string? UpstreamProxyHost { get; set; }
+    public string? UpstreamProxyPort { get; set; }
+    public string? UpstreamProxyUsername { get; set; }
+    public string? UpstreamProxyPassword { get; set; }
     // Desired post-connect system-proxy state for Proxy Mode (null defaults to enabled).
     public bool? SystemProxyEnabledByDefault { get; set; }
     public int? PreferredSocksPort { get; set; }

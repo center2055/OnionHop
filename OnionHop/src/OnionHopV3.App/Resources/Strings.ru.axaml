@@ -163,6 +163,17 @@
   <x:String x:Key="Settings.CustomBridgesWatermark">Вставьте строки мостов с bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Свои хосты SNI/фронта (необязательно)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.UpstreamProxyTitle">Вышестоящий прокси (расширенно)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHint">Tor сначала подключается через другой прокси — удобно, чтобы запускать OnionHop за корпоративным/SOCKS-шлюзом или инструментом вроде Proxifier, вместо конфликта в сетевом стеке. Требуется движок Tor Classic.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnable">Использовать вышестоящий прокси</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnableHint">Направлять весь исходящий трафик Tor через прокси ниже.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttps">HTTPS-прокси вместо SOCKS5</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttpsHint">Выкл = SOCKS5 (чаще всего). Вкл = HTTPS-прокси (HTTP CONNECT).</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHost">Хост прокси</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHostHint">IP или имя хоста вышестоящего прокси.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPort">Порт</x:String>
+  <x:String x:Key="Settings.UpstreamProxyUsername">Имя пользователя (необязательно)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPassword">Пароль (необязательно)</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Подключается к брокеру Snowflake через AMP-кэш Google вместо прямого обращения. Включите, если видите «Брокер Snowflake недоступен» — помогает в сетях, где брокер заблокирован. Влияет только на тип моста snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Выбрать запущенные приложения…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Раздельное туннелирование: выбор приложений</x:String>

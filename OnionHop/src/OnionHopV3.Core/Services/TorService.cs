@@ -548,6 +548,19 @@ internal sealed class TorService : IDisposable
         AddArgument(arguments, "--GeoIPv6File", config.GeoIp6Path);
         AddArgument(arguments, "--Log", "notice stdout");
 
+        // Upstream proxy: make Tor dial all its outbound connections (including to bridges) through an
+        // external SOCKS5/HTTPS proxy. Lets OnionHop run behind another proxy instead of fighting it in
+        // the network stack.
+        foreach (var token in BuildUpstreamProxyArguments(
+                     config.UpstreamProxyKind,
+                     config.UpstreamProxyHost,
+                     config.UpstreamProxyPort,
+                     config.UpstreamProxyUsername,
+                     config.UpstreamProxyPassword))
+        {
+            arguments.Add(token);
+        }
+
         // Control port for NEWNYM etc
         AddArgument(arguments, "--ControlPort", "auto");
         AddArgument(arguments, "--ControlPortWriteToFile", Path.Combine(dataDirectory, ControlPortFileName));
@@ -675,6 +688,50 @@ internal sealed class TorService : IDisposable
     {
         arguments.Add(name);
         arguments.Add(value);
+    }
+
+    /// <summary>
+    /// Builds the Tor command-line tokens that route Tor's outbound traffic through an upstream proxy.
+    /// SOCKS5 maps to --Socks5Proxy (+ optional username/password); "https"/"http" maps to --HTTPSProxy
+    /// (an HTTP CONNECT proxy, + optional --HTTPSProxyAuthenticator). Returns an empty list when no host
+    /// or a valid port is given, so the caller can always splice the result in unconditionally.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildUpstreamProxyArguments(
+        string? kind, string? host, int? port, string? username, string? password)
+    {
+        var tokens = new List<string>();
+        if (string.IsNullOrWhiteSpace(host) || port is not (> 0 and <= 65535))
+        {
+            return tokens;
+        }
+
+        var endpoint = $"{host!.Trim()}:{port!.Value}";
+        var normalized = (kind ?? OnionHopConnectOptions.UpstreamProxyKindSocks5).Trim().ToLowerInvariant();
+
+        if (normalized is "https" or "http")
+        {
+            tokens.Add("--HTTPSProxy");
+            tokens.Add(endpoint);
+            if (!string.IsNullOrEmpty(username))
+            {
+                tokens.Add("--HTTPSProxyAuthenticator");
+                tokens.Add($"{username}:{password ?? string.Empty}");
+            }
+        }
+        else
+        {
+            tokens.Add("--Socks5Proxy");
+            tokens.Add(endpoint);
+            if (!string.IsNullOrEmpty(username))
+            {
+                tokens.Add("--Socks5ProxyUsername");
+                tokens.Add(username!);
+                tokens.Add("--Socks5ProxyPassword");
+                tokens.Add(password ?? string.Empty);
+            }
+        }
+
+        return tokens;
     }
 
     private static string FormatRelayFingerprint(string fingerprint)
@@ -938,6 +995,11 @@ internal sealed class TorLaunchConfig
     public bool? ClientUseIpv6 { get; init; }
     public bool? HardwareAccel { get; init; }
     public string? ConnectionPadding { get; init; }
+    public string? UpstreamProxyKind { get; init; }
+    public string? UpstreamProxyHost { get; init; }
+    public int? UpstreamProxyPort { get; init; }
+    public string? UpstreamProxyUsername { get; init; }
+    public string? UpstreamProxyPassword { get; init; }
     public string? WorkingDirectory { get; init; }
     public Action<Process>? ProcessStarted { get; init; }
 }

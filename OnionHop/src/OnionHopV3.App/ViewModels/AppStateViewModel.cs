@@ -127,6 +127,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(CustomSniHosts),
         nameof(UseSnowflakeAmp),
         nameof(SnowflakeAmpCache),
+        nameof(UpstreamProxyEnabled),
+        nameof(UpstreamProxyUseHttps),
+        nameof(UpstreamProxyHost),
+        nameof(UpstreamProxyPort),
+        nameof(UpstreamProxyUsername),
+        nameof(UpstreamProxyPassword),
         nameof(TorIpv6Mode),
         nameof(HardwareAccelerationMode),
         nameof(ConnectionPaddingMode),
@@ -387,6 +393,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _customSniHosts = string.Empty;
     [ObservableProperty] private bool _useSnowflakeAmp;
     [ObservableProperty] private string _snowflakeAmpCache = string.Empty;
+
+    [ObservableProperty] private bool _upstreamProxyEnabled;
+    [ObservableProperty] private bool _upstreamProxyUseHttps;
+    [ObservableProperty] private string _upstreamProxyHost = string.Empty;
+    [ObservableProperty] private string _upstreamProxyPort = string.Empty;
+    [ObservableProperty] private string _upstreamProxyUsername = string.Empty;
+    [ObservableProperty] private string _upstreamProxyPassword = string.Empty;
 
     [ObservableProperty] private string _torIpv6Mode = OnionHopConnectOptions.ToggleModeDefault;
     [ObservableProperty] private string _hardwareAccelerationMode = OnionHopConnectOptions.ToggleModeDefault;
@@ -2157,6 +2170,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             CustomSniHosts = string.Empty;
             UseSnowflakeAmp = false;
             SnowflakeAmpCache = string.Empty;
+            UpstreamProxyEnabled = false;
+            UpstreamProxyUseHttps = false;
+            UpstreamProxyHost = string.Empty;
+            UpstreamProxyPort = string.Empty;
+            UpstreamProxyUsername = string.Empty;
+            UpstreamProxyPassword = string.Empty;
 
             TorIpv6Mode = OnionHopConnectOptions.ToggleModeDefault;
             HardwareAccelerationMode = OnionHopConnectOptions.ToggleModeDefault;
@@ -2381,6 +2400,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             TorEngineMode = SelectedTorEngineMode,
             UseHybridRouting = UseHybridRouting,
             KillSwitchEnabled = KillSwitchEnabled,
+            UpstreamProxyEnabled = UpstreamProxyEnabled,
+            UpstreamProxyKind = UpstreamProxyUseHttps
+                ? OnionHopConnectOptions.UpstreamProxyKindHttps
+                : OnionHopConnectOptions.UpstreamProxyKindSocks5,
+            UpstreamProxyHost = string.IsNullOrWhiteSpace(UpstreamProxyHost) ? null : UpstreamProxyHost.Trim(),
+            UpstreamProxyPort = int.TryParse(UpstreamProxyPort, out var upstreamPortValue) && upstreamPortValue is > 0 and <= 65535
+                ? upstreamPortValue
+                : 0,
+            UpstreamProxyUsername = string.IsNullOrWhiteSpace(UpstreamProxyUsername) ? null : UpstreamProxyUsername,
+            UpstreamProxyPassword = string.IsNullOrEmpty(UpstreamProxyPassword) ? null : UpstreamProxyPassword,
             UseTorBridges = UseTorBridges,
             UseCensoredMode = UseCensoredMode,
             SelectedBridgeType = SelectedBridgeType,
@@ -2604,6 +2633,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             CustomSniHosts = settings.CustomSniHosts ?? string.Empty;
             UseSnowflakeAmp = settings.UseSnowflakeAmp;
             SnowflakeAmpCache = settings.SnowflakeAmpCache ?? string.Empty;
+            UpstreamProxyEnabled = settings.UpstreamProxyEnabled ?? false;
+            UpstreamProxyUseHttps = settings.UpstreamProxyUseHttps ?? false;
+            UpstreamProxyHost = settings.UpstreamProxyHost ?? string.Empty;
+            UpstreamProxyPort = settings.UpstreamProxyPort ?? string.Empty;
+            UpstreamProxyUsername = settings.UpstreamProxyUsername ?? string.Empty;
+            UpstreamProxyPassword = settings.UpstreamProxyPassword ?? string.Empty;
 
             TorIpv6Mode = string.IsNullOrWhiteSpace(settings.TorIpv6Mode)
                 ? OnionHopConnectOptions.ToggleModeDefault
@@ -2812,6 +2847,12 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             CustomDohHost = CustomDohHost,
             CustomDohPath = CustomDohPath,
             ProxyScopeMode = ProxyScopeMode,
+            UpstreamProxyEnabled = UpstreamProxyEnabled,
+            UpstreamProxyUseHttps = UpstreamProxyUseHttps,
+            UpstreamProxyHost = UpstreamProxyHost,
+            UpstreamProxyPort = UpstreamProxyPort,
+            UpstreamProxyUsername = UpstreamProxyUsername,
+            UpstreamProxyPassword = UpstreamProxyPassword,
             SystemProxyEnabledByDefault = SystemProxyEnabled,
             PreferredSocksPort = ParsePreferredProxyPort(PreferredSocksPort, OnionHopConnectOptions.DefaultSocksPort),
             PreferredHttpPort = ParsePreferredProxyPort(PreferredHttpPort, OnionHopConnectOptions.DefaultHttpPort),
