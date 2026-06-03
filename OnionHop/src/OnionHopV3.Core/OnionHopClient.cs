@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -3494,6 +3495,13 @@ public sealed class OnionHopClient : IDisposable
     private const int BridgeReachabilityWorkers = 24;
     // Below this many candidates, scanning isn't worth the latency - just try them all.
     private const int BridgeReachabilityMinCandidates = 4;
+    // Roughly how many bridges the scan can fully probe inside its time budget (workers running probes
+    // back to back: workers * budget/probeTimeout). A pasted list larger than this can't all be probed
+    // in time, so we shuffle it first and probe a random representative slice rather than always testing
+    // whatever the user happened to paste at the top (which on a 400+ line list left the scan timing out
+    // and falling back to the whole unfiltered, mostly-dead pile).
+    private const int BridgeReachabilityProbeCapacity =
+        BridgeReachabilityWorkers * 2; // 6s budget / 3s probe = 2 rounds
 
     /// <summary>
     /// TCP-probe the fetched bridge lines and return only the reachable ones, fastest first. Fronted
@@ -3509,6 +3517,19 @@ public sealed class OnionHopClient : IDisposable
             return bridgeLines;
         }
 
+        // A very large pasted bridge list (hundreds) can't be probed in full inside the time budget, so
+        // shuffle it first and let the budget sample a representative slice instead of always probing
+        // whatever the user pasted at the top. (Auto/cached lists are already ranked and small, so they
+        // pass straight through and keep their order.)
+        var candidates = bridgeLines.Count > BridgeReachabilityProbeCapacity
+            ? ShuffleBridgeLines(bridgeLines)
+            : bridgeLines;
+
+        // Collect results as they arrive so that if the scan is cancelled at its budget we still keep
+        // every bridge that responded, instead of throwing the work away and handing Tor the whole
+        // unfiltered (mostly dead) list.
+        var collected = new ConcurrentBag<BridgeScanResult>();
+
         try
         {
             using var scanCts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -3518,17 +3539,18 @@ public sealed class OnionHopClient : IDisposable
             try
             {
                 results = await BridgeScanService.ScanAsync(
-                    bridgeLines,
+                    candidates,
                     BridgeReachabilityWorkers,
                     BridgeReachabilityProbeTimeout,
-                    progress: null,
+                    new CollectingProgress(collected),
                     scanCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {
-                // The scan budget elapsed - fall back to the unfiltered list rather than blocking.
-                RaiseLog("Bridge reachability scan timed out; using bridges without pre-filtering.");
-                return bridgeLines;
+                // Budget elapsed before every bridge was probed (a big list). Use the ones that DID
+                // respond so far rather than falling back to the unfiltered pile.
+                results = collected.ToArray();
+                RaiseLog($"Bridge reachability scan hit its {(int)BridgeReachabilityScanBudget.TotalSeconds}s budget after probing {results.Count} of {bridgeLines.Count}; using the ones that responded.");
             }
 
             // Keep working bridges ordered fastest-first; fronted/unparsed (no pingable endpoint) are
@@ -3537,12 +3559,15 @@ public sealed class OnionHopClient : IDisposable
 
             if (working.Count == 0)
             {
-                RaiseLog($"Bridge reachability scan: none of {bridgeLines.Count} bridges responded; trying them anyway.");
-                return bridgeLines;
+                var probed = results.Count > 0 ? results.Count : candidates.Count;
+                RaiseLog($"Bridge reachability scan: none of {probed} probed bridges responded; trying them anyway.");
+                // Hand back only what we actually probed, not the full list - on a huge list the
+                // unprobed remainder is the part most likely to be dead.
+                return candidates;
             }
 
-            var unreachableCount = bridgeLines.Count - working.Count;
-            RaiseLog($"Bridge reachability scan: {working.Count}/{bridgeLines.Count} bridges reachable (dropped {unreachableCount} blocked/dead), fastest first.");
+            var unreachableCount = results.Count - working.Count;
+            RaiseLog($"Bridge reachability scan: {working.Count} reachable of {results.Count} probed (dropped {unreachableCount} blocked/dead), fastest first.");
             return working;
         }
         catch (OperationCanceledException)
@@ -3554,5 +3579,28 @@ public sealed class OnionHopClient : IDisposable
             RaiseLog($"Bridge reachability scan failed ({ex.Message}); using bridges without pre-filtering.");
             return bridgeLines;
         }
+    }
+
+    // Synchronous IProgress collector so partial results survive a scan that gets cancelled at its
+    // budget. Progress<T> would post callbacks to a captured sync context asynchronously and could race
+    // the cancellation, losing results we already have.
+    private sealed class CollectingProgress : IProgress<BridgeScanResult>
+    {
+        private readonly ConcurrentBag<BridgeScanResult> _items;
+        public CollectingProgress(ConcurrentBag<BridgeScanResult> items) => _items = items;
+        public void Report(BridgeScanResult value) => _items.Add(value);
+    }
+
+    // Fisher-Yates shuffle so a huge pasted bridge list is sampled randomly within the probe budget
+    // instead of always probing whatever was pasted first. Returns a new list; the input is untouched.
+    internal static IReadOnlyList<string> ShuffleBridgeLines(IReadOnlyList<string> lines)
+    {
+        var copy = lines.ToArray();
+        for (var i = copy.Length - 1; i > 0; i--)
+        {
+            var j = Random.Shared.Next(i + 1);
+            (copy[i], copy[j]) = (copy[j], copy[i]);
+        }
+        return copy;
     }
 }
