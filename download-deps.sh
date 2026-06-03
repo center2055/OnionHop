@@ -22,9 +22,18 @@ mkdir -p "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR" "$PT_DIR" "$TEMP
 echo "=== OnionHop Linux Dependency Downloader ==="
 
 # 1. Tor Expert Bundle
+# dist.torproject.org only serves the *current* releases, so an older pinned version gets rotated off
+# it and the download silently returns a tiny error page (-> "gzip: stdin: not in gzip format"). The
+# archive host keeps every version forever, so fall back to it. -f makes curl fail on HTTP errors
+# instead of saving the error page, and gzip -t verifies we actually got a real tarball.
 echo "Downloading Tor Expert Bundle ($TOR_VERSION)..."
 TOR_ARCHIVE="$TEMP_DIR/tor.tar.gz"
-curl -L "https://dist.torproject.org/torbrowser/$TOR_VERSION/tor-expert-bundle-linux-x86_64-$TOR_VERSION.tar.gz" -o "$TOR_ARCHIVE"
+TOR_REL="$TOR_VERSION/tor-expert-bundle-linux-x86_64-$TOR_VERSION.tar.gz"
+curl -fL "https://dist.torproject.org/torbrowser/$TOR_REL" -o "$TOR_ARCHIVE" || true
+if ! gzip -t "$TOR_ARCHIVE" 2>/dev/null; then
+    echo "  dist.torproject.org did not serve $TOR_VERSION; falling back to archive.torproject.org..."
+    curl -fL "https://archive.torproject.org/tor-package-archive/torbrowser/$TOR_REL" -o "$TOR_ARCHIVE"
+fi
 tar -xzf "$TOR_ARCHIVE" -C "$TEMP_DIR"
 
 cp "$TEMP_DIR/tor/tor" "$TOR_DIR/"
