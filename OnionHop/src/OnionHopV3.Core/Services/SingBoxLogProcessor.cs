@@ -23,7 +23,6 @@ internal sealed class SingBoxLogProcessor
 
     public event Action<string>? LogReceived;
     public event Action<string>? DnsLogReceived;
-    public event Action<string>? StatusMessageChanged;
 
     public void SetSourceLabel(string? sourceLabel)
     {
@@ -67,7 +66,11 @@ internal sealed class SingBoxLogProcessor
             if (now - _lastVpnMessageUtc >= TimeSpan.FromSeconds(10))
             {
                 _lastVpnMessageUtc = now;
-                StatusMessageChanged?.Invoke($"VPN tunnel: Tor rejected a connection to {dest}. Non-web ports are often blocked by Tor exits.");
+                // A single per-connection exit rejection (commonly an IPv6 destination, or a port the
+                // chosen exit's policy blocks). The tunnel itself is fine - Tor just retries on another
+                // circuit - so surface this as a log note instead of hijacking the headline status with
+                // an alarming "Tor rejected" message while we are actually Connected.
+                LogReceived?.Invoke($"{_sourceLabel}: note - an exit rejected a connection to {dest} (often an IPv6 address or a port the exit's policy blocks); harmless, Tor retries on another circuit.");
             }
         }
 

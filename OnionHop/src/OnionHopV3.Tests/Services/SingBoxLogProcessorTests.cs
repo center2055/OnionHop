@@ -58,16 +58,18 @@ public sealed class SingBoxLogProcessorTests
     }
 
     [Fact]
-    public void ProcessLine_RaisesStatusChange_ForSocksRejection()
+    public void ProcessLine_LogsExitRejection_AsLogNote()
     {
         var processor = new SingBoxLogProcessor();
-        var statusMessages = new List<string>();
-        processor.StatusMessageChanged += msg => statusMessages.Add(msg);
+        var logs = new List<string>();
+        processor.LogReceived += msg => logs.Add(msg);
 
         processor.ProcessLine("socks5: request rejected connection to example.com:22");
 
-        Assert.Single(statusMessages);
-        Assert.Contains("Tor rejected", statusMessages[0]);
+        // A transient per-connection exit rejection is surfaced as a log note (it no longer hijacks the
+        // headline status, which looked alarming even though the tunnel was fine).
+        Assert.Contains(logs, l => l.Contains("rejected a connection", StringComparison.OrdinalIgnoreCase)
+                                   && l.Contains("retries on another circuit", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

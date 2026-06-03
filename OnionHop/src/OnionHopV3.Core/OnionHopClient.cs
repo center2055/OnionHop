@@ -148,11 +148,6 @@ public sealed class OnionHopClient : IDisposable
         _singBoxLogProcessor.LogReceived += RaiseLog;
         _singBoxLogProcessor.LogReceived += RaiseVpnLog;
         _singBoxLogProcessor.DnsLogReceived += RaiseDnsLog;
-        _singBoxLogProcessor.StatusMessageChanged += message =>
-        {
-            _statusMessage = message;
-            PublishStatus();
-        };
     }
 
     private static string ResolveDefaultBaseDirectory()
