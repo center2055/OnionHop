@@ -28,7 +28,15 @@ public sealed class OnionHopClient : IDisposable
     private const int DefaultArtiHopControlPort = 9151;
     private const int MaxBridgeLinesForLaunch = 64;
     private const int MaxBridgeArgumentCharsForLaunch = 12000;
-    private const int AutomaticBridgeProxyFailureThreshold = 8;
+    // Proxy-handshake "failure" warnings are emitted per dead bridge. With a large automatic bridge
+    // set (up to MaxBridgeLinesForLaunch = 64) a partially blocked transport produces dozens of these
+    // warnings even while one working bridge bootstraps fine, so a low absolute threshold wrongly
+    // declared the whole transport "unstable" and aborted a connection that was actually succeeding
+    // (issue #44, large-bridge-set / RU). Raised, and additionally gated on bootstrap progress below.
+    private const int AutomaticBridgeProxyFailureThreshold = 24;
+    // If Tor has bootstrapped at least this far, at least one bridge is working through this transport,
+    // so we never treat it as unstable no matter how many of the other bridges failed their handshake.
+    private const double AutomaticBridgeBootstrapProgressFloor = 0.10;
     private static readonly TimeSpan AutomaticBridgeProxyFailureWindow = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan AutomaticBridgeStabilityProbeDelay = TimeSpan.FromSeconds(4);
 
@@ -2324,17 +2332,37 @@ public sealed class OnionHopClient : IDisposable
 
         await Task.Delay(AutomaticBridgeStabilityProbeDelay, token).ConfigureAwait(false);
         var failures = CountRecentTorProxyFailures();
-        if (failures < AutomaticBridgeProxyFailureThreshold)
+
+        // If Tor is already making real bootstrap progress, a working bridge has been found through this
+        // transport, so the handshake warnings are just the other (dead) bridges in the set - do not
+        // abort, or we'd kill a connection that is on its way up (issue #44).
+        var bootstrapProgress = _connectionProgress;
+        if (!ShouldAbortAutomaticBridgeTransportAsUnstable(failures, bootstrapProgress))
         {
             if (failures > 0)
             {
-                RaiseLog($"Automatic bridges: observed {failures} proxy handshake warning(s) during {bridgeType} startup.");
+                var note = bootstrapProgress >= AutomaticBridgeBootstrapProgressFloor
+                    ? " (continuing — Tor is bootstrapping)"
+                    : string.Empty;
+                RaiseLog($"Automatic bridges: observed {failures} proxy handshake warning(s) during {bridgeType} startup{note}.");
             }
 
             return;
         }
 
         throw new InvalidOperationException($"{bridgeType} bridges appear unstable ({failures} proxy handshake failures during startup).");
+    }
+
+    /// <summary>
+    /// Decides whether an automatic-bridge transport should be abandoned as "unstable" during startup.
+    /// Only true when there are many per-bridge proxy-handshake failures AND Tor has made no meaningful
+    /// bootstrap progress: a large bridge set in a partially censored network produces lots of failures
+    /// even while one bridge works, so progress is the authoritative "this transport is alive" signal.
+    /// </summary>
+    internal static bool ShouldAbortAutomaticBridgeTransportAsUnstable(int proxyHandshakeFailures, double bootstrapProgress)
+    {
+        return proxyHandshakeFailures >= AutomaticBridgeProxyFailureThreshold
+            && bootstrapProgress < AutomaticBridgeBootstrapProgressFloor;
     }
 
     private static OnionHopConnectOptions CloneOptionsWithBridgeType(OnionHopConnectOptions options, string bridgeType)
