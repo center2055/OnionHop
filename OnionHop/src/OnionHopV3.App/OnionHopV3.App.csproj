@@ -4,11 +4,16 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AssemblyName>OnionHopV3</AssemblyName>
-    <Version>3.0.2</Version>
+    <Version>3.1.0</Version>
     <ApplicationIcon>Assets\OnionHop.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
+    <!-- ReadyToRun embeds native AOT code into the managed assemblies, which Windows Defender's ML
+         heuristic flags as a generic "Trojan:Script/Wacatac.B!ml" false positive on the UNSIGNED
+         win-x64 build (its raw DLLs are ML-scanned directly). Keep R2R off for win-x64 so those
+         assemblies stay pure IL, but leave it on for the signed macOS/Linux builds where there is no
+         AV concern and it improves cold start. The Windows build scripts also pass the flag explicitly. -->
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != '' and '$(RuntimeIdentifier)' != 'win-x64'">true</PublishReadyToRun>
     <PublishSingleFile>false</PublishSingleFile>
   </PropertyGroup>
 

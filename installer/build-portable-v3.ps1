@@ -157,7 +157,7 @@ if ($Clean.IsPresent) {
 $publishDir = Join-Path $projectDir "bin\\$Configuration\\net9.0\\$Runtime\\publish"
 Remove-PathWithRetry -Path $publishDir
 
-& dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=true
+& dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=false
 
 if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"

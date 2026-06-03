@@ -165,7 +165,7 @@ if ($Clean.IsPresent) {
 $publishDir = Join-Path $projectDir "bin\$Configuration\net9.0\$Runtime\publish"
 Remove-PathWithRetry -Path $publishDir
 
-& dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=true
+& dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=false
 
 if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"
@@ -182,7 +182,7 @@ $appHost = Join-Path $publishDir "OnionHopV3.exe"
 if (!(Test-Path $appHost)) {
   Write-Warning "OnionHopV3.exe is missing from the publish output (likely an AV/file-lock race). Re-running publish once..."
   Start-Sleep -Seconds 2
-  & dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=true
+  & dotnet publish $csproj -c $Configuration -r $Runtime --self-contained $sc /p:PublishSingleFile=false /p:PublishReadyToRun=false
 }
 if (!(Test-Path $appHost)) {
   throw "Build aborted: OnionHopV3.exe (the app launcher) is missing from '$publishDir'. The installer would be broken (CreateProcess failed; code 2). Add a Microsoft Defender exclusion for the build output folder, then rebuild."
@@ -194,7 +194,7 @@ if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
 }
 
-$version = "3.0.2"
+$version = "3.1.0"
 try {
   $xml = [xml](Get-Content $csproj)
   $pv = $xml.Project.PropertyGroup.Version
