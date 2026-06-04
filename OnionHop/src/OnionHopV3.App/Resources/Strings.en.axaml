@@ -89,6 +89,7 @@
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
   <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.Telegram">Telegram</x:String>
   <x:String x:Key="About.Donate">Support OnionHop</x:String>
   <x:String x:Key="About.DonateIntro">OnionHop is free and open source. If it helps you, you can support development with Bitcoin:</x:String>
   <x:String x:Key="About.CopyAddress">Copy address</x:String>

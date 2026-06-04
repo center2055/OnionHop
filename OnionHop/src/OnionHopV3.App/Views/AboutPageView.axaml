@@ -80,6 +80,17 @@
                     <TextBlock Text="{DynamicResource About.KoFi}" />
                   </StackPanel>
                 </Button>
+                <Button Classes="ActionGhost"
+                        Margin="0,0,8,8"
+                        Click="OnOpenTelegramClick">
+                  <StackPanel Orientation="Horizontal"
+                              Spacing="8">
+                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.Send}"
+                                        Width="18"
+                                        Height="18" />
+                    <TextBlock Text="{DynamicResource About.Telegram}" />
+                  </StackPanel>
+                </Button>
               </WrapPanel>
             </StackPanel>
           </Border>

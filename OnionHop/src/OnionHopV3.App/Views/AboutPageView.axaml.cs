@@ -11,6 +11,7 @@ public partial class AboutPageView : UserControl
 {
     private static readonly Uri DiscordUri = new("https://discord.gg/y3MVspPzKQ");
     private static readonly Uri KoFiUri = new("https://ko-fi.com/center2055");
+    private static readonly Uri TelegramUri = new("https://t.me/centerhop");
     private const string BitcoinAddress = "bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2";
 
     public AboutPageView()
@@ -60,6 +61,11 @@ public partial class AboutPageView : UserControl
     private void OnOpenKoFiClick(object? sender, RoutedEventArgs e)
     {
         OpenUri(KoFiUri);
+    }
+
+    private void OnOpenTelegramClick(object? sender, RoutedEventArgs e)
+    {
+        OpenUri(TelegramUri);
     }
 
     // Generic link button: opens the URL stored in the control's Tag.
