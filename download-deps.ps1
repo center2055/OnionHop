@@ -32,6 +32,7 @@ $PtDir = Join-Path $TorDir "pluggable_transports"
 $TempDir = Join-Path $RepoRoot "temp_deps"
 $ArtiHopRepoUrl = "https://github.com/center2055/ArtiHop.git"
 $SnowflakeProxyPackage = "gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
+$SnowflakeClientPackage = "gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/client@latest"
 
 # Helper to ensure directory exists
 function Ensure-Dir($path) {
@@ -486,6 +487,44 @@ try {
     if (-not (Test-Path (Join-Path $PtDir "lyrebird.exe")) -and (Test-Path (Join-Path $PtDir "obfs4proxy.exe"))) {
         Write-Host "Renaming obfs4proxy.exe to lyrebird.exe..."
         Rename-Item -Path (Join-Path $PtDir "obfs4proxy.exe") -NewName "lyrebird.exe" -Force
+    }
+
+    # snowflake-client is no longer shipped in the Tor Expert Bundle (15.0.15 dropped it; only lyrebird +
+    # conjure-client remain), so build it from source when the bundle didn't provide it - mirroring how
+    # webtunnel-client/dnstt-client are handled. Older bundles that still ship it are left untouched.
+    $SnowflakeClientOutput = Join-Path $PtDir "snowflake-client.exe"
+    if (-not (Test-Path $SnowflakeClientOutput)) {
+        $GoCommandSf = Get-Command "go" -ErrorAction SilentlyContinue
+        if ($GoCommandSf) {
+            Write-Host "snowflake-client.exe not in the Tor bundle; building it from source (go install)..."
+            $SfClientGoBin = Join-Path $TempDir "gobin-sfclient"
+            Ensure-Dir $SfClientGoBin
+            $prevGobin = $env:GOBIN
+            $prevCgo = $env:CGO_ENABLED
+            try {
+                $env:GOBIN = $SfClientGoBin
+                $env:CGO_ENABLED = "0"
+                & go install $SnowflakeClientPackage
+                if ($LASTEXITCODE -ne 0) { throw "go install failed (exit $LASTEXITCODE)." }
+
+                # `go install .../client@latest` emits a binary named after the package dir ("client").
+                $SfBuilt = Join-Path $SfClientGoBin "client.exe"
+                if (-not (Test-Path $SfBuilt)) {
+                    $SfBuilt = Get-ChildItem -Path $SfClientGoBin -Filter "*.exe" | Select-Object -First 1 | ForEach-Object { $_.FullName }
+                }
+                if (-not $SfBuilt -or -not (Test-Path $SfBuilt)) { throw "Built snowflake client binary not found in $SfClientGoBin." }
+
+                Copy-Item $SfBuilt $SnowflakeClientOutput -Force
+                Write-Host "Built snowflake-client.exe from source." -ForegroundColor Green
+            } catch {
+                Write-Warning "snowflake-client build failed: $($_.Exception.Message). Snowflake bridges will be unavailable."
+            } finally {
+                $env:GOBIN = $prevGobin
+                $env:CGO_ENABLED = $prevCgo
+            }
+        } else {
+            Write-Warning "Go not found and snowflake-client.exe is not in the Tor bundle; Snowflake bridges will be unavailable. Install Go to build it."
+        }
     }
 
     # --- 2. Webtunnel client ---
