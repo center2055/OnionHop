@@ -42,7 +42,10 @@
 
   <Grid RowDefinitions="Auto,*"
         RowSpacing="12">
-    <Border Classes="SectionCard">
+    <!-- Right inset keeps the Refresh button clear of the window caption buttons (custom chrome draws
+         min/max/close over the top-right of the page), matching the Logs page. -->
+    <Border Classes="SectionCard"
+            Margin="0,0,116,0">
       <Grid ColumnDefinitions="1.4*,0.85*,0.85*,0.85*,0.85*,Auto"
             ColumnSpacing="12">
         <TextBox Text="{Binding SearchText}"

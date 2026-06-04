@@ -195,8 +195,11 @@
         <Border Grid.Column="1"
                 Classes="SectionCard">
           <StackPanel Spacing="12">
+            <!-- Right inset keeps Hide history / Refresh clear of the window caption buttons (custom
+                 chrome draws min/max/close over the top-right of the page), matching the Logs page. -->
             <Grid ColumnDefinitions="*,Auto,Auto"
-                  ColumnSpacing="10">
+                  ColumnSpacing="10"
+                  Margin="0,0,116,0">
               <StackPanel Spacing="4">
                 <TextBlock Text="{DynamicResource About.Changelog}"
                            Classes="SectionTitle" />
