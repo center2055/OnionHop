@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>OnionHopV3.Cli</AssemblyName>
     <RootNamespace>OnionHopV3.Cli</RootNamespace>
-    <Version>3.1.0</Version>
+    <Version>3.1.1</Version>
     <AssemblyTitle>OnionHop CLI</AssemblyTitle>
   </PropertyGroup>
 
