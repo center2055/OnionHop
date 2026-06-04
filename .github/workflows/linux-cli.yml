@@ -1,0 +1,84 @@
+name: Build Linux CLI
+
+# Builds the self-contained Linux x64 OnionHop CLI on a clean GitHub-hosted
+# runner and packages it as a .tar.gz (the CLI bundles the same Tor + transport
+# + sing-box/xray runtime as the desktop app). Run it manually from the Actions
+# tab; the tarball is uploaded as a build artifact and can be attached to a
+# release.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to attach the CLI tarball to (e.g. v3.1.0). Leave blank to only produce a build artifact."
+        required: false
+        default: ""
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray)
+        run: |
+          chmod +x download-deps.sh
+          bash download-deps.sh
+
+      - name: Publish CLI (linux-x64, self-contained)
+        run: |
+          dotnet publish OnionHop/src/OnionHopV3.Cli/OnionHopV3.Cli.csproj \
+            -c Release -r linux-x64 --self-contained true \
+            /p:PublishSingleFile=false /p:PublishReadyToRun=false \
+            -o publish-cli
+
+      - name: Strip Windows-only artifacts + set exec bits
+        run: |
+          find publish-cli -type f -name '*.exe' -delete || true
+          find publish-cli -type f -name 'wintun.dll' -delete || true
+          chmod +x publish-cli/OnionHopV3.Cli || true
+          for d in publish-cli/tor publish-cli/tor/pluggable_transports publish-cli/vpn publish-cli/snowflake publish-cli/artihop; do
+            [ -d "$d" ] && chmod +x "$d"/* 2>/dev/null || true
+          done
+
+      - name: Package tarball
+        id: pkg
+        run: |
+          VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' OnionHop/src/OnionHopV3.Cli/OnionHopV3.Cli.csproj || echo 0.0.0)
+          NAME="OnionHopCLI-${VERSION}-linux-x64.tar.gz"
+          tar -C publish-cli -czf "$NAME" .
+          sha256sum "$NAME" | tee "${NAME}.sha256.txt"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          ls -lh "$NAME"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnionHopCLI-linux-x64
+          path: |
+            OnionHopCLI-*-linux-x64.tar.gz
+            OnionHopCLI-*-linux-x64.tar.gz.sha256.txt
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: ${{ github.event_name == 'release' || inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
+          gh release upload "$TAG" OnionHopCLI-*-linux-x64.tar.gz --repo "${{ github.repository }}" --clobber
