@@ -1,0 +1,80 @@
+name: Build Windows Portable
+
+# Builds the self-contained Windows x64 portable ZIP on a clean, GitHub-hosted
+# runner. The whole pipeline (fetch Tor + transports + sing-box/xray/wintun,
+# publish the .NET app, zip it) runs in a throwaway VM with public logs - no
+# local developer machine is involved at any step, so the artifact has fully
+# reproducible, auditable provenance.
+#
+# Run it manually from the Actions tab. The resulting zip and its SHA-256 are
+# uploaded as a build artifact you can download and scan. If a release tag is
+# given (or it runs on a published release) it also attaches the zip there.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to attach the portable zip to (e.g. v3.1.0). Leave blank to only produce a downloadable build artifact."
+        required: false
+        default: ""
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  portable:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Download native dependencies (tor, transports, sing-box, xray, wintun, ArtiHop)
+        shell: pwsh
+        run: .\download-deps.ps1 -NoPause
+
+      - name: Build portable package
+        shell: pwsh
+        run: .\installer\build-portable-v3.ps1 -SkipDependencies
+
+      - name: Hash the portable zip
+        id: zip
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem installer\output\OnionHopV3-Portable-*-win-x64.zip | Select-Object -First 1
+          if (-not $zip) { throw "Portable zip not found in installer\output." }
+          $hash = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash
+          "$hash  $($zip.Name)" | Out-File "$($zip.FullName).sha256.txt" -Encoding ascii
+          Write-Host "Built $($zip.Name)"
+          Write-Host "SHA-256: $hash"
+          "name=$($zip.BaseName)" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Upload build artifact (zip + sha256)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: |
+            installer/output/OnionHopV3-Portable-*-win-x64.zip
+            installer/output/OnionHopV3-Portable-*-win-x64.zip.sha256.txt
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: ${{ github.event_name == 'release' || inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'release') { '${{ github.event.release.tag_name }}' } else { '${{ inputs.release_tag }}' }
+          $zip = (Get-ChildItem installer\output\OnionHopV3-Portable-*-win-x64.zip | Select-Object -First 1).FullName
+          gh release upload "$tag" "$zip" --repo "${{ github.repository }}" --clobber
