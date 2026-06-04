@@ -1,0 +1,21 @@
+<Project>
+  <!--
+    Shared publisher metadata for every project in the solution.
+
+    Beyond being correct hygiene, populating CompanyName / ProductName / Copyright (and a real
+    FileDescription via AssemblyTitle) on the *unsigned* Windows apphost and managed assemblies makes
+    reputation-based AV engines treat the binaries as a real published product instead of an anonymous
+    unsigned file. Empty/defaulted version metadata is one of the inputs those engines weight toward a
+    "suspicious" verdict, so filling it in reduces generic false positives on the portable build.
+    (Per-project files still own Version and AssemblyName.)
+  -->
+  <PropertyGroup>
+    <Company>OnionHop</Company>
+    <Authors>OnionHop</Authors>
+    <Product>OnionHop</Product>
+    <Copyright>Copyright © 2026 OnionHop</Copyright>
+    <Description>OnionHop — privacy client that routes your traffic through the Tor network.</Description>
+    <AssemblyTitle>OnionHop</AssemblyTitle>
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+</Project>
