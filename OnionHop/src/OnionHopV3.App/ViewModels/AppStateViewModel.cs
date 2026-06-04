@@ -853,7 +853,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     }
 
     // Order must match the entries added in RefreshLanguageOptions (en, de, fr, ru, zh).
-    private static readonly string[] SupportedLanguageCodes = { "en", "de", "fr", "ru", "zh" };
+    // Order must match the LanguageOptions list built in RefreshLanguageOptions (index-mapped).
+    private static readonly string[] SupportedLanguageCodes = { "en", "de", "fr", "ru", "zh", "fa", "ckb", "azb" };
 
     private static string NormalizeLanguageCode(string? value)
     {
@@ -867,6 +868,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (trimmed.StartsWith("fr", StringComparison.Ordinal)) return "fr";
         if (trimmed.StartsWith("ru", StringComparison.Ordinal)) return "ru";
         if (trimmed.StartsWith("zh", StringComparison.Ordinal)) return "zh";
+        // Iranian languages (right-to-left). Check longer codes first so "azb"/"ckb" win over "az".
+        if (trimmed.StartsWith("ckb", StringComparison.Ordinal)) return "ckb";
+        if (trimmed.StartsWith("azb", StringComparison.Ordinal)) return "azb";
+        if (trimmed.StartsWith("az", StringComparison.Ordinal)) return "azb";
+        if (trimmed.StartsWith("ku", StringComparison.Ordinal)) return "ckb";
+        if (trimmed.StartsWith("fa", StringComparison.Ordinal)) return "fa";
+        if (trimmed.StartsWith("pe", StringComparison.Ordinal)) return "fa";
         return "en";
     }
 
@@ -2935,6 +2943,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             LanguageOptions.Add(new LocalizedOption("fr", "Français"));
             LanguageOptions.Add(new LocalizedOption("ru", "Русский"));
             LanguageOptions.Add(new LocalizedOption("zh", "中文"));
+            LanguageOptions.Add(new LocalizedOption("fa", "فارسی"));
+            LanguageOptions.Add(new LocalizedOption("ckb", "کوردیی ناوەندی"));
+            LanguageOptions.Add(new LocalizedOption("azb", "تۆرکجه"));
         }
 
         var lang = (SelectedLanguage ?? "en").Trim().ToLowerInvariant();

@@ -85,6 +85,12 @@ public partial class App : Application
                 }
             };
 
+            // Mirror the UI for right-to-left languages (Persian/Kurdish/Azerbaijani), and keep it in
+            // sync whenever the language changes at runtime.
+            ApplyFlowDirection(desktop);
+            LocalizationService.LanguageChanged += (_, _) =>
+                Dispatcher.UIThread.Post(() => ApplyFlowDirection(desktop));
+
             ConfigureWindowCloseToTray(desktop, shell);
             ConfigureTrayAfterFirstFrame(desktop, shell);
             ApplyStartupMinimize(desktop, shell);
@@ -102,6 +108,26 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    // FlowDirection is an inherited layout property, so setting it on each top-level window flips the
+    // entire control tree underneath it. We apply it to the main window (which may not be in Windows yet
+    // if the app launched minimized to tray) and to every currently-open window.
+    private static void ApplyFlowDirection(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var direction = LocalizationService.IsRightToLeft
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
+
+        if (desktop.MainWindow is { } main)
+        {
+            main.FlowDirection = direction;
+        }
+
+        foreach (var window in desktop.Windows)
+        {
+            window.FlowDirection = direction;
+        }
     }
 
     private static void ApplyWindowChrome(Window window, bool useNativeChrome)

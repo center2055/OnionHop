@@ -14,10 +14,23 @@ public static class LocalizationService
         ["de"] = "avares://OnionHopV3/Resources/Strings.de.axaml",
         ["fr"] = "avares://OnionHopV3/Resources/Strings.fr.axaml",
         ["ru"] = "avares://OnionHopV3/Resources/Strings.ru.axaml",
-        ["zh"] = "avares://OnionHopV3/Resources/Strings.zh.axaml"
+        ["zh"] = "avares://OnionHopV3/Resources/Strings.zh.axaml",
+        ["fa"] = "avares://OnionHopV3/Resources/Strings.fa.axaml",
+        ["ckb"] = "avares://OnionHopV3/Resources/Strings.ckb.axaml",
+        ["azb"] = "avares://OnionHopV3/Resources/Strings.azb.axaml"
+    };
+
+    // Languages that render right-to-left (Persian, Sorani Kurdish, Iranian Azerbaijani). When one of
+    // these is active the whole UI is mirrored via FlowDirection (see App.ApplyFlowDirection).
+    private static readonly HashSet<string> RightToLeftLanguages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "fa", "ckb", "azb"
     };
 
     public static string CurrentLanguage { get; private set; } = "en";
+
+    /// <summary>True when the active language reads right-to-left.</summary>
+    public static bool IsRightToLeft => RightToLeftLanguages.Contains(CurrentLanguage);
 
     public static event EventHandler? LanguageChanged;
 
@@ -95,6 +108,13 @@ public static class LocalizationService
         if (trimmed.StartsWith("fr", StringComparison.Ordinal)) return "fr";
         if (trimmed.StartsWith("ru", StringComparison.Ordinal)) return "ru";
         if (trimmed.StartsWith("zh", StringComparison.Ordinal)) return "zh";
+        // Order matters: check the longer Iranian codes before the bare "fa"/"az" prefixes.
+        if (trimmed.StartsWith("ckb", StringComparison.Ordinal)) return "ckb";
+        if (trimmed.StartsWith("azb", StringComparison.Ordinal)) return "azb";
+        if (trimmed.StartsWith("az", StringComparison.Ordinal)) return "azb";
+        if (trimmed.StartsWith("ku", StringComparison.Ordinal)) return "ckb";
+        if (trimmed.StartsWith("fa", StringComparison.Ordinal)) return "fa";
+        if (trimmed.StartsWith("pe", StringComparison.Ordinal)) return "fa";
         return "en";
     }
 }

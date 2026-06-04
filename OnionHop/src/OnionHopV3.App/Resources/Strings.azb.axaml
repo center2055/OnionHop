@@ -1,0 +1,526 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Common -->
+  <x:String x:Key="Common.Search">آختار</x:String>
+
+  <!-- Navigation -->
+  <x:String x:Key="Nav.Home">آنا صفحه</x:String>
+  <x:String x:Key="Nav.Settings">آیارلار</x:String>
+  <x:String x:Key="Nav.Scanner">اسکنر</x:String>
+  <x:String x:Key="Nav.Logs">لاقلار</x:String>
+  <x:String x:Key="Nav.About">هاققیندا</x:String>
+
+  <!-- Bridge Scanner -->
+  <x:String x:Key="Scanner.Title">بریج اسکنری</x:String>
+  <x:String x:Key="Scanner.Subtitle">بریجلری TCP-ping ایله سینایین، بؤلگه‌نیزده‌ن اولاشیلابیلن‌لری تاپین. یاشیل = اولاشیلابیلیر، ساری = یاواش، قیرمیزی = بلوکلانیب/اولاشیلمیر. ایشله‌یه‌ن‌لری ایخراج ائدین یا اؤزل بریج کیمی ایشلتدین.</x:String>
+  <x:String x:Key="Scanner.Category">کاتقوری</x:String>
+  <x:String x:Key="Scanner.Transport">ناقلیه</x:String>
+  <x:String x:Key="Scanner.IpVersion">IP</x:String>
+  <x:String x:Key="Scanner.Workers">ایشچیلر</x:String>
+  <x:String x:Key="Scanner.Timeout">زامان اشیمی (ث)</x:String>
+  <x:String x:Key="Scanner.CustomSource">اؤزل لیست</x:String>
+  <x:String x:Key="Scanner.CustomSourceHint">قولکتور لیستی یئرینه اؤز یاپیشدیردیغینیز بریج سطرلرینی اسکن ائدین.</x:String>
+  <x:String x:Key="Scanner.CustomWatermark">بریج سطرلرینی بورایا یاپیشدیرین، هر سطرده بیری (مثلاً obfs4 1.2.3.4:443 FINGERPRINT cert=... iat-mode=0)</x:String>
+  <x:String x:Key="Scanner.Start">اسکنی باشلات</x:String>
+  <x:String x:Key="Scanner.Stop">دایاندیر</x:String>
+  <x:String x:Key="Scanner.Export">ایشله‌یه‌ن‌لری ایخراج ائت</x:String>
+  <x:String x:Key="Scanner.ApplyAsCustom">ایشله‌یه‌ن‌لری بریج کیمی ایشلت</x:String>
+  <x:String x:Key="Scanner.ColType">بریج نوعو</x:String>
+  <x:String x:Key="Scanner.ColHost">هاست</x:String>
+  <x:String x:Key="Scanner.ColPort">پورت</x:String>
+  <x:String x:Key="Scanner.ColPing">Ping (ms)</x:String>
+  <x:String x:Key="Scanner.ColStatus">وضعیت</x:String>
+  <x:String x:Key="Scanner.EmptyTitle">هنوز اسکن نتیجه‌سی یوخدور</x:String>
+  <x:String x:Key="Scanner.EmptyDescription">بیر کاتقوری/ناقلیه سئچیب اسکنی باشلادین، یا اؤزل لیست یاپیشدیرین.</x:String>
+
+  <!-- Home -->
+  <x:String x:Key="Home.Title">باغلانتی</x:String>
+  <x:String x:Key="Home.CurrentIp">جاری IP</x:String>
+  <x:String x:Key="Home.SocksPort">SOCKS پورتو</x:String>
+  <x:String x:Key="Home.HttpPort">HTTP پورتو</x:String>
+  <x:String x:Key="Home.ManualExitFingerprint">اللی چیخیش فینگرپرینتی</x:String>
+  <x:String x:Key="Home.Connect">باغلان</x:String>
+  <x:String x:Key="Home.Disconnect">آیریل</x:String>
+  <x:String x:Key="Home.Cancel">وازگئچ</x:String>
+  <x:String x:Key="Home.RefreshIp">IP-نی یئنیله</x:String>
+  <x:String x:Key="Home.NewIdentity">یئنی کیملیک</x:String>
+  <x:String x:Key="Home.UpdateBridges">بریجلری یئنیله</x:String>
+  <x:String x:Key="Home.UpdateBridgesTooltip">عادی باغلانتینیز اوستوندن تازه، سینانمیش بریجلر چکین (VPN آرخاسیندا دا ایشلیر). اؤنجه Tor-ا باغلی اولماغا گرک یوخدور.</x:String>
+  <x:String x:Key="Home.SystemProxyOn">سیستم Proxy: آچیق</x:String>
+  <x:String x:Key="Home.SystemProxyOff">سیستم Proxy: باغلی</x:String>
+  <x:String x:Key="Home.SystemProxyTooltip">Proxy موددا سیستم ترافیکینین Tor اوستوندن ائتمه‌سینی کونترول ائدیر. باغلانمادان اؤنجه آچیب-قاپایارق داورانیشی اؤنجه‌دن آیارلایین، یا باغلی ایکن Tor-دان آیریلمادان جانلی دییشدیرین. KAPALI اولاندا سیستم ترافیکی بیرباشا کئچیر (مثلاً آیری بیر VPN)؛ SOCKS پورتونا یؤنله‌ندیریلمیش آپپلار Tor-دان ایستیفاده ائتمه‌یه دوام ائدیر.</x:String>
+  <x:String x:Key="Home.BridgeDataAutoUpdates">بریج مالوماتی اوتوماتیک یئنیله‌نیر</x:String>
+  <x:String x:Key="Home.BridgeDataLastUpdateUnknown">بریج مالوماتی سون یئنیله‌مه: هله یئنیله‌نمه‌ییب.</x:String>
+  <x:String x:Key="Home.BridgeDataLastUpdateValue">بریج مالوماتی سون یئنیله‌مه: {0}</x:String>
+  <x:String x:Key="Home.Routing">روتینق</x:String>
+  <x:String x:Key="Home.SmartConnect">آقیللی باغلانما (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="Home.SmartConnectHint">شبکه‌نیز و اولکه پروفیلینیز اوچون ان ایی Tor باغلانتی ستراتژیسینی اوتوماتیک سئچیر. آچیق اولاندا بریج/سانسور آیارلاری اوزه لاشدیریله بیلر.</x:String>
+  <x:String x:Key="Home.Mode">مود</x:String>
+  <x:String x:Key="Home.ModeProxy">Proxy مودو</x:String>
+  <x:String x:Key="Home.ModeTun">TUN/VPN مودو</x:String>
+  <x:String x:Key="Home.Automatic">اوتوماتیک</x:String>
+  <x:String x:Key="Home.ExitLocation">چیخیش یئری</x:String>
+  <x:String x:Key="Home.ExitLocationManualHint">اللی چیخیش فینگرپرینتی قورولوب. چیخیش یئری دئاکتیو ائدیلیب.</x:String>
+  <x:String x:Key="Home.TorNetwork">Tor شبکه‌سی</x:String>
+  <x:String x:Key="Home.TorNetworkHint">Tor-ون اؤز ترافیکینی گؤستریر (کونترول پورتوندان).</x:String>
+  <x:String x:Key="Home.TunOptions">TUN/VPN سئچیم‌لری</x:String>
+  <x:String x:Key="Home.HybridRouting">هیبریدی روتینق (بؤلونموش تونل)</x:String>
+  <x:String x:Key="Home.KillSwitch">کیل سویچ (یالنیز قاتی TUN)</x:String>
+  <x:String x:Key="Home.KillSwitchHint">کیل سویچ اداره‌چی ایجازه‌سی گرکدیریر و هیبریدی موددا دئاکتیودور.</x:String>
+  <x:String x:Key="Home.ConnectionElapsed">باغلانما مودتی</x:String>
+  <x:String x:Key="Home.DownloadingComponents">کومپونئنت‌لر ایندیریلیر...</x:String>
+  <x:String x:Key="Home.QuickActions">سریع عملیات‌لار</x:String>
+
+  <!-- Logs -->
+  <x:String x:Key="Logs.Title">لاقلار</x:String>
+  <x:String x:Key="Logs.TabApp">آپپ</x:String>
+  <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.TabXray">Xray</x:String>
+  <x:String x:Key="Logs.TabSingBox">Sing-box</x:String>
+  <x:String x:Key="Logs.Copy">کوپیله</x:String>
+  <x:String x:Key="Logs.Export">ایخراج ائت...</x:String>
+  <x:String x:Key="Logs.Clear">تمیزله</x:String>
+  <x:String x:Key="Logs.TipHeader">ایپوجو</x:String>
+  <x:String x:Key="Logs.TipLocalOnly">لاقلار یالنیز یئرلیدیر.</x:String>
+
+  <!-- About -->
+  <x:String x:Key="About.Title">هاققیندا</x:String>
+  <x:String x:Key="About.Links">لینک‌لر</x:String>
+  <x:String x:Key="About.GitHubIssues">GitHub مسئله‌لری</x:String>
+  <x:String x:Key="About.Discord">Discord</x:String>
+  <x:String x:Key="About.KoFi">Ko-Fi</x:String>
+  <x:String x:Key="About.Donate">OnionHop-ا دسته‌ک وئر</x:String>
+  <x:String x:Key="About.DonateIntro">OnionHop پولسوز و آچیق قایناقلیدیر. ایشینیزه یاراییرسا، بیتکوین ایله گلیشمه‌یه دسته‌ک وئره بیلرسینیز:</x:String>
+  <x:String x:Key="About.CopyAddress">آدرسی کوپیله</x:String>
+  <x:String x:Key="About.Copy">کوپیله</x:String>
+  <x:String x:Key="About.BridgeSources">بریج منبعلری</x:String>
+  <x:String x:Key="About.BridgeSourcesIntro">OnionHop Tor بریجلرینی هاردان آلیر:</x:String>
+  <x:String x:Key="About.CollectorDerived">بیزیم قولکتورومز Delta-Kronecker-ین Tor-Bridges-Collector (AGPL-3.0) پروژه‌سیندن توره‌تیلمیشدیر:</x:String>
+  <x:String x:Key="About.RussiaBridges">داخیلی بریجلره igareck-ین vpn-configs-for-russia پروژه‌سیندن لیست‌لر ده داخیلدیر:</x:String>
+  <x:String x:Key="About.FrontedDefaults">Snowflake، meek و conjure Tor Browser ایله گلن ده‌فالت بریج سطرلرینی ایشلدیر.</x:String>
+  <x:String x:Key="About.Changelog">OnionHop تاریخچه‌سی</x:String>
+  <x:String x:Key="About.Refresh">یئنیله</x:String>
+  <x:String x:Key="About.ChangelogDetails">تفصیلات</x:String>
+  <x:String x:Key="About.ChangelogDetailsExpand">تفصیلات +</x:String>
+  <x:String x:Key="About.ChangelogDetailsCollapse">تفصیلات -</x:String>
+  <x:String x:Key="About.ChangelogLoading">دییشیکلیک تاریخچه‌سی GitHub-دان یوکله‌نیر...</x:String>
+  <x:String x:Key="About.ChangelogLoaded">دییشیکلیک تاریخچه‌سی یوکله‌ندی.</x:String>
+  <x:String x:Key="About.ChangelogFailed">دییشیکلیک تاریخچه‌سی ایندی یوکله‌نمه‌دی. باغلانتینیزی یوخلایین و یئنیله‌مه‌یی سینایین.</x:String>
+  <x:String x:Key="About.ChangelogEmpty">هئچ بیر بوراخیلیش گیرشی تاپیلمادی.</x:String>
+  <x:String x:Key="About.ChangelogSummaryLoading">بوراخیلیش تاریخچه‌سی گتیریلیر...</x:String>
+  <x:String x:Key="About.ChangelogSummaryEmpty">بوراخیلیش تاریخچه‌سی هله یوکله‌نمه‌ییب.</x:String>
+  <x:String x:Key="About.ChangelogSummaryRange">{1}-دن {2}-ه قدر {0} بوراخیلیش گؤستریلیر.</x:String>
+  <x:String x:Key="About.ChangelogTypeRelease">بوراخیلیش</x:String>
+  <x:String x:Key="About.ChangelogTypeBeta">بتا / آزسیناقلی بوراخیلیش</x:String>
+  <x:String x:Key="About.ChangelogDateUnknown">تاریخ بیلینمیر</x:String>
+  <x:String x:Key="About.ChangelogNotesMissing">بو بوراخیلیش اوچون دییشیکلیک قئیدلری وئریلمه‌ییب.</x:String>
+  <x:String x:Key="About.Subtitle">OnionHop تاریخچه‌سی، پروژه لینک‌لری و بوراخیلیش قئیدلری.</x:String>
+  <x:String x:Key="About.ProductName">OnionHop V3</x:String>
+  <x:String x:Key="About.Tagline">Tor روتینقی، کیملیک دییشیمی و بریج-آگاه باغلانتی سئچیملری اوچون یونگول بیر ماساوستو کونترول یوزئیی.</x:String>
+  <x:String x:Key="About.BuildRuntime">باو &amp; ایجرا موهیتی</x:String>
+  <x:String x:Key="About.Version">ورژن</x:String>
+  <x:String x:Key="About.Engine">Tor موتور</x:String>
+  <x:String x:Key="About.UpdateState">یئنیله‌مه وضعیتی</x:String>
+  <x:String x:Key="About.LocalOnly">یئرلی تشخیص</x:String>
+  <x:String x:Key="About.LocalOnlyHint">لاقلار و سئسیون فعالیتی سیز آچیقجا ایخراج ائتمه‌سنیز بو جیهازدا قالیر.</x:String>
+  <x:String x:Key="About.LinksHint">پروژه لینک‌لری ده‌فالت برائوزئرینیزده آچیلیر.</x:String>
+  <x:String x:Key="About.ShowHistory">تاریخچه‌نی گؤستر</x:String>
+  <x:String x:Key="About.HideHistory">تاریخچه‌نی گیزله‌ت</x:String>
+
+  <!-- Settings -->
+  <x:String x:Key="Settings.TabGeneral">عمومی</x:String>
+  <x:String x:Key="Settings.TabNetwork">شبکه</x:String>
+  <x:String x:Key="Settings.TabAdvanced">پیشرفته</x:String>
+  <x:String x:Key="Settings.StartupBehavior">باشلانما &amp; داورانیش</x:String>
+  <x:String x:Key="Settings.AutoConnect">باشلانماندا اوتوماتیک باغلان</x:String>
+  <x:String x:Key="Settings.AutoStart">اوتوماتیک باشلانما</x:String>
+  <x:String x:Key="Settings.AutoStartOff">کاپالی</x:String>
+  <x:String x:Key="Settings.AutoStartOn">آچیق</x:String>
+  <x:String x:Key="Settings.AutoStartMinimized">آچیق (کیچیلدیلمیش)</x:String>
+  <x:String x:Key="Settings.MinimizeToTray">باغلاناندا تری-ا کیچیلدیل</x:String>
+  <x:String x:Key="Settings.AutoUpdate">یئنیله‌مه‌لری یوخلا</x:String>
+  <x:String x:Key="Settings.Appearance">گؤروناوش</x:String>
+  <x:String x:Key="Settings.AppearanceMode">تم مودو</x:String>
+  <x:String x:Key="Settings.AppearanceSystemDefault">سیستم ده‌فالتی</x:String>
+  <x:String x:Key="Settings.AppearanceDark">قارانلیق</x:String>
+  <x:String x:Key="Settings.AppearanceLight">آیدین</x:String>
+  <x:String x:Key="Settings.DarkMode">قارانلیق مود</x:String>
+  <x:String x:Key="Settings.NativeChrome">دوغال پنجره چرچیوه‌سی ایشلت (باشلیق چوبوغو/دوگمه‌لر)</x:String>
+  <x:String x:Key="Settings.Language">دیل</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">آنا صفحه‌ده پیشرفته باغلانتی تفصیلاتینی گؤستر</x:String>
+  <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">آنا صفحه کارتیندا فعال SOCKS/HTTP پورت‌لاری و اللی چیخیش فینگرپرینتی وضعیتینی گؤستریر.</x:String>
+  <x:String x:Key="Settings.Maintenance">تعمیر-نگهداری</x:String>
+  <x:String x:Key="Settings.ResetHint">بوتون OnionHop V3 آیارلارینی ده‌فالتا قاییتاریر.</x:String>
+  <x:String x:Key="Settings.RestoreDefaults">ده‌فالت آیارلاری برپا ائت</x:String>
+
+  <x:String x:Key="Settings.BridgesTitle">بریجلر &amp; سانسورلو شبکه‌لر</x:String>
+  <x:String x:Key="Settings.UseBridges">Tor بریجلری ایشلت (obfs4/snowflake/و غیره)</x:String>
+  <x:String x:Key="Settings.BridgeType">بریج نوعو</x:String>
+  <x:String x:Key="Settings.BridgeSource">بریج منبعی</x:String>
+  <x:String x:Key="Settings.BridgeSourceHint">اوتو اؤنجه OnionHop قولکتورونو و Tor بریج خیدمتینی سینایار، اولمادیقدا یئرلی آوتلاین لیست‌له‌ره دؤنر. "یالنیز OnionHop قولکتور" قولکتوردن آزسیناقلانمیش بریجلر چکیر (obfs4، webtunnel، vanilla).</x:String>
+  <x:String x:Key="Settings.BridgeSourceCredits">آوتلاین بریج فال‌بک مالوماتی: Chara-Freedom و کاتیلیمچیلارین Tor-Bridges-Namer پروژه‌سی.</x:String>
+  <x:String x:Key="Settings.CustomBridges">اؤزل بریجلر (ایختیاری، داخیلی بریجلری اوزه لاشدیریر)</x:String>
+  <x:String x:Key="Settings.CustomBridgesWatermark">bridges.torproject.org-دان بریج سطرلرینی یاپیشدیرین...</x:String>
+  <x:String x:Key="Settings.CustomSni">اؤزل SNI/فرانت هاست‌لار (ایختیاری)</x:String>
+  <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
+  <x:String x:Key="Settings.UpstreamProxyTitle">یوخاری آخین پراکسی (پیشرفته)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHint">Tor-ون اؤنجه باشقا بیر پراکسی اوستوندن باغلانتی کوروماسینا ایمکان وئریر — OnionHop-ی شرکت/SOCKS گئیت‌ویی یا Proxifier کیمی بیر آراجین آرخاسیندا ایشلتمک اوچون فایدالیدیر. کلاسیک Tor موتورو گرکدیریر.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnable">یوخاری آخین پراکسیدن ایستیفاده ائت</x:String>
+  <x:String x:Key="Settings.UpstreamProxyEnableHint">Tor-ون بوتون خاریجی ترافیکینی آشاغیداکی پراکسیدن کئچیر.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttps">SOCKS5 یئرینه HTTPS پراکسی</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHttpsHint">کاپالی = SOCKS5 (ان یایگین). آچیق = HTTPS (HTTP CONNECT) پراکسی.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHost">پراکسی هاستی</x:String>
+  <x:String x:Key="Settings.UpstreamProxyHostHint">یوخاری آخین پراکسینین IP-سی یا هاست آدی.</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPort">پورت</x:String>
+  <x:String x:Key="Settings.UpstreamProxyUsername">ایستیفاده‌چی آدی (ایختیاری)</x:String>
+  <x:String x:Key="Settings.UpstreamProxyPassword">پاسوورد (ایختیاری)</x:String>
+  <x:String x:Key="Settings.SnowflakeAmpHint">Snowflake بروکئرینه بیرباشا باغلانماق یئرینه Google-ون AMP کشینی اوستوندن اولاشیر. بروکئره چاتیلمیر خطاسی گؤرونده بونو آچین — بروکئری بلوکلایان شبکه‌لرده کؤمک ائدیر. یالنیز snowflake بریج نوعونه تاثیر ائدیر.</x:String>
+  <x:String x:Key="Settings.AppPickerButton">ایشله‌یه‌ن آپپ سئچ…</x:String>
+  <x:String x:Key="Settings.AppPickerTitle">بؤلونموش تونل: آپپ سئچ</x:String>
+  <x:String x:Key="Settings.AppPickerHint">ایندی آچیق اولان آپپلارینیزدیر. هر بیرینی Tor اوستوندن کئچسین یا بیرباشا باغلانسین دئیه آیارلایین. ده‌فالتدا قالان‌لار قلوبال هیبریدی آیارینیزا ایطاعت ائدیر.</x:String>
+  <x:String x:Key="Settings.AppPickerRescan">یئنیدن اسکن ائت</x:String>
+  <x:String x:Key="Settings.AppPickerEmpty">پنجره‌سی اولان آچیق آپپ تاپیلمادی. اؤنجه بیر آپپ آچین، سونرا یئنیدن اسکن ائدین.</x:String>
+  <x:String x:Key="Settings.AppPickerModeDefault">ده‌فالت</x:String>
+  <x:String x:Key="Settings.AppPickerModeTor">Tor اوستوندن</x:String>
+  <x:String x:Key="Settings.AppPickerModeDirect">بیرباشا</x:String>
+  <x:String x:Key="Settings.AppPickerNone">آپپ-اوزگو قایدا قورولماییب.</x:String>
+  <x:String x:Key="Common.Apply">اوطبیق ائت</x:String>
+  <x:String x:Key="Common.Cancel">وازگئچ</x:String>
+  <x:String x:Key="Settings.SnowflakeAmp">Snowflake: AMP کشینی ایشلت (بلوکلانمیش شبکه‌لر اوچون)</x:String>
+  <x:String x:Key="Settings.AmpCacheUrl">AMP کش URL-ی (ایختیاری)</x:String>
+  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
+  <x:String x:Key="Settings.ProxyModeTitle">Proxy مودو</x:String>
+  <x:String x:Key="Settings.ProxyScope">Proxy داورانیشی</x:String>
+  <x:String x:Key="Settings.ProxyScopeHint">سیستم پراکسی (بوتون آپپلار) HTTP/HTTPS + SOCKS قورور. SOCKS برائوزئر/.onion مودو برائوزئرلرده دها ایی .onion اویومللوغو اوچون یالنیز SOCKS قورور. یالنیز-یئرلی سیستم پراکسی آیارلارینی دییشدیرمه‌دن ال ایله آپپ قوروماسی اوچون ساخلاییر.</x:String>
+  <x:String x:Key="Settings.PreferredSocksPort">ترجیحلی SOCKS پورتو</x:String>
+  <x:String x:Key="Settings.PreferredHttpPort">ترجیحلی HTTP تونل پورتو</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccess">LAN پراکسی اریشیمینه ایجازه وئر</x:String>
+  <x:String x:Key="Settings.AllowLanProxyAccessHint">Tor پراکسی پورت‌لارینی یئرلی شبکه اراییوزلرینده آچیر تا دیگر جیهازلار باغلانابیلسین. LAN-ینیزا اعتیماد ائتمه‌ییرسینیزسه دئاکتیو ساخلایین.</x:String>
+
+  <x:String x:Key="Settings.SecureDns">VPN موددا گوونلی DNS (DoH)</x:String>
+  <x:String x:Key="Settings.DnsProvider">DNS تأمین‌چیسی</x:String>
+  <x:String x:Key="Settings.DnsProviderHint">اوتو داخیلی DoH تأمین‌چیلرینی بنچمارک ائدیر و ان هیز سالیم‌ینی سئچیر. اللی تأمین‌چیلر اولاشیلمادیقدا اوتوماتیک فال‌بک ائدیر.</x:String>
+  <x:String x:Key="Settings.CustomDohHost">اؤزل DoH هاست / URL</x:String>
+  <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com یا https://dns.example:443</x:String>
+  <x:String x:Key="Settings.CustomDohPath">اؤزل DoH یولو</x:String>
+  <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
+  <x:String x:Key="Settings.OnionDnsProxy">.onion DNS-ینی Tor اوستوندن پراکسیله (اداره‌چی)</x:String>
+  <x:String x:Key="Settings.OnionDnsProxyHint">آچیق اولوب یوکسک ایجازه ایله ایشله‌دیلدیکده .onion DNS سوروغلاری Tor اوستوندن یؤنله‌ندیریلیر.</x:String>
+
+  <x:String x:Key="Settings.TorAdvanced">Tor پیشرفته</x:String>
+  <x:String x:Key="Settings.TorAdvancedHint">قروپلانمیش کونترول‌لار بو بؤلمه‌نی اوخوناقلی ساخلاییر. یالنیز لازیملی بؤلمه‌لری آچین.</x:String>
+  <x:String x:Key="Settings.AdvancedPerformanceSection">عملکرد &amp; اویوملولوق</x:String>
+  <x:String x:Key="Settings.AdvancedTunSection">TUN موتورو</x:String>
+  <x:String x:Key="Settings.AdvancedTunSectionHint">یالنیز TUN/VPN موددا طتبیق اولور. اویوملولوق آیارلاماسی لازیم اولمادیقجا ده‌فالت‌لاری ایشلدین.</x:String>
+  <x:String x:Key="Settings.TunCore">TUN هسته‌سی</x:String>
+  <x:String x:Key="Settings.TunStack">TUN یؤنی</x:String>
+  <x:String x:Key="Settings.TunMtu">TUN MTU (ایختیاری)</x:String>
+  <x:String x:Key="Settings.TunMtuWatermark">بوش = ده‌فالت (اوتو)</x:String>
+  <x:String x:Key="Settings.TunStrictRoute">قاتی مسیر</x:String>
+  <x:String x:Key="Settings.TunStrictRouteHint">آچیق اولاندا مسیرلر TUN یولوندا قالمالیدیر. یالنیز چتین شبکه‌لرده سورون‌گیدرمه اوچون دئاکتیو ائدین.</x:String>
+  <x:String x:Key="Settings.AdvancedTrafficRulesSection">ترافیک محدودیت‌لری</x:String>
+  <x:String x:Key="Settings.AdvancedManualExitSection">اللی چیخیش اوزه لاشدیرماسی</x:String>
+  <x:String x:Key="Settings.EntryNode">گیریش نودو (ایختیاری)</x:String>
+  <x:String x:Key="Settings.EntryNodeHint">گیریش نودلاری بریجلرله بیرلیکده ایشله‌نیله بیلمز.</x:String>
+  <x:String x:Key="Settings.IPv6Support">IPv6 دسته‌کی</x:String>
+  <x:String x:Key="Settings.HardwareAccel">آپارات سورتله‌ندیرمه‌سی</x:String>
+  <x:String x:Key="Settings.ConnectionPadding">باغلانتی دولدورماسی</x:String>
+  <x:String x:Key="Settings.OptionDefault">ده‌فالت</x:String>
+  <x:String x:Key="Settings.OptionEnabled">آکتیو</x:String>
+  <x:String x:Key="Settings.OptionDisabled">دئاکتیو</x:String>
+  <x:String x:Key="Settings.ConnectionPaddingAuto">اوتو (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="Settings.MaxCircuitInactivity">حداکثر دئوره بیفعالیقی (دقیقه)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSeconds">باغلانتی زامان اشیمی (ثانیه)</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">بوش = اوتو، 0 = دئاکتیو</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">OnionHop ده‌فالت‌ینی ایشلتمک اوچون بوش بوراخین، زامان اشیمینی دئاکتیو ائتمک اوچون 0 گیرین، یا سابیت زامان اشیمی اوچون 1-3600 اراسیندا دییر گیرین.</x:String>
+  <x:String x:Key="Settings.RestrictedFirewallMode">محدودلاشدیریلمیش فایروال مودو</x:String>
+  <x:String x:Key="Settings.AllowedPorts">ایجازه‌لی پورت‌لار</x:String>
+  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
+  <x:String x:Key="Settings.EntryExitTip">ایپوجو: گیریش/چیخیش نودلارینی محدودلاماق اعتیمادلیلیق و سورتی آزالدا بیلر.</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprint">اللی چیخیش نودو فینگرپرینتی</x:String>
+  <x:String x:Key="Settings.ManualExitFingerprintWatermark">ایختیاری (مثلاً $FINGERPRINT)</x:String>
+  <x:String x:Key="Settings.ManualEntryFingerprint">اللی گاردیان نودو فینگرپرینتی</x:String>
+  <x:String x:Key="Settings.ManualEntryFingerprintWatermark">ایختیاری گاردیان فینگرپرینتی (مثلاً $FINGERPRINT)</x:String>
+  <x:String x:Key="Settings.ManualMiddleFingerprint">اللی اورتا نود فینگرپرینتی</x:String>
+  <x:String x:Key="Settings.ManualMiddleFingerprintWatermark">ایختیاری اورتا فینگرپرینت (مثلاً $FINGERPRINT)</x:String>
+  <x:String x:Key="Settings.StrictManualEntryFingerprint">قاتی اللی گاردیان فینگرپرینتی (یوخدورسا خطا وئر)</x:String>
+  <x:String x:Key="Settings.StrictManualEntryFingerprintHint">سئچیلمیش فینگرپرینت اولماییندا یئدک گاردیان‌لارا کئچید ایجازه‌سی اوچون دئاکتیو ائدین.</x:String>
+  <x:String x:Key="Settings.StrictManualMiddleFingerprint">قاتی اللی اورتا فینگرپرینتی (یوخدورسا خطا وئر)</x:String>
+  <x:String x:Key="Settings.StrictManualMiddleFingerprintHint">سئچیلمیش فینگرپرینت اولماییندا یئدک اورتا رله‌لره کئچید ایجازه‌سی اوچون دئاکتیو ائدین.</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprint">قاتی اللی چیخیش فینگرپرینتی (یوخدورسا خطا وئر)</x:String>
+  <x:String x:Key="Settings.StrictManualExitFingerprintHint">سئچیلمیش فینگرپرینت اولماییندا یئدک چیخیش‌لارا کئچید ایجازه‌سی اوچون دئاکتیو ائدین.</x:String>
+
+  <x:String x:Key="Settings.SplitTunnelingTitle">بؤلونموش تونل (هیبریدی مود)</x:String>
+  <x:String x:Key="Settings.SplitTunnelingHint">هیبریدی موددا هانسی آپپلارین Tor ایشله‌دیب هانسیلارین بیرباشا باغلانماسینی سئچین. آشاغیداکی "ایشله‌یه‌ن آپپ سئچ…" دوگمه‌سینی ایشلدین.</x:String>
+  <x:String x:Key="Settings.RouteAllWebTraffic">بوتون وئب ترافیکینی (پورت‌لار 80/443) Tor اوستوندن یؤنله‌ندیر</x:String>
+  <x:String x:Key="Settings.BlockQuic">Tor آپپلاری اوچون QUIC/UDP بلوکلا (بای‌پاس سیزیش‌لارینین اؤنونو آل)</x:String>
+  <x:String x:Key="Settings.BlockUdp">UDP ترافیکینی بلوکلا</x:String>
+  <x:String x:Key="Settings.TorApps">Tor اوستوندن کئچه‌ن آپپلار (هیبریدی مود)</x:String>
+  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
+  <x:String x:Key="Settings.BypassApps">Tor-ی دولانان آپپلار (ایختیاری)</x:String>
+  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
+  <x:String x:Key="Settings.SplitTunnelingEnableHint">بؤلونموش تونلدن ایستیفاده اوچون آنا صفحه‌ده TUN/VPN مودو + هیبریدی روتینقی آکتیو ائدین.</x:String>
+
+  <x:String x:Key="Settings.AutomationTitle">اوتوماسیون</x:String>
+  <x:String x:Key="Settings.OpenConnectedPage">باغلانماندا صفحه آچ</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPage">آیریلاندا صفحه آچ</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageWatermark">https://support.torproject.org/</x:String>
+  <x:String x:Key="Settings.DiscordStatus">Discord وضعیتینی آکتیو ائت</x:String>
+
+  <!-- Bridge type labels -->
+  <x:String x:Key="BridgeType.Automatic">اوتوماتیک (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="BridgeType.Vanilla">وانیلا بریجلری</x:String>
+  <x:String x:Key="BridgeType.Obfs4">obfs4</x:String>
+  <x:String x:Key="BridgeType.Snowflake">snowflake</x:String>
+  <x:String x:Key="BridgeType.Conjure">conjure</x:String>
+  <x:String x:Key="BridgeType.Webtunnel">webtunnel</x:String>
+  <x:String x:Key="BridgeType.MeekAzure">meek-azure</x:String>
+  <x:String x:Key="BridgeType.Dnstt">DNS تونلی (dnstt)</x:String>
+  <x:String x:Key="BridgeType.Custom">اؤزل</x:String>
+  <x:String x:Key="BridgeSource.Auto">اوتو (قولکتور، بریج خیدمتی، سونرا آوتلاین)</x:String>
+  <x:String x:Key="BridgeSource.OnlineOnly">یالنیز Tor بریج خیدمتی</x:String>
+  <x:String x:Key="BridgeSource.OfflineOnly">یالنیز آوتلاین</x:String>
+  <x:String x:Key="BridgeSource.CollectorOnly">یالنیز OnionHop قولکتورو</x:String>
+  <x:String x:Key="ProxyScope.System">سیستم پراکسی (بوتون آپپلار)</x:String>
+  <x:String x:Key="ProxyScope.SystemSocks">سیستم پراکسی (SOCKS برائوزئر/.onion)</x:String>
+  <x:String x:Key="ProxyScope.LocalOnly">یالنیز یئرلی پراکسی (اللی آپپلار)</x:String>
+  <x:String x:Key="TunStack.Mixed">قاریشیق (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="TunStack.System">سیستم</x:String>
+  <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunCore.SingBox">sing-box (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="TunCore.Xray">xray (تجربی)</x:String>
+
+  <!-- Language names -->
+  <x:String x:Key="Language.English">ایتگیلیسجه</x:String>
+  <x:String x:Key="Language.German">آلمانجا</x:String>
+
+  <!-- Window controls -->
+  <x:String x:Key="Window.Minimize">کیچیلت</x:String>
+  <x:String x:Key="Window.MaximizeRestore">بؤیوت / برپا ائت</x:String>
+  <x:String x:Key="Window.Close">باغلا</x:String>
+
+  <!-- Runtime status -->
+  <x:String x:Key="Status.Disconnected">باغلانتی کسیلیب</x:String>
+  <x:String x:Key="Status.Connected">باغلی</x:String>
+  <x:String x:Key="Status.Connecting">باغلانیلیر...</x:String>
+  <x:String x:Key="Status.Disconnecting">آیریلیلیر...</x:String>
+  <x:String x:Key="Status.ReadyToRoute">Tor اوستوندن ترافیک یؤنله‌ندیرمه‌یه حاضیردیر.</x:String>
+  <x:String x:Key="Status.Resolving">چؤزولور...</x:String>
+  <x:String x:Key="Status.DownloadingComponentsWait">کومپونئنت‌لر ایندیریلیر. لطفاً صبر ائدین.</x:String>
+  <x:String x:Key="Status.AdminRequiredRequesting">Windows شبکه دییشیم‌لری اداره‌چی ایجازه‌سی گرکدیریر. ایمتیازلی کؤمکچی باشلادیلیر...</x:String>
+  <x:String x:Key="Status.AdminRequiredCanceled">بو Windows شبکه اؤزلیگی اوچون اداره‌چی ایجازه‌سی لازیمدیر. باغلانتی لغو ائدیلدی.</x:String>
+  <x:String x:Key="Status.CancelingConnect">باغلانتی جاهدی لغو ائدیلیر...</x:String>
+  <x:String x:Key="Status.DefaultsRestored">ده‌فالت آیارلار برپا ائدیلدی.</x:String>
+  <x:String x:Key="Status.CheckingComponents">کومپونئنت‌لر یوخلانیلیر...</x:String>
+
+  <!-- Tray -->
+  <x:String x:Key="Tray.Tooltip">OnionHop V3</x:String>
+  <x:String x:Key="Tray.Show">گؤستر</x:String>
+  <x:String x:Key="Tray.Connect">باغلان</x:String>
+  <x:String x:Key="Tray.Disconnect">آیریل</x:String>
+  <x:String x:Key="Tray.Exit">چیخ</x:String>
+
+  <!-- V3 Navigation -->
+  <x:String x:Key="Nav.Relays">رله‌لر</x:String>
+  <x:String x:Key="Nav.Navigation">ناویقاسیون</x:String>
+
+  <!-- Common -->
+  <x:String x:Key="Common.Idle">بوش</x:String>
+
+  <!-- Accent -->
+  <x:String x:Key="Accent.Violet">بنوشه‌ئی</x:String>
+  <x:String x:Key="Accent.Indigo">لاجوردی</x:String>
+  <x:String x:Key="Accent.Cyan">فیروزه‌ئی</x:String>
+  <x:String x:Key="Accent.Rose">گوللو</x:String>
+
+  <!-- V3 Home -->
+  <x:String x:Key="Home.V3HeroTitle">باغلانتی گئنل باخیشی</x:String>
+  <x:String x:Key="Home.V3HeroSubtitle">جانلی Tor مسیری، بریج و کیملیک وضعیتی.</x:String>
+  <x:String x:Key="Home.EngineMode">Tor موتورو</x:String>
+  <x:String x:Key="Home.CopyIp">IP-نی کوپیله</x:String>
+  <x:String x:Key="Home.NetworkOverview">شبکه گئنل باخیشی</x:String>
+  <x:String x:Key="Home.Download">ایندیریلمه</x:String>
+  <x:String x:Key="Home.Upload">یوکله‌نمه</x:String>
+  <x:String x:Key="Home.CircuitYou">سیز</x:String>
+  <x:String x:Key="Home.CircuitGuard">گاردیان</x:String>
+  <x:String x:Key="Home.CircuitMiddle">اورتا</x:String>
+  <x:String x:Key="Home.CircuitExit">چیخیش</x:String>
+  <x:String x:Key="Home.CircuitInternet">اینترنت</x:String>
+  <x:String x:Key="Home.CircuitBridge">بریج / گیریش</x:String>
+  <x:String x:Key="Home.CircuitMiddleActive">رله تؤری</x:String>
+  <x:String x:Key="Home.CircuitMiddleIdle">دئوره گؤزله‌نیلیر</x:String>
+  <x:String x:Key="Home.CircuitInternetIdle">هله یؤنله‌ندیریلمه‌ییب</x:String>
+  <x:String x:Key="Home.CircuitGuardHint">سئچیلمیش گیریش ترجیحی یا بریج-آگاه مسیر.</x:String>
+  <x:String x:Key="Home.CircuitExitHint">جاری چیخیش ترجیحی یا اللی فینگرپرینت.</x:String>
+  <x:String x:Key="Home.RoutingPreferences">روتینق &amp; ترجیح‌لر</x:String>
+  <x:String x:Key="Home.ModeHint">یونگول پراکسی روتینقی ایله سیستم-جاپی VPN مودو آراسیندا کئچیرین.</x:String>
+  <x:String x:Key="Home.ExitLocationHint">اللی چیخیش سئچیم‌لری پیشرفته‌دیر و آنونیملیک و اریشیلبیلیرلیی تاثیرله‌یه بیلر.</x:String>
+  <x:String x:Key="Home.AdvancedPreferences">پیشرفته ترجیح‌لری آچ</x:String>
+  <x:String x:Key="Home.RecentActivity">سون سئسیون فعالیتی</x:String>
+  <x:String x:Key="Home.NoRecentEvents">هله سون حادثه یوخدور</x:String>
+  <x:String x:Key="Home.NoRecentEventsHint">باغلانتی، بریج و شبکه عملیات‌لاری بو سئسیوندا بورادا گؤرونه‌جک.</x:String>
+  <x:String x:Key="Home.SessionTransfer">اؤتورولموش داتا</x:String>
+  <x:String x:Key="Home.SessionTransferHint">جاری Tor سئسیونوندا گؤرونن جمی ترافیک.</x:String>
+  <x:String x:Key="Home.SessionCircuits">قورولموش دئوره‌لر</x:String>
+  <x:String x:Key="Home.SessionCircuitsHint">باغلانما و کیملیک دییشیم‌لریندن سئسیون سویه‌لی دئوره سایاجی.</x:String>
+  <x:String x:Key="Home.SessionIdentityChanges">کیملیک دییشیم‌لری</x:String>
+  <x:String x:Key="Home.SessionIdentityChangesHint">بو آپپ سئسیونوندا یئنی کیملیک سوروغلاری.</x:String>
+  <x:String x:Key="Home.SessionUptime">ایشلمه مودتی</x:String>
+  <x:String x:Key="Home.SessionUptimeHint">بو سئسیون اوچون جاری باغلی ایشلمه مودتی.</x:String>
+  <x:String x:Key="Home.PortHint">Tor-آگاه ایستیفاده‌چیلر اوچون آیریلمیش SOCKS اوچ نقطه‌سی.</x:String>
+  <x:String x:Key="Home.HttpPortHint">یئرلی HTTP تونللمه فعال اولاندا ایشله‌دیلن HTTP بریج پورتو.</x:String>
+
+  <!-- V3 Settings -->
+  <x:String x:Key="Settings.AutoConnectHint">آپپی اضافه کلیک لازیم اولمادان باغلانمایا حاضیر باشلادیر.</x:String>
+  <x:String x:Key="Settings.AutoStartHint">OnionHop-ون ماساوستو سئسیونونوزلا باشلایوب-باشلامادیغینی کونترول ائدیر.</x:String>
+  <x:String x:Key="Settings.MinimizeToTrayHint">پنجره‌نی باغلاماق OnionHop-ی تری/مئنیو چوبوغوندا دیری ساخلاییر.</x:String>
+  <x:String x:Key="Settings.AutoUpdateHint">GitHub بوراخیلیش متادتاسینی یوخلاییر و دها یئنی باولاری گؤستریر.</x:String>
+  <x:String x:Key="Settings.DiscordStatusHint">ایختیاری زنگین پرئزنس. هئچ بیر ترافیک و گزینتی محتواسی پایلاشیلمیر.</x:String>
+  <x:String x:Key="Settings.AppearanceModeHint">آرخا اوجه داورانیشینی دییشدیرمه‌دن گله‌جک آیدین مود اوچون حاضیرلانیب.</x:String>
+  <x:String x:Key="Settings.AccentColor">ووروغو رنگ</x:String>
+  <x:String x:Key="Settings.AccentColorHint">روتینق داورانیشینی دییشدیرمه‌دن UI ووروغو رنگینی دییشدیر.</x:String>
+  <x:String x:Key="Settings.LanguageHint">یالنیز UI لوکالیزاسیونو. باغلانتی داورانیشی دییشمیر.</x:String>
+  <x:String x:Key="Settings.NativeChromeHint">پلاتفورم اینتئقراسیونو داها ایی گؤرونده دوغال باشلیق چوبوغو کونترول‌لارینی ایشلت.</x:String>
+  <x:String x:Key="Settings.PrivacySecurity">گیزلیلیک &amp; گوونلیک</x:String>
+  <x:String x:Key="Settings.ClearSessionDataOnDisconnect">آیریلاندا سئسیون داتاسینی تمیزله</x:String>
+  <x:String x:Key="Settings.ClearSessionDataOnDisconnectHint">تونل دوراندا جانلی لاقلاری و سئسیون سایاجلارینی تمیزلیر.</x:String>
+  <x:String x:Key="Settings.BlockLanAccess">LAN اریشیمینی بلوکلا</x:String>
+  <x:String x:Key="Settings.BlockLanAccessHint">یئرلی پراکسی دینله‌ییجیلرینی ده‌فالت اولاراق LAN-دان اوزاق ساخلاییر.</x:String>
+  <x:String x:Key="Settings.DnsLeakProtection">DNS سیزیش قوروماسی</x:String>
+  <x:String x:Key="Settings.DnsLeakProtectionHint">بوتون DNS-ی Tor اوستوندن مجبوری کئچیریر کی عادی سوروغلار ISP-نیزه سیزماسین. Proxy موددا بونون اوچون اداره‌چی لازیمدیر (Windows)؛ TUN/VPN مودو هر زامان DNS-ی Tor اوستوندن یؤنله‌ندیریر. قئید: WebRTC/UDP IP سیزیشلارینی دایاندیرمیر — بونون اوچون TUN/VPN موددان ایستیفاده ائدین.</x:String>
+  <x:String x:Key="Settings.ClipboardProtection">پانو قوروماسی</x:String>
+  <x:String x:Key="Settings.ClipboardProtectionHint">پانو دییشدیریلمه‌میشسه OnionHop تارافیندان کوپیله‌نن دییرلری قیسا سورهده‌ن سونرا تمیزلیر.</x:String>
+  <x:String x:Key="Settings.PersistentHelper">اداره‌چی کؤمکچیسینی اکتیو ساخلا</x:String>
+  <x:String x:Key="Settings.PersistentHelperHint">باغلاندیقدا TUN/VPN موددا هر دفعه اداره‌چی ایجازه‌سی سورماسین دئیه گیریشده باشلایان بیر آرخا-پلان کؤمکچیسی قورور. ده‌فالتدا کاپالیدیر؛ کاپالی اولاندا OnionHop هئچ بیر اوتوباشلانما تاپشیریغی اضافه ائتمیر.</x:String>
+  <x:String x:Key="Settings.ResetDescription">آیارلار ده‌فالت‌لارینی برپا ائت و جاری سئسیون سایاجلارینی تمیزله.</x:String>
+  <x:String x:Key="Settings.TorEngineSection">Tor موتورو</x:String>
+  <x:String x:Key="Settings.TorEngine">ایجرا ترجیحی</x:String>
+  <x:String x:Key="Settings.TorEngineAutomatic">اوتوماتیک (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="Settings.TorEngineClassic">کلاسیک سابیت</x:String>
+  <x:String x:Key="Settings.TorEngineArti">Arti نوو-نسل</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop سریع (2 آتلاما)</x:String>
+  <x:String x:Key="Settings.TorEngineHint">اوتوماتیک دسته‌کله‌نمیش Arti ایجراسی سئچیلمه‌میشسه کلاسیک ایجرانی ایشلدیر.</x:String>
+  <x:String x:Key="Settings.TorEnginePreviewHint">Arti بینیل آچیلاندا، PATH-ده یا ONIONHOP_ARTI_PATH اوستوندن قورولاندا یئرلی SOCKS ایجراسی باشلاداجاق.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop داها آز گئجیکمه اوچون قیسالدیلمیش 2 آتلاما (Guard→Exit) دئوره‌لری ایشلدیر. استاندارد Tor-دان سریعدیر، انجا آنونیملیک داها ضعیفدیر. artihop بینیلینین بینیلده، PATH-ده یا ONIONHOP_ARTIHOP_PATH اوستوندن قورولو اولماسینی گرکدیریر.</x:String>
+
+  <!-- Snowflake proxy (volunteer) -->
+  <x:String x:Key="Snowflake.SectionTitle">Snowflake بریجی (گؤنوللو)</x:String>
+  <x:String x:Key="Snowflake.SectionHint">سانسورلو ایستیفاده‌چیلرین Tor-ا اولاشماسینا کؤمک اوچون بیر Snowflake پراکسیسی ایشلدین. بو دیگر‌لرینین ترافیکینی WebRTC اوستوندن آکتاریر و اؤز باغلانتینیزدان آیریدیر — اؤز ترافیکینیزی یؤنله‌ندیرمیر. محدودسوز/فول-کون NAT-ده ان ایی ایشلیر.</x:String>
+  <x:String x:Key="Snowflake.Enable">Snowflake پراکسیسی کیمی ایشلت</x:String>
+  <x:String x:Key="Snowflake.EnableHint">گؤنوللو ایشلتمه‌یی ایندی باشلات/دایاندیر. snowflake-proxy بینیلینی گرکدیریر (Go ایله download-deps.ps1 ایله قور، یا ONIONHOP_SNOWFLAKE_PROXY_PATH قور).</x:String>
+  <x:String x:Key="Snowflake.AutoStart">OnionHop باشلاناندا Snowflake پراکسیسینی باشلات</x:String>
+  <x:String x:Key="Snowflake.AutoStartHint">هر آپپ باشلانماسیندا اوتوماتیک گؤنوللو ایشلتمه‌یه باشلا.</x:String>
+  <x:String x:Key="Snowflake.Capacity">حداکثر همزامان ایستیفاده‌چی</x:String>
+  <x:String x:Key="Snowflake.CapacityHint">0 = سینیرسیز. بیر آندا نئچه سانسورلو ایستیفاده‌چیی خیدمتلندیردیگینیزی محدودلاییر.</x:String>
+  <x:String x:Key="Snowflake.Status">وضعیت</x:String>
+  <x:String x:Key="Snowflake.StatusStopped">ایشلمیر.</x:String>
+  <x:String x:Key="Snowflake.StatusRunning">ایشلیر — NAT نوعو: {0}، بو سئسیوندا {1} باغلانتی خیدمتلندیریلدی.</x:String>
+  <x:String x:Key="Snowflake.StatusUnavailable">Snowflake پراکسی بینیلی تاپیلمادی. download-deps.ps1 ایله قورون (Go لازیمدیر) یا ONIONHOP_SNOWFLAKE_PROXY_PATH قورون.</x:String>
+  <x:String x:Key="Settings.RelayRefreshInterval">رله داتاسی یئنیله‌مه فاصیله‌سی</x:String>
+  <x:String x:Key="Settings.RelayRefreshIntervalHint">گله‌جک ایتراسیونلاردا رله متادتاسینین نه قدر تئز-تئز یئنیله‌نه‌جه‌گینی کونترول ائدیر.</x:String>
+  <x:String x:Key="Settings.RelayRefreshSixHours">هر 6 ساعتدا بیر</x:String>
+  <x:String x:Key="Settings.RelayRefreshTwelveHours">هر 12 ساعتدا بیر</x:String>
+  <x:String x:Key="Settings.RelayRefreshTwentyFourHours">هر 24 ساعتدا بیر</x:String>
+  <x:String x:Key="Settings.UpdateChannel">یئنیله‌مه کانالی</x:String>
+  <x:String x:Key="Settings.UpdateChannelHint">Stable یاییملانمیش بوراخیلیشلاری ایشلدیر. Preview سونرا بتا یوزئیی اوچون یئر ساخلاییر.</x:String>
+  <x:String x:Key="Settings.UpdateChannelStable">Stable</x:String>
+  <x:String x:Key="Settings.UpdateChannelPreview">Preview</x:String>
+  <x:String x:Key="Settings.UseBridgesHint">بریجلر سانسورا مقاومت اوچوندور، عادی یئر دییشیمی اوچون دئییل.</x:String>
+  <x:String x:Key="Settings.BridgeTypeHint">بریجلر آکتیو اولاندا OnionHop-ون ترجیح ائده‌جه‌یی ناقلیه آیله‌سینی سئچین.</x:String>
+  <x:String x:Key="Settings.PreferredSocksPortHint">باشقا یئرلی خیدمت ده‌فالت پورتو اشغال ائدندیکده فایدالیدیر.</x:String>
+  <x:String x:Key="Settings.PreferredHttpPortHint">یالنیز یئرلی HTTP بریجی باشلادیلاندا آیریلیر.</x:String>
+  <x:String x:Key="Settings.ExitLocation">چیخیش یئری</x:String>
+  <x:String x:Key="Settings.ExitLocationAdvancedHint">اللی چیخیش شکیللندیرمه‌سی پیشرفته‌دیر و آنونیملیک یا اعتیمادلیلیغی آزالدا بیلر.</x:String>
+  <x:String x:Key="Settings.BlockQuicHint">هیبریدی موددا QUIC-ین Tor-ون یؤنله‌ندیردیگی برائوزئر ترافیکینی اطراف کئچمه‌سینین اؤنونو آلیر.</x:String>
+  <x:String x:Key="Settings.BlockUdpHint">Tor UDP داشیمادیغی اوچون TUN موددا ده‌فالتدا UDP-ی بلوکلاییر.</x:String>
+  <x:String x:Key="Settings.OpenConnectedPageHint">اوغورلو باغلانتیدان سونرا ایختیاری آچیلما هدفی.</x:String>
+  <x:String x:Key="Settings.OpenDisconnectedPageHint">تونل دورانداکی ایختیاری یئنیدن آچیلاجاق صفحه.</x:String>
+
+  <!-- V3 Logs -->
+  <x:String x:Key="Logs.Subtitle">منبع و جیددیت فیلترله‌مه‌سی ایله یئرلی-اوزگو تشخیص‌لر.</x:String>
+  <x:String x:Key="Logs.Search">لاقلاری آختار</x:String>
+  <x:String x:Key="Logs.FilterAll">هامیسی</x:String>
+  <x:String x:Key="Logs.LevelInfo">بیلگی</x:String>
+  <x:String x:Key="Logs.LevelWarning">اویارما</x:String>
+  <x:String x:Key="Logs.LevelError">خطا</x:String>
+  <x:String x:Key="Logs.ColumnTime">ساعت</x:String>
+  <x:String x:Key="Logs.ColumnLevel">سویه</x:String>
+  <x:String x:Key="Logs.ColumnSource">منبع</x:String>
+  <x:String x:Key="Logs.ColumnMessage">پئیغام</x:String>
+  <x:String x:Key="Logs.EmptyTitle">جاری گؤرونوشه اویغون لاق گیرشی یوخدور</x:String>
+  <x:String x:Key="Logs.EmptyDescription">باشقا تب سئچین، آختاریش متنینی تمیزلیین یا یئنی ایجرا فعالیتینی گؤزله‌یین.</x:String>
+  <x:String x:Key="Logs.Summary">اوزت</x:String>
+  <x:String x:Key="Logs.TotalEntries">جمی گیرش‌لر</x:String>
+  <x:String x:Key="Logs.ActiveSources">فعال منبعلر</x:String>
+  <x:String x:Key="Logs.LocalOnly">یالنیز یئرلی</x:String>
+  <x:String x:Key="Logs.Pause">پاوز</x:String>
+  <x:String x:Key="Logs.AutoScroll">اوتو کایدیرما</x:String>
+  <x:String x:Key="Logs.FooterHint">پاوز فیلترله‌نمیش گؤرونوشون یئنیله‌نمه‌سینی دایاندیریر؛ آلتداکی ایجرا لاقلاری یئرلی بافرله‌مه‌یه دوام ائدیر.</x:String>
+
+  <!-- V3 Relays -->
+  <x:String x:Key="Relays.Title">رله مراجعه‌چیسی</x:String>
+  <x:String x:Key="Relays.Subtitle">رله‌لری عادی VPN لوکاسیونلاری کیمی سونماداراق جانلی Tor دیرکتورینی اینجله‌یین.</x:String>
+  <x:String x:Key="Relays.Refresh">یئنیله</x:String>
+  <x:String x:Key="Relays.Search">لقب، فینگرپرینت، اولکه یا IP آختار</x:String>
+  <x:String x:Key="Relays.AllCountries">بوتون اولکه‌لر</x:String>
+  <x:String x:Key="Relays.AllRoles">بوتون رول‌لار</x:String>
+  <x:String x:Key="Relays.AllFlags">بوتون بایراق‌لار</x:String>
+  <x:String x:Key="Relays.AnyBandwidth">ایستنیلن پهنه‌بند</x:String>
+  <x:String x:Key="Relays.Warning">اللی رله و چیخیش سئچیمی آنونیملیگی آزالدا بیلر.</x:String>
+  <x:String x:Key="Relays.WarningHint">اللی ترجیح‌لری یالنیز گیزلیلیک مبادله‌لرینی و گری دؤنوش یولونو آنلادیقداندا ایشلدین.</x:String>
+  <x:String x:Key="Relays.ColumnNickname">لقب</x:String>
+  <x:String x:Key="Relays.ColumnCountry">اولکه</x:String>
+  <x:String x:Key="Relays.ColumnRole">رول</x:String>
+  <x:String x:Key="Relays.ColumnBandwidth">پهنه‌بند</x:String>
+  <x:String x:Key="Relays.ColumnUptime">ایشلمه مودتی</x:String>
+  <x:String x:Key="Relays.EmptyTitle">جاری فیلتره اویغون رله یوخدور</x:String>
+  <x:String x:Key="Relays.EmptyDescription">سوروغو گئنیشلدین یا پهنه‌بند و بایراق فیلترلرینی یومشادین.</x:String>
+  <x:String x:Key="Relays.Details">سئچیلمیش رله</x:String>
+  <x:String x:Key="Relays.CopyFingerprint">فینگرپرینتی کوپیله</x:String>
+  <x:String x:Key="Relays.SelectRelay">بیر رله سئچین</x:String>
+  <x:String x:Key="Relays.SelectRelayHint">رله تفصیلاتی، بایراق‌لار و تجربی چیخیش کونترول‌لاری بورادا گؤرونه‌جک.</x:String>
+  <x:String x:Key="Relays.FieldFingerprint">فینگرپرینت</x:String>
+  <x:String x:Key="Relays.FieldCountry">اولکه</x:String>
+  <x:String x:Key="Relays.FieldAddress">آدرس</x:String>
+  <x:String x:Key="Relays.FieldPort">OR پورتو</x:String>
+  <x:String x:Key="Relays.FieldBandwidth">پهنه‌بند</x:String>
+  <x:String x:Key="Relays.FieldUptime">ایشلمه مودتی</x:String>
+  <x:String x:Key="Relays.FieldAdded">اضافه‌لنمه تاریخی</x:String>
+  <x:String x:Key="Relays.FieldFlags">بایراق‌لار</x:String>
+  <x:String x:Key="Relays.UseAsPreferredExit">ترجیحلی چیخیش کیمی ایشلت (تجربی)</x:String>
+  <x:String x:Key="Relays.SelectExitRelayFirst">اؤنجه بیر چیخیش رله‌سی سئچین</x:String>
+  <x:String x:Key="Relays.UseAsPreferredExitHint">بو رله‌یی قاتی اللی چیخیش کیمی سابیتلیر. بو آنونیملیک و اریشیلبیلیرلیگی آزالدا بیلر.</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuard">ترجیحلی گاردیان کیمی ایشلت (تجربی)</x:String>
+  <x:String x:Key="Relays.SelectGuardRelayFirst">اؤنجه بیر گاردیان رله‌سی سئچین</x:String>
+  <x:String x:Key="Relays.UseAsPreferredGuardHint">بو رله‌یی قاتی اللی گاردیان کیمی سابیتلیر. بو آنونیملیک و اریشیلبیلیرلیگی آزالدا بیلر.</x:String>
+  <x:String x:Key="Relays.UseAsPreferredMiddle">ترجیحلی اورتا کیمی ایشلت (تجربی)</x:String>
+  <x:String x:Key="Relays.SelectMiddleRelayFirst">اؤنجه بیر اورتا رله‌سی سئچین</x:String>
+  <x:String x:Key="Relays.UseAsPreferredMiddleHint">بو رله‌یی قاتی اللی اورتا کیمی سابیتلیر. بو آنونیملیک و اریشیلبیلیرلیگی آزالدا بیلر.</x:String>
+  <x:String x:Key="Relays.PreferenceSaved">{1} اوچون ترجیحلی {0} ساخلاندی.</x:String>
+  <x:String x:Key="Relays.MapPlaceholderTitle">شبکه جوغرافیاسی</x:String>
+  <x:String x:Key="Relays.MapPlaceholderHint">گله‌جکده خریطه‌ایاساسلی دئوره گؤرونوشو اوچون آیریلمیشدیر. جاری قابیق جوغرافیانی ساختالامادان یئری دورست ساخلاییر.</x:String>
+  <x:String x:Key="Relays.Bandwidth1Mb">حداقل 1 MB/s</x:String>
+  <x:String x:Key="Relays.Bandwidth10Mb">حداقل 10 MB/s</x:String>
+  <x:String x:Key="Relays.Bandwidth50Mb">حداقل 50 MB/s</x:String>
+  <x:String x:Key="Relays.RoleGuard">گاردیان</x:String>
+  <x:String x:Key="Relays.RoleMiddle">اورتا</x:String>
+  <x:String x:Key="Relays.RoleExit">چیخیش</x:String>
+
+  <!-- V3 Status -->
+  <x:String x:Key="Status.Connection">باغلانتی</x:String>
+  <x:String x:Key="Status.Protection">قوروما</x:String>
+  <x:String x:Key="Status.Engine">موتور</x:String>
+  <x:String x:Key="Status.Update">یئنیله‌مه</x:String>
+  <x:String x:Key="Status.ProtectionSystem">سیستم-جاپی روتینق فعالدیر</x:String>
+  <x:String x:Key="Status.ProtectionProxy">Proxy روتینقی فعالدیر</x:String>
+  <x:String x:Key="Status.ProtectionOff">قوروما فعال دئییل</x:String>
+  <x:String x:Key="Status.ProtectionOffDetail">ترافیک ایندی عادی شبکه مسیریندن ایستیفاده ائدیر.</x:String>
+  <x:String x:Key="Status.EngineClassicDetail">کلاسیک ایجرا بوگون فعالدیر.</x:String>
+  <x:String x:Key="Status.EngineAutomaticDetail">اوتوماتیک ایندی کلاسیک ایجرایا چؤزولور.</x:String>
+  <x:String x:Key="Status.UpdateChecksOff">یئنیله‌مه یوخلاماسی دئاکتیو</x:String>
+  <x:String x:Key="Status.UpdateChecking">یئنیله‌مه‌لر یوخلانیلیر</x:String>
+  <x:String x:Key="Status.UpdateUnknown">یئنیله‌مه وضعیتی بیلینمیر</x:String>
+  <x:String x:Key="Status.UpdateAvailable">یئنیله‌مه مؤوجوددور: {0}</x:String>
+  <x:String x:Key="Status.UpdateCurrent">گونجل</x:String>
+</ResourceDictionary>
