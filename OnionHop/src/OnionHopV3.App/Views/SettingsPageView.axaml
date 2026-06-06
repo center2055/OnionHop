@@ -312,7 +312,15 @@
               <controls:DropdownRow Title="{DynamicResource Settings.EntryNode}"
                                     Description="{DynamicResource Settings.EntryNodeHint}"
                                     ItemsSource="{Binding State.LocationOptions}"
-                                    SelectedItem="{Binding State.SelectedEntryLocationOption}" />
+                                    SelectedItem="{Binding State.SelectedEntryLocationOption}"
+                                    IsEnabled="{Binding State.CanSelectEntryLocation}" />
+              <!-- Entry-node pinning is incompatible with bridges (the bridge is the entry hop), so the
+                   selector above is disabled and this explains why instead of silently ignoring it. -->
+              <TextBlock Text="{DynamicResource Settings.EntryNodeBridgesNote}"
+                         IsVisible="{Binding State.UseTorBridges}"
+                         Classes="SectionCaption"
+                         Foreground="{DynamicResource WarningBrush}"
+                         TextWrapping="Wrap" />
               <controls:DropdownRow Title="{DynamicResource Settings.ExitLocation}"
                                     Description="{DynamicResource Settings.ExitLocationAdvancedHint}"
                                     ItemsSource="{Binding State.LocationOptions}"

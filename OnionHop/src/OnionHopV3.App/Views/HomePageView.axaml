@@ -103,7 +103,8 @@
 
           <!-- Right rail: IP + engine -->
           <StackPanel Grid.Column="1" Spacing="12">
-            <Border Classes="CardSecondary">
+            <Border Classes="CardSecondary"
+                    ToolTip.Tip="{DynamicResource Home.IpGeoCaveat}">
               <StackPanel Spacing="6">
                 <TextBlock Text="{DynamicResource Home.CurrentIp}" Classes="Caption" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">

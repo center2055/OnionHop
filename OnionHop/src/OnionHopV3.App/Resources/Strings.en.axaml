@@ -36,6 +36,7 @@
   <!-- Home -->
   <x:String x:Key="Home.Title">Connection</x:String>
   <x:String x:Key="Home.CurrentIp">Current IP</x:String>
+  <x:String x:Key="Home.IpGeoCaveat">The displayed country is estimated from this IP and can differ from your chosen exit — Tor still routes through the exit country you selected.</x:String>
   <x:String x:Key="Home.SocksPort">SOCKS Port</x:String>
   <x:String x:Key="Home.HttpPort">HTTP Port</x:String>
   <x:String x:Key="Home.ManualExitFingerprint">Manual Exit Fingerprint</x:String>
@@ -223,6 +224,7 @@
   <x:String x:Key="Settings.AdvancedManualExitSection">Manual exit override</x:String>
   <x:String x:Key="Settings.EntryNode">Entry node (optional)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">Entry nodes can't be used together with bridges.</x:String>
+  <x:String x:Key="Settings.EntryNodeBridgesNote">Entry node selection is unavailable while bridges are on — the bridge is your entry into Tor.</x:String>
   <x:String x:Key="Settings.IPv6Support">IPv6 support</x:String>
   <x:String x:Key="Settings.HardwareAccel">Hardware acceleration</x:String>
   <x:String x:Key="Settings.ConnectionPadding">Connection padding</x:String>
