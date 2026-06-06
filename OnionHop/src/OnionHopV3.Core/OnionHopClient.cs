@@ -2580,14 +2580,47 @@ public sealed class OnionHopClient : IDisposable
         _statusMessage = "Starting Arti SOCKS runtime...";
         PublishStatus();
 
-        if (options.UseTorBridges ||
-            !IsAutomaticLocation(options.SelectedLocation) ||
+        // Arti supports bridges + pluggable transports natively (since Arti 1.1.0). Resolve the same
+        // reachability-filtered bridge set + transport plugins the classic engine uses and feed them to
+        // Arti via its TOML config, so the fast Arti engine works in censored networks too.
+        IReadOnlyList<string>? artiBridgeLines = null;
+        List<string>? artiTransportPlugins = null;
+        if (options.UseTorBridges)
+        {
+            var torDir = Path.Combine(_baseDir, "tor");
+            artiBridgeLines = await _bridgeManager.GetBridgeLinesAsync(options, _ptConfig, RaiseLog, token).ConfigureAwait(false);
+            if (artiBridgeLines.Count == 0)
+            {
+                var message = _bridgeManager.BridgeValidationMessage;
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(message)
+                    ? "Bridges enabled but no bridge lines are configured."
+                    : message);
+            }
+
+            artiBridgeLines = await FilterReachableBridgesAsync(artiBridgeLines, token).ConfigureAwait(false);
+            artiBridgeLines = LimitBridgeLinesForLaunch(artiBridgeLines, RaiseLog);
+            // dnstt bridges become local vanilla forwarders, which Arti uses like any vanilla bridge.
+            artiBridgeLines = await StartDnsttForwardersAsync(artiBridgeLines, token).ConfigureAwait(false);
+            if (artiBridgeLines.Count == 0)
+            {
+                throw new InvalidOperationException("Bridges enabled but no usable bridges remained for Arti.");
+            }
+
+            var pluginLines = _bridgeManager.GetClientTransportPlugins(options, artiBridgeLines, torDir, _ptConfig, RaiseLog);
+            artiTransportPlugins = pluginLines
+                .Select(TorBridgeManager.NormalizeClientTransportPlugin)
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+            RaiseLog($"Arti: connecting through {artiBridgeLines.Count} bridge(s) using native Arti pluggable-transport support.");
+        }
+
+        if (!IsAutomaticLocation(options.SelectedLocation) ||
             !IsAutomaticLocation(options.SelectedEntryLocation) ||
             !string.IsNullOrWhiteSpace(options.EntryNodeFingerprint) ||
             !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
             !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
         {
-            RaiseLog("Arti mode is using SOCKS proxy runtime only. Classic Tor is still required for OnionHop bridge transport plugins, live entry/middle/exit pinning, and control-port identity changes.");
+            RaiseLog("Arti mode ignores entry/middle/exit relay pinning and control-port identity changes; use the Classic engine if you need those.");
         }
 
         await _artiService.StartAsync(new ArtiLaunchConfig
@@ -2596,7 +2629,9 @@ public sealed class OnionHopClient : IDisposable
             SocksPort = _activeSocksPort,
             SocksListenAddress = _activeProxyBindAddress,
             DataDirectory = Path.Combine(_baseDir, "arti-data"),
-            WorkingDirectory = Path.GetDirectoryName(artiPath)
+            WorkingDirectory = Path.GetDirectoryName(artiPath),
+            BridgeLines = artiBridgeLines,
+            TransportPlugins = artiTransportPlugins
         }, token).ConfigureAwait(false);
 
         _connectionProgress = Math.Max(_connectionProgress, 0.82);

@@ -182,7 +182,7 @@ internal sealed class ArtiService : IDisposable
         Directory.CreateDirectory(stateDir);
         Directory.CreateDirectory(cacheDir);
 
-        return $"""
+        var baseConfig = $"""
             [proxy]
             socks_listen = "{EscapeTomlString(endpoint)}"
             dns_listen = 0
@@ -194,6 +194,89 @@ internal sealed class ArtiService : IDisposable
             [logging]
             console = "info"
             """;
+
+        return baseConfig + BuildBridgesSection(config);
+    }
+
+    // Emit Arti's native [bridges] + [[bridges.transports]] config so the upstream Arti engine connects
+    // through OnionHop's bridges + pluggable transports (Arti has supported this since 1.1.0). Unlike
+    // Tor's whitespace-split ClientTransportPlugin args, TOML strings handle paths with spaces fine.
+    internal static string BuildBridgesSection(ArtiLaunchConfig config)
+    {
+        var bridges = config.BridgeLines;
+        if (bridges == null || bridges.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("\n\n[bridges]\nenabled = true\nbridges = [\n");
+        foreach (var line in bridges)
+        {
+            var spec = line.Trim();
+            if (spec.StartsWith("Bridge ", StringComparison.OrdinalIgnoreCase))
+            {
+                spec = spec[7..].Trim();
+            }
+            if (spec.Length == 0)
+            {
+                continue;
+            }
+            sb.Append($"    \"{EscapeTomlString(spec)}\",\n");
+        }
+        sb.Append("]\n");
+
+        // One [[bridges.transports]] per distinct transport, pointing at its PT binary.
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var plugin in config.TransportPlugins ?? Array.Empty<string>())
+        {
+            var parsed = ParseTransportPlugin(plugin);
+            if (parsed is not var (transport, path) || !seen.Add(transport))
+            {
+                continue;
+            }
+            sb.Append($"\n[[bridges.transports]]\nprotocols = [\"{EscapeTomlString(transport)}\"]\npath = \"{EscapeTomlString(path)}\"\nrun_on_startup = false\n");
+        }
+
+        return sb.ToString();
+    }
+
+    // Parse a Tor-format "transport exec C:\path\to\client.exe [args]" line into (transport, path).
+    internal static (string Transport, string Path)? ParseTransportPlugin(string? plugin)
+    {
+        if (string.IsNullOrWhiteSpace(plugin))
+        {
+            return null;
+        }
+
+        var execIdx = plugin.IndexOf(" exec ", StringComparison.OrdinalIgnoreCase);
+        if (execIdx <= 0)
+        {
+            return null;
+        }
+
+        var transport = plugin[..execIdx].Trim();
+        var rest = plugin[(execIdx + 6)..].Trim();
+        if (transport.Length == 0 || rest.Length == 0)
+        {
+            return null;
+        }
+
+        // PT exec lines OnionHop generates carry just the path (no trailing args), but be defensive: a
+        // quoted path is taken verbatim, otherwise take the whole remainder as the path (TOML-escaped
+        // later, so embedded spaces are fine).
+        string path;
+        if (rest.StartsWith('"'))
+        {
+            var end = rest.IndexOf('"', 1);
+            path = end > 1 ? rest[1..end] : rest.Trim('"');
+        }
+        else
+        {
+            path = rest;
+        }
+
+        return path.Length == 0 ? null : (transport, path);
     }
 
     private static async Task<bool> WaitForSocksPortReadyAsync(
@@ -306,4 +389,12 @@ internal sealed class ArtiLaunchConfig
     public string? DataDirectory { get; init; }
     public string? WorkingDirectory { get; init; }
     public Action<Process>? ProcessStarted { get; init; }
+
+    /// <summary>Bridge spec lines (e.g. "obfs4 1.2.3.4:443 FINGERPRINT cert=... iat-mode=0"), without
+    /// the leading "Bridge ". When non-empty, Arti is configured to connect through these bridges.</summary>
+    public IReadOnlyList<string>? BridgeLines { get; init; }
+
+    /// <summary>Tor-format ClientTransportPlugin lines ("transport exec path"). Each becomes an Arti
+    /// [[bridges.transports]] entry so Arti launches the pluggable transport for its bridges.</summary>
+    public IReadOnlyList<string>? TransportPlugins { get; init; }
 }
