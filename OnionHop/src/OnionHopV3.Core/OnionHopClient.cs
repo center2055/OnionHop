@@ -2122,19 +2122,23 @@ public sealed class OnionHopClient : IDisposable
     {
         if (string.Equals(options.TorEngineMode, OnionHopConnectOptions.TorEngineArti, StringComparison.OrdinalIgnoreCase))
         {
+            if (RequiresClassicTorEngine(options))
+            {
+                RaiseLog("Arti cannot route through an upstream proxy; switching to the classic Tor engine for this connection.");
+                return OnionHopConnectOptions.TorEngineClassic;
+            }
+
             return OnionHopConnectOptions.TorEngineArti;
         }
 
         if (string.Equals(options.TorEngineMode, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.OrdinalIgnoreCase))
         {
-            // ArtiHop is a bridge-less 2-hop SOCKS runtime: it cannot use bridges or pluggable
-            // transports. If this connection needs bridges (e.g. a censored network, or Smart Connect
-            // falling back to bridge strategies), ArtiHop would just fail to bootstrap and the
-            // "fallback" would retry the same bridge-less engine. Use the classic Tor engine instead,
-            // which actually applies the bridges. Direct (bridge-less) connections still use ArtiHop.
+            // ArtiHop now supports bridges + pluggable transports natively (via Arti), so it no longer
+            // drops to classic Tor for a censored/bridged connection. The one capability it still lacks
+            // is upstream-proxy routing, so fall back to classic Tor only for that.
             if (RequiresClassicTorEngine(options))
             {
-                RaiseLog("ArtiHop cannot use bridges or pluggable transports; switching to the classic Tor engine for this bridged connection.");
+                RaiseLog("ArtiHop cannot route through an upstream proxy; switching to the classic Tor engine for this connection.");
                 return OnionHopConnectOptions.TorEngineClassic;
             }
 
@@ -2144,15 +2148,14 @@ public sealed class OnionHopClient : IDisposable
         return OnionHopConnectOptions.TorEngineClassic;
     }
 
-    // True when the connection needs capabilities ArtiHop does not have (bridges / pluggable
-    // transports). Country/relay pinning is intentionally NOT included here - ArtiHop ignores it but
-    // can still connect, so we keep the fast 2-hop path for those.
+    // True when the connection needs a capability the Arti family (Arti + ArtiHop) still lacks. Both now
+    // support bridges + pluggable transports natively, so the only remaining gap is upstream-proxy
+    // routing, which only the classic Tor engine performs. Country/relay pinning is also ignored by the
+    // Arti family but still connects, so it is not included here.
     internal static bool RequiresClassicTorEngine(OnionHopConnectOptions options)
     {
-        return options.UseTorBridges
-               || options.UseCensoredMode
-               || !string.IsNullOrWhiteSpace(options.CustomBridges)
-               || (options.UpstreamProxyEnabled && !string.IsNullOrWhiteSpace(options.UpstreamProxyHost));
+        return options.UpstreamProxyEnabled
+               && !string.IsNullOrWhiteSpace(options.UpstreamProxyHost);
     }
 
     private static bool IsArtiFamilyEngine(string engine) =>
@@ -2655,14 +2658,59 @@ public sealed class OnionHopClient : IDisposable
 
         RaiseLog("ArtiHop uses shortened 2-hop (Guard -> Exit) circuits for lower latency. This is faster than standard Tor but provides weaker anonymity than full 3-hop circuits.");
 
-        if (options.UseTorBridges ||
-            !IsAutomaticLocation(options.SelectedLocation) ||
+        if (!IsAutomaticLocation(options.SelectedLocation) ||
             !IsAutomaticLocation(options.SelectedEntryLocation) ||
             !string.IsNullOrWhiteSpace(options.EntryNodeFingerprint) ||
             !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
             !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
         {
-            RaiseLog("ArtiHop mode is using a SOCKS proxy runtime only. Bridges, country/relay pinning, and control-port identity changes require the classic Tor engine.");
+            RaiseLog("ArtiHop mode ignores country/relay pinning and control-port identity changes; use the Classic engine if you need those.");
+        }
+
+        // ArtiHop (our Arti fork) now supports bridges + pluggable transports via Arti's native config.
+        // Resolve the same reachability-filtered bridge set the other engines use, write it as an
+        // Arti-format [bridges] TOML, and hand the path to ArtiHop via --bridges-config. With a bridge,
+        // ArtiHop's shortened circuit becomes Bridge -> Exit.
+        string? bridgesConfigPath = null;
+        if (options.UseTorBridges)
+        {
+            var torDir = Path.Combine(_baseDir, "tor");
+            var hopBridgeLines = await _bridgeManager.GetBridgeLinesAsync(options, _ptConfig, RaiseLog, token).ConfigureAwait(false);
+            if (hopBridgeLines.Count == 0)
+            {
+                var message = _bridgeManager.BridgeValidationMessage;
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(message)
+                    ? "Bridges enabled but no bridge lines are configured."
+                    : message);
+            }
+
+            hopBridgeLines = await FilterReachableBridgesAsync(hopBridgeLines, token).ConfigureAwait(false);
+            hopBridgeLines = LimitBridgeLinesForLaunch(hopBridgeLines, RaiseLog);
+            hopBridgeLines = await StartDnsttForwardersAsync(hopBridgeLines, token).ConfigureAwait(false);
+            if (hopBridgeLines.Count == 0)
+            {
+                throw new InvalidOperationException("Bridges enabled but no usable bridges remained for ArtiHop.");
+            }
+
+            var pluginLines = _bridgeManager.GetClientTransportPlugins(options, hopBridgeLines, torDir, _ptConfig, RaiseLog);
+            var hopPlugins = pluginLines
+                .Select(TorBridgeManager.NormalizeClientTransportPlugin)
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+
+            var bridgesToml = ArtiService.BuildBridgesSection(new ArtiLaunchConfig
+            {
+                ArtiPath = artiHopPath,
+                SocksPort = _activeSocksPort,
+                BridgeLines = hopBridgeLines,
+                TransportPlugins = hopPlugins
+            }).TrimStart();
+
+            var hopDataDir = Path.Combine(_baseDir, "artihop-data");
+            Directory.CreateDirectory(hopDataDir);
+            bridgesConfigPath = Path.Combine(hopDataDir, "onionhop-artihop-bridges.toml");
+            await File.WriteAllTextAsync(bridgesConfigPath, bridgesToml + "\n", token).ConfigureAwait(false);
+            RaiseLog($"ArtiHop: connecting through {hopBridgeLines.Count} bridge(s) via native Arti pluggable-transport support.");
         }
 
         // Allocate a loopback-only control port so New Identity (NEWNYM) works in ArtiHop mode.
@@ -2680,7 +2728,8 @@ public sealed class OnionHopClient : IDisposable
             SocksListenAddress = _activeProxyBindAddress,
             ControlPort = controlPort,
             Mode = OnionHopConnectOptions.ArtiHopShortMode,
-            WorkingDirectory = Path.GetDirectoryName(artiHopPath)
+            WorkingDirectory = Path.GetDirectoryName(artiHopPath),
+            BridgesConfigPath = bridgesConfigPath
         }, token).ConfigureAwait(false);
 
         _connectionProgress = Math.Max(_connectionProgress, 0.82);

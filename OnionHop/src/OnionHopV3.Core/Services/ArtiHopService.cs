@@ -87,6 +87,12 @@ internal sealed class ArtiHopService : IDisposable
             _controlEndpoint = new IPEndPoint(IPAddress.Loopback, config.ControlPort.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(config.BridgesConfigPath))
+        {
+            arguments.Add("--bridges-config");
+            arguments.Add(config.BridgesConfigPath);
+        }
+
         _log($"ArtiHop arguments: {FormatArgumentsForLog(arguments)}");
 
         var psi = new ProcessStartInfo(config.ArtiHopPath)
@@ -351,4 +357,8 @@ internal sealed class ArtiHopLaunchConfig
     public string? LogFilter { get; init; }
     public string? WorkingDirectory { get; init; }
     public Action<Process>? ProcessStarted { get; init; }
+
+    /// <summary>Path to an Arti-format TOML file with a [bridges] section. When set, ArtiHop is launched
+    /// with --bridges-config so it connects through those bridges + pluggable transports.</summary>
+    public string? BridgesConfigPath { get; init; }
 }
