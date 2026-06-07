@@ -244,22 +244,32 @@ internal static class VpnConfigBuilder
             return
             [
                 "tor.exe",
+                // Arti engines: they make their own outbound connections (directly to guards when not
+                // using bridges, or to the local PT when using bridges). Without these in the bypass
+                // list, an Arti/ArtiHop TUN connection routes its own traffic back into the tunnel and
+                // deadlocks before it can bootstrap.
+                "arti.exe",
+                "artihop.exe",
                 "snowflake-client.exe",
                 "lyrebird.exe",
                 "obfs4proxy.exe",
                 "conjure-client.exe",
-                "webtunnel-client.exe"
+                "webtunnel-client.exe",
+                "dnstt-client.exe"
             ];
         }
 
         return
         [
             "tor",
+            "arti",
+            "artihop",
             "snowflake-client",
             "lyrebird",
             "obfs4proxy",
             "conjure-client",
-            "webtunnel-client"
+            "webtunnel-client",
+            "dnstt-client"
         ];
     }
 }

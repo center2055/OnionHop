@@ -13,12 +13,10 @@
   <Grid RowDefinitions="Auto,*"
         RowSpacing="14">
     <!-- Source tabs. The Copy/Export/Clear actions used to sit at this row's right edge but were
-         hidden under the window caption buttons; they now live in their own row above the log card.
-         A right inset keeps the tab row itself clear of the caption buttons. -->
+         hidden under the window caption buttons; they now live in their own row above the log card. -->
     <WrapPanel Orientation="Horizontal"
                HorizontalAlignment="Left"
-               VerticalAlignment="Center"
-               Margin="0,0,116,0">
+               VerticalAlignment="Center">
       <RadioButton Classes="TabChip"
                    GroupName="LogSource"
                    IsChecked="{Binding IsAppSelected}"

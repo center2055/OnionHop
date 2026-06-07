@@ -74,9 +74,40 @@ public sealed class ArtiBridgeConfigTests
         Assert.True(first >= 0 && first == last, "obfs4 transport should be emitted exactly once.");
     }
 
+    [Fact]
+    public void BuildBridgesSection_StripsClientTransportPluginKeywordAndSplitsMethods()
+    {
+        var config = new ArtiLaunchConfig
+        {
+            ArtiPath = "arti",
+            SocksPort = 9050,
+            BridgeLines = new[]
+            {
+                "webtunnel 5.6.7.8:443 0123456789ABCDEF0123456789ABCDEF01234567 url=https://x.example/abc",
+            },
+            TransportPlugins = new[]
+            {
+                // Real-world shape: TorBridgeManager emits the full torrc line, keyword included.
+                @"ClientTransportPlugin webtunnel exec C:\pt\webtunnel-client.exe",
+                @"ClientTransportPlugin obfs4,meek_lite exec C:\pt\lyrebird.exe",
+            },
+        };
+
+        var toml = ArtiService.BuildBridgesSection(config);
+
+        // The "ClientTransportPlugin" keyword must be stripped: Arti rejects the whole config if a
+        // protocol id is "ClientTransportPlugin webtunnel" instead of "webtunnel".
+        Assert.Contains("protocols = [\"webtunnel\"]", toml);
+        // Comma-separated PT methods become a list of individual quoted protocol names.
+        Assert.Contains("protocols = [\"obfs4\", \"meek_lite\"]", toml);
+        Assert.DoesNotContain("ClientTransportPlugin", toml);
+    }
+
     [Theory]
     [InlineData(@"obfs4 exec C:\pt\lyrebird.exe", "obfs4", @"C:\pt\lyrebird.exe")]
     [InlineData("snowflake exec /usr/bin/snowflake-client", "snowflake", "/usr/bin/snowflake-client")]
+    [InlineData(@"ClientTransportPlugin webtunnel exec C:\pt\webtunnel-client.exe", "webtunnel", @"C:\pt\webtunnel-client.exe")]
+    [InlineData("ClientTransportPlugin snowflake exec /usr/bin/snowflake-client", "snowflake", "/usr/bin/snowflake-client")]
     [InlineData("nonsense", null, null)]
     public void ParseTransportPlugin_Works(string input, string? expectedTransport, string? expectedPath)
     {

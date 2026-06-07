@@ -820,16 +820,28 @@ internal sealed class DependencyManager
             }
 
             var destinationPath = Path.Combine(destinationDir, relativePath);
-            if (!string.IsNullOrWhiteSpace(preserveFileName)
-                && string.Equals(Path.GetFileName(destinationPath), preserveFileName, StringComparison.OrdinalIgnoreCase)
-                && File.Exists(destinationPath))
-            {
-                continue;
-            }
+            var destinationName = Path.GetFileName(destinationPath);
 
             if (File.Exists(destinationPath))
             {
-                continue;
+                // pt_config.json is mutated at runtime (bridge cache, dnstt seeding) - never clobber it.
+                if (!string.IsNullOrWhiteSpace(preserveFileName)
+                    && string.Equals(destinationName, preserveFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // The bundled bridge lists (bridges-*.txt) are static app data, not runtime-mutated. On
+                // an upgrade the AppData copy must NOT shadow a newer bundled set - that's the bug that
+                // left users connecting through a months-old, mostly-dead bridge list. Refresh them when
+                // the bundled copy differs; leave all other existing runtime files untouched.
+                var isBundledBridgeList = destinationName.StartsWith("bridges-", StringComparison.OrdinalIgnoreCase)
+                    && destinationName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
+                if (!isBundledBridgeList || FilesHaveSameContent(filePath, destinationPath))
+                {
+                    continue;
+                }
+                // else: bundled bridge list changed - fall through and overwrite it.
             }
 
             var targetFolder = Path.GetDirectoryName(destinationPath);
@@ -838,7 +850,7 @@ internal sealed class DependencyManager
                 Directory.CreateDirectory(targetFolder);
             }
 
-            File.Copy(filePath, destinationPath, overwrite: false);
+            File.Copy(filePath, destinationPath, overwrite: true);
             copiedFiles++;
         }
 
@@ -849,6 +861,49 @@ internal sealed class DependencyManager
         }
 
         return false;
+    }
+
+    private static bool FilesHaveSameContent(string a, string b)
+    {
+        try
+        {
+            var fa = new FileInfo(a);
+            var fb = new FileInfo(b);
+            if (!fa.Exists || !fb.Exists || fa.Length != fb.Length)
+            {
+                return false;
+            }
+
+            using var sa = fa.OpenRead();
+            using var sb = fb.OpenRead();
+            var bufA = new byte[64 * 1024];
+            var bufB = new byte[64 * 1024];
+            int read;
+            while ((read = sa.Read(bufA, 0, bufA.Length)) > 0)
+            {
+                var offset = 0;
+                while (offset < read)
+                {
+                    var r = sb.Read(bufB, offset, read - offset);
+                    if (r <= 0)
+                    {
+                        return false;
+                    }
+                    offset += r;
+                }
+                if (!bufA.AsSpan(0, read).SequenceEqual(bufB.AsSpan(0, read)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch
+        {
+            // If we can't compare, assume different so the bundled copy wins (safe for static data).
+            return false;
+        }
     }
 
     private static void CopyDirectory(string sourceDir, string destinationDir, bool overwrite, string? preserveFileName = null)

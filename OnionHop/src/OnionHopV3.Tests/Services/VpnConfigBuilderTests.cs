@@ -323,4 +323,46 @@ public sealed class VpnConfigBuilderTests
         Assert.True(ptDirectIndex < hijackIndex,
             $"PT-direct rule (index {ptDirectIndex}) must precede the dns hijack rule (index {hijackIndex}).");
     }
+
+    [Fact]
+    public void Arti_engines_and_transports_bypass_the_tunnel()
+    {
+        // Regression: arti.exe / artihop.exe were missing from the tunnel-bypass list, so an Arti or
+        // ArtiHop TUN connection routed the engine's own guard/bridge traffic back into the tunnel and
+        // deadlocked. The bundled pluggable transports (incl. dnstt-client) must bypass too.
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: false,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: true,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true);
+
+        var rules = JsonDocument.Parse(json).RootElement.GetProperty("route").GetProperty("rules");
+        var bypassNames = new System.Collections.Generic.List<string?>();
+        foreach (var rule in rules.EnumerateArray())
+        {
+            if (rule.TryGetProperty("process_name", out var pn) &&
+                pn.ValueKind == JsonValueKind.Array &&
+                rule.TryGetProperty("outbound", out var ob) &&
+                ob.GetString() == "direct")
+            {
+                bypassNames.AddRange(pn.EnumerateArray().Select(e => e.GetString()));
+            }
+        }
+
+        // Names are platform-specific (.exe on Windows), so match either form.
+        Assert.Contains(bypassNames, n => n is "arti.exe" or "arti");
+        Assert.Contains(bypassNames, n => n is "artihop.exe" or "artihop");
+        Assert.Contains(bypassNames, n => n is "webtunnel-client.exe" or "webtunnel-client");
+        Assert.Contains(bypassNames, n => n is "dnstt-client.exe" or "dnstt-client");
+    }
 }

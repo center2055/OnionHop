@@ -56,6 +56,11 @@ internal sealed class ArtiService : IDisposable
             throw new ArgumentException("Arti path is required.", nameof(config));
         }
 
+        // An orphaned arti from a crash/force-close keeps Arti's shared state-dir lock, so a fresh
+        // launch dies with "another instance of Arti has the lock". Stop() only clears OUR tracked
+        // process, so kill any orphan of the same binary (and its PT children) first.
+        KillStaleArtiProcesses(config.ArtiPath);
+
         var dataDirectory = string.IsNullOrWhiteSpace(config.DataDirectory)
             ? Path.Combine(Path.GetTempPath(), "OnionHop", "arti-data")
             : config.DataDirectory;
@@ -235,7 +240,16 @@ internal sealed class ArtiService : IDisposable
             {
                 continue;
             }
-            sb.Append($"\n[[bridges.transports]]\nprotocols = [\"{EscapeTomlString(transport)}\"]\npath = \"{EscapeTomlString(path)}\"\nrun_on_startup = false\n");
+            // A single Tor PT line can register several methods ("obfs4,meek_lite"); Arti's
+            // `protocols` is a list of individual transport names, one quoted entry each.
+            var protocols = string.Join(", ", transport
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(p => $"\"{EscapeTomlString(p)}\""));
+            if (protocols.Length == 0)
+            {
+                continue;
+            }
+            sb.Append($"\n[[bridges.transports]]\nprotocols = [{protocols}]\npath = \"{EscapeTomlString(path)}\"\nrun_on_startup = false\n");
         }
 
         return sb.ToString();
@@ -256,6 +270,13 @@ internal sealed class ArtiService : IDisposable
         }
 
         var transport = plugin[..execIdx].Trim();
+        // Tor lines are "ClientTransportPlugin <methods> exec <path>"; drop the leading keyword so the
+        // transport is just the method name(s) (e.g. "webtunnel"). Without this, Arti rejects the
+        // config: "ClientTransportPlugin webtunnel" is not a valid pluggable transport ID.
+        if (transport.StartsWith("ClientTransportPlugin", StringComparison.OrdinalIgnoreCase))
+        {
+            transport = transport["ClientTransportPlugin".Length..].Trim();
+        }
         var rest = plugin[(execIdx + 6)..].Trim();
         if (transport.Length == 0 || rest.Length == 0)
         {
@@ -309,6 +330,59 @@ internal sealed class ArtiService : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Kills any orphaned copy of OUR arti binary (matched by executable path) left from a crashed or
+    /// force-closed session. An orphan keeps Arti's shared state-dir lock, so a fresh launch fails with
+    /// "another instance of Arti has the lock". Tree-kill also stops its PT children. Best effort.
+    /// </summary>
+    private void KillStaleArtiProcesses(string artiPath)
+    {
+        string targetPath;
+        try
+        {
+            targetPath = Path.GetFullPath(artiPath);
+        }
+        catch
+        {
+            return;
+        }
+
+        Process[] processes;
+        try
+        {
+            processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(artiPath));
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var process in processes)
+        {
+            try
+            {
+                string? exePath = null;
+                try { exePath = process.MainModule?.FileName; } catch { }
+                if (string.IsNullOrEmpty(exePath) ||
+                    !string.Equals(Path.GetFullPath(exePath!), targetPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(4000);
+                _log($"Released Arti state lock: stopped orphaned {Path.GetFileName(artiPath)} (pid {process.Id}).");
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { process.Dispose(); } catch { }
+            }
+        }
+    }
+
     private static string FormatPortEndpoint(string? listenAddress, int port, string defaultAddress)
     {
         var host = string.IsNullOrWhiteSpace(listenAddress)
@@ -325,7 +399,7 @@ internal sealed class ArtiService : IDisposable
         return $"{host}:{port}";
     }
 
-    private static string EscapeTomlString(string value)
+    internal static string EscapeTomlString(string value)
     {
         return value
             .Replace("\\", "\\\\", StringComparison.Ordinal)

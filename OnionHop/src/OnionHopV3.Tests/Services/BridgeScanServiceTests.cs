@@ -69,8 +69,24 @@ public sealed class BridgeScanServiceTests
     [Theory]
     [InlineData("dnstt 192.0.2.4:1 A998F319 doh=https://dns.google/dns-query pubkey=2411 domain=t.ruhnama.net", "dns.google")]
     [InlineData("dnstt 192.0.2.4:2 80EEFA4F dot=dot.example:853 pubkey=a2fb domain=t2.example.org", "dot.example")]
+    // webtunnel: the real endpoint is the url= host, not the (placeholder) IP:port.
+    [InlineData("webtunnel [2001:db8:1d30:ff54:bba:de27:3861:ff8c]:443 93F50F39 url=https://rabbithole2.net/4kHLbQ ver=0.0.1", "rabbithole2.net")]
     public void ExtractFrontHost_resolves_dnstt_resolver_host(string line, string expected)
     {
         Assert.Equal(expected, BridgeScanService.ExtractFrontHost(line));
+    }
+
+    [Theory]
+    // RFC 3849 IPv6 documentation prefix (what every bundled webtunnel line uses) - must be treated
+    // as a placeholder so the scanner probes the url= host instead of TCP-pinging a dead address.
+    [InlineData("2001:db8:1d30:ff54:bba:de27:3861:ff8c", true)]
+    [InlineData("2001:0DB8::1", true)] // upper-case hex must still match
+    [InlineData("192.0.2.7", true)]    // RFC 5737 IPv4 documentation prefix
+    [InlineData("::", true)]
+    [InlineData("1.2.3.4", false)]     // a real address must NOT be treated as a placeholder
+    [InlineData("2001:67c:289c::9", false)]
+    public void IsPlaceholderHost_flags_documentation_addresses(string host, bool expected)
+    {
+        Assert.Equal(expected, BridgeScanService.IsPlaceholderHost(host));
     }
 }

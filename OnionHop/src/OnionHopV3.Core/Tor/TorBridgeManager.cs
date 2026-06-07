@@ -448,7 +448,17 @@ internal sealed class TorBridgeManager
         {
             if (allowBridgeServiceFetch)
             {
-                var fetched = await TryFetchBridgeLinesAsync(selectedBridgeType, log, token, collectorOnly: collectorOnly).ConfigureAwait(false);
+                // On the first connect of a session for a collector-backed transport (obfs4/webtunnel/
+                // vanilla), force a fresh fetch so we pull the collector's pre-tested "Tested & Active"
+                // set instead of trusting a possibly-stale on-disk cache that may hold the small,
+                // overloaded Moat builtin set. TryFetchBridgeLinesAsync now tries the collector before
+                // Moat, so a forced fetch yields the validated bridges. Within the same session the
+                // runtime cache short-circuits, so this happens at most once per transport per run.
+                var preferFreshTested = sourcePreference == BridgeSourcePreference.Auto
+                    && IsCollectorSupportedType(selectedBridgeType)
+                    && !_runtimeFetchedBridges.ContainsKey(selectedBridgeType);
+                var fetched = await TryFetchBridgeLinesAsync(
+                    selectedBridgeType, log, token, forceRefresh: preferFreshTested, collectorOnly: collectorOnly).ConfigureAwait(false);
                 if (fetched.Count > 0)
                 {
                     selected = fetched;
@@ -792,6 +802,23 @@ internal sealed class TorBridgeManager
                     return GetStaleCacheFallbackBridgeLines(bridgeType, log);
                 }
 
+                // Prefer the OnionHop collector's pre-tested set (Tested & Active, then Full Archive)
+                // for the transports it covers, BEFORE Moat. Moat returns Tor's handful of built-in
+                // bridges, which are heavily shared and often overloaded/unusable; the collector's set
+                // has actually passed reachability testing, so a connect is far more likely to find a
+                // usable guard. Moat and the Tor bridge service remain fallbacks below.
+                if (IsCollectorSupportedType(bridgeType))
+                {
+                    var preferredCollector = await TryFetchBridgeLinesFromCollectorAsync(httpClient, bridgeType, log, token).ConfigureAwait(false);
+                    if (preferredCollector.Count > 0)
+                    {
+                        _runtimeFetchedBridges[bridgeType] = preferredCollector;
+                        SaveCachedBridgeLines(bridgeType, preferredCollector);
+                        log($"Loaded {preferredCollector.Count} pre-tested {bridgeType} bridges from the OnionHop collector.");
+                        return preferredCollector;
+                    }
+                }
+
                 var moatLines = await TryFetchBridgeLinesViaMoatAsync(httpClient, bridgeType, token).ConfigureAwait(false);
                 if (moatLines.Count > 0)
                 {
@@ -824,19 +851,7 @@ internal sealed class TorBridgeManager
                     return lines;
                 }
 
-                // Fallback: the official Tor bridge service is often blocked/CAPTCHA-gated in the
-                // very regions that need bridges. Pull pre-tested bridges from the OnionHop collector
-                // mirrors (GitHub raw -> Pages -> self-hosted), which are reachable when bridges.torproject.org
-                // is not.
-                var collectorLines = await TryFetchBridgeLinesFromCollectorAsync(httpClient, bridgeType, log, token).ConfigureAwait(false);
-                if (collectorLines.Count > 0)
-                {
-                    _runtimeFetchedBridges[bridgeType] = collectorLines;
-                    SaveCachedBridgeLines(bridgeType, collectorLines);
-                    log($"Loaded {collectorLines.Count} {bridgeType} bridges from the OnionHop bridge collector.");
-                    return collectorLines;
-                }
-
+                // (The OnionHop collector was already tried first, above, for the transports it covers.)
                 log($"Bridge auto-fetch for {bridgeType} returned no usable lines (the Tor bridge service may require an interactive challenge).");
                 return GetStaleCacheFallbackBridgeLines(bridgeType, log);
             }

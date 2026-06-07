@@ -302,6 +302,16 @@ internal sealed class VpnService : IDisposable
             proc.Exited -= HandleExited;
             proc.Dispose();
         }
+
+        // sing-box was hard-killed (a console core ignores CloseMainWindow), so it did NOT remove its
+        // own "OnionHop" Wintun adapter. Remove it now, at disconnect, so the OS has the full
+        // disconnect->reconnect gap to release it - otherwise a quick reconnect races the still-tearing-
+        // down adapter and sing-box fails with "configure tun interface: Cannot create a file when that
+        // file already exists." (Start-time cleanup still runs too, as a backstop.)
+        if (OperatingSystem.IsWindows())
+        {
+            RemoveStaleWindowsTunAdapter();
+        }
     }
 
     public void Dispose()
@@ -398,11 +408,16 @@ internal sealed class VpnService : IDisposable
             // also catch a Wintun adapter whose alias is ours - so a leftover survives even if it's
             // hidden or its friendly name drifted. Scoped to "OnionHop" so other apps' Wintun adapters
             // (e.g. WireGuard) are never touched.
+            // Remove-NetAdapter is asynchronous: it returns before Wintun finishes tearing the adapter
+            // down. If sing-box starts during that window it still sees the adapter and fails with
+            // "Cannot create a file when that file already exists" (and its internal retry pushes the
+            // FATAL ~15s out, past our startup check, so the helper wrongly reports success). So after
+            // removing, poll until the adapter is actually gone (up to ~5s) before returning.
             var script =
                 $"$ErrorActionPreference='SilentlyContinue';" +
-                $"$a=Get-NetAdapter -Name '{TunInterfaceName}' -IncludeHidden;" +
-                $"if(-not $a){{$a=Get-NetAdapter -IncludeHidden|Where-Object{{$_.Name -eq '{TunInterfaceName}' -or $_.InterfaceAlias -eq '{TunInterfaceName}'}}}};" +
-                "$a|Remove-NetAdapter -Confirm:$false";
+                $"function Get-OnionAdapter {{ Get-NetAdapter -IncludeHidden | Where-Object {{ $_.Name -eq '{TunInterfaceName}' -or $_.InterfaceAlias -eq '{TunInterfaceName}' }} }};" +
+                $"$a=Get-OnionAdapter;" +
+                $"if($a){{ $a|Remove-NetAdapter -Confirm:$false; for($i=0;$i -lt 20;$i++){{ Start-Sleep -Milliseconds 250; if(-not (Get-OnionAdapter)){{ break }} }} }}";
             var psi = new ProcessStartInfo("powershell")
             {
                 Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{script}\"",
@@ -418,7 +433,7 @@ internal sealed class VpnService : IDisposable
                 return;
             }
 
-            if (!cleanup.WaitForExit(5000))
+            if (!cleanup.WaitForExit(9000))
             {
                 try { cleanup.Kill(true); } catch { }
                 return;

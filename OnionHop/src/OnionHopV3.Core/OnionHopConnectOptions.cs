@@ -36,6 +36,11 @@ public sealed record OnionHopConnectOptions
     public const string TorEngineArtiHop = "artihop";
     // ArtiHop circuit mode passed via --mode. "short-2" = 2 relays (Guard -> Exit).
     public const string ArtiHopShortMode = "short-2";
+    // Standard 3-hop (Guard -> Middle -> Exit). REQUIRED when using bridges: a bridge isn't a
+    // consensus relay, so a 2-hop "bridge -> exit" circuit is rejected by the exit with a TORPROTOCOL
+    // stream error (Tor refuses exit streams whose immediate predecessor isn't a known relay). The
+    // bridge must be the guard with a normal middle relay before the exit, i.e. at least 3 hops.
+    public const string ArtiHopNormalMode = "normal";
     public const string BridgeSourceAuto = "Auto (Tor bridge service -> Offline)";
     public const string BridgeSourceOnlineOnly = "Tor bridge service only";
     public const string BridgeSourceOfflineOnly = "Offline only";

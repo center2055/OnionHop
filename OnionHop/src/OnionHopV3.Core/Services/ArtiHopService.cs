@@ -68,6 +68,12 @@ internal sealed class ArtiHopService : IDisposable
             throw new ArgumentException("ArtiHop path is required.", nameof(config));
         }
 
+        // A crash or force-close can leave an orphaned artihop holding Arti's shared state-dir lock;
+        // the next launch then dies with "Configuration requires exclusive access to shared state, but
+        // another instance of Arti has the lock". Stop() only clears OUR tracked process, so kill any
+        // orphan of the same binary (and its PT children) before starting.
+        KillStaleArtiHopProcesses(config.ArtiHopPath);
+
         var endpoint = FormatPortEndpoint(config.SocksListenAddress, config.SocksPort, "127.0.0.1");
         var mode = string.IsNullOrWhiteSpace(config.Mode) ? "short-2" : config.Mode.Trim();
         var logFilter = string.IsNullOrWhiteSpace(config.LogFilter)
@@ -77,15 +83,9 @@ internal sealed class ArtiHopService : IDisposable
             : config.LogFilter.Trim();
 
         var arguments = new List<string> { "--mode", mode, "--socks", endpoint, "--log", logFilter };
+        // ArtiHop has no control listener, so we never pass --control: the binary rejects the unknown
+        // argument and exits before opening its SOCKS port. New Identity is unavailable in ArtiHop mode.
         _controlEndpoint = null;
-        if (config.ControlPort is > 0 and <= 65535)
-        {
-            // Control listener stays on loopback even when SOCKS is exposed to the LAN.
-            var controlEndpoint = $"127.0.0.1:{config.ControlPort.Value}";
-            arguments.Add("--control");
-            arguments.Add(controlEndpoint);
-            _controlEndpoint = new IPEndPoint(IPAddress.Loopback, config.ControlPort.Value);
-        }
 
         if (!string.IsNullOrWhiteSpace(config.BridgesConfigPath))
         {
@@ -239,6 +239,61 @@ internal sealed class ArtiHopService : IDisposable
         {
             _log($"ArtiHop new-identity request failed: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Kills any orphaned copy of OUR artihop binary (matched by executable path) left running from a
+    /// crashed/force-closed session. An orphan keeps Arti's shared state-dir lock, so a fresh launch
+    /// fails with "another instance of Arti has the lock". Tree-kill also takes down its PT children
+    /// (webtunnel-client, snowflake-client, ...). Best effort - never throws.
+    /// </summary>
+    private void KillStaleArtiHopProcesses(string artiHopPath)
+    {
+        string targetPath;
+        try
+        {
+            targetPath = Path.GetFullPath(artiHopPath);
+        }
+        catch
+        {
+            return;
+        }
+
+        Process[] processes;
+        try
+        {
+            processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(artiHopPath));
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var process in processes)
+        {
+            try
+            {
+                // Only our binary - never touch an unrelated process that happens to share the name.
+                string? exePath = null;
+                try { exePath = process.MainModule?.FileName; } catch { }
+                if (string.IsNullOrEmpty(exePath) ||
+                    !string.Equals(Path.GetFullPath(exePath!), targetPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(4000);
+                _log($"Released Arti state lock: stopped orphaned {Path.GetFileName(artiHopPath)} (pid {process.Id}).");
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { process.Dispose(); } catch { }
+            }
         }
     }
 

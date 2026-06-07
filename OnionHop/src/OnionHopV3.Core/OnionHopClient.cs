@@ -26,7 +26,6 @@ public sealed class OnionHopClient : IDisposable
     public const int DefaultSocksPort = OnionHopConnectOptions.DefaultSocksPort;
     public const int DefaultHttpPort = OnionHopConnectOptions.DefaultHttpPort;
     public const int DefaultDnsPort = 53;
-    private const int DefaultArtiHopControlPort = 9151;
     private const int MaxBridgeLinesForLaunch = 64;
     private const int MaxBridgeArgumentCharsForLaunch = 12000;
     // Proxy-handshake "failure" warnings are emitted per dead bridge. With a large automatic bridge
@@ -1360,34 +1359,13 @@ public sealed class OnionHopClient : IDisposable
 
         if (string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal))
         {
-            // ArtiHop exposes a loopback control listener; "NEWNYM" swaps in a freshly isolated
-            // client so subsequent circuits (and the exit) change — the same UX as classic NEWNYM.
-            if (DateTime.UtcNow - _lastNewnymUtc < TimeSpan.FromSeconds(10))
-            {
-                _statusMessage = "Please wait a moment before requesting another identity.";
-                PublishStatus();
-                return false;
-            }
-
-            _statusMessage = "Requesting a new ArtiHop identity (fresh circuits)...";
+            // ArtiHop has no control-port listener (the Arti fork only accepts --mode/--socks/--log/
+            // --bridges-config), so there is no NEWNYM flow. Surface that honestly instead of failing
+            // silently; disconnecting and reconnecting builds fresh circuits.
+            _statusMessage = "ArtiHop does not expose a NEWNYM control yet. Disconnect and reconnect to rotate circuits.";
+            RaiseLog("New Identity skipped: ArtiHop runtime does not provide a control-port NEWNYM flow.");
             PublishStatus();
-
-            using var artiCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            artiCts.CancelAfter(TimeSpan.FromSeconds(8));
-            var artiSuccess = await _artiHopService.SendNewIdentityAsync(artiCts.Token).ConfigureAwait(false);
-            if (!artiSuccess)
-            {
-                _statusMessage = "Unable to rotate ArtiHop identity. Reconnect to rotate circuits.";
-                RaiseLog("ArtiHop New Identity failed: control listener did not acknowledge NEWNYM.");
-                PublishStatus();
-                return false;
-            }
-
-            _lastNewnymUtc = DateTime.UtcNow;
-            RaiseLog("ArtiHop identity rotated; new connections will use fresh circuits.");
-            await Task.Delay(1200, token).ConfigureAwait(false);
-            await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
-            return true;
+            return false;
         }
 
         if (IsUsingArtiRuntime)
@@ -2653,10 +2631,20 @@ public sealed class OnionHopClient : IDisposable
 
         _activeTorEngine = OnionHopConnectOptions.TorEngineArtiHop;
         _connectionProgress = Math.Max(_connectionProgress, 0.2);
-        _statusMessage = "Starting ArtiHop SOCKS runtime (2-hop circuits)...";
+        _statusMessage = options.UseTorBridges
+            ? "Starting ArtiHop SOCKS runtime (3-hop via bridge)..."
+            : "Starting ArtiHop SOCKS runtime (2-hop circuits)...";
         PublishStatus();
 
-        RaiseLog("ArtiHop uses shortened 2-hop (Guard -> Exit) circuits for lower latency. This is faster than standard Tor but provides weaker anonymity than full 3-hop circuits.");
+        if (options.UseTorBridges)
+        {
+            RaiseLog("ArtiHop with bridges uses a standard 3-hop circuit (Bridge -> Middle -> Exit): " +
+                "Tor exits reject a 2-hop bridge->exit path, so the 2-hop speedup applies only when bridges are off.");
+        }
+        else
+        {
+            RaiseLog("ArtiHop uses shortened 2-hop (Guard -> Exit) circuits for lower latency. This is faster than standard Tor but provides weaker anonymity than full 3-hop circuits.");
+        }
 
         if (!IsAutomaticLocation(options.SelectedLocation) ||
             !IsAutomaticLocation(options.SelectedEntryLocation) ||
@@ -2669,8 +2657,9 @@ public sealed class OnionHopClient : IDisposable
 
         // ArtiHop (our Arti fork) now supports bridges + pluggable transports via Arti's native config.
         // Resolve the same reachability-filtered bridge set the other engines use, write it as an
-        // Arti-format [bridges] TOML, and hand the path to ArtiHop via --bridges-config. With a bridge,
-        // ArtiHop's shortened circuit becomes Bridge -> Exit.
+        // Arti-format [bridges] TOML, and hand the path to ArtiHop via --bridges-config. With a bridge
+        // the circuit is Bridge -> Middle -> Exit (3-hop): a 2-hop Bridge -> Exit path is rejected by
+        // Tor exits, so bridges switch ArtiHop to standard 3-hop (see the mode selection below).
         string? bridgesConfigPath = null;
         if (options.UseTorBridges)
         {
@@ -2708,34 +2697,76 @@ public sealed class OnionHopClient : IDisposable
 
             var hopDataDir = Path.Combine(_baseDir, "artihop-data");
             Directory.CreateDirectory(hopDataDir);
+
+            // Arti persists guard state in its state dir. Reusing it across connects with DIFFERENT
+            // bridge sets poisons it: old bridges accumulate as "down" guards and arti reports
+            // "No usable guards. Rejected N/N as down" instead of trying the bridges we just selected.
+            // Give bridged ArtiHop its own arti state dir and wipe it each connect so the guard sample
+            // always matches the current bridges. Keep the cache dir (consensus) so bootstrap stays fast.
+            var hopStateDir = Path.Combine(hopDataDir, "arti-state");
+            var hopCacheDir = Path.Combine(hopDataDir, "arti-cache");
+
+            // Give bridged ArtiHop a dedicated arti state+cache, and wipe BOTH before every connect so
+            // each attempt starts from a clean, consistent, fresh slate. This is the only configuration
+            // that has worked reliably in testing; keeping either dir across connects has caused
+            // "No usable guards. Rejected N/N as down" (stale guards from a prior bridge set) or
+            // "...as unsuitable to purpose" (stale consensus / inconsistent state). Re-fetching the
+            // consensus through the bridge costs only a few seconds, which is fine for a connect-and-stay
+            // tunnel. (Wiping both together is essential - wiping only one leaves an inconsistent pair.)
+            foreach (var staleDir in new[] { hopStateDir, hopCacheDir })
+            {
+                try
+                {
+                    if (Directory.Exists(staleDir))
+                    {
+                        Directory.Delete(staleDir, recursive: true);
+                    }
+                }
+                catch
+                {
+                    // Best effort - a locked file just means arti re-validates that entry, no worse than before.
+                }
+            }
+            Directory.CreateDirectory(hopStateDir);
+            Directory.CreateDirectory(hopCacheDir);
+
+            var storageSection =
+                "[storage]\n" +
+                $"state_dir = \"{ArtiService.EscapeTomlString(hopStateDir)}\"\n" +
+                $"cache_dir = \"{ArtiService.EscapeTomlString(hopCacheDir)}\"\n\n";
+
             bridgesConfigPath = Path.Combine(hopDataDir, "onionhop-artihop-bridges.toml");
-            await File.WriteAllTextAsync(bridgesConfigPath, bridgesToml + "\n", token).ConfigureAwait(false);
+            await File.WriteAllTextAsync(bridgesConfigPath, storageSection + bridgesToml + "\n", token).ConfigureAwait(false);
             RaiseLog($"ArtiHop: connecting through {hopBridgeLines.Count} bridge(s) via native Arti pluggable-transport support.");
         }
 
-        // Allocate a loopback-only control port so New Identity (NEWNYM) works in ArtiHop mode.
-        var controlPort = PortSelector.FindAvailablePort(
-            DefaultArtiHopControlPort,
-            additionalAttempts: 30,
-            excludedPorts: _activeHttpPort.HasValue
-                ? [_activeSocksPort, _activeHttpPort.Value]
-                : [_activeSocksPort]);
+        // ArtiHop (the bundled Arti fork) has no control-port listener, so OnionHop must NOT pass
+        // --control: the binary rejects the unknown argument and exits before its SOCKS port opens
+        // ("unexpected argument '--control' found"), which surfaces as "ArtiHop exited before its
+        // SOCKS port became ready". New Identity is therefore unavailable in ArtiHop mode and is
+        // handled gracefully in ChangeIdentityAsync (reconnecting rotates circuits instead).
+        // Bridges force 3-hop (see ArtiHopNormalMode): a 2-hop "bridge -> exit" circuit is rejected by
+        // Tor exits, so when bridges are in use run ArtiHop in standard 3-hop mode (the upfront log
+        // above already explained this to the user). Without bridges, keep the signature 2-hop circuit.
+        var usingBridges = !string.IsNullOrWhiteSpace(bridgesConfigPath);
+        var artiHopMode = usingBridges
+            ? OnionHopConnectOptions.ArtiHopNormalMode
+            : OnionHopConnectOptions.ArtiHopShortMode;
 
         await _artiHopService.StartAsync(new ArtiHopLaunchConfig
         {
             ArtiHopPath = artiHopPath,
             SocksPort = _activeSocksPort,
             SocksListenAddress = _activeProxyBindAddress,
-            ControlPort = controlPort,
-            Mode = OnionHopConnectOptions.ArtiHopShortMode,
+            Mode = artiHopMode,
             WorkingDirectory = Path.GetDirectoryName(artiHopPath),
             BridgesConfigPath = bridgesConfigPath
         }, token).ConfigureAwait(false);
 
+        var hopLabel = usingBridges ? "3-hop" : "2-hop";
         _connectionProgress = Math.Max(_connectionProgress, 0.82);
-        _statusMessage = "ArtiHop SOCKS runtime is ready (2-hop).";
-        RaiseLog($"ArtiHop SOCKS runtime is listening on {_activeProxyBindAddress}:{_activeSocksPort} (mode={OnionHopConnectOptions.ArtiHopShortMode}).");
-        RaiseLog($"ArtiHop control listener on 127.0.0.1:{controlPort} (New Identity enabled).");
+        _statusMessage = $"ArtiHop SOCKS runtime is ready ({hopLabel}).";
+        RaiseLog($"ArtiHop SOCKS runtime is listening on {_activeProxyBindAddress}:{_activeSocksPort} (mode={artiHopMode}).");
         PublishStatus();
     }
 

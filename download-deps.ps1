@@ -240,9 +240,14 @@ function Update-RussiaBridges($ptDir) {
     $base = "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/TOR-BRIDGES"
     # Map the upstream files to our community bridge file per transport, and the line prefix that
     # identifies a real bridge line for that transport.
+    # webtunnel is intentionally NOT auto-merged here: igareck's webtunnel snapshot is full of stale
+    # entries (dead url= hosts) and uses RFC 3849 2001:db8:: placeholder IPs, so merging it re-pollutes
+    # the bundled list with bridges that never connect. The bundled webtunnel list is instead a curated,
+    # url-validated snapshot from the OnionHop Bridges Collector (see bridges-community-webtunnel.txt);
+    # at runtime the app fetches the live collector set anyway. obfs4 carries real IP:ports, so it still
+    # auto-refreshes here.
     $sources = @(
-        @{ Url = "$base/TOR_BRIDGES_OBFS4.txt";     File = "bridges-community-obfs4.txt";     Prefix = "obfs4 " },
-        @{ Url = "$base/TOR_BRIDGES_WEBTUNNEL.txt"; File = "bridges-community-webtunnel.txt"; Prefix = "webtunnel " }
+        @{ Url = "$base/TOR_BRIDGES_OBFS4.txt";     File = "bridges-community-obfs4.txt";     Prefix = "obfs4 " }
     )
 
     foreach ($src in $sources) {

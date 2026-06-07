@@ -18,9 +18,10 @@ public enum BridgeReachability
     Unparsed,
 
     /// <summary>
-    /// The transport reaches Tor through domain fronting / a broker (snowflake, meek, conjure), so
-    /// there is no direct bridge endpoint to ping. We instead probed the front/broker host and it
-    /// answered — the bridge is usable even though it has no classic IP:port to time.
+    /// The transport's real endpoint is a URL/broker host, not the bridge-line IP:port (snowflake,
+    /// meek, conjure, dnstt, and webtunnel — whose IP is an RFC 3849 2001:db8:: placeholder). We
+    /// probed that url/front host and it answered — the bridge is usable even though its listed
+    /// IP:port can't be pinged.
     /// </summary>
     Fronted
 }
@@ -69,19 +70,22 @@ public static class BridgeScanService
     };
 
     /// <summary>
-    /// Transports that don't connect to a fixed bridge IP:port — they reach Tor through a broker
-    /// and/or domain fronting (the listed endpoint is a placeholder such as 192.0.2.x). For these we
-    /// probe the front/broker host instead of the placeholder.
+    /// Transports whose real endpoint is a URL/broker host rather than the bridge-line IP:port. This
+    /// covers domain-fronted/broker transports (snowflake, meek, conjure, dnstt) AND webtunnel, which
+    /// always connects to its <c>url=</c> host over HTTPS - its IP:port is a placeholder (typically an
+    /// RFC 3849 2001:db8:: address). For all of these we probe the url/front host, not the placeholder
+    /// IP, otherwise the bridge can never show as reachable even when it is perfectly usable.
     /// </summary>
     private static readonly HashSet<string> FrontedTransports = new(StringComparer.OrdinalIgnoreCase)
     {
-        "snowflake", "meek", "meek_lite", "meek-azure", "conjure", "dnstt"
+        "snowflake", "meek", "meek_lite", "meek-azure", "conjure", "dnstt", "webtunnel"
     };
 
-    // RFC 5737 documentation ranges + unspecified addresses used as placeholders in fronted lines.
+    // Documentation/placeholder address ranges that never route: RFC 5737 (IPv4) and RFC 3849 (IPv6,
+    // 2001:db8::/32). webtunnel/fronted lines carry these as filler; their real endpoint is a URL.
     private static readonly string[] PlaceholderPrefixes =
     {
-        "192.0.2.", "198.51.100.", "203.0.113.", "0.0.0.0"
+        "192.0.2.", "198.51.100.", "203.0.113.", "0.0.0.0", "2001:db8:", "2001:0db8:"
     };
 
     /// <summary>
@@ -242,12 +246,14 @@ public static class BridgeScanService
         var (ms, error) = await ProbeTcpAsync(frontHost, 443, timeout, token).ConfigureAwait(false);
         if (ms.HasValue)
         {
+            // Keep Detail short ("123 ms"): the front host is already shown in the scanner's Host
+            // column, so repeating it here just overflows the fixed-width Status badge.
             return new BridgeScanResult(line, transport, frontHost, 443, ms.Value,
-                BridgeReachability.Fronted, $"broker {ms.Value} ms");
+                BridgeReachability.Fronted, $"{ms.Value} ms");
         }
 
         return new BridgeScanResult(line, transport, frontHost, 443, null,
-            BridgeReachability.Unreachable, $"broker {error ?? "unreachable"}");
+            BridgeReachability.Unreachable, error ?? "unreachable");
     }
 
     /// <summary>
@@ -332,7 +338,7 @@ public static class BridgeScanService
         return KnownTransports.Contains(firstToken) ? firstToken.ToLowerInvariant() : "vanilla";
     }
 
-    private static bool IsPlaceholderHost(string host)
+    internal static bool IsPlaceholderHost(string host)
     {
         if (string.IsNullOrWhiteSpace(host))
         {
@@ -341,7 +347,8 @@ public static class BridgeScanService
 
         foreach (var prefix in PlaceholderPrefixes)
         {
-            if (host.StartsWith(prefix, StringComparison.Ordinal))
+            // IPv6 hex can be upper- or lower-case, so compare case-insensitively (harmless for IPv4).
+            if (host.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

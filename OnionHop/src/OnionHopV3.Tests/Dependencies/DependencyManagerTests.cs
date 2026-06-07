@@ -91,4 +91,46 @@ public sealed class DependencyManagerTests
             try { Directory.Delete(runtimeDir, true); } catch { }
         }
     }
+
+    [Fact]
+    public void TrySeedBundledRuntime_refreshes_stale_bridge_lists_but_leaves_other_files()
+    {
+        var bundleDir = CreateTempDir();
+        var runtimeDir = CreateTempDir();
+
+        try
+        {
+            var bundlePtDir = Path.Combine(bundleDir, "tor", "pluggable_transports");
+            var runtimePtDir = Path.Combine(runtimeDir, "tor", "pluggable_transports");
+            Directory.CreateDirectory(bundlePtDir);
+            Directory.CreateDirectory(runtimePtDir);
+
+            // Bundle ships refreshed bridge lists; runtime has stale copies (the upgrade scenario that
+            // left users connecting through a months-old, mostly-dead webtunnel list).
+            File.WriteAllText(Path.Combine(bundlePtDir, "bridges-community-webtunnel.txt"), "webtunnel NEW");
+            File.WriteAllText(Path.Combine(bundlePtDir, "bridges-webtunnel.txt"), "webtunnel NEW");
+            File.WriteAllText(Path.Combine(bundlePtDir, "lyrebird.exe"), "lyrebird-new");
+            File.WriteAllText(Path.Combine(runtimePtDir, "bridges-community-webtunnel.txt"), "webtunnel OLD STALE");
+            File.WriteAllText(Path.Combine(runtimePtDir, "bridges-webtunnel.txt"), "webtunnel OLD STALE");
+            File.WriteAllText(Path.Combine(runtimePtDir, "lyrebird.exe"), "lyrebird-old");
+
+            DependencyManager.TrySeedBundledRuntime(
+                runtimeDir,
+                includeVpnDependencies: false,
+                _ => { },
+                [bundleDir]);
+
+            // Stale bundled bridge lists are refreshed from the bundle (the bug: they used to be skipped
+            // because the file already existed, so the app kept using the old dead set forever).
+            Assert.Equal("webtunnel NEW", File.ReadAllText(Path.Combine(runtimePtDir, "bridges-community-webtunnel.txt")));
+            Assert.Equal("webtunnel NEW", File.ReadAllText(Path.Combine(runtimePtDir, "bridges-webtunnel.txt")));
+            // Only bridge lists are force-refreshed; other existing runtime files are left untouched.
+            Assert.Equal("lyrebird-old", File.ReadAllText(Path.Combine(runtimePtDir, "lyrebird.exe")));
+        }
+        finally
+        {
+            try { Directory.Delete(bundleDir, true); } catch { }
+            try { Directory.Delete(runtimeDir, true); } catch { }
+        }
+    }
 }
