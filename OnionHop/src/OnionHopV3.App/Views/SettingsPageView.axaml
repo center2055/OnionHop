@@ -234,7 +234,7 @@
               <controls:DropdownRow Title="{DynamicResource Settings.DnsProvider}"
                                     Description="{DynamicResource Settings.CustomDohHostWatermark}"
                                     ItemsSource="{Binding State.DnsProviders}"
-                                    SelectedItem="{Binding State.SelectedDnsProvider}" />
+                                    SelectedItem="{Binding State.SelectedDnsProviderChoice}" />
             </StackPanel>
           </Border>
 

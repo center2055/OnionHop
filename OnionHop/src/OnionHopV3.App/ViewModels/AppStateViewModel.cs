@@ -532,6 +532,25 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool CanSelectExitLocation => !IsManualExitNodeFingerprintSet;
     public bool CanSelectEntryLocation => !UseTorBridges && !IsManualEntryNodeFingerprintSet;
     public bool IsCustomDoh => string.Equals(SelectedDnsProvider, DnsProviderCustom, StringComparison.Ordinal);
+
+    // The DNS provider dropdown binds here, NOT directly to SelectedDnsProvider (issue #57). Avalonia
+    // ComboBoxes push a null SelectedItem when the Settings page is navigated away (detached); binding
+    // that straight into SelectedDnsProvider wiped the saved value, which then reloaded as the default.
+    // Every other settings dropdown is insulated the same way via its *Option object; this is the one
+    // that was bound to the raw string. Dropping null/empty writes here keeps the user's choice.
+    public string SelectedDnsProviderChoice
+    {
+        get => SelectedDnsProvider;
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            SelectedDnsProvider = value;
+        }
+    }
     public bool UseCustomBridges => string.Equals(SelectedBridgeType, "custom", StringComparison.OrdinalIgnoreCase);
     public bool IsSnowflakeBridgeSelected => string.Equals(SelectedBridgeType, "snowflake", StringComparison.OrdinalIgnoreCase);
     public bool IsWindows => OperatingSystem.IsWindows();
@@ -1248,6 +1267,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     partial void OnSelectedDnsProviderChanged(string value)
     {
         OnPropertyChanged(nameof(IsCustomDoh));
+        // Keep the dropdown (bound to SelectedDnsProviderChoice) in sync when the provider changes
+        // from elsewhere (settings load, reset to defaults).
+        OnPropertyChanged(nameof(SelectedDnsProviderChoice));
     }
 
     partial void OnTorIpv6ModeChanged(string value)
