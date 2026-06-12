@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.Json;
 using OnionHopV3.Core;
@@ -83,6 +84,75 @@ public sealed class SettingsServiceTests
             Assert.Equal(original.TunMtu, loaded.TunMtu);
             Assert.Equal(original.TunStrictRoute, loaded.TunStrictRoute);
             Assert.Equal(original.ConnectionTimeoutSeconds, loaded.ConnectionTimeoutSeconds);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Load_returns_null_and_quarantines_a_corrupt_file()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var service = new SettingsService(dir);
+            File.WriteAllText(service.SettingsPath, "{ this is not valid json");
+
+            var result = service.Load();
+
+            Assert.Null(result);
+            // The corrupt file must be moved aside, not left in place to crash the next launch.
+            Assert.False(File.Exists(service.SettingsPath));
+            Assert.NotEmpty(Directory.GetFiles(dir, "settings.json.corrupt-*"));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Load_does_not_throw_on_wrong_typed_value()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var service = new SettingsService(dir);
+            // PreferredSocksPort is int? but the file holds a string - must not crash startup.
+            File.WriteAllText(service.SettingsPath, "{\"PreferredSocksPort\":\"not-a-number\"}");
+
+            var ex = Record.Exception(() => service.Load());
+
+            Assert.Null(ex);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Save_then_Load_round_trips_upstream_proxy_password_without_storing_plaintext()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var service = new SettingsService(dir);
+            service.Save(new UserSettings { UpstreamProxyPassword = "s3cr3t-pw" });
+
+            // On Windows the password is DPAPI-encrypted, so the plaintext must not be on disk.
+            var raw = File.ReadAllText(service.SettingsPath);
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.DoesNotContain("s3cr3t-pw", raw);
+            }
+
+            // Either way it round-trips back to plaintext in memory.
+            var loaded = service.Load();
+            Assert.NotNull(loaded);
+            Assert.Equal("s3cr3t-pw", loaded!.UpstreamProxyPassword);
         }
         finally
         {

@@ -720,19 +720,11 @@ internal sealed class AdminHelperClient : IDisposable
             StartupLogger.Write("AdminHelperClient: Failed to add Administrators pipe ACL.", ex);
         }
 
-        try
-        {
-            // Allow Everyone to connect. This is safe because:
-            // 1. The pipe name contains a random GUID, so only our helper process knows it
-            // 2. The helper gets the pipe name via command-line argument
-            // 3. This ensures cross-UAC-integrity-level communication works
-            var everyoneSid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
-            pipeSecurity.AddAccessRule(new PipeAccessRule(everyoneSid, PipeAccessRights.FullControl, AccessControlType.Allow));
-        }
-        catch (Exception ex)
-        {
-            StartupLogger.Write("AdminHelperClient: Failed to add Everyone pipe ACL.", ex);
-        }
+        // Intentionally NOT granting Everyone/World access. The elevated helper runs as the same
+        // user (UAC-elevated) and is a member of Administrators, so the current-user + Administrators
+        // + SYSTEM rules below already let it connect; mandatory integrity policy permits a high-IL
+        // process to access this medium-IL pipe. Granting Everyone would let any local process connect
+        // to (and receive the launch config / spoof responses on) the helper channel.
 
         try
         {

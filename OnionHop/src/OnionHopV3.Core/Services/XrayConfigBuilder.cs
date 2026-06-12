@@ -37,7 +37,8 @@ internal static class XrayConfigBuilder
         int dohServerPort,
         string? dohPath,
         int? tunMtu,
-        string? directOutboundSourceAddress)
+        string? directOutboundSourceAddress,
+        string? interfaceName = null)
     {
         // Keep Tor bootstrap/pluggable transport traffic out of the tunnel path.
         var torRelatedProcessNames = BuildTorRelatedProcessNames();
@@ -162,7 +163,9 @@ internal static class XrayConfigBuilder
         // Only "name" and "MTU" (uppercase) are recognized by xray-core.
         var tunSettings = new Dictionary<string, object?>
         {
-            ["name"] = OperatingSystem.IsMacOS() ? "utun99" : "OnionHop"
+            ["name"] = string.IsNullOrWhiteSpace(interfaceName)
+                ? (OperatingSystem.IsMacOS() ? "utun99" : "OnionHop")
+                : interfaceName
         };
         if (resolvedTunMtu.HasValue)
         {

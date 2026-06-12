@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.IO.Pipes;
 using System.Reflection;
+using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -55,18 +58,52 @@ internal sealed class BrowserExtensionBridgeServer : IDisposable
         }
     }
 
+    // The extension bridge can drive connect/disconnect and change connection settings, so restrict
+    // the pipe to the current user on Windows (the default DACL is broader than necessary). Other OSes
+    // back named pipes with a Unix domain socket whose file permissions already limit it to the user.
+    private static NamedPipeServerStream CreatePipe()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return CreateUserScopedPipeWindows();
+        }
+
+        return new NamedPipeServerStream(
+            PipeName,
+            PipeDirection.InOut,
+            1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static NamedPipeServerStream CreateUserScopedPipeWindows()
+    {
+        var security = new PipeSecurity();
+        using var identity = WindowsIdentity.GetCurrent();
+        if (identity.User is { } userSid)
+        {
+            security.AddAccessRule(new PipeAccessRule(userSid, PipeAccessRights.FullControl, AccessControlType.Allow));
+        }
+
+        return NamedPipeServerStreamAcl.Create(
+            PipeName,
+            PipeDirection.InOut,
+            1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous,
+            inBufferSize: 0,
+            outBufferSize: 0,
+            security);
+    }
+
     private async Task RunAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
             try
             {
-                using var pipe = new NamedPipeServerStream(
-                    PipeName,
-                    PipeDirection.InOut,
-                    1,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous);
+                using var pipe = CreatePipe();
 
                 await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
 

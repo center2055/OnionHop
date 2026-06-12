@@ -89,4 +89,26 @@ public sealed class BridgeScanServiceTests
     {
         Assert.Equal(expected, BridgeScanService.IsPlaceholderHost(host));
     }
+
+    [Theory]
+    [InlineData("127.0.0.1", true)]
+    [InlineData("10.1.2.3", true)]
+    [InlineData("192.168.1.5", true)]
+    [InlineData("172.16.0.1", true)]
+    [InlineData("172.31.255.255", true)]
+    [InlineData("169.254.10.10", true)]   // link-local
+    [InlineData("100.64.0.1", true)]      // CGNAT 100.64.0.0/10
+    [InlineData("0.0.0.0", true)]
+    [InlineData("224.0.0.1", true)]       // multicast
+    [InlineData("8.8.8.8", false)]
+    [InlineData("1.2.3.4", false)]
+    [InlineData("172.32.0.1", false)]     // just outside RFC1918 172.16/12
+    [InlineData("::1", true)]
+    [InlineData("fe80::1", true)]
+    [InlineData("fc00::1", true)]
+    [InlineData("2001:67c:289c::9", false)]
+    public void IsDisallowedProbeTarget_blocks_internal_addresses(string ip, bool expected)
+    {
+        Assert.Equal(expected, BridgeScanService.IsDisallowedProbeTarget(System.Net.IPAddress.Parse(ip)));
+    }
 }

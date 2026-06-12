@@ -42,6 +42,8 @@ public sealed class UserSettings
     public string? UpstreamProxyHost { get; set; }
     public string? UpstreamProxyPort { get; set; }
     public string? UpstreamProxyUsername { get; set; }
+    // Encrypted at rest (DPAPI on Windows). In memory it is plaintext; only the on-disk form is protected.
+    [System.Text.Json.Serialization.JsonConverter(typeof(ProtectedStringJsonConverter))]
     public string? UpstreamProxyPassword { get; set; }
     // Desired post-connect system-proxy state for Proxy Mode (null defaults to enabled).
     public bool? SystemProxyEnabledByDefault { get; set; }

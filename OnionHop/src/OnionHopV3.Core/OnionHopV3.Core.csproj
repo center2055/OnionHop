@@ -10,4 +10,11 @@
     <InternalsVisibleTo Include="OnionHopV3.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- DPAPI for protecting small secrets at rest (e.g. the upstream-proxy password). The package
+         is cross-platform-safe: it builds on all OSes and only throws if Protect/Unprotect is called
+         on a non-Windows OS, which SecretProtector guards against. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
 </Project>

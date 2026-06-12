@@ -14,6 +14,10 @@ namespace OnionHopV3.Core.Services;
 /// </summary>
 internal static class HttpClientFactory
 {
+    // Upper bound for fully-buffered responses (string/JSON reads). 128 MB is far above any real
+    // Onionoo/bridge/API payload but prevents an unbounded multi-GB body from exhausting memory.
+    private const long MaxBufferedResponseBytes = 128L * 1024 * 1024;
+
     private static readonly Lazy<HttpClient> DefaultClientLazy = new(() =>
     {
         // OnionHop may set the system proxy to a SOCKS endpoint (Tor).
@@ -28,7 +32,12 @@ internal static class HttpClientFactory
 
         var client = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(30)
+            Timeout = TimeSpan.FromSeconds(30),
+            // Cap buffered reads (ReadAsStringAsync / GetStringAsync / JSON) so a malicious or
+            // compromised host can't OOM the process with a huge body. Well above any legitimate
+            // Onionoo / bridge-list / API response. Streamed file downloads (ResponseHeadersRead +
+            // CopyToAsync) are not affected by this limit.
+            MaxResponseContentBufferSize = MaxBufferedResponseBytes
         };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHop");
         return client;
@@ -45,7 +54,10 @@ internal static class HttpClientFactory
 
         var client = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromMinutes(5)
+            Timeout = TimeSpan.FromMinutes(5),
+            // See note above. File downloads here use ResponseHeadersRead + streaming, so they are
+            // not bounded by this; this only caps any buffered read (e.g. release-index HTML/JSON).
+            MaxResponseContentBufferSize = MaxBufferedResponseBytes
         };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHop");
         return client;

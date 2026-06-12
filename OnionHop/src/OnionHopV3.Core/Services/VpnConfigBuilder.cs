@@ -24,7 +24,8 @@ internal static class VpnConfigBuilder
         string? dohPath,
         string? tunStack,
         int? tunMtu,
-        bool tunStrictRoute)
+        bool tunStrictRoute,
+        string? interfaceName = null)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -96,7 +97,9 @@ internal static class VpnConfigBuilder
         {
             ["type"] = "tun",
             ["tag"] = "tun-in",
-            ["interface_name"] = OperatingSystem.IsMacOS() ? "utun99" : "OnionHop",
+            ["interface_name"] = string.IsNullOrWhiteSpace(interfaceName)
+                ? (OperatingSystem.IsMacOS() ? "utun99" : "OnionHop")
+                : interfaceName,
             ["address"] = new[] { "172.19.0.1/30", "fdfe:dcba:9876::1/126" },
             ["auto_route"] = true,
             ["strict_route"] = tunStrictRoute,

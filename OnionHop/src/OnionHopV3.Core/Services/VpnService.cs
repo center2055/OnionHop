@@ -33,6 +33,11 @@ internal sealed class VpnService : IDisposable
     private int? _lastExitCode;
     private bool _disposed;
     private string? _xrayTunInterface;
+    // The Wintun/TUN adapter name for the current launch. On Windows this gets a unique suffix per
+    // connect (see ResolveTunInterfaceName) so a leftover adapter from a still-tearing-down previous
+    // session can never collide with the new one. Resolved in PrepareLaunchArtifactsAsync and reused
+    // for config generation, route setup and route teardown within the same connection.
+    private string _tunInterfaceName = TunInterfaceName;
     private CancellationTokenSource? _macPrivilegedMonitorCts;
     private string? _macPrivilegedSessionDir;
     private string? _macPrivilegedRunnerScriptPath;
@@ -224,8 +229,7 @@ internal sealed class VpnService : IDisposable
             }
             else
             {
-                var tunName = OperatingSystem.IsMacOS() ? "utun99" : "OnionHop";
-                SetupXrayRoutes(tunName);
+                SetupXrayRoutes(_tunInterfaceName);
             }
         }
     }
@@ -404,18 +408,19 @@ internal sealed class VpnService : IDisposable
 
         try
         {
-            // Match the adapter by name (its sing-box interface_name), including hidden adapters, and
-            // also catch a Wintun adapter whose alias is ours - so a leftover survives even if it's
-            // hidden or its friendly name drifted. Scoped to "OnionHop" so other apps' Wintun adapters
-            // (e.g. WireGuard) are never touched.
-            // Remove-NetAdapter is asynchronous: it returns before Wintun finishes tearing the adapter
-            // down. If sing-box starts during that window it still sees the adapter and fails with
+            // Match every adapter whose name or alias starts with "OnionHop", including hidden ones -
+            // so we catch leftovers regardless of the per-connect unique suffix (see
+            // ResolveTunInterfaceName), and even if the adapter is hidden or its friendly name drifted.
+            // Prefix-scoped to "OnionHop" so other apps' Wintun adapters (e.g. WireGuard) are never
+            // touched. Remove-NetAdapter is asynchronous: it returns before Wintun finishes tearing the
+            // adapter down. If a core starts during that window it still sees the adapter and fails with
             // "Cannot create a file when that file already exists" (and its internal retry pushes the
-            // FATAL ~15s out, past our startup check, so the helper wrongly reports success). So after
-            // removing, poll until the adapter is actually gone (up to ~5s) before returning.
+            // FATAL ~15s out, past our startup check, so the helper wrongly reports success). The unique
+            // per-connect name already makes that collision impossible, but we still poll until every
+            // matching adapter is actually gone (up to ~5s) so stale ones never pile up.
             var script =
                 $"$ErrorActionPreference='SilentlyContinue';" +
-                $"function Get-OnionAdapter {{ Get-NetAdapter -IncludeHidden | Where-Object {{ $_.Name -eq '{TunInterfaceName}' -or $_.InterfaceAlias -eq '{TunInterfaceName}' }} }};" +
+                $"function Get-OnionAdapter {{ Get-NetAdapter -IncludeHidden | Where-Object {{ $_.Name -like '{TunInterfaceName}*' -or $_.InterfaceAlias -like '{TunInterfaceName}*' }} }};" +
                 $"$a=Get-OnionAdapter;" +
                 $"if($a){{ $a|Remove-NetAdapter -Confirm:$false; for($i=0;$i -lt 20;$i++){{ Start-Sleep -Milliseconds 250; if(-not (Get-OnionAdapter)){{ break }} }} }}";
             var psi = new ProcessStartInfo("powershell")
@@ -524,6 +529,7 @@ internal sealed class VpnService : IDisposable
     private async Task<VpnLaunchArtifacts> PrepareLaunchArtifactsAsync(VpnLaunchConfig config, CancellationToken token)
     {
         var vpnCoreMode = NormalizeTunCoreMode(config.VpnCoreMode);
+        _tunInterfaceName = ResolveTunInterfaceName();
         var vpnCorePath = string.Equals(vpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
             ? config.XrayPath
             : config.SingBoxPath;
@@ -536,9 +542,19 @@ internal sealed class VpnService : IDisposable
             throw new FileNotFoundException($"VPN component missing: vpn/{Path.GetFileName(vpnCorePath)}", vpnCorePath);
         }
 
+        // The (elevated) Windows helper executes this path, so a caller that can drive the IPC must
+        // not be able to make it run an arbitrary binary. Confirm it resolves inside the app's own
+        // install/runtime directory before launching.
+        EnsureTrustedCoreBinary(vpnCorePath);
+
         if (PlatformHelper.NeedsWintun && (string.IsNullOrWhiteSpace(config.WintunPath) || !File.Exists(config.WintunPath)))
         {
             throw new FileNotFoundException("VPN component missing: vpn/wintun.dll", config.WintunPath);
+        }
+
+        if (PlatformHelper.NeedsWintun)
+        {
+            EnsureTrustedCoreBinary(config.WintunPath!);
         }
 
         var workDir = Path.GetDirectoryName(vpnCorePath) ?? AppContext.BaseDirectory;
@@ -560,7 +576,8 @@ internal sealed class VpnService : IDisposable
                 config.DohServerPort,
                 config.DohPath,
                 config.TunMtu,
-                ResolvePrimaryIpv4Address())
+                ResolvePrimaryIpv4Address(),
+                _tunInterfaceName)
             : VpnConfigBuilder.BuildJson(
                 config.HybridRouting,
                 config.SecureDns,
@@ -575,7 +592,8 @@ internal sealed class VpnService : IDisposable
                 config.DohPath,
                 config.TunStack,
                 config.TunMtu,
-                config.TunStrictRoute);
+                config.TunStrictRoute,
+                _tunInterfaceName);
         await File.WriteAllTextAsync(configPath, configJson, token).ConfigureAwait(false);
 
         _log($"Starting {vpnCoreLabel} with config: {configPath}");
@@ -612,7 +630,7 @@ internal sealed class VpnService : IDisposable
         var startedMarkerPath = Path.Combine(sessionDir, "started.marker");
         var runnerScriptPath = Path.Combine(sessionDir, $"{launch.VpnCoreLabel}-runner.sh");
         var tunInterface = string.Equals(launch.VpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
-            ? (OperatingSystem.IsMacOS() ? "utun99" : "OnionHop")
+            ? _tunInterfaceName
             : string.Empty;
 
         // Clean up old state files.
@@ -1327,9 +1345,86 @@ internal sealed class VpnService : IDisposable
             : OnionHopConnectOptions.TunCoreSingBox;
     }
 
+    /// <summary>
+    /// Refuses to launch a VPN core binary that resolves outside the app's own install/runtime
+    /// directories. The elevated Windows helper runs these paths, and they arrive over IPC, so this
+    /// stops a caller that can reach the helper from turning it into "run any binary, elevated".
+    /// Enforced on Windows only (the elevated helper is Windows-specific; other platforms prompt for
+    /// privilege per launch). Legitimate paths are always under the OnionHop base/runtime directory.
+    /// </summary>
+    private static void EnsureTrustedCoreBinary(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new InvalidOperationException("Refusing to launch VPN core: path was empty.");
+        }
+
+        var full = Path.GetFullPath(path);
+        foreach (var root in GetTrustedBinaryRoots())
+        {
+            var normalizedRoot = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            if (full.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        throw new InvalidOperationException($"Refusing to launch VPN core from an untrusted location: {full}");
+    }
+
+    private static IEnumerable<string> GetTrustedBinaryRoots()
+    {
+        var roots = new List<string?>
+        {
+            AppContext.BaseDirectory,
+            Path.GetDirectoryName(Environment.ProcessPath),
+        };
+
+        try { roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop")); } catch { }
+        try { roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop")); } catch { }
+
+        foreach (var r in roots)
+        {
+            if (!string.IsNullOrWhiteSpace(r))
+            {
+                yield return Path.GetFullPath(r);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Picks the TUN adapter name for a launch. On Windows each connect gets a fresh, unique name so
+    /// a leftover "OnionHop" Wintun adapter from a previous session that is still being torn down
+    /// (Wintun removal is asynchronous) can never collide with the new one - which is what made a
+    /// quick disconnect->reconnect FATAL with "configure tun interface: Cannot create a file when
+    /// that file already exists." RemoveStaleWindowsTunAdapter still clears every "OnionHop*" adapter
+    /// before each start, so stale names never accumulate. macOS keeps its fixed utun99; Linux keeps
+    /// the fixed name (IFNAMSIZ caps interface names at 15 chars and there is no Wintun-style race).
+    /// </summary>
+    private static string ResolveTunInterfaceName()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return "utun99";
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return TunInterfaceName + Guid.NewGuid().ToString("N").Substring(0, 4);
+        }
+
+        return TunInterfaceName;
+    }
+
     private async Task EnsureXrayTunRoutesAsync(CancellationToken token)
     {
-        var adapter = await WaitForTunAdapterAsync(TunInterfaceName, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
+        var adapter = await WaitForTunAdapterAsync(_tunInterfaceName, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
         if (adapter == null)
         {
             throw new InvalidOperationException("xray TUN interface was not found. Unable to install routes.");
@@ -1347,7 +1442,7 @@ internal sealed class VpnService : IDisposable
     {
         try
         {
-            var adapter = TryFindTunAdapter(TunInterfaceName, preferExactName: false);
+            var adapter = TryFindTunAdapter(_tunInterfaceName, preferExactName: false);
             if (adapter == null)
             {
                 _xrayRoutesApplied = false;

@@ -740,9 +740,57 @@ internal sealed class TorService : IDisposable
         return string.IsNullOrWhiteSpace(normalized) ? string.Empty : $"${normalized}";
     }
 
-    private static string FormatArgumentsForLog(IReadOnlyList<string> arguments)
+    // Flags whose following value is a secret and must never be written to the (exportable) log.
+    private static readonly HashSet<string> RedactNextValueFlags = new(StringComparer.OrdinalIgnoreCase)
     {
-        return string.Join(" ", arguments.Select(QuoteForLog));
+        "--Socks5ProxyPassword",
+        "--Socks5ProxyUsername",
+        "--HTTPSProxyAuthenticator",
+    };
+
+    // internal for testing. Bridge lines are anti-censorship credentials and the upstream-proxy
+    // password is a secret; neither may appear in a log the user can export and share for support.
+    internal static string FormatArgumentsForLog(IReadOnlyList<string> arguments)
+    {
+        var rendered = new List<string>(arguments.Count);
+        for (var i = 0; i < arguments.Count; i++)
+        {
+            var arg = arguments[i];
+            if (i > 0 && RedactNextValueFlags.Contains(arguments[i - 1]))
+            {
+                rendered.Add("***");
+                continue;
+            }
+
+            if (i > 0 && string.Equals(arguments[i - 1], "--Bridge", StringComparison.OrdinalIgnoreCase))
+            {
+                rendered.Add(RedactBridgeLine(arg));
+                continue;
+            }
+
+            rendered.Add(QuoteForLog(arg));
+        }
+
+        return string.Join(" ", rendered);
+    }
+
+    // Keep just the transport + endpoint for log correlation; redact the fingerprint, cert= and any
+    // other parameters (the obfs4 cert / webtunnel url / snowflake broker are the real secrets).
+    internal static string RedactBridgeLine(string bridgeLine)
+    {
+        if (string.IsNullOrWhiteSpace(bridgeLine))
+        {
+            return QuoteForLog(bridgeLine);
+        }
+
+        var parts = bridgeLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var kept = parts.Length switch
+        {
+            >= 3 => $"{parts[0]} {parts[1]} ***",
+            2 => $"{parts[0]} {parts[1]}",
+            _ => $"{parts[0]} ***"
+        };
+        return QuoteForLog(kept);
     }
 
     private static string QuoteForLog(string value)

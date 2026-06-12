@@ -4,6 +4,7 @@ using System.Text;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using OnionHopV3.App.ViewModels;
+using OnionHopV3.Core.Services;
 
 namespace OnionHopV3.App.Views;
 
@@ -65,8 +66,16 @@ public partial class BridgeScannerPageView : UserControl
             return;
         }
 
-        await using var stream = await file.OpenWriteAsync();
-        await using var writer = new StreamWriter(stream, Encoding.UTF8);
-        await writer.WriteAsync(text);
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream, Encoding.UTF8);
+            await writer.WriteAsync(text);
+        }
+        catch (Exception ex)
+        {
+            // Never let an async-void export failure crash the app; log and move on.
+            StartupLogger.Write("Bridge export failed.", ex);
+        }
     }
 }

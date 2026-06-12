@@ -385,6 +385,9 @@ public sealed partial class AppStateViewModel
             LogLines.Clear();
             DnsLogLines.Clear();
             VpnLogLines.Clear();
+            // Also purge the on-disk diagnostic log, which embeds paths/usernames, so "clear session
+            // data" leaves nothing behind on a shared machine.
+            OnionHopV3.Core.Services.StartupLogger.Clear();
         }
     }
 

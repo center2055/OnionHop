@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using OnionHopV3.App.Services;
 using OnionHopV3.App.ViewModels;
+using OnionHopV3.Core.Services;
 
 namespace OnionHopV3.App.Views;
 
@@ -102,9 +103,18 @@ public partial class LogsPageView : UserControl
             return;
         }
 
-        await using var stream = await file.OpenWriteAsync();
-        await using var writer = new StreamWriter(stream, Encoding.UTF8);
-        await writer.WriteAsync(text);
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream, Encoding.UTF8);
+            await writer.WriteAsync(text);
+        }
+        catch (Exception ex)
+        {
+            // An async-void handler must not throw to the dispatcher (it would crash the app). A
+            // failed export (read-only path, full disk, locked file) is logged and otherwise ignored.
+            StartupLogger.Write("Log export failed.", ex);
+        }
     }
 
     private void OnClearCurrentTabClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

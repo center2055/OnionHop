@@ -79,22 +79,22 @@ internal sealed class DependencyManager
 
             if (needsTor)
             {
-                steps.Add(("Downloading Tor...", () => DownloadTorAsync(client, tempRoot, torDir, ptDir, log)));
+                steps.Add(("Downloading Tor...", () => DownloadTorAsync(client, tempRoot, torDir, ptDir, log, token)));
             }
 
             if (needsSingBox)
             {
-                steps.Add(("Downloading sing-box...", () => DownloadSingBoxAsync(client, tempRoot, singBoxPath)));
+                steps.Add(("Downloading sing-box...", () => DownloadSingBoxAsync(client, tempRoot, singBoxPath, token)));
             }
 
             if (needsXray)
             {
-                steps.Add(("Downloading xray...", () => DownloadXrayAsync(client, tempRoot, xrayPath)));
+                steps.Add(("Downloading xray...", () => DownloadXrayAsync(client, tempRoot, xrayPath, token)));
             }
 
             if (needsWintun)
             {
-                steps.Add(("Downloading Wintun...", () => DownloadWintunAsync(client, tempRoot, wintunPath)));
+                steps.Add(("Downloading Wintun...", () => DownloadWintunAsync(client, tempRoot, wintunPath, token)));
             }
 
             for (var i = 0; i < steps.Count; i++)
@@ -267,12 +267,12 @@ internal sealed class DependencyManager
         }
     }
 
-    private static async Task DownloadTorAsync(HttpClient client, string tempRoot, string torDir, string ptDir, Action<string> log)
+    private static async Task DownloadTorAsync(HttpClient client, string tempRoot, string torDir, string ptDir, Action<string> log, CancellationToken token)
     {
         var torPath = Path.Combine(torDir, PlatformHelper.TorBinaryName);
         var torGenCertPath = Path.Combine(torDir, PlatformHelper.TorGenCertBinaryName);
         var torArchivePath = Path.Combine(tempRoot, "tor.tar.gz");
-        var versionCandidates = await GetTorVersionCandidatesAsync(client).ConfigureAwait(false);
+        var versionCandidates = await GetTorVersionCandidatesAsync(client, token).ConfigureAwait(false);
         var suffixCandidates = GetTorSuffixCandidates();
 
         Exception? lastVersionError = null;
@@ -281,9 +281,9 @@ internal sealed class DependencyManager
         {
             try
             {
-                var candidates = await ResolveTorDownloadCandidatesAsync(client, version, suffixCandidates).ConfigureAwait(false);
+                var candidates = await ResolveTorDownloadCandidatesAsync(client, version, suffixCandidates, token).ConfigureAwait(false);
                 log($"Tor download: trying version {version} with {candidates.Count} candidate URL(s).");
-                await DownloadWithFallbackAsync(client, candidates, torArchivePath).ConfigureAwait(false);
+                await DownloadWithFallbackAsync(client, candidates, torArchivePath, token).ConfigureAwait(false);
                 resolvedVersion = version;
                 break;
             }
@@ -388,15 +388,15 @@ internal sealed class DependencyManager
         }).ConfigureAwait(false);
     }
 
-    private static async Task DownloadSingBoxAsync(HttpClient client, string tempRoot, string singBoxPath)
+    private static async Task DownloadSingBoxAsync(HttpClient client, string tempRoot, string singBoxPath, CancellationToken token)
     {
-        using var response = await client.GetAsync(SingBoxApiUrl).ConfigureAwait(false);
+        using var response = await client.GetAsync(SingBoxApiUrl, token).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException("Failed to query sing-box releases.");
         }
 
-        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var json = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
         var release = JsonSerializer.Deserialize<GitHubRelease>(json);
         var asset = release?.Assets?.FirstOrDefault(a => a.Name != null
             && a.Name.Contains(PlatformHelper.SingBoxPlatformAssetFilter, StringComparison.OrdinalIgnoreCase));
@@ -406,19 +406,19 @@ internal sealed class DependencyManager
         }
 
         var archivePath = Path.Combine(tempRoot, asset.Name);
-        await DownloadToFileAsync(client, asset.BrowserDownloadUrl, archivePath).ConfigureAwait(false);
+        await DownloadToFileAsync(client, asset.BrowserDownloadUrl, archivePath, token).ConfigureAwait(false);
         await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.SingBoxBinaryName, singBoxPath).ConfigureAwait(false);
     }
 
-    private static async Task DownloadXrayAsync(HttpClient client, string tempRoot, string xrayPath)
+    private static async Task DownloadXrayAsync(HttpClient client, string tempRoot, string xrayPath, CancellationToken token)
     {
-        using var response = await client.GetAsync(XrayApiUrl).ConfigureAwait(false);
+        using var response = await client.GetAsync(XrayApiUrl, token).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException("Failed to query xray releases.");
         }
 
-        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var json = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
         var release = JsonSerializer.Deserialize<GitHubRelease>(json);
         var hints = PlatformHelper.XrayAssetNameHints;
         var asset = release?.Assets?
@@ -431,14 +431,14 @@ internal sealed class DependencyManager
         }
 
         var archivePath = Path.Combine(tempRoot, asset.Name!);
-        await DownloadToFileAsync(client, asset.BrowserDownloadUrl!, archivePath).ConfigureAwait(false);
+        await DownloadToFileAsync(client, asset.BrowserDownloadUrl!, archivePath, token).ConfigureAwait(false);
         await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.XrayBinaryName, xrayPath).ConfigureAwait(false);
     }
 
-    private static async Task DownloadWintunAsync(HttpClient client, string tempRoot, string wintunPath)
+    private static async Task DownloadWintunAsync(HttpClient client, string tempRoot, string wintunPath, CancellationToken token)
     {
         var zipPath = Path.Combine(tempRoot, "wintun.zip");
-        await DownloadToFileAsync(client, WintunUrl, zipPath).ConfigureAwait(false);
+        await DownloadToFileAsync(client, WintunUrl, zipPath, token).ConfigureAwait(false);
 
         await Task.Run(() =>
         {
@@ -498,17 +498,17 @@ internal sealed class DependencyManager
         }).ConfigureAwait(false);
     }
 
-    private static async Task DownloadToFileAsync(HttpClient client, string url, string targetPath)
+    private static async Task DownloadToFileAsync(HttpClient client, string url, string targetPath, CancellationToken token)
     {
-        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        await using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
         await using var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await stream.CopyToAsync(file).ConfigureAwait(false);
+        await stream.CopyToAsync(file, token).ConfigureAwait(false);
     }
 
-    private static async Task DownloadWithFallbackAsync(HttpClient client, IEnumerable<string> urls, string targetPath)
+    private static async Task DownloadWithFallbackAsync(HttpClient client, IEnumerable<string> urls, string targetPath, CancellationToken token)
     {
         Exception? lastError = null;
         string? lastUrl = null;
@@ -518,7 +518,7 @@ internal sealed class DependencyManager
             attemptCount++;
             try
             {
-                await DownloadToFileAsync(client, url, targetPath).ConfigureAwait(false);
+                await DownloadToFileAsync(client, url, targetPath, token).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex)
@@ -536,12 +536,12 @@ internal sealed class DependencyManager
             $"Tor download failed after {attemptCount} URL attempt(s). Last URL: {lastUrl ?? "n/a"}. Error: {lastError?.Message}");
     }
 
-    private static async Task<IReadOnlyList<string>> GetTorVersionCandidatesAsync(HttpClient client)
+    private static async Task<IReadOnlyList<string>> GetTorVersionCandidatesAsync(HttpClient client, CancellationToken token)
     {
         var versionCandidates = new List<string>();
         try
         {
-            var html = await client.GetStringAsync(TorBaseUrl).ConfigureAwait(false);
+            var html = await client.GetStringAsync(TorBaseUrl, token).ConfigureAwait(false);
             var matches = Regex.Matches(html, "href=\"(?<ver>\\d+\\.\\d+(\\.\\d+)*)/\"");
             var versions = new List<Version>();
             foreach (Match match in matches)
@@ -643,7 +643,7 @@ internal sealed class DependencyManager
             .ToList();
     }
 
-    private static async Task<IReadOnlyList<string>> ResolveTorDownloadCandidatesAsync(HttpClient client, string version, IReadOnlyList<string> suffixes)
+    private static async Task<IReadOnlyList<string>> ResolveTorDownloadCandidatesAsync(HttpClient client, string version, IReadOnlyList<string> suffixes, CancellationToken token)
     {
         var candidates = new List<string>();
         var bases = new[]
@@ -663,7 +663,7 @@ internal sealed class DependencyManager
 
         foreach (var baseUrl in bases)
         {
-            var indexedFiles = await GetTorBundleFileNamesFromIndexAsync(client, baseUrl, suffixes).ConfigureAwait(false);
+            var indexedFiles = await GetTorBundleFileNamesFromIndexAsync(client, baseUrl, suffixes, token).ConfigureAwait(false);
             foreach (var indexedFile in indexedFiles)
             {
                 candidates.Add($"{baseUrl}/{indexedFile}");
@@ -675,11 +675,11 @@ internal sealed class DependencyManager
             .ToList();
     }
 
-    private static async Task<IReadOnlyList<string>> GetTorBundleFileNamesFromIndexAsync(HttpClient client, string versionBaseUrl, IReadOnlyList<string> suffixes)
+    private static async Task<IReadOnlyList<string>> GetTorBundleFileNamesFromIndexAsync(HttpClient client, string versionBaseUrl, IReadOnlyList<string> suffixes, CancellationToken token)
     {
         try
         {
-            var html = await client.GetStringAsync(versionBaseUrl.TrimEnd('/') + "/").ConfigureAwait(false);
+            var html = await client.GetStringAsync(versionBaseUrl.TrimEnd('/') + "/", token).ConfigureAwait(false);
             var escapedSuffixes = suffixes
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Select(Regex.Escape)

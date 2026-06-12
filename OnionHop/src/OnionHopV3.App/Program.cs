@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +23,8 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        InstallGlobalExceptionLogging();
+
         if (OperatingSystem.IsWindows() && (AdminHelperServer.IsHelperMode(args) || AdminHelperServer.IsDaemonMode(args)))
         {
             AdminHelperServer.Run(args);
@@ -97,6 +99,23 @@ sealed class Program
                 instanceMutex.Dispose();
             }
         }
+    }
+
+    // Last-resort diagnostics: a crash anywhere (including an unguarded async-void UI handler whose
+    // exception reaches the synchronization context) is at least recorded to the startup log instead
+    // of vanishing. UnobservedTaskException is marked observed so a stray faulted Task can't escalate.
+    private static void InstallGlobalExceptionLogging()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            StartupLogger.Write("FATAL unhandled exception.", e.ExceptionObject as Exception);
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            StartupLogger.Write("Unobserved task exception.", e.Exception);
+            e.SetObserved();
+        };
     }
 
     private static void StartSingleInstanceIpcServer()

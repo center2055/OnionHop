@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Text.Json;
 using OnionHopV3.Core.Services;
 using Xunit;
@@ -263,6 +263,63 @@ public sealed class VpnConfigBuilderTests
         Assert.Equal("mixed", tunInbound.GetProperty("stack").GetString());
         Assert.True(tunInbound.GetProperty("strict_route").GetBoolean());
         Assert.False(tunInbound.TryGetProperty("mtu", out _));
+    }
+
+    [Fact]
+    public void Custom_interface_name_is_used_for_tun_inbound()
+    {
+        // The VPN service hands each connect a unique adapter name (e.g. "OnionHop3f2a") so a
+        // leftover Wintun adapter from a racing teardown can never collide with the new one. The
+        // builder must put exactly that name on the TUN inbound.
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: false,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: true,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true,
+            interfaceName: "OnionHop3f2a");
+
+        var doc = JsonDocument.Parse(json);
+        var tunInbound = doc.RootElement.GetProperty("inbounds")[0];
+        Assert.Equal("OnionHop3f2a", tunInbound.GetProperty("interface_name").GetString());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Missing_interface_name_falls_back_to_default(string? interfaceName)
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: false,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: true,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true,
+            interfaceName: interfaceName);
+
+        var doc = JsonDocument.Parse(json);
+        var tunInbound = doc.RootElement.GetProperty("inbounds")[0];
+        var expected = System.OperatingSystem.IsMacOS() ? "utun99" : "OnionHop";
+        Assert.Equal(expected, tunInbound.GetProperty("interface_name").GetString());
     }
 
     [Theory]
