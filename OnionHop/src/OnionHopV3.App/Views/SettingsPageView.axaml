@@ -413,6 +413,38 @@
 
           <Border Classes="SectionCard">
             <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.RoutingRulesTitle}"
+                         Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource Settings.RoutingRulesHint}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <StackPanel Spacing="6">
+                <TextBlock Text="{DynamicResource Settings.RoutingBypass}" />
+                <TextBox AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="96"
+                         Text="{Binding State.BypassRoutingRules}"
+                         Watermark="{DynamicResource Settings.RoutingRulesWatermark}" />
+                <TextBlock Text="{DynamicResource Settings.RoutingBypassHint}"
+                           Classes="SectionCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+              <StackPanel Spacing="6">
+                <TextBlock Text="{DynamicResource Settings.RoutingBlock}" />
+                <TextBox AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="96"
+                         Text="{Binding State.BlockRoutingRules}"
+                         Watermark="{DynamicResource Settings.RoutingRulesWatermark}" />
+                <TextBlock Text="{DynamicResource Settings.RoutingBlockHint}"
+                           Classes="SectionCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
               <TextBlock Text="{DynamicResource Settings.AutomationTitle}"
                          Classes="SectionTitle" />
               <controls:ToggleRow Title="{DynamicResource Settings.OpenConnectedPage}"

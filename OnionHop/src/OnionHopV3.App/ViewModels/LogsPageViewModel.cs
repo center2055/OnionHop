@@ -16,6 +16,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
     private const string SourceApp = "app";
     private const string SourceDns = "dns";
     private const string SourceEngine = "engine";
+    private const string SourceBridges = "bridges";
     private const string LevelAll = "all";
     private const string LevelInfo = "info";
     private const string LevelWarning = "warning";
@@ -27,6 +28,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         State.LogLines.CollectionChanged += OnSourceLogsChanged;
         State.DnsLogLines.CollectionChanged += OnSourceLogsChanged;
         State.VpnLogLines.CollectionChanged += OnSourceLogsChanged;
+        State.ActiveBridgeLines.CollectionChanged += OnSourceLogsChanged;
         State.PropertyChanged += OnStatePropertyChanged;
 
         RebuildVisibleEntries();
@@ -51,12 +53,15 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
     {
         SourceDns => LocalizationService.Get("Logs.TabDns"),
         SourceEngine => EngineTabLabel,
+        SourceBridges => LocalizationService.Get("Logs.TabBridges"),
         _ => LocalizationService.Get("Logs.TabApp")
     };
     public bool ShowEmptyState => VisibleEntries.Count == 0;
+    public bool HasActiveBridges => State.ActiveBridgeLines.Count > 0;
     public bool IsAppSelected { get => SelectedSource == SourceApp; set { if (value) SelectedSource = SourceApp; } }
     public bool IsDnsSelected { get => SelectedSource == SourceDns; set { if (value) SelectedSource = SourceDns; } }
     public bool IsEngineSelected { get => SelectedSource == SourceEngine; set { if (value) SelectedSource = SourceEngine; } }
+    public bool IsBridgesSelected { get => SelectedSource == SourceBridges; set { if (value) SelectedSource = SourceBridges; } }
     public bool IsAllSelected { get => SelectedLevel == LevelAll; set { if (value) SelectedLevel = LevelAll; } }
     public bool IsInfoSelected { get => SelectedLevel == LevelInfo; set { if (value) SelectedLevel = LevelInfo; } }
     public bool IsWarningSelected { get => SelectedLevel == LevelWarning; set { if (value) SelectedLevel = LevelWarning; } }
@@ -72,6 +77,9 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
                 break;
             case SourceEngine:
                 State.ClearVpnLogs();
+                break;
+            case SourceBridges:
+                // The active bridge list reflects the live connection; not a user-clearable log.
                 break;
             default:
                 State.ClearAppLogs();
@@ -131,6 +139,12 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
 
     private void OnSourceLogsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (ReferenceEquals(sender, State.ActiveBridgeLines))
+        {
+            // Bridges set/cleared: refresh the "Current Bridge" tab's visibility regardless of pause.
+            OnPropertyChanged(nameof(HasActiveBridges));
+        }
+
         if (IsPaused)
         {
             return;
@@ -225,6 +239,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         {
             SourceDns => State.DnsLogLines,
             SourceEngine => State.VpnLogLines,
+            SourceBridges => State.ActiveBridgeLines,
             _ => State.LogLines
         };
     }
@@ -244,6 +259,11 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         if (State.VpnLogLines.Count > 0)
         {
             yield return EngineTabLabel;
+        }
+
+        if (State.ActiveBridgeLines.Count > 0)
+        {
+            yield return LocalizationService.Get("Logs.TabBridges");
         }
     }
 

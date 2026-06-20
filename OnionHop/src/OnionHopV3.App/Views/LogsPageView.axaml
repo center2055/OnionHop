@@ -38,6 +38,14 @@
                    Width="140"
                    Height="40"
                    Margin="0,0,10,0" />
+      <RadioButton Classes="TabChip"
+                   GroupName="LogSource"
+                   IsChecked="{Binding IsBridgesSelected}"
+                   Content="{DynamicResource Logs.TabBridges}"
+                   IsVisible="{Binding HasActiveBridges}"
+                   Width="140"
+                   Height="40"
+                   Margin="0,0,10,0" />
     </WrapPanel>
 
     <Grid Grid.Row="1"

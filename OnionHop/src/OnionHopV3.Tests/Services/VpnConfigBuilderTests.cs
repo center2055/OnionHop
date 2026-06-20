@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Text.Json;
 using OnionHopV3.Core.Services;
 using Xunit;
@@ -421,5 +421,54 @@ public sealed class VpnConfigBuilderTests
         Assert.Contains(bypassNames, n => n is "artihop.exe" or "artihop");
         Assert.Contains(bypassNames, n => n is "webtunnel-client.exe" or "webtunnel-client");
         Assert.Contains(bypassNames, n => n is "dnstt-client.exe" or "dnstt-client");
+    }
+
+    [Fact]
+    public void Routing_rules_bypass_and_block_domains_and_ips()
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: false,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: true,
+            dohServer: null,
+            dohServerPort: 443,
+            dohPath: null,
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true,
+            interfaceName: null,
+            bypassRoutingEntries: ["example.com", "10.0.0.0/8", "# a comment", "https://foo.bar/path"],
+            blockRoutingEntries: ["ads.tracker.net", "1.2.3.4"]);
+
+        var rules = JsonDocument.Parse(json).RootElement.GetProperty("route").GetProperty("rules");
+        bool bypassDomain = false, bypassIp = false, blockDomain = false, blockIp = false, normalizedUrl = false;
+        foreach (var r in rules.EnumerateArray())
+        {
+            var ob = r.TryGetProperty("outbound", out var o) ? o.GetString() : null;
+            if (r.TryGetProperty("domain_suffix", out var ds))
+            {
+                var list = ds.EnumerateArray().Select(e => e.GetString()).ToList();
+                if (ob == "direct" && list.Contains("example.com")) bypassDomain = true;
+                if (ob == "direct" && list.Contains("foo.bar")) normalizedUrl = true;
+                if (ob == "block" && list.Contains("ads.tracker.net")) blockDomain = true;
+            }
+            if (r.TryGetProperty("ip_cidr", out var ic))
+            {
+                var list = ic.EnumerateArray().Select(e => e.GetString()).ToList();
+                if (ob == "direct" && list.Contains("10.0.0.0/8")) bypassIp = true;
+                if (ob == "block" && list.Contains("1.2.3.4")) blockIp = true;
+            }
+        }
+
+        Assert.True(bypassDomain, "domain bypass rule (direct) missing");
+        Assert.True(bypassIp, "ip_cidr bypass rule (direct) missing");
+        Assert.True(blockDomain, "domain block rule missing");
+        Assert.True(blockIp, "ip block rule missing");
+        Assert.True(normalizedUrl, "a url entry should be normalized to its host");
     }
 }

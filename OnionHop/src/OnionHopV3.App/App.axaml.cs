@@ -12,6 +12,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Material.Icons;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OnionHopV3.App.Services;
@@ -27,6 +28,7 @@ public partial class App : Application
     private NativeMenuItem? _trayExitItem;
     private bool _allowShutdown;
     private BrowserExtensionBridgeServer? _browserExtensionBridgeServer;
+    private readonly Dictionary<string, WindowIcon> _statusIcons = new();
 
     public override void Initialize()
     {
@@ -83,7 +85,15 @@ public partial class App : Application
                 {
                     ApplyWindowChrome(desktop.MainWindow, !shell.State.UseCustomChrome);
                 }
+
+                if (e.PropertyName is nameof(shell.State.IsConnected)
+                    or nameof(shell.State.IsConnecting)
+                    or nameof(shell.State.IsPreparingConnection))
+                {
+                    ApplyConnectionStatusIcon(desktop, shell);
+                }
             };
+            ApplyConnectionStatusIcon(desktop, shell);
 
             // Mirror the UI for right-to-left languages (Persian/Kurdish/Azerbaijani), and keep it in
             // sync whenever the language changes at runtime.
@@ -151,6 +161,35 @@ public partial class App : Application
         }
     }
 
+    // Connection status on the SYSTEM TRAY icon only (issue #59): the normal OnionHop icon while
+    // connected, and a grayed-out version when not connected (the "inactive" look). The taskbar /
+    // window icon always stays the standard logo.
+    private void ApplyConnectionStatusIcon(IClassicDesktopStyleApplicationLifetime desktop, ShellViewModel shell)
+    {
+        try
+        {
+            if (_trayIcon == null)
+            {
+                return;
+            }
+
+            var asset = shell.State.IsConnected ? "OnionHop.ico" : "status-gray.png";
+
+            if (!_statusIcons.TryGetValue(asset, out var icon))
+            {
+                using var stream = AssetLoader.Open(new Uri($"avares://OnionHopV3/Assets/{asset}"));
+                icon = new WindowIcon(stream);
+                _statusIcons[asset] = icon;
+            }
+
+            _trayIcon.Icon = icon;
+        }
+        catch
+        {
+            // Status icon is cosmetic; never let it break startup or a state change.
+        }
+    }
+
     private void ConfigureTray(IClassicDesktopStyleApplicationLifetime desktop, ShellViewModel shell)
     {
         try
@@ -206,6 +245,10 @@ public partial class App : Application
 
             _trayIcon.Clicked += (_, _) => ShowMainWindow(desktop);
             TrayIcon.SetIcons(this, new TrayIcons { _trayIcon });
+
+            // The tray is configured after the first frame, so apply the current connection-status
+            // color now that _trayIcon exists (the initial call ran before the tray was created).
+            ApplyConnectionStatusIcon(desktop, shell);
 
             shell.State.PropertyChanged += (_, e) =>
             {

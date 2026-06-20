@@ -76,6 +76,7 @@
   <x:String x:Key="Logs.Title">Logs</x:String>
   <x:String x:Key="Logs.TabApp">App</x:String>
   <x:String x:Key="Logs.TabDns">DNS</x:String>
+  <x:String x:Key="Logs.TabBridges">Current Bridge</x:String>
   <x:String x:Key="Logs.TabXray">Xray</x:String>
   <x:String x:Key="Logs.TabSingBox">Sing-box</x:String>
   <x:String x:Key="Logs.Copy">Copy</x:String>
@@ -263,6 +264,14 @@
   <x:String x:Key="Settings.BypassApps">Apps bypassing Tor (optional)</x:String>
   <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
   <x:String x:Key="Settings.SplitTunnelingEnableHint">Enable TUN/VPN mode + Hybrid routing on the Home page to use split tunneling.</x:String>
+
+  <x:String x:Key="Settings.RoutingRulesTitle">Routing rules (TUN/VPN mode)</x:String>
+  <x:String x:Key="Settings.RoutingRulesHint">Send specific domains or IP ranges direct (bypassing Tor) or block them. Only applies in TUN/VPN mode. One entry per line; lines starting with # are ignored. Domains match all subdomains; IP ranges use CIDR (e.g. 10.0.0.0/8).</x:String>
+  <x:String x:Key="Settings.RoutingBypass">Bypass Tor (direct)</x:String>
+  <x:String x:Key="Settings.RoutingBypassHint">These leave with your real IP, not through Tor. Useful for local or in-country sites that break over Tor.</x:String>
+  <x:String x:Key="Settings.RoutingBlock">Block</x:String>
+  <x:String x:Key="Settings.RoutingBlockHint">These are dropped entirely. Useful for ad or tracker domains.</x:String>
+  <x:String x:Key="Settings.RoutingRulesWatermark">example.com&#10;ads.example.net&#10;10.0.0.0/8</x:String>
 
   <x:String x:Key="Settings.AutomationTitle">Automation</x:String>
   <x:String x:Key="Settings.OpenConnectedPage">Open page when connected</x:String>

@@ -64,6 +64,10 @@ public sealed class OnionHopClient : IDisposable
     public event EventHandler<StatusUpdate>? StatusUpdated;
     public event EventHandler<DependencyUpdate>? DependencyUpdated;
     public event EventHandler<SnowflakeProxyStatus>? SnowflakeProxyStatusUpdated;
+    // The bridge line(s) configured for the current connection (issue #56), so the UI can show a
+    // copyable "Current Bridge" view. Raised with the real obfs4/webtunnel/etc. lines (before any
+    // dnstt local-port rewrite), and with an empty list on disconnect.
+    public event EventHandler<IReadOnlyList<string>>? BridgesApplied;
 
     private readonly string _baseDir;
     private readonly DependencyManager _deps = new();
@@ -2446,6 +2450,7 @@ public sealed class OnionHopClient : IDisposable
             bridgeLines = await FilterReachableBridgesAsync(bridgeLines, token).ConfigureAwait(false);
 
             bridgeLines = LimitBridgeLinesForLaunch(bridgeLines, RaiseLog);
+            BridgesApplied?.Invoke(this, bridgeLines);
 
             // dnstt bridges aren't pluggable transports: spin up a local dnstt-client forwarder for
             // each and replace it with a vanilla Bridge to the local port (so Tor needs no PT for it).
@@ -2962,6 +2967,8 @@ public sealed class OnionHopClient : IDisposable
             DohPath = doh.Path,
             TorAppProcessNames = ResolveHybridTorApps(options),
             BypassAppProcessNames = ParseProcessNames(options.HybridBypassApps),
+            BypassRoutingEntries = ParseRoutingRules(options.BypassRoutingRules),
+            BlockRoutingEntries = ParseRoutingRules(options.BlockRoutingRules),
             RouteAllWebTrafficThroughTor = options.HybridRouteAllWebTraffic,
             BlockQuicForTorApps = options.HybridBlockQuicForTorApps,
             BlockUdpTraffic = options.BlockUdpTraffic,
@@ -3001,6 +3008,17 @@ public sealed class OnionHopClient : IDisposable
     }
 
     private static IReadOnlyList<string> ParseProcessNames(string? text) => TorLogHelper.ParseProcessNames(text);
+
+    // Split a routing-rules text box (domains / IP ranges) into individual entries by line or comma.
+    private static IReadOnlyList<string> ParseRoutingRules(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Array.Empty<string>();
+        }
+
+        return text.Split(new[] { '\n', '\r', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
 
     private static bool? ParseToggleMode(string? mode) => TorLogHelper.ParseToggleMode(mode);
     private static string? ParseConnectionPaddingMode(string? mode) => TorLogHelper.ParseConnectionPaddingMode(mode);

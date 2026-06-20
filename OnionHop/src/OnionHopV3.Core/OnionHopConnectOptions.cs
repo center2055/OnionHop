@@ -132,6 +132,10 @@ public sealed record OnionHopConnectOptions
     public bool BlockUdpTraffic { get; init; } = true;
     public string? HybridTorApps { get; init; }
     public string? HybridBypassApps { get; init; }
+    // User routing rules for TUN/VPN mode (issue #55): domains / IP ranges to send direct (bypass Tor)
+    // or block. One entry per line or comma-separated; '#' lines ignored.
+    public string? BypassRoutingRules { get; init; }
+    public string? BlockRoutingRules { get; init; }
 
     // Opt-in (default false). When true, TUN/VPN connects may install an at-logon elevated helper task
     // so subsequent connects skip the UAC prompt. When false, no startup task is installed and any

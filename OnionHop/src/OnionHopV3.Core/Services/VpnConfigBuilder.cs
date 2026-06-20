@@ -25,7 +25,9 @@ internal static class VpnConfigBuilder
         string? tunStack,
         int? tunMtu,
         bool tunStrictRoute,
-        string? interfaceName = null)
+        string? interfaceName = null,
+        IReadOnlyList<string>? bypassRoutingEntries = null,
+        IReadOnlyList<string>? blockRoutingEntries = null)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -37,6 +39,17 @@ internal static class VpnConfigBuilder
             new { process_name = torRelatedProcessNames, outbound = "direct" },
             new { ip_is_private = true, outbound = "direct" }
         };
+
+        // User routing rules (issue #55): send chosen domains / IP ranges direct (bypass Tor) or block
+        // them outright. Added before the hybrid / full-tunnel catch-alls so they take precedence in
+        // both modes. Block is listed before bypass so a domain in both is blocked. NOTE: anything set
+        // to "direct" leaves Tor with the real IP - the UI makes that explicit.
+        var (blockDomains, blockIps) = ClassifyRoutingEntries(blockRoutingEntries);
+        var (bypassDomains, bypassIps) = ClassifyRoutingEntries(bypassRoutingEntries);
+        if (blockDomains.Count > 0) { rules.Add(new { domain_suffix = blockDomains, outbound = "block" }); }
+        if (blockIps.Count > 0) { rules.Add(new { ip_cidr = blockIps, outbound = "block" }); }
+        if (bypassDomains.Count > 0) { rules.Add(new { domain_suffix = bypassDomains, outbound = "direct" }); }
+        if (bypassIps.Count > 0) { rules.Add(new { ip_cidr = bypassIps, outbound = "direct" }); }
 
         if (!hybridRouting)
         {
@@ -223,6 +236,71 @@ internal static class VpnConfigBuilder
         };
 
         return JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    // Splits raw user routing entries (one per line/comma) into domain suffixes vs IP/CIDR ranges so
+    // each can become the right kind of sing-box rule. Blank lines and '#' comments are ignored.
+    internal static (List<string> Domains, List<string> IpCidrs) ClassifyRoutingEntries(IReadOnlyList<string>? entries)
+    {
+        var domains = new List<string>();
+        var ipCidrs = new List<string>();
+        if (entries == null)
+        {
+            return (domains, ipCidrs);
+        }
+
+        foreach (var raw in entries)
+        {
+            var e = raw?.Trim();
+            if (string.IsNullOrEmpty(e) || e.StartsWith("#", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (LooksLikeIpOrCidr(e))
+            {
+                ipCidrs.Add(e);
+            }
+            else
+            {
+                var domain = NormalizeRoutingDomain(e);
+                if (!string.IsNullOrEmpty(domain))
+                {
+                    domains.Add(domain);
+                }
+            }
+        }
+
+        return (domains, ipCidrs);
+    }
+
+    private static bool LooksLikeIpOrCidr(string entry)
+    {
+        var slash = entry.IndexOf('/');
+        if (slash > 0)
+        {
+            return IPAddress.TryParse(entry[..slash], out _) && int.TryParse(entry[(slash + 1)..], out _);
+        }
+
+        return IPAddress.TryParse(entry, out _);
+    }
+
+    private static string NormalizeRoutingDomain(string entry)
+    {
+        var d = entry;
+        var scheme = d.IndexOf("://", StringComparison.Ordinal);
+        if (scheme >= 0)
+        {
+            d = d[(scheme + 3)..];
+        }
+
+        var slash = d.IndexOf('/');
+        if (slash >= 0)
+        {
+            d = d[..slash];
+        }
+
+        return d.TrimStart('.').Trim().ToLowerInvariant();
     }
 
     private static string NormalizeTunStack(string? stack)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -8,6 +9,10 @@ namespace OnionHopV3.App.Controls;
 
 public sealed class MarkdownTextBlock : StackPanel
 {
+    // Subtle, theme-agnostic table chrome (resource keys vary by theme, so use fixed translucent tones).
+    private static readonly IBrush TableGridLine = new SolidColorBrush(Color.FromArgb(45, 255, 255, 255));
+    private static readonly IBrush TableHeaderFill = new SolidColorBrush(Color.FromArgb(24, 255, 255, 255));
+
     public static readonly StyledProperty<string> MarkdownProperty =
         AvaloniaProperty.Register<MarkdownTextBlock, string>(nameof(Markdown), string.Empty);
 
@@ -35,40 +40,181 @@ public sealed class MarkdownTextBlock : StackPanel
             .Replace("\r\n", "\n", StringComparison.Ordinal)
             .Split('\n');
 
-        foreach (var rawLine in lines)
+        var i = 0;
+        while (i < lines.Length)
         {
-            var line = rawLine.TrimEnd();
-            if (string.IsNullOrWhiteSpace(line))
+            var line = lines[i].TrimEnd();
+
+            // GitHub-flavored table: a header row immediately followed by a |---|---| separator row.
+            if (IsTableRow(line) && i + 1 < lines.Length && IsTableSeparator(lines[i + 1]))
             {
-                Children.Add(new Border { Height = 4 });
+                var header = ParseTableRow(line);
+                var rows = new List<string[]>();
+                i += 2;
+                while (i < lines.Length && IsTableRow(lines[i].TrimEnd()) && !IsTableSeparator(lines[i]))
+                {
+                    rows.Add(ParseTableRow(lines[i].TrimEnd()));
+                    i++;
+                }
+
+                Children.Add(BuildTable(header, rows));
                 continue;
             }
 
-            if (line.StartsWith("### ", StringComparison.Ordinal))
+            RenderLine(line);
+            i++;
+        }
+    }
+
+    private void RenderLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            Children.Add(new Border { Height = 4 });
+            return;
+        }
+
+        if (line.StartsWith("### ", StringComparison.Ordinal))
+        {
+            Children.Add(CreateLine(line[4..], 15, FontWeight.SemiBold, "TextPrimaryBrush"));
+            return;
+        }
+
+        if (line.StartsWith("## ", StringComparison.Ordinal))
+        {
+            Children.Add(CreateLine(line[3..], 17, FontWeight.SemiBold, "TextPrimaryBrush"));
+            return;
+        }
+
+        if (line.StartsWith("# ", StringComparison.Ordinal))
+        {
+            Children.Add(CreateLine(line[2..], 18, FontWeight.SemiBold, "TextPrimaryBrush"));
+            return;
+        }
+
+        if (line.StartsWith("- ", StringComparison.Ordinal) || line.StartsWith("* ", StringComparison.Ordinal))
+        {
+            Children.Add(CreateLine("- " + line[2..], 14, FontWeight.Normal, "TextSecondaryBrush"));
+            return;
+        }
+
+        Children.Add(CreateLine(line, 14, FontWeight.Normal, "TextSecondaryBrush"));
+    }
+
+    private static bool IsTableRow(string line)
+    {
+        var t = line.Trim();
+        return t.Length > 0 && t.Contains('|', StringComparison.Ordinal);
+    }
+
+    private static bool IsTableSeparator(string line)
+    {
+        var cells = ParseTableRow(line);
+        if (cells.Length == 0)
+        {
+            return false;
+        }
+
+        foreach (var cell in cells)
+        {
+            var c = cell.Trim();
+            if (c.Length == 0 || !c.Contains('-', StringComparison.Ordinal))
             {
-                Children.Add(CreateLine(line[4..], 15, FontWeight.SemiBold, "TextPrimaryBrush"));
-                continue;
+                return false;
             }
 
-            if (line.StartsWith("## ", StringComparison.Ordinal))
+            foreach (var ch in c)
             {
-                Children.Add(CreateLine(line[3..], 17, FontWeight.SemiBold, "TextPrimaryBrush"));
-                continue;
+                if (ch != '-' && ch != ':')
+                {
+                    return false;
+                }
             }
+        }
 
-            if (line.StartsWith("# ", StringComparison.Ordinal))
+        return true;
+    }
+
+    private static string[] ParseTableRow(string line)
+    {
+        var t = line.Trim();
+        if (t.StartsWith("|", StringComparison.Ordinal))
+        {
+            t = t[1..];
+        }
+
+        if (t.EndsWith("|", StringComparison.Ordinal))
+        {
+            t = t[..^1];
+        }
+
+        var cells = t.Split('|');
+        for (var i = 0; i < cells.Length; i++)
+        {
+            cells[i] = cells[i].Trim();
+        }
+
+        return cells;
+    }
+
+    private Control BuildTable(string[] header, List<string[]> rows)
+    {
+        var columns = Math.Max(1, header.Length);
+        var grid = new Grid();
+        for (var c = 0; c < columns; c++)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        }
+
+        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        foreach (var _ in rows)
+        {
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        }
+
+        AddTableRow(grid, 0, header, columns, isHeader: true);
+        for (var r = 0; r < rows.Count; r++)
+        {
+            AddTableRow(grid, r + 1, rows[r], columns, isHeader: false);
+        }
+
+        return new Border
+        {
+            BorderBrush = TableGridLine,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Margin = new Thickness(0, 2, 0, 2),
+            Child = grid
+        };
+    }
+
+    private void AddTableRow(Grid grid, int rowIndex, string[] cells, int columns, bool isHeader)
+    {
+        var lastRow = rowIndex == grid.RowDefinitions.Count - 1;
+        for (var c = 0; c < columns; c++)
+        {
+            var text = c < cells.Length ? cells[c] : string.Empty;
+            var textBlock = new TextBlock
             {
-                Children.Add(CreateLine(line[2..], 18, FontWeight.SemiBold, "TextPrimaryBrush"));
-                continue;
-            }
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 13,
+                FontWeight = isHeader ? FontWeight.SemiBold : FontWeight.Normal,
+                Foreground = GetBrush(isHeader ? "TextPrimaryBrush" : "TextSecondaryBrush"),
+                Inlines = new InlineCollection()
+            };
+            AppendInlineRuns(textBlock.Inlines, text);
 
-            if (line.StartsWith("- ", StringComparison.Ordinal) || line.StartsWith("* ", StringComparison.Ordinal))
+            var cell = new Border
             {
-                Children.Add(CreateLine("- " + line[2..], 14, FontWeight.Normal, "TextSecondaryBrush"));
-                continue;
-            }
-
-            Children.Add(CreateLine(line, 14, FontWeight.Normal, "TextSecondaryBrush"));
+                BorderBrush = TableGridLine,
+                BorderThickness = new Thickness(0, 0, c < columns - 1 ? 1 : 0, lastRow ? 0 : 1),
+                Padding = new Thickness(10, 6),
+                Background = isHeader ? TableHeaderFill : null,
+                Child = textBlock
+            };
+            Grid.SetRow(cell, rowIndex);
+            Grid.SetColumn(cell, c);
+            grid.Children.Add(cell);
         }
     }
 
