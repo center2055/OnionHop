@@ -390,10 +390,16 @@
               <controls:ToggleRow Title="{DynamicResource Settings.TunStrictRoute}"
                                   Description="{DynamicResource Settings.TunStrictRouteHint}"
                                   IsChecked="{Binding State.TunStrictRoute}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.SplitTunnelingTitle}"
+                                  Description="{DynamicResource Settings.SplitTunnelingToggleHint}"
+                                  IsChecked="{Binding State.UseHybridRouting}"
+                                  IsEnabled="{Binding State.IsTunMode}" />
               <controls:ToggleRow Title="{DynamicResource Settings.RouteAllWebTraffic}"
                                   Description="{DynamicResource Settings.SplitTunnelingHint}"
-                                  IsChecked="{Binding State.HybridRouteAllWebTraffic}" />
-              <StackPanel Spacing="6">
+                                  IsChecked="{Binding State.HybridRouteAllWebTraffic}"
+                                  IsEnabled="{Binding State.CanConfigureSplitTunneling}" />
+              <StackPanel Spacing="6"
+                          IsEnabled="{Binding State.CanConfigureSplitTunneling}">
                 <Button Content="{DynamicResource Settings.AppPickerButton}"
                         Click="OnPickAppsClick"
                         HorizontalAlignment="Left" />
@@ -404,7 +410,8 @@
               </StackPanel>
               <controls:ToggleRow Title="{DynamicResource Settings.BlockQuic}"
                                   Description="{DynamicResource Settings.BlockQuicHint}"
-                                  IsChecked="{Binding State.HybridBlockQuicForTorApps}" />
+                                  IsChecked="{Binding State.HybridBlockQuicForTorApps}"
+                                  IsEnabled="{Binding State.CanConfigureSplitTunneling}" />
               <controls:ToggleRow Title="{DynamicResource Settings.BlockUdp}"
                                   Description="{DynamicResource Settings.BlockUdpHint}"
                                   IsChecked="{Binding State.BlockUdpTraffic}" />

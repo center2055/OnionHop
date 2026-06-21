@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -188,6 +189,9 @@ public static class BridgeSourceService
                 }
 
                 log?.Invoke($"Fetched {lines.Count} bridge line(s) from {url}.");
+                // Persist the fetched list so it survives an app restart and is available offline
+                // (the next scan can fall back to it when every mirror is unreachable).
+                TryWriteCache(fileName, content);
                 return new BridgeFetchResult(lines, url);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -200,7 +204,46 @@ public static class BridgeSourceService
             }
         }
 
+        // Every mirror failed (offline / all blocked): fall back to the last fetched list saved on disk.
+        var cached = TryReadCache(fileName);
+        if (cached != null && cached.Count > 0)
+        {
+            log?.Invoke($"All bridge mirrors unreachable; using {cached.Count} cached {normalized} bridge(s) from the last update.");
+            return new BridgeFetchResult(cached, $"cache:{fileName}");
+        }
+
         return null;
+    }
+
+    // Saved bridge lists (per category/transport/IP file) so scans work offline and persist across
+    // restarts. Kept separate from the bundled curated lists so it is never overwritten on app update.
+    private static string CacheDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop", "bridge-scan-cache");
+
+    private static void TryWriteCache(string fileName, string content)
+    {
+        try
+        {
+            Directory.CreateDirectory(CacheDir);
+            File.WriteAllText(Path.Combine(CacheDir, fileName), content);
+        }
+        catch
+        {
+            // Caching is best-effort; never let it break a successful fetch.
+        }
+    }
+
+    private static IReadOnlyList<string>? TryReadCache(string fileName)
+    {
+        try
+        {
+            var path = Path.Combine(CacheDir, fileName);
+            return File.Exists(path) ? ParseLines(File.ReadAllText(path)) : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

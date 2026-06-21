@@ -255,6 +255,7 @@
   <x:String x:Key="Settings.StrictManualExitFingerprintHint">Disable this to allow fallback exits when the selected fingerprint is unavailable.</x:String>
 
   <x:String x:Key="Settings.SplitTunnelingTitle">Split Tunneling (Hybrid mode)</x:String>
+  <x:String x:Key="Settings.SplitTunnelingToggleHint">Route chosen apps through Tor and let the rest connect directly. Requires TUN/VPN mode; turn this on to use the app picker and options below. Routing changes take effect the next time you connect. (The kill switch only applies in full-tunnel mode, so it is unavailable while this is on.)</x:String>
   <x:String x:Key="Settings.SplitTunnelingHint">In Hybrid mode, choose which apps use Tor and which connect directly. Use the "Choose running apps…" button below to pick them.</x:String>
   <x:String x:Key="Settings.RouteAllWebTraffic">Route all web traffic (ports 80/443) through Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">Block QUIC/UDP for Tor apps (prevents bypass leaks)</x:String>
@@ -263,7 +264,7 @@
   <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
   <x:String x:Key="Settings.BypassApps">Apps bypassing Tor (optional)</x:String>
   <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
-  <x:String x:Key="Settings.SplitTunnelingEnableHint">Enable TUN/VPN mode + Hybrid routing on the Home page to use split tunneling.</x:String>
+  <x:String x:Key="Settings.SplitTunnelingEnableHint">Switch to TUN/VPN mode on the Home page, then turn on "Split Tunneling" above to choose which apps use Tor.</x:String>
 
   <x:String x:Key="Settings.RoutingRulesTitle">Routing rules (TUN/VPN mode)</x:String>
   <x:String x:Key="Settings.RoutingRulesHint">Send specific domains or IP ranges direct (bypassing Tor) or block them. Only applies in TUN/VPN mode. One entry per line; lines starting with # are ignored. Domains match all subdomains; IP ranges use CIDR (e.g. 10.0.0.0/8).</x:String>
