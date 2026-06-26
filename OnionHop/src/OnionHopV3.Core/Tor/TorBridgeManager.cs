@@ -1650,6 +1650,17 @@ internal sealed class TorBridgeManager
                 {
                     return linked!;
                 }
+
+                // The symlink can fail under a notarized/hardened-runtime macOS app (e.g. the link
+                // path is in a bad state, or File.CreateSymbolicLink is refused), which left bridges
+                // broken on macOS because the data dir "~/Library/Application Support/..." has a
+                // space. Fall back to a plain copy into a guaranteed space-free dir, which is far
+                // more reliable than a symlink, mirroring the Windows fallback above.
+                var copied = TryCreateSpaceFreeCopyUnix(executablePath);
+                if (!string.IsNullOrEmpty(copied) && copied!.IndexOf(' ') < 0)
+                {
+                    return copied!;
+                }
             }
         }
         catch
@@ -1711,6 +1722,81 @@ internal sealed class TorBridgeManager
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// macOS/Linux fallback when a space-free symlink cannot be produced: copy the pluggable-transport
+    /// binary into a guaranteed space-free directory (and restore its executable bit, which File.Copy
+    /// does not preserve on Unix) so Tor's whitespace-splitting transport parser can exec it. The
+    /// transports are single static binaries, so a plain copy is sufficient; re-copies only when size
+    /// or timestamp changes (i.e. after an app update). Returns null if no space-free base dir exists
+    /// or the copy fails.
+    /// </summary>
+    private static string? TryCreateSpaceFreeCopyUnix(string targetPath)
+    {
+        if (!File.Exists(targetPath))
+        {
+            return null;
+        }
+
+        string? baseDir = null;
+        foreach (var candidate in new[]
+                 {
+                     Path.GetTempPath(),
+                     "/tmp",
+                     "/var/tmp",
+                     "/Users/Shared",
+                 })
+        {
+            if (!string.IsNullOrEmpty(candidate) && candidate!.IndexOf(' ') < 0 && Directory.Exists(candidate))
+            {
+                baseDir = candidate;
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(baseDir))
+        {
+            return null;
+        }
+
+        var dir = Path.Combine(baseDir!, "onionhop-pt");
+        if (dir.IndexOf(' ') >= 0)
+        {
+            return null;
+        }
+
+        Directory.CreateDirectory(dir);
+        var dest = Path.Combine(dir, Path.GetFileName(targetPath));
+        if (dest.IndexOf(' ') >= 0)
+        {
+            return null;
+        }
+
+        var src = new FileInfo(targetPath);
+        var dst = new FileInfo(dest);
+        if (!dst.Exists || dst.Length != src.Length || dst.LastWriteTimeUtc != src.LastWriteTimeUtc)
+        {
+            File.Copy(targetPath, dest, overwrite: true);
+            try { File.SetLastWriteTimeUtc(dest, src.LastWriteTimeUtc); } catch { /* best effort */ }
+        }
+
+        // File.Copy does not carry the +x bit on Unix, so Tor would fail to exec the copy. This method
+        // only runs on the macOS/Linux branch, so setting the Unix mode is always valid here.
+        if (!OperatingSystem.IsWindows())
+        {
+            try
+            {
+                File.SetUnixFileMode(
+                    dest,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                    UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                    UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+            catch { /* best effort */ }
+        }
+
+        return dest;
     }
 
     /// <summary>
