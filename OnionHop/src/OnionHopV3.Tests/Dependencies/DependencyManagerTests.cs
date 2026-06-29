@@ -133,4 +133,19 @@ public sealed class DependencyManagerTests
             try { Directory.Delete(runtimeDir, true); } catch { }
         }
     }
+
+    [Theory]
+    // Regression for #42/#65: a stale Windows "lyrebird.exe" line must NOT count as referencing the
+    // macOS/Linux "lyrebird" binary (otherwise the per-platform fix-up skips it and obfs4/conjure/
+    // snowflake keep pointing at a nonexistent ".exe", so the managed proxy dies and bridges fail).
+    [InlineData("ClientTransportPlugin obfs4 exec ${pt_path}lyrebird.exe", "lyrebird", false)]
+    [InlineData("ClientTransportPlugin obfs4 exec ${pt_path}lyrebird", "lyrebird", true)]
+    [InlineData("ClientTransportPlugin obfs4 exec ${pt_path}lyrebird.exe", "lyrebird.exe", true)]
+    [InlineData("ClientTransportPlugin obfs4 exec /Users/x/Application Support/pt/lyrebird", "lyrebird", true)]
+    [InlineData("ClientTransportPlugin webtunnel exec ${pt_path}webtunnel-client.exe", "webtunnel-client", false)]
+    [InlineData("ClientTransportPlugin webtunnel exec ${pt_path}webtunnel-client", "webtunnel-client", true)]
+    public void TransportLineReferencesBinary_matches_only_complete_filename(string line, string binary, bool expected)
+    {
+        Assert.Equal(expected, DependencyManager.TransportLineReferencesBinary(line, binary));
+    }
 }

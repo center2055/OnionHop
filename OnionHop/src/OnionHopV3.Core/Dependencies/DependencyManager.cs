@@ -183,7 +183,7 @@ internal sealed class DependencyManager
 
             if (!config.PluggableTransports.TryGetValue("lyrebird", out var lyrebirdLine)
                 || string.IsNullOrWhiteSpace(lyrebirdLine)
-                || !lyrebirdLine.Contains(lyrebirdName, StringComparison.OrdinalIgnoreCase))
+                || !TransportLineReferencesBinary(lyrebirdLine, lyrebirdName))
             {
                 config.PluggableTransports["lyrebird"] =
                     $"ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec ${{pt_path}}{lyrebirdName}";
@@ -192,7 +192,7 @@ internal sealed class DependencyManager
 
             if (!config.PluggableTransports.TryGetValue("conjure", out var conjureLine)
                 || string.IsNullOrWhiteSpace(conjureLine)
-                || !conjureLine.Contains(lyrebirdName, StringComparison.OrdinalIgnoreCase))
+                || !TransportLineReferencesBinary(conjureLine, lyrebirdName))
             {
                 config.PluggableTransports["conjure"] =
                     $"ClientTransportPlugin conjure exec ${{pt_path}}{lyrebirdName}";
@@ -201,8 +201,8 @@ internal sealed class DependencyManager
 
             if (!config.PluggableTransports.TryGetValue("snowflake", out var snowflakeLine)
                 || string.IsNullOrWhiteSpace(snowflakeLine)
-                || (!snowflakeLine.Contains(lyrebirdName, StringComparison.OrdinalIgnoreCase)
-                    && !snowflakeLine.Contains(snowflakeName, StringComparison.OrdinalIgnoreCase)))
+                || (!TransportLineReferencesBinary(snowflakeLine, lyrebirdName)
+                    && !TransportLineReferencesBinary(snowflakeLine, snowflakeName)))
             {
                 // Lyrebird 0.8+ natively supports the snowflake transport.
                 config.PluggableTransports["snowflake"] =
@@ -212,7 +212,7 @@ internal sealed class DependencyManager
 
             if (!config.PluggableTransports.TryGetValue("webtunnel", out var webTunnelLine)
                 || string.IsNullOrWhiteSpace(webTunnelLine)
-                || !webTunnelLine.Contains(webtunnelName, StringComparison.OrdinalIgnoreCase))
+                || !TransportLineReferencesBinary(webTunnelLine, webtunnelName))
             {
                 config.PluggableTransports["webtunnel"] =
                     $"ClientTransportPlugin webtunnel exec ${{pt_path}}{webtunnelName}";
@@ -265,6 +265,39 @@ internal sealed class DependencyManager
         {
             log($"Failed to ensure pt_config: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Returns true only when <paramref name="line"/> references <paramref name="binaryName"/> as a
+    /// complete final filename token (the next char is not part of a longer filename). A plain
+    /// Contains() is wrong here: pt_config.json ships Windows names, so on macOS/Linux a stale
+    /// "lyrebird.exe" line contains "lyrebird" and used to pass the check, leaving obfs4/conjure/
+    /// snowflake pointing at a nonexistent ".exe" binary so the managed proxy died and bridges never
+    /// connected (issues #42 and #65). Matching the whole token forces the platform-correct rewrite.
+    /// </summary>
+    internal static bool TransportLineReferencesBinary(string? line, string binaryName)
+    {
+        if (string.IsNullOrEmpty(line) || string.IsNullOrEmpty(binaryName))
+        {
+            return false;
+        }
+
+        var index = line.IndexOf(binaryName, StringComparison.OrdinalIgnoreCase);
+        while (index >= 0)
+        {
+            var afterIndex = index + binaryName.Length;
+            var next = afterIndex < line.Length ? line[afterIndex] : '\0';
+            // Reject prefix-only matches like "lyrebird" inside "lyrebird.exe": the following char
+            // would still be part of the filename (letter, digit, '.', '-' or '_').
+            if (next == '\0' || !(char.IsLetterOrDigit(next) || next == '.' || next == '-' || next == '_'))
+            {
+                return true;
+            }
+
+            index = line.IndexOf(binaryName, afterIndex, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
     }
 
     private static async Task DownloadTorAsync(HttpClient client, string tempRoot, string torDir, string ptDir, Action<string> log, CancellationToken token)
