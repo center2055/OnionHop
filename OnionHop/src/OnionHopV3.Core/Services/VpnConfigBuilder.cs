@@ -27,7 +27,9 @@ internal static class VpnConfigBuilder
         bool tunStrictRoute,
         string? interfaceName = null,
         IReadOnlyList<string>? bypassRoutingEntries = null,
-        IReadOnlyList<string>? blockRoutingEntries = null)
+        IReadOnlyList<string>? blockRoutingEntries = null,
+        IReadOnlyList<string>? bypassCountries = null,
+        IReadOnlyList<string>? blockCountries = null)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -50,6 +52,14 @@ internal static class VpnConfigBuilder
         if (blockIps.Count > 0) { rules.Add(new { ip_cidr = blockIps, outbound = "block" }); }
         if (bypassDomains.Count > 0) { rules.Add(new { domain_suffix = bypassDomains, outbound = "direct" }); }
         if (bypassIps.Count > 0) { rules.Add(new { ip_cidr = bypassIps, outbound = "direct" }); }
+
+        // Country routing (issue #55): keep whole countries direct (bypass Tor) or block them, matched
+        // by destination IP via sing-box geoip rule-sets. The rule-sets are remote and carry an
+        // update_interval, so sing-box fetches and auto-refreshes them itself - no static GeoIP DB to
+        // ship or hand-update. Block wins over bypass for a country listed in both. As with the manual
+        // rules above, a bypassed country leaves Tor with the real IP (the UI says so).
+        var (geoRuleSets, geoRules) = BuildCountryGeoRules(bypassCountries, blockCountries);
+        rules.AddRange(geoRules);
 
         if (!hybridRouting)
         {
@@ -189,6 +199,18 @@ internal static class VpnConfigBuilder
 
         dnsServers.Add(remoteDnsServer);
 
+        var route = new Dictionary<string, object?>
+        {
+            ["auto_detect_interface"] = true,
+            ["default_domain_resolver"] = "remote",
+            ["rules"] = rules,
+            ["final"] = hybridRouting ? "direct" : "tor"
+        };
+        if (geoRuleSets.Count > 0)
+        {
+            route["rule_set"] = geoRuleSets;
+        }
+
         var config = new
         {
             log = new
@@ -226,13 +248,7 @@ internal static class VpnConfigBuilder
                     tag = "block"
                 }
             },
-            route = new
-            {
-                auto_detect_interface = true,
-                default_domain_resolver = "remote",
-                rules = rules,
-                final = hybridRouting ? "direct" : "tor"
-            }
+            route
         };
 
         return JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
@@ -272,6 +288,96 @@ internal static class VpnConfigBuilder
         }
 
         return (domains, ipCidrs);
+    }
+
+    // Country routing helpers (issue #55). Builds the sing-box geoip rule-sets (remote + auto-updating)
+    // plus the route rules that send chosen countries direct (bypass) or block them. Block wins when a
+    // country appears in both lists, and each geoip rule-set is defined only once.
+    internal static (List<object> RuleSets, List<object> Rules) BuildCountryGeoRules(
+        IReadOnlyList<string>? bypassCountries,
+        IReadOnlyList<string>? blockCountries)
+    {
+        var ruleSets = new List<object>();
+        var rules = new List<object>();
+
+        var block = NormalizeCountryCodes(blockCountries);
+        var bypass = new List<string>();
+        foreach (var cc in NormalizeCountryCodes(bypassCountries))
+        {
+            if (!block.Contains(cc))
+            {
+                bypass.Add(cc);
+            }
+        }
+
+        var defined = new HashSet<string>(StringComparer.Ordinal);
+        void AddRuleSet(string cc)
+        {
+            var tag = "geoip-" + cc;
+            if (!defined.Add(tag))
+            {
+                return;
+            }
+
+            ruleSets.Add(new Dictionary<string, object?>
+            {
+                ["type"] = "remote",
+                ["tag"] = tag,
+                ["format"] = "binary",
+                // sing-box fetches and refreshes this itself on the update_interval, so the country IP
+                // data stays current without shipping or hand-updating a static GeoIP database.
+                ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-" + cc + ".srs",
+                ["download_detour"] = "direct",
+                ["update_interval"] = "7d"
+            });
+        }
+
+        var blockTags = new List<string>();
+        foreach (var cc in block) { AddRuleSet(cc); blockTags.Add("geoip-" + cc); }
+        var bypassTags = new List<string>();
+        foreach (var cc in bypass) { AddRuleSet(cc); bypassTags.Add("geoip-" + cc); }
+
+        if (blockTags.Count > 0)
+        {
+            rules.Add(new { rule_set = blockTags, outbound = "block" });
+        }
+        if (bypassTags.Count > 0)
+        {
+            rules.Add(new { rule_set = bypassTags, outbound = "direct" });
+        }
+
+        return (ruleSets, rules);
+    }
+
+    // Accepts ISO 3166-1 alpha-2 country codes (case-insensitive), one per token. Invalid tokens are
+    // dropped and duplicates collapsed. Lowercased to match the sing-geoip file names (geoip-ir.srs).
+    internal static List<string> NormalizeCountryCodes(IReadOnlyList<string>? entries)
+    {
+        var result = new List<string>();
+        if (entries == null)
+        {
+            return result;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in entries)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                continue;
+            }
+
+            var cc = raw.Trim().ToLowerInvariant();
+            if (cc.Length == 2 &&
+                cc[0] is >= 'a' and <= 'z' &&
+                cc[1] is >= 'a' and <= 'z' &&
+                seen.Add(cc))
+            {
+                result.Add(cc);
+            }
+        }
+
+        return result;
     }
 
     private static bool LooksLikeIpOrCidr(string entry)

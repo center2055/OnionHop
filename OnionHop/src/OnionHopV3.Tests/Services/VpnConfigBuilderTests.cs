@@ -471,4 +471,68 @@ public sealed class VpnConfigBuilderTests
         Assert.True(blockIp, "ip block rule missing");
         Assert.True(normalizedUrl, "a url entry should be normalized to its host");
     }
+
+    [Fact]
+    public void Country_routing_adds_geoip_rule_sets_and_rules()
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: true,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: false,
+            dohServer: null,
+            dohServerPort: 0,
+            dohPath: null,
+            tunStack: null,
+            tunMtu: null,
+            tunStrictRoute: false,
+            interfaceName: null,
+            bypassRoutingEntries: null,
+            blockRoutingEntries: null,
+            bypassCountries: ["IR", "ru"],
+            blockCountries: ["cn"]);
+
+        var doc = JsonDocument.Parse(json);
+        var route = doc.RootElement.GetProperty("route");
+
+        var ruleSets = route.GetProperty("rule_set").EnumerateArray().ToList();
+        var tags = ruleSets.Select(rs => rs.GetProperty("tag").GetString()).ToList();
+        Assert.Contains("geoip-ir", tags);
+        Assert.Contains("geoip-ru", tags);
+        Assert.Contains("geoip-cn", tags);
+        foreach (var rs in ruleSets)
+        {
+            Assert.Equal("remote", rs.GetProperty("type").GetString());
+            Assert.Equal("7d", rs.GetProperty("update_interval").GetString());
+            Assert.Contains("sing-geoip", rs.GetProperty("url").GetString());
+        }
+
+        bool block = false, bypass = false;
+        foreach (var rule in route.GetProperty("rules").EnumerateArray())
+        {
+            if (!rule.TryGetProperty("rule_set", out var rsArr)) continue;
+            var sets = rsArr.EnumerateArray().Select(e => e.GetString()).ToList();
+            var ob = rule.GetProperty("outbound").GetString();
+            if (ob == "block" && sets.Contains("geoip-cn")) block = true;
+            if (ob == "direct" && sets.Contains("geoip-ir") && sets.Contains("geoip-ru")) bypass = true;
+        }
+        Assert.True(block, "block-country rule missing");
+        Assert.True(bypass, "bypass-country rule missing");
+    }
+
+    [Fact]
+    public void Country_codes_normalized_and_block_wins_over_bypass()
+    {
+        Assert.Equal(["ir", "de"], VpnConfigBuilder.NormalizeCountryCodes(["IR", "ir", "xyz", "d", "DE", ""]));
+
+        // A country in both lists is blocked, not bypassed.
+        var (_, rules) = VpnConfigBuilder.BuildCountryGeoRules(["ir"], ["ir"]);
+        var serialized = JsonSerializer.Serialize(rules);
+        Assert.Contains("block", serialized);
+        Assert.DoesNotContain("direct", serialized);
+    }
 }

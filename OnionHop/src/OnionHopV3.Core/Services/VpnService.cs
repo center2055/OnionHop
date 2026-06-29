@@ -595,7 +595,9 @@ internal sealed class VpnService : IDisposable
                 config.TunStrictRoute,
                 _tunInterfaceName,
                 config.BypassRoutingEntries,
-                config.BlockRoutingEntries);
+                config.BlockRoutingEntries,
+                config.BypassCountryCodes,
+                config.BlockCountryCodes);
         await File.WriteAllTextAsync(configPath, configJson, token).ConfigureAwait(false);
 
         _log($"Starting {vpnCoreLabel} with config: {configPath}");
@@ -2054,6 +2056,8 @@ internal sealed class VpnLaunchConfig
     public IReadOnlyList<string> BypassAppProcessNames { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> BypassRoutingEntries { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> BlockRoutingEntries { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> BypassCountryCodes { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> BlockCountryCodes { get; init; } = Array.Empty<string>();
     public bool ManageOnionResolver { get; init; }
     public string? OnionDnsNameServer { get; init; }
     [JsonIgnore]

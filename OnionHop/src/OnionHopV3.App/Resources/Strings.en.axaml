@@ -274,6 +274,14 @@
   <x:String x:Key="Settings.RoutingBlockHint">These are dropped entirely. Useful for ad or tracker domains.</x:String>
   <x:String x:Key="Settings.RoutingRulesWatermark">example.com&#10;ads.example.net&#10;10.0.0.0/8</x:String>
 
+  <x:String x:Key="Settings.CountryRoutingTitle">Country routing (TUN/VPN mode)</x:String>
+  <x:String x:Key="Settings.CountryRoutingHint">Keep or block whole countries by IP, matched with auto-updating geoip lists. Only applies in TUN/VPN mode. Use ISO country codes (e.g. ir, ru, de), one per line or comma-separated. The lists download and refresh automatically in the background.</x:String>
+  <x:String x:Key="Settings.CountryBypass">Keep these countries direct (bypass Tor)</x:String>
+  <x:String x:Key="Settings.CountryBypassHint">Traffic to IPs in these countries leaves with your real IP, not through Tor. Useful for in-country sites that break over Tor.</x:String>
+  <x:String x:Key="Settings.CountryBlock">Block these countries</x:String>
+  <x:String x:Key="Settings.CountryBlockHint">Traffic to IPs in these countries is dropped entirely.</x:String>
+  <x:String x:Key="Settings.CountryRoutingWatermark">ir&#10;ru&#10;de</x:String>
+
   <x:String x:Key="Settings.AutomationTitle">Automation</x:String>
   <x:String x:Key="Settings.OpenConnectedPage">Open page when connected</x:String>
   <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>

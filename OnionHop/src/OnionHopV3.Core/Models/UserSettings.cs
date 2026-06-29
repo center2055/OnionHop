@@ -76,6 +76,9 @@ public sealed class UserSettings
     // TUN/VPN routing rules (issue #55): domains / IP ranges to send direct (bypass Tor) or block.
     public string? BypassRoutingRules { get; set; }
     public string? BlockRoutingRules { get; set; }
+    // TUN/VPN country routing (issue #55): ISO country codes to keep direct (bypass Tor) or block.
+    public string? BypassCountries { get; set; }
+    public string? BlockCountries { get; set; }
     public string? LanguageCode { get; set; }
     public string? AccentColor { get; set; }
     public string? TorEngineMode { get; set; }

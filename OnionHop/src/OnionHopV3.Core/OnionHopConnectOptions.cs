@@ -136,6 +136,10 @@ public sealed record OnionHopConnectOptions
     // or block. One entry per line or comma-separated; '#' lines ignored.
     public string? BypassRoutingRules { get; init; }
     public string? BlockRoutingRules { get; init; }
+    // Country routing for TUN/VPN mode (issue #55): ISO country codes to keep direct (bypass Tor) or
+    // block, matched by IP via sing-box geoip rule-sets. One code per line or comma-separated.
+    public string? BypassCountries { get; init; }
+    public string? BlockCountries { get; init; }
 
     // Opt-in (default false). When true, TUN/VPN connects may install an at-logon elevated helper task
     // so subsequent connects skip the UAC prompt. When false, no startup task is installed and any

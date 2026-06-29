@@ -452,6 +452,38 @@
 
           <Border Classes="SectionCard">
             <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.CountryRoutingTitle}"
+                         Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource Settings.CountryRoutingHint}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <StackPanel Spacing="6">
+                <TextBlock Text="{DynamicResource Settings.CountryBypass}" />
+                <TextBox AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="64"
+                         Text="{Binding State.BypassCountries}"
+                         Watermark="{DynamicResource Settings.CountryRoutingWatermark}" />
+                <TextBlock Text="{DynamicResource Settings.CountryBypassHint}"
+                           Classes="SectionCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+              <StackPanel Spacing="6">
+                <TextBlock Text="{DynamicResource Settings.CountryBlock}" />
+                <TextBox AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="64"
+                         Text="{Binding State.BlockCountries}"
+                         Watermark="{DynamicResource Settings.CountryRoutingWatermark}" />
+                <TextBlock Text="{DynamicResource Settings.CountryBlockHint}"
+                           Classes="SectionCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
               <TextBlock Text="{DynamicResource Settings.AutomationTitle}"
                          Classes="SectionTitle" />
               <controls:ToggleRow Title="{DynamicResource Settings.OpenConnectedPage}"
