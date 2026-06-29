@@ -177,6 +177,7 @@ internal sealed class DependencyManager
             var lyrebirdName = PlatformHelper.LyrebirdBinaryName;
             var snowflakeName = PlatformHelper.SnowflakeClientBinaryName;
             var webtunnelName = PlatformHelper.WebTunnelClientBinaryName;
+            var conjureName = PlatformHelper.ConjureClientBinaryName;
 
             var updated = false;
             config.PluggableTransports ??= new Dictionary<string, string>();
@@ -190,12 +191,16 @@ internal sealed class DependencyManager
                 updated = true;
             }
 
+            // conjure needs its own conjure-client binary (with the refraction registration URL),
+            // NOT lyrebird, which does not speak conjure. The config historically pointed conjure at
+            // lyrebird.exe, so conjure never worked on any platform (#64). Rewrite it to the shipped
+            // conjure-client whenever the line does not already reference that exact binary.
             if (!config.PluggableTransports.TryGetValue("conjure", out var conjureLine)
                 || string.IsNullOrWhiteSpace(conjureLine)
-                || !TransportLineReferencesBinary(conjureLine, lyrebirdName))
+                || !TransportLineReferencesBinary(conjureLine, conjureName))
             {
                 config.PluggableTransports["conjure"] =
-                    $"ClientTransportPlugin conjure exec ${{pt_path}}{lyrebirdName}";
+                    $"ClientTransportPlugin conjure exec ${{pt_path}}{conjureName} -registerURL https://registration.refraction.network/api";
                 updated = true;
             }
 

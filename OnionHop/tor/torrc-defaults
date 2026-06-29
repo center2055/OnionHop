@@ -13,6 +13,7 @@ AvoidDiskWrites 1
 Log notice stdout
 CookieAuthentication 1
 DormantCanceledByStartup 1
-ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit,webtunnel exec TorBrowser\Tor\PluggableTransports\lyrebird.exe
-ClientTransportPlugin snowflake exec TorBrowser\Tor\PluggableTransports\lyrebird.exe
-ClientTransportPlugin conjure exec TorBrowser\Tor\PluggableTransports\conjure-client.exe -registerURL https://registration.refraction.network/api
+# NOTE: OnionHop does not load this file at runtime; it generates its own torrc and
+# ClientTransportPlugin lines per platform (see DependencyManager.EnsurePluggableTransportConfig).
+# The old Tor Browser ClientTransportPlugin lines were removed because they used Windows-only
+# backslash paths and .exe names that do not exist on macOS/Linux.

@@ -144,6 +144,10 @@ public sealed class DependencyManagerTests
     [InlineData("ClientTransportPlugin obfs4 exec /Users/x/Application Support/pt/lyrebird", "lyrebird", true)]
     [InlineData("ClientTransportPlugin webtunnel exec ${pt_path}webtunnel-client.exe", "webtunnel-client", false)]
     [InlineData("ClientTransportPlugin webtunnel exec ${pt_path}webtunnel-client", "webtunnel-client", true)]
+    // conjure (#64): a stale "conjure -> lyrebird" line must not count as referencing conjure-client,
+    // so it gets rewritten; and the correct line (with the -registerURL arg after it) must match.
+    [InlineData("ClientTransportPlugin conjure exec ${pt_path}lyrebird.exe", "conjure-client", false)]
+    [InlineData("ClientTransportPlugin conjure exec ${pt_path}conjure-client -registerURL https://x/api", "conjure-client", true)]
     public void TransportLineReferencesBinary_matches_only_complete_filename(string line, string binary, bool expected)
     {
         Assert.Equal(expected, DependencyManager.TransportLineReferencesBinary(line, binary));
