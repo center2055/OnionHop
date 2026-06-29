@@ -79,6 +79,9 @@ public sealed class UserSettings
     // TUN/VPN country routing (issue #55): ISO country codes to keep direct (bypass Tor) or block.
     public string? BypassCountries { get; set; }
     public string? BlockCountries { get; set; }
+    // TUN/VPN domain-category routing (issue #55): sing-geosite categories to keep direct or block.
+    public string? BypassSiteCategories { get; set; }
+    public string? BlockSiteCategories { get; set; }
     public string? LanguageCode { get; set; }
     public string? AccentColor { get; set; }
     public string? TorEngineMode { get; set; }

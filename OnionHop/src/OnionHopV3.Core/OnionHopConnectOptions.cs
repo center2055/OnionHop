@@ -140,6 +140,10 @@ public sealed record OnionHopConnectOptions
     // block, matched by IP via sing-box geoip rule-sets. One code per line or comma-separated.
     public string? BypassCountries { get; init; }
     public string? BlockCountries { get; init; }
+    // Domain-category routing for TUN/VPN mode (issue #55): sing-geosite categories to keep direct
+    // (bypass Tor) or block, e.g. category-ads-all. One per line or comma-separated.
+    public string? BypassSiteCategories { get; init; }
+    public string? BlockSiteCategories { get; init; }
 
     // Opt-in (default false). When true, TUN/VPN connects may install an at-logon elevated helper task
     // so subsequent connects skip the UAC prompt. When false, no startup task is installed and any

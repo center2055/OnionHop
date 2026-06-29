@@ -2971,6 +2971,8 @@ public sealed class OnionHopClient : IDisposable
             BlockRoutingEntries = ParseRoutingRules(options.BlockRoutingRules),
             BypassCountryCodes = ParseRoutingRules(options.BypassCountries),
             BlockCountryCodes = ParseRoutingRules(options.BlockCountries),
+            BypassSiteCategories = ParseRoutingRules(options.BypassSiteCategories),
+            BlockSiteCategories = ParseRoutingRules(options.BlockSiteCategories),
             RouteAllWebTrafficThroughTor = options.HybridRouteAllWebTraffic,
             BlockQuicForTorApps = options.HybridBlockQuicForTorApps,
             BlockUdpTraffic = options.BlockUdpTraffic,

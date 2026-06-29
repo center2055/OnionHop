@@ -170,6 +170,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(BlockRoutingRules),
         nameof(BypassCountries),
         nameof(BlockCountries),
+        nameof(BypassSiteCategories),
+        nameof(BlockSiteCategories),
         nameof(SelectedLanguage),
         nameof(SelectedAccentColor),
         nameof(SelectedTorEngineMode),
@@ -464,6 +466,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     // Country routing (issue #55): ISO country codes to send direct (bypass Tor) or block, in TUN mode.
     [ObservableProperty] private string _bypassCountries = string.Empty;
     [ObservableProperty] private string _blockCountries = string.Empty;
+    // Domain-category routing (issue #55): sing-geosite categories to send direct or block, in TUN mode.
+    [ObservableProperty] private string _bypassSiteCategories = string.Empty;
+    [ObservableProperty] private string _blockSiteCategories = string.Empty;
 
     /// <summary>One-line summary of the per-app split-tunnel rules, shown under the picker button.</summary>
     public string HybridAppsSummary
@@ -2272,6 +2277,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BlockRoutingRules = string.Empty;
             BypassCountries = string.Empty;
             BlockCountries = string.Empty;
+            BypassSiteCategories = string.Empty;
+            BlockSiteCategories = string.Empty;
 
             ThemeMode = ThemeModeSystem;
             UseNativeTheme = false;
@@ -2518,6 +2525,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BlockRoutingRules = BlockRoutingRules,
             BypassCountries = BypassCountries,
             BlockCountries = BlockCountries,
+            BypassSiteCategories = BypassSiteCategories,
+            BlockSiteCategories = BlockSiteCategories,
             PersistentAdminHelperEnabled = PersistentAdminHelperEnabled
         };
     }
@@ -2786,6 +2795,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BlockRoutingRules = settings.BlockRoutingRules ?? string.Empty;
             BypassCountries = settings.BypassCountries ?? string.Empty;
             BlockCountries = settings.BlockCountries ?? string.Empty;
+            BypassSiteCategories = settings.BypassSiteCategories ?? string.Empty;
+            BlockSiteCategories = settings.BlockSiteCategories ?? string.Empty;
             SelectedLanguage = NormalizeLanguageCode(settings.LanguageCode);
             LoadV3Settings(settings);
         }
@@ -2952,6 +2963,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BlockRoutingRules = BlockRoutingRules,
             BypassCountries = BypassCountries,
             BlockCountries = BlockCountries,
+            BypassSiteCategories = BypassSiteCategories,
+            BlockSiteCategories = BlockSiteCategories,
             LanguageCode = SelectedLanguage
         };
 

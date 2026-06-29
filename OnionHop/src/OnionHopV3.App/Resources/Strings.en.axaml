@@ -282,6 +282,14 @@
   <x:String x:Key="Settings.CountryBlockHint">Traffic to IPs in these countries is dropped entirely.</x:String>
   <x:String x:Key="Settings.CountryRoutingWatermark">ir&#10;ru&#10;de</x:String>
 
+  <x:String x:Key="Settings.SiteRoutingTitle">Domain category routing (TUN/VPN mode)</x:String>
+  <x:String x:Key="Settings.SiteRoutingHint">Keep or block whole categories of domains using auto-updating geosite lists (e.g. category-ads-all to block ads and trackers, or a country category like ir to keep its sites direct). Only applies in TUN/VPN mode. One category per line or comma-separated. The lists download and refresh automatically in the background.</x:String>
+  <x:String x:Key="Settings.SiteBypass">Keep these categories direct (bypass Tor)</x:String>
+  <x:String x:Key="Settings.SiteBypassHint">Domains in these categories leave with your real IP, not through Tor. Useful for in-country sites that break over Tor.</x:String>
+  <x:String x:Key="Settings.SiteBlock">Block these categories</x:String>
+  <x:String x:Key="Settings.SiteBlockHint">Domains in these categories are dropped entirely. category-ads-all is a good choice for ad and tracker blocking.</x:String>
+  <x:String x:Key="Settings.SiteRoutingWatermark">category-ads-all&#10;category-porn</x:String>
+
   <x:String x:Key="Settings.AutomationTitle">Automation</x:String>
   <x:String x:Key="Settings.OpenConnectedPage">Open page when connected</x:String>
   <x:String x:Key="Settings.OpenConnectedPageWatermark">https://check.torproject.org/</x:String>

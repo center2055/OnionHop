@@ -535,4 +535,63 @@ public sealed class VpnConfigBuilderTests
         Assert.Contains("block", serialized);
         Assert.DoesNotContain("direct", serialized);
     }
+
+    [Fact]
+    public void Site_category_routing_adds_geosite_rule_sets_and_rules()
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: true,
+            secureDns: false,
+            socksPort: 9050,
+            torAppProcessNames: [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: false,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: false,
+            dohServer: null,
+            dohServerPort: 0,
+            dohPath: null,
+            tunStack: null,
+            tunMtu: null,
+            tunStrictRoute: false,
+            interfaceName: null,
+            bypassRoutingEntries: null,
+            blockRoutingEntries: null,
+            bypassCountries: null,
+            blockCountries: null,
+            bypassSiteCategories: ["ir"],
+            blockSiteCategories: ["Category-Ads-All"]);
+
+        var doc = JsonDocument.Parse(json);
+        var route = doc.RootElement.GetProperty("route");
+
+        var ruleSets = route.GetProperty("rule_set").EnumerateArray().ToList();
+        var tags = ruleSets.Select(rs => rs.GetProperty("tag").GetString()).ToList();
+        Assert.Contains("geosite-ir", tags);
+        Assert.Contains("geosite-category-ads-all", tags);
+        foreach (var rs in ruleSets)
+        {
+            Assert.Contains("sing-geosite", rs.GetProperty("url").GetString());
+            Assert.Equal("7d", rs.GetProperty("update_interval").GetString());
+        }
+
+        bool block = false, bypass = false;
+        foreach (var rule in route.GetProperty("rules").EnumerateArray())
+        {
+            if (!rule.TryGetProperty("rule_set", out var rsArr)) continue;
+            var sets = rsArr.EnumerateArray().Select(e => e.GetString()).ToList();
+            var ob = rule.GetProperty("outbound").GetString();
+            if (ob == "block" && sets.Contains("geosite-category-ads-all")) block = true;
+            if (ob == "direct" && sets.Contains("geosite-ir")) bypass = true;
+        }
+        Assert.True(block, "block-category rule missing");
+        Assert.True(bypass, "bypass-category rule missing");
+    }
+
+    [Fact]
+    public void Geosite_categories_normalized_and_invalid_dropped()
+    {
+        Assert.Equal(["category-ads-all", "google"],
+            VpnConfigBuilder.NormalizeGeositeCategories(["Category-Ads-All", "google", "bad domain!", "", "google"]));
+    }
 }

@@ -29,7 +29,9 @@ internal static class VpnConfigBuilder
         IReadOnlyList<string>? bypassRoutingEntries = null,
         IReadOnlyList<string>? blockRoutingEntries = null,
         IReadOnlyList<string>? bypassCountries = null,
-        IReadOnlyList<string>? blockCountries = null)
+        IReadOnlyList<string>? blockCountries = null,
+        IReadOnlyList<string>? bypassSiteCategories = null,
+        IReadOnlyList<string>? blockSiteCategories = null)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -58,8 +60,17 @@ internal static class VpnConfigBuilder
         // update_interval, so sing-box fetches and auto-refreshes them itself - no static GeoIP DB to
         // ship or hand-update. Block wins over bypass for a country listed in both. As with the manual
         // rules above, a bypassed country leaves Tor with the real IP (the UI says so).
-        var (geoRuleSets, geoRules) = BuildCountryGeoRules(bypassCountries, blockCountries);
-        rules.AddRange(geoRules);
+        var (geoIpRuleSets, geoIpRules) = BuildCountryGeoRules(bypassCountries, blockCountries);
+        rules.AddRange(geoIpRules);
+
+        // Domain-category routing (issue #55): keep or block whole categories of domains (ads, a
+        // country's sites, etc.) using sing-box geosite rule-sets, also remote + auto-updating.
+        var (geoSiteRuleSets, geoSiteRules) = BuildGeositeRules(bypassSiteCategories, blockSiteCategories);
+        rules.AddRange(geoSiteRules);
+
+        var geoRuleSets = new List<object>();
+        geoRuleSets.AddRange(geoIpRuleSets);
+        geoRuleSets.AddRange(geoSiteRuleSets);
 
         if (!hybridRouting)
         {
@@ -374,6 +385,101 @@ internal static class VpnConfigBuilder
                 seen.Add(cc))
             {
                 result.Add(cc);
+            }
+        }
+
+        return result;
+    }
+
+    // Builds the sing-box geosite rule-sets (remote + auto-updating) and route rules that send chosen
+    // domain categories direct (bypass) or block them (e.g. category-ads-all). Block wins on conflict,
+    // and each geosite rule-set is defined only once.
+    internal static (List<object> RuleSets, List<object> Rules) BuildGeositeRules(
+        IReadOnlyList<string>? bypassCategories,
+        IReadOnlyList<string>? blockCategories)
+    {
+        var ruleSets = new List<object>();
+        var rules = new List<object>();
+
+        var block = NormalizeGeositeCategories(blockCategories);
+        var bypass = new List<string>();
+        foreach (var cat in NormalizeGeositeCategories(bypassCategories))
+        {
+            if (!block.Contains(cat))
+            {
+                bypass.Add(cat);
+            }
+        }
+
+        var defined = new HashSet<string>(StringComparer.Ordinal);
+        void AddRuleSet(string cat)
+        {
+            var tag = "geosite-" + cat;
+            if (!defined.Add(tag))
+            {
+                return;
+            }
+
+            ruleSets.Add(new Dictionary<string, object?>
+            {
+                ["type"] = "remote",
+                ["tag"] = tag,
+                ["format"] = "binary",
+                ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-" + cat + ".srs",
+                ["download_detour"] = "direct",
+                ["update_interval"] = "7d"
+            });
+        }
+
+        var blockTags = new List<string>();
+        foreach (var cat in block) { AddRuleSet(cat); blockTags.Add("geosite-" + cat); }
+        var bypassTags = new List<string>();
+        foreach (var cat in bypass) { AddRuleSet(cat); bypassTags.Add("geosite-" + cat); }
+
+        if (blockTags.Count > 0)
+        {
+            rules.Add(new { rule_set = blockTags, outbound = "block" });
+        }
+        if (bypassTags.Count > 0)
+        {
+            rules.Add(new { rule_set = bypassTags, outbound = "direct" });
+        }
+
+        return (ruleSets, rules);
+    }
+
+    // Accepts sing-geosite category names (case-insensitive), e.g. "category-ads-all", "google", "cn".
+    // Keeps only [a-z0-9-] tokens, lowercased and deduped, to match the rule-set file names.
+    internal static List<string> NormalizeGeositeCategories(IReadOnlyList<string>? entries)
+    {
+        var result = new List<string>();
+        if (entries == null)
+        {
+            return result;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in entries)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                continue;
+            }
+
+            var cat = raw.Trim().ToLowerInvariant();
+            var valid = cat.Length > 0;
+            foreach (var ch in cat)
+            {
+                if (!(ch is >= 'a' and <= 'z' || ch is >= '0' and <= '9' || ch == '-'))
+                {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid && seen.Add(cat))
+            {
+                result.Add(cat);
             }
         }
 
