@@ -3,7 +3,7 @@
     "pluggableTransports":  {
                                 "snowflake":  "ClientTransportPlugin snowflake exec ${pt_path}lyrebird.exe",
                                 "lyrebird":  "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec ${pt_path}lyrebird.exe",
-                                "conjure":  "ClientTransportPlugin conjure exec ${pt_path}lyrebird.exe",
+                                "conjure":  "ClientTransportPlugin conjure exec ${pt_path}conjure-client.exe -registerURL https://registration.refraction.network/api",
                                 "webtunnel":  "ClientTransportPlugin webtunnel exec ${pt_path}webtunnel-client.exe"
                             },
     "bridges":  {

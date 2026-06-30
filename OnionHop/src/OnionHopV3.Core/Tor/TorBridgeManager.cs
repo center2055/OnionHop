@@ -863,6 +863,10 @@ internal sealed class TorBridgeManager
                 }
             }
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             log($"Bridge auto-fetch for {bridgeType} failed: {ex.Message}");
@@ -1956,6 +1960,11 @@ internal sealed class TorBridgeManager
                 .ToList();
         }
 
+        if (string.Equals(normalizedType, "custom", StringComparison.OrdinalIgnoreCase))
+        {
+            return NormalizeCustomBridgeLines(lines, log);
+        }
+
         var updated = false;
         var result = new List<string>(lines.Count);
         foreach (var line in lines)
@@ -1999,6 +2008,68 @@ internal sealed class TorBridgeManager
         }
 
         return result;
+    }
+
+    private static IReadOnlyList<string> NormalizeCustomBridgeLines(IReadOnlyList<string> lines, Action<string> log)
+    {
+        var updated = false;
+        var result = new List<string>(lines.Count);
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var firstToken = ExtractBridgeTransport(trimmed);
+            if (string.Equals(firstToken, VanillaBridgeType, StringComparison.OrdinalIgnoreCase))
+            {
+                var vanilla = NormalizeVanillaBridgeLine(trimmed);
+                if (IsValidVanillaBridgeLine(vanilla))
+                {
+                    result.Add(vanilla);
+                    updated = true;
+                }
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(firstToken))
+            {
+                if (LooksLikeEndpoint(trimmed) && IsValidVanillaBridgeLine(trimmed))
+                {
+                    result.Add(trimmed);
+                }
+                else
+                {
+                    log($"Ignoring invalid bridge line: {trimmed}");
+                }
+                continue;
+            }
+
+            if (LooksLikeEndpoint(firstToken))
+            {
+                var vanilla = NormalizeVanillaBridgeLine(trimmed);
+                if (IsValidVanillaBridgeLine(vanilla))
+                {
+                    result.Add(vanilla);
+                }
+                else
+                {
+                    log($"Ignoring invalid bridge line: {trimmed}");
+                }
+                continue;
+            }
+
+            result.Add(trimmed);
+        }
+
+        if (updated)
+        {
+            log("Normalized custom vanilla bridge lines.");
+        }
+
+        return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private static bool LooksLikeEndpoint(string token)

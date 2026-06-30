@@ -121,6 +121,43 @@ public sealed class ArtiBridgeConfigTests
             Assert.NotNull(parsed);
             Assert.Equal(expectedTransport, parsed!.Value.Transport);
             Assert.Equal(expectedPath, parsed.Value.Path);
+            Assert.Empty(parsed.Value.Arguments);
         }
+    }
+
+    [Fact]
+    public void BuildBridgesSection_EmitsTransportArguments()
+    {
+        var config = new ArtiLaunchConfig
+        {
+            ArtiPath = "arti",
+            SocksPort = 9050,
+            BridgeLines = new[]
+            {
+                "conjure 1.2.3.4:443 ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+            },
+            TransportPlugins = new[]
+            {
+                "ClientTransportPlugin conjure exec /opt/onionhop/conjure-client -registerURL https://registration.refraction.network/api",
+            },
+        };
+
+        var toml = ArtiService.BuildBridgesSection(config);
+
+        Assert.Contains("protocols = [\"conjure\"]", toml);
+        Assert.Contains("path = \"/opt/onionhop/conjure-client\"", toml);
+        Assert.Contains("arguments = [\"-registerURL\", \"https://registration.refraction.network/api\"]", toml);
+    }
+
+    [Fact]
+    public void ParseTransportPlugin_SplitsQuotedPathAndArguments()
+    {
+        var parsed = ArtiService.ParseTransportPlugin(
+            "ClientTransportPlugin snowflake exec \"/Applications/Onion Hop/lyrebird\" -ampcache https://cdn.ampproject.org/");
+
+        Assert.NotNull(parsed);
+        Assert.Equal("snowflake", parsed!.Value.Transport);
+        Assert.Equal("/Applications/Onion Hop/lyrebird", parsed.Value.Path);
+        Assert.Equal(new[] { "-ampcache", "https://cdn.ampproject.org/" }, parsed.Value.Arguments);
     }
 }

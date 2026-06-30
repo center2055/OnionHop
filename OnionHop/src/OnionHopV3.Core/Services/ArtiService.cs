@@ -236,7 +236,13 @@ internal sealed class ArtiService : IDisposable
         foreach (var plugin in config.TransportPlugins ?? Array.Empty<string>())
         {
             var parsed = ParseTransportPlugin(plugin);
-            if (parsed is not var (transport, path) || !seen.Add(transport))
+            if (parsed == null)
+            {
+                continue;
+            }
+
+            var (transport, path, arguments) = parsed.Value;
+            if (!seen.Add(transport))
             {
                 continue;
             }
@@ -249,14 +255,20 @@ internal sealed class ArtiService : IDisposable
             {
                 continue;
             }
-            sb.Append($"\n[[bridges.transports]]\nprotocols = [{protocols}]\npath = \"{EscapeTomlString(path)}\"\nrun_on_startup = false\n");
+            sb.Append($"\n[[bridges.transports]]\nprotocols = [{protocols}]\npath = \"{EscapeTomlString(path)}\"\n");
+            if (arguments.Count > 0)
+            {
+                var args = string.Join(", ", arguments.Select(argument => $"\"{EscapeTomlString(argument)}\""));
+                sb.Append($"arguments = [{args}]\n");
+            }
+            sb.Append("run_on_startup = false\n");
         }
 
         return sb.ToString();
     }
 
-    // Parse a Tor-format "transport exec C:\path\to\client.exe [args]" line into (transport, path).
-    internal static (string Transport, string Path)? ParseTransportPlugin(string? plugin)
+    // Parse a Tor-format "transport exec C:\path\to\client.exe [args]" line into Arti fields.
+    internal static (string Transport, string Path, IReadOnlyList<string> Arguments)? ParseTransportPlugin(string? plugin)
     {
         if (string.IsNullOrWhiteSpace(plugin))
         {
@@ -283,21 +295,70 @@ internal sealed class ArtiService : IDisposable
             return null;
         }
 
-        // PT exec lines OnionHop generates carry just the path (no trailing args), but be defensive: a
-        // quoted path is taken verbatim, otherwise take the whole remainder as the path (TOML-escaped
-        // later, so embedded spaces are fine).
         string path;
+        IReadOnlyList<string> arguments;
         if (rest.StartsWith('"'))
         {
             var end = rest.IndexOf('"', 1);
             path = end > 1 ? rest[1..end] : rest.Trim('"');
+            arguments = SplitCommandLineArguments(end > 1 ? rest[(end + 1)..] : string.Empty);
         }
         else
         {
-            path = rest;
+            var parts = SplitCommandLineArguments(rest);
+            var firstArgument = parts.FindIndex(argument => argument.StartsWith("-", StringComparison.Ordinal));
+            if (firstArgument > 0)
+            {
+                path = string.Join(' ', parts.Take(firstArgument));
+                arguments = parts.Skip(firstArgument).ToList();
+            }
+            else
+            {
+                path = rest;
+                arguments = Array.Empty<string>();
+            }
         }
 
-        return path.Length == 0 ? null : (transport, path);
+        return path.Length == 0 ? null : (transport, path, arguments);
+    }
+
+    private static List<string> SplitCommandLineArguments(string value)
+    {
+        var result = new List<string>();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return result;
+        }
+
+        var current = new StringBuilder();
+        var inQuotes = false;
+        foreach (var ch in value.Trim())
+        {
+            if (ch == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(ch) && !inQuotes)
+            {
+                if (current.Length > 0)
+                {
+                    result.Add(current.ToString());
+                    current.Clear();
+                }
+                continue;
+            }
+
+            current.Append(ch);
+        }
+
+        if (current.Length > 0)
+        {
+            result.Add(current.ToString());
+        }
+
+        return result;
     }
 
     private static async Task<bool> WaitForSocksPortReadyAsync(

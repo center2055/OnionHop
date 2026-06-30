@@ -111,6 +111,12 @@ internal sealed class DependencyManager
             progress(new DependencyUpdate(false, "Components ready.", 1));
             return true;
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            log("Dependency download cancelled.");
+            progress(new DependencyUpdate(false, "Dependency download cancelled.", 0));
+            throw;
+        }
         catch (Exception ex)
         {
             log($"Dependency download failed: {ex.Message}");
@@ -324,6 +330,10 @@ internal sealed class DependencyManager
                 await DownloadWithFallbackAsync(client, candidates, torArchivePath, token).ConfigureAwait(false);
                 resolvedVersion = version;
                 break;
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -559,6 +569,10 @@ internal sealed class DependencyManager
                 await DownloadToFileAsync(client, url, targetPath, token).ConfigureAwait(false);
                 return;
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 lastUrl = url;
@@ -599,6 +613,10 @@ internal sealed class DependencyManager
                         .Take(10)
                         .Select(v => v.ToString()));
             }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
