@@ -51,6 +51,8 @@ internal sealed class WindowsOnionDnsProxyService : IDnsProxyService
                 {
                     log($"WARNING: full DNS-over-Tor rule could not be installed ({ex.Message}). " +
                         "Normal DNS may leak to your ISP. Use TUN/VPN Mode for guaranteed leak-free DNS.");
+                    try { RemoveRule(_ => { }); } catch { }
+                    return false;
                 }
             }
             else

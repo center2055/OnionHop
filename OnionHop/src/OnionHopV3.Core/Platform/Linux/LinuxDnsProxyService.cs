@@ -34,16 +34,20 @@ internal sealed class LinuxDnsProxyService : IDnsProxyService
 
             if (IsResolvectlAvailable())
             {
-                PlatformHelper.RunCommandSuccess("resolvectl", $"dns onionhop {safeNameServer}");
-                PlatformHelper.RunCommandSuccess("resolvectl", "domain onionhop ~onion");
+                if (!PlatformHelper.RunCommandSuccess("resolvectl", $"dns onionhop {safeNameServer}") ||
+                    !PlatformHelper.RunCommandSuccess("resolvectl", "domain onionhop ~onion"))
+                {
+                    log(".onion DNS proxying failed: resolvectl did not accept the onionhop link configuration.");
+                    return false;
+                }
+
                 log($".onion DNS proxying enabled via resolvectl (nameserver={safeNameServer}).");
                 _enabled = true;
                 return true;
             }
 
             log(".onion DNS proxying: resolvectl not available. Manual DNS configuration may be needed.");
-            _enabled = true;
-            return true;
+            return false;
         }
         catch (Exception ex)
         {

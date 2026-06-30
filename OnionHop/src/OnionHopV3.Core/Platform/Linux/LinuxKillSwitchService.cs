@@ -21,18 +21,23 @@ internal sealed class LinuxKillSwitchService : IKillSwitchService
 
         try
         {
-            RunIptables($"-N {ChainName}");
-            RunIptables($"-F {ChainName}");
-            RunIptables($"-A {ChainName} -o lo -j ACCEPT");
-            RunIptables($"-A {ChainName} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT");
-            RunIptables($"-A {ChainName} -j DROP");
+            var ipv4Enabled = ConfigureIptablesFamily("iptables");
+            var ipv6Available = PlatformHelper.IsCommandAvailable("ip6tables");
+            var ipv6Enabled = ipv6Available && ConfigureIptablesFamily("ip6tables");
 
-            if (!ChainReferencedInOutput())
+            if (!ipv4Enabled)
             {
-                RunIptables($"-I OUTPUT 1 -j {ChainName}");
+                throw new InvalidOperationException("iptables did not accept the kill switch rules.");
             }
 
-            log("Kill switch engaged: outbound traffic blocked (iptables).");
+            if (ipv6Available && !ipv6Enabled)
+            {
+                log("IPv6 kill switch setup failed; IPv4 traffic is blocked. Disable IPv6 or use TUN/VPN mode for full leak protection.");
+            }
+
+            log(ipv6Enabled
+                ? "Kill switch engaged: outbound IPv4/IPv6 traffic blocked (iptables/ip6tables)."
+                : "Kill switch engaged: outbound IPv4 traffic blocked (iptables).");
         }
         catch (Exception ex)
         {
@@ -54,10 +59,9 @@ internal sealed class LinuxKillSwitchService : IKillSwitchService
 
         try
         {
-            RunIptables($"-D OUTPUT -j {ChainName}");
-            RunIptables($"-F {ChainName}");
-            RunIptables($"-X {ChainName}");
-            log("Kill switch cleared (iptables).");
+            ClearIptablesFamily("iptables");
+            ClearIptablesFamily("ip6tables");
+            log("Kill switch cleared (iptables/ip6tables).");
         }
         catch (Exception ex)
         {
@@ -74,7 +78,7 @@ internal sealed class LinuxKillSwitchService : IKillSwitchService
 
         try
         {
-            return ChainReferencedInOutput();
+            return ChainReferencedInOutput("iptables") || ChainReferencedInOutput("ip6tables");
         }
         catch
         {
@@ -82,14 +86,50 @@ internal sealed class LinuxKillSwitchService : IKillSwitchService
         }
     }
 
-    private static bool ChainReferencedInOutput()
+    private static bool ConfigureIptablesFamily(string command)
     {
-        var output = PlatformHelper.RunCommand("iptables", "-L OUTPUT -n");
-        return output != null && output.Contains(ChainName, StringComparison.Ordinal);
+        if (!PlatformHelper.IsCommandAvailable(command))
+        {
+            return false;
+        }
+
+        PlatformHelper.RunCommandSuccess(command, $"-N {ChainName}");
+        if (!PlatformHelper.RunCommandSuccess(command, $"-F {ChainName}"))
+        {
+            PlatformHelper.RunCommandSuccess(command, $"-X {ChainName}");
+            if (!PlatformHelper.RunCommandSuccess(command, $"-N {ChainName}") ||
+                !PlatformHelper.RunCommandSuccess(command, $"-F {ChainName}"))
+            {
+                return false;
+            }
+        }
+
+        if (!PlatformHelper.RunCommandSuccess(command, $"-A {ChainName} -o lo -j ACCEPT") ||
+            !PlatformHelper.RunCommandSuccess(command, $"-A {ChainName} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT") ||
+            !PlatformHelper.RunCommandSuccess(command, $"-A {ChainName} -j DROP"))
+        {
+            return false;
+        }
+
+        return ChainReferencedInOutput(command) ||
+               PlatformHelper.RunCommandSuccess(command, $"-I OUTPUT 1 -j {ChainName}");
     }
 
-    private static void RunIptables(string args)
+    private static void ClearIptablesFamily(string command)
     {
-        PlatformHelper.RunCommand("iptables", args);
+        if (!PlatformHelper.IsCommandAvailable(command))
+        {
+            return;
+        }
+
+        PlatformHelper.RunCommandSuccess(command, $"-D OUTPUT -j {ChainName}");
+        PlatformHelper.RunCommandSuccess(command, $"-F {ChainName}");
+        PlatformHelper.RunCommandSuccess(command, $"-X {ChainName}");
+    }
+
+    private static bool ChainReferencedInOutput(string command)
+    {
+        var output = PlatformHelper.RunCommand(command, "-L OUTPUT -n");
+        return output != null && output.Contains(ChainName, StringComparison.Ordinal);
     }
 }
