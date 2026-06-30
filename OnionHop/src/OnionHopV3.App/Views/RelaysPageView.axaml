@@ -209,6 +209,21 @@
                                  Description="{DynamicResource Relays.EmptyDescription}"
                                  Icon="{x:Static mi:MaterialIconKind.ViewListOutline}"
                                  IsVisible="{Binding ShowNoResults}" />
+            <Border Grid.Row="1"
+                    Classes="InsetPanel"
+                    Margin="18"
+                    VerticalAlignment="Top"
+                    IsVisible="{Binding HasError}">
+              <TextBlock Text="{Binding ErrorText}"
+                         Foreground="{DynamicResource DangerBrush}"
+                         TextWrapping="Wrap" />
+            </Border>
+            <ProgressBar Grid.Row="1"
+                         IsIndeterminate="True"
+                         Height="3"
+                         Margin="10,0,18,0"
+                         VerticalAlignment="Top"
+                         IsVisible="{Binding IsLoading}" />
           </Grid>
         </Border>
       </Grid>
