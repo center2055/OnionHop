@@ -35,14 +35,14 @@
 V3 is a ground-up rebuild on a new cross-platform UI stack, with a much smarter connection engine and a far wider set of censorship-resistant transports.
 
 - **Now cross-platform** — native desktop builds for **Windows**, **macOS** (signed & notarized universal app) and **Linux** (AppImage). Same app, native look on each OS.
-- **Redesigned UI** — Fluent/native look (FluentAvalonia), light/dark/follow-system themes, an accent picker, an integrated chromeless title bar on Windows and native window chrome on macOS, and **5 languages** (English, German, French, Chinese, Russian).
+- **Redesigned UI** — Fluent/native look (FluentAvalonia), light/dark/follow-system themes, an accent picker, an integrated chromeless title bar on Windows and native window chrome on macOS, and **8 languages** (English, German, French, Chinese, Russian, Persian, Azerbaijani, and Sorani Kurdish).
 - **Smart Connect** — an offline censorship "brain" that auto-picks the best connection strategy for your network and country: it knows where Tor is blocked, prefers transports that survive there, pre-tests bridge reachability, races strategies in parallel, fails fast off dead paths, and remembers what worked on each network so the next connect is instant.
-- **Three Tor engines** — **Classic** (`tor.exe`, full control: bridges, country/entry/exit pinning, control-port New Identity), **Arti** (the Rust Tor implementation), and **ArtiHop** (shortened 2-hop Guard→Exit circuits for lower latency, with live New Identity).
+- **Three Tor engines** — **Classic** (`tor.exe`, full control: bridges, country/entry/exit pinning, control-port New Identity), **Arti** (the Rust Tor implementation with native bridge/PT config), and **ArtiHop** (shortened 2-hop Guard→Exit circuits for lower latency).
 - **More censorship-resistant transports** — obfs4, **snowflake** (with optional AMP-cache fronting), **webtunnel**, **conjure**, meek, and **dnstt** (a DNS tunnel that gets Tor through when only DNS is allowed).
 - **Bridge Scanner** — fetch and reachability-test bridges of every transport, see color-coded latency, and one-click apply the ones that actually work on your network.
 - **More bridge sources** — the official Tor bridge service, the censorship-resistant [OnionHop Bridges Collector](https://github.com/center2055/OnionHop-Bridges-Collector) (derived from [Delta-Kronecker/Tor-Bridges-Collector](https://github.com/Delta-Kronecker/Tor-Bridges-Collector)), built-in community bridges, and a thin-set top-up so a tiny live fetch is automatically backed by bundled bridges.
 - **Relays browser** — search the live Tor relay list by nickname, country, role, flags and bandwidth, and pin a preferred entry/middle/exit.
-- **Command-line interface** — a full-featured TUI (`OnionHopV3.Cli`) with a live status dashboard, connect/scan/bridges/snowflake/relays commands and settings persistence. *(Windows now; Linux & macOS CLI coming soon.)*
+- **Command-line interface** — a full-featured TUI (`OnionHopV3.Cli`) with a live status dashboard, connect/scan/bridges/snowflake/relays commands and settings persistence. Windows and Linux packages are built by CI.
 - **Stronger leak protection** — optional full DNS-over-Tor, a kill switch, UDP blocking in TUN mode, and an in-app WebRTC/UDP privacy notice.
 - **Volunteer as a Snowflake proxy** — help censored users reach Tor, straight from Settings.
 - **Quality-of-life** — decoupled system-proxy toggle (turn it off while Tor stays connected), an opt-in persistent admin helper to skip repeat UAC prompts in TUN mode (off by default), an in-app changelog, and Bitcoin donations.
@@ -58,8 +58,9 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 | **Windows** | `OnionHop-Setup-v3.exe` | Installer (self-contained, .NET runtime bundled) |
 | **Windows** | `OnionHopV3-Portable-…win-x64.zip` | Portable, no install |
 | **Linux** | `OnionHop-x86_64.AppImage` | `chmod +x` and run |
-| **macOS** | `OnionHop-3.1.0-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
-| **Windows CLI** | `OnionHop-CLI-Setup-3.1.0.exe` / `…Portable…zip` | Terminal interface |
+| **macOS** | `OnionHop-3.x-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
+| **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface |
+| **Linux CLI** | `OnionHopCLI-…linux-x64.tar.gz` | Terminal interface |
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
 
@@ -80,7 +81,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 
 Notes
 - `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox "Proxy DNS when using SOCKS v5").
-- Bridges, country/relay pinning and control-port New Identity require the **Classic** engine today — the **Arti**/**ArtiHop** engines run bridgeless in OnionHop for now (native bridge support is planned; upstream Arti itself supports bridges).
+- Country/relay pinning and control-port New Identity require the **Classic** engine. Arti and ArtiHop support OnionHop bridge/PT configuration, but Classic remains the most complete choice for manual circuit control.
 
 ---
 
@@ -88,11 +89,11 @@ Notes
 
 | Engine | Hops | Admin | Bridges / pinning / NEWNYM | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Classic** (`tor.exe`) | 3 | no (Proxy) | yes | Most features; recommended for censorship + control |
-| **Arti** | 3 | no | not yet in OnionHop | Rust Tor implementation (SOCKS runtime) |
-| **ArtiHop** | 2 (Guard→Exit) | no | New Identity only | Lower latency, weaker anonymity |
+| **Classic** (`tor.exe`) | 3 | no (Proxy) | bridges, pinning, NEWNYM | Most features; recommended for censorship + manual circuit control |
+| **Arti** | 3 | no | bridges/PT | Rust Tor implementation (SOCKS runtime) |
+| **ArtiHop** | 2 (Guard→Exit) | no | bridges/PT | Lower latency, weaker anonymity |
 
-> Upstream **Arti** supports bridges and pluggable transports, but OnionHop currently runs its **Arti** and **ArtiHop** engines as a plain SOCKS runtime without bridge/PT config — so use the **Classic** engine for bridged/censored networks. Native bridge support for the Arti engines is planned for a future release.
+Use **Classic** when you need country pinning, relay pinning, or control-port New Identity. Use **Arti** or **ArtiHop** when you want the Rust runtime and do not need those Classic-only controls.
 
 ---
 
@@ -133,7 +134,7 @@ Fetch runtime dependencies (Tor, pluggable transports, sing-box, Wintun, ArtiHop
 powershell -NoProfile -ExecutionPolicy Bypass -File download-deps.ps1
 ```
 ```bash
-# macOS / Linux
+# Linux
 ./download-deps.sh
 ```
 

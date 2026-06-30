@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -42,6 +44,9 @@ jobs:
         run: |
           chmod +x download-deps.sh
           bash download-deps.sh
+
+      - name: Test
+        run: dotnet test OnionHop/OnionHopV3.sln -c Release
 
       - name: Publish app (linux-x64, self-contained)
         run: |
@@ -98,13 +103,16 @@ jobs:
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool OnionHop.AppDir OnionHop-x86_64.AppImage
+          sha256sum OnionHop-x86_64.AppImage | tee OnionHop-x86_64.AppImage.sha256.txt
           ls -lh OnionHop-x86_64.AppImage
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: OnionHop-x86_64.AppImage
-          path: OnionHop-x86_64.AppImage
+          path: |
+            OnionHop-x86_64.AppImage
+            OnionHop-x86_64.AppImage.sha256.txt
           if-no-files-found: error
 
       - name: Attach to release
@@ -114,4 +122,4 @@ jobs:
         run: |
           TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
           echo "Attaching AppImage to release $TAG"
-          gh release upload "$TAG" OnionHop-x86_64.AppImage --repo "${{ github.repository }}" --clobber
+          gh release upload "$TAG" OnionHop-x86_64.AppImage OnionHop-x86_64.AppImage.sha256.txt --repo "${{ github.repository }}" --clobber

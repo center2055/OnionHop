@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- Fixed Windows admin-helper status probing so persistent-helper connection validation cannot deadlock or hang indefinitely.
+- Fixed cancellation handling in dependency and bridge fetch paths.
+- Fixed custom vanilla bridge lines so they are not rewritten as a fake `custom` transport.
+- Fixed Arti/ArtiHop bridge transport arguments so Conjure and Snowflake launch with their required PT flags.
+- Fixed Linux/Windows DNS and Linux kill-switch setup to report failure when system rules are not actually installed.
+- Fixed relay, logs, bridge scanner, and custom DoH UI states.
+
+Packaging
+- CLI publish now includes optional ArtiHop and Snowflake runtime folders.
+- Release workflows run tests before packaging and upload checksum files with release assets.
+
 ## v2.4.4 (2026-03-03)
 
 Additions

@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -39,6 +41,9 @@ jobs:
         run: |
           chmod +x download-deps.sh
           bash download-deps.sh
+
+      - name: Test
+        run: dotnet test OnionHop/OnionHopV3.sln -c Release
 
       - name: Publish CLI (linux-x64, self-contained)
         run: |
@@ -81,4 +86,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
-          gh release upload "$TAG" OnionHopCLI-*-linux-x64.tar.gz --repo "${{ github.repository }}" --clobber
+          gh release upload "$TAG" OnionHopCLI-*-linux-x64.tar.gz OnionHopCLI-*-linux-x64.tar.gz.sha256.txt --repo "${{ github.repository }}" --clobber
