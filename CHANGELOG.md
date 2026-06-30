@@ -1,8 +1,14 @@
 # Changelog
 
-## Unreleased
+## v3.4.5 (2026-06-30)
+
+Additions
+- Added country routing for TUN/VPN mode: keep whole countries direct (bypass Tor) or block them by IP, using auto-updating sing-box geoip rule-sets (#55).
+- Added domain-category routing for TUN/VPN mode: keep or block whole categories of domains (e.g. `category-ads-all`) using auto-updating sing-box geosite rule-sets (#55).
 
 Fixes
+- Fixed Conjure bridges by pointing the transport at `conjure-client` (with its registration URL) instead of `lyrebird`, which does not speak Conjure (#64).
+- Added an IPv6 kill switch (ip6tables) so IPv6 traffic is blocked alongside IPv4 in Proxy Mode.
 - Fixed Windows admin-helper status probing so persistent-helper connection validation cannot deadlock or hang indefinitely.
 - Fixed cancellation handling in dependency and bridge fetch paths.
 - Fixed custom vanilla bridge lines so they are not rewritten as a fake `custom` transport.
