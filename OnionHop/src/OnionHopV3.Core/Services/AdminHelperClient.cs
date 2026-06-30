@@ -24,6 +24,7 @@ internal enum AdminHelperConnectionKind
 
 internal sealed class AdminHelperClient : IDisposable
 {
+    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(30);
     private PipeStream? _pipe;
     private StreamReader? _reader;
     private StreamWriter? _writer;
@@ -273,17 +274,7 @@ internal sealed class AdminHelperClient : IDisposable
     {
         // Don't start helper just to check status - use existing connection only
         var response = await SendIfConnectedAsync("GetStatus", null).ConfigureAwait(false);
-        if (response?.Success != true)
-        {
-            return null;
-        }
-
-        if (response.Payload is JsonElement element)
-        {
-            return JsonSerializer.Deserialize<AdminHelperStatus>(element.GetRawText(), AdminHelperProtocol.JsonOptions);
-        }
-
-        return null;
+        return ParseStatusResponse(response);
     }
 
     public async Task<IReadOnlyList<string>> DrainLogsAsync()
@@ -448,7 +439,7 @@ internal sealed class AdminHelperClient : IDisposable
             _connectionKind = AdminHelperConnectionKind.PersistentDaemon;
             client = null;
 
-            var status = await GetStatusAsync().ConfigureAwait(false);
+            var status = ParseStatusResponse(await SendCoreWithoutLockAsync("GetStatus", null).ConfigureAwait(false));
             if (status?.IsAdministrator == true && string.Equals(status.Mode, "persistent", StringComparison.OrdinalIgnoreCase))
             {
                 StartupLogger.Write("AdminHelperClient: connected to persistent admin helper.");
@@ -663,11 +654,11 @@ internal sealed class AdminHelperClient : IDisposable
 
         var json = JsonSerializer.Serialize(request, AdminHelperProtocol.JsonOptions);
         StartupLogger.Write($"SendCoreAsync: Sending JSON ({json.Length} chars)...");
-        await _writer.WriteLineAsync(json).ConfigureAwait(false);
-        await _writer.FlushAsync().ConfigureAwait(false);
+        await _writer.WriteLineAsync(json).WaitAsync(CommandTimeout).ConfigureAwait(false);
+        await _writer.FlushAsync().WaitAsync(CommandTimeout).ConfigureAwait(false);
         StartupLogger.Write("SendCoreAsync: Waiting for response...");
 
-        var responseLine = await _reader.ReadLineAsync().ConfigureAwait(false);
+        var responseLine = await _reader.ReadLineAsync().WaitAsync(CommandTimeout).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(responseLine))
         {
             StartupLogger.Write("SendCoreAsync: Empty response received");
@@ -676,6 +667,21 @@ internal sealed class AdminHelperClient : IDisposable
 
         StartupLogger.Write($"SendCoreAsync: Response received ({responseLine.Length} chars)");
         return JsonSerializer.Deserialize<HelperResponse>(responseLine, AdminHelperProtocol.JsonOptions);
+    }
+
+    private static AdminHelperStatus? ParseStatusResponse(HelperResponse? response)
+    {
+        if (response?.Success != true)
+        {
+            return null;
+        }
+
+        if (response.Payload is JsonElement element)
+        {
+            return JsonSerializer.Deserialize<AdminHelperStatus>(element.GetRawText(), AdminHelperProtocol.JsonOptions);
+        }
+
+        return null;
     }
 
     private static NamedPipeServerStream CreateServerPipe(string pipeName)

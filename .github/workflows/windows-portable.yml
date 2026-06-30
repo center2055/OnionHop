@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -43,6 +45,10 @@ jobs:
       - name: Download native dependencies (tor, transports, sing-box, xray, wintun, ArtiHop)
         shell: pwsh
         run: .\download-deps.ps1 -NoPause
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test OnionHop\OnionHopV3.sln -c Release
 
       - name: Build portable package
         shell: pwsh
@@ -77,4 +83,4 @@ jobs:
         run: |
           $tag = if ('${{ github.event_name }}' -eq 'release') { '${{ github.event.release.tag_name }}' } else { '${{ inputs.release_tag }}' }
           $zip = (Get-ChildItem installer\output\OnionHopV3-Portable-*-win-x64.zip | Select-Object -First 1).FullName
-          gh release upload "$tag" "$zip" --repo "${{ github.repository }}" --clobber
+          gh release upload "$tag" "$zip" "$zip.sha256.txt" --repo "${{ github.repository }}" --clobber

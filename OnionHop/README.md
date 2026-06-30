@@ -1,37 +1,36 @@
-# OnionHop V3 (Avalonia + SukiUI)
+# OnionHop V3
 
-This is the **V3 UI** for OnionHop, rebuilt with **Avalonia** + **SukiUI** for a cleaner, modern, cross-platform UI.
+OnionHop V3 is the Avalonia + FluentAvalonia desktop client and CLI for routing traffic through Tor, bridges, and TUN/VPN mode.
 
 ## Status
 
-- GUI releases: **Windows + macOS**
-- Windows: **GUI + CLI**
-- macOS: **GUI release available** (no CLI package yet)
-- Linux: **source/build support is present**, packaged release still pending
+- GUI releases: Windows, Linux AppImage, and macOS from the dedicated macOS release repo.
+- CLI releases: Windows and Linux.
+- Target framework: .NET 9.
 
 ## Build
 
 ```powershell
-dotnet build "OnionHop/OnionHopV2.sln" -c Release
+dotnet build "OnionHop/OnionHopV3.sln" -c Release
 ```
 
-## Run
+## Run GUI
 
 ```powershell
 dotnet run --project "OnionHop/src/OnionHopV3.App" -c Release
 ```
 
-On first connect, the app will ensure the required Tor/VPN dependencies are available for the active platform.
+On first connect, the app ensures the required Tor/VPN dependencies are available for the active platform.
 
 ## Run CLI
 
 ```powershell
-dotnet run --project "OnionHop/src/OnionHopV2.Cli" -c Release
+dotnet run --project "OnionHop/src/OnionHopV3.Cli" -c Release
 ```
 
 CLI quick start:
 
-```powershell
+```text
 connect --smart on
 countries
 connect --smart off --exit us --entry nl
@@ -39,21 +38,27 @@ status
 disconnect
 ```
 
-## Build CLI Installer (Windows)
+## Packaging
+
+Windows installer:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-cli.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-v3.ps1
 ```
 
-## Build Portable Packages (Windows)
-
-GUI portable ZIP:
+Windows GUI portable ZIP:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-v3.ps1
 ```
 
-CLI portable ZIP:
+Windows CLI installer:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-installer-cli.ps1
+```
+
+Windows CLI portable ZIP:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-portable-cli.ps1

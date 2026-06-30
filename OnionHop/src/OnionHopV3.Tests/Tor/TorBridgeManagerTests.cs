@@ -234,6 +234,33 @@ public sealed class TorBridgeManagerTests
     }
 
     [Fact]
+    public async Task GetBridgeLinesAsync_custom_vanilla_lines_stay_vanilla()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "custom",
+                CustomBridges = "8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875"
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+            var plugins = manager.GetClientTransportPlugins(options, lines, Path.Combine(dir, "tor"), null, _ => { });
+
+            Assert.Single(lines);
+            Assert.Equal("8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875", lines[0]);
+            Assert.Empty(plugins);
+            Assert.False(TorBridgeManager.BridgeLinesNeedClientTransportPlugins(lines));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
     public void GetBridgeTypeKeys_includes_conjure_when_transport_exists()
     {
         var config = new PluggableTransportConfig

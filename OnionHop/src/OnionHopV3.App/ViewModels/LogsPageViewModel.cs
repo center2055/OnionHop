@@ -98,6 +98,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         {
             SourceDns => "dns",
             SourceEngine => State.TunCoreMode == AppStateViewModel.TunCoreXray ? "xray" : "sing-box",
+            SourceBridges => "bridges",
             _ => "app"
         };
     }
@@ -108,6 +109,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         OnPropertyChanged(nameof(IsAppSelected));
         OnPropertyChanged(nameof(IsDnsSelected));
         OnPropertyChanged(nameof(IsEngineSelected));
+        OnPropertyChanged(nameof(IsBridgesSelected));
         OnPropertyChanged(nameof(ActiveSourcesSummary));
         RebuildVisibleEntries();
     }
@@ -372,6 +374,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             {
                 SourceDns => LocalizationService.Get("Logs.TabDns"),
                 SourceEngine => EngineTabLabel,
+                SourceBridges => LocalizationService.Get("Logs.TabBridges"),
                 _ => LocalizationService.Get("Logs.TabApp")
             },
             Message = message,

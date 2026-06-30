@@ -235,6 +235,28 @@
                                     Description="{DynamicResource Settings.CustomDohHostWatermark}"
                                     ItemsSource="{Binding State.DnsProviders}"
                                     SelectedItem="{Binding State.SelectedDnsProviderChoice}" />
+              <Grid ColumnDefinitions="*,*"
+                    ColumnSpacing="12"
+                    IsVisible="{Binding State.IsCustomDoh}">
+                <controls:SettingRow Grid.Column="0"
+                                     Title="{DynamicResource Settings.CustomDohHost}"
+                                     Description="{DynamicResource Settings.CustomDohHostWatermark}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="260"
+                             Text="{Binding State.CustomDohHost}"
+                             Watermark="{DynamicResource Settings.CustomDohHostWatermark}" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+                <controls:SettingRow Grid.Column="1"
+                                     Title="{DynamicResource Settings.CustomDohPath}"
+                                     Description="{DynamicResource Settings.CustomDohPathWatermark}">
+                  <controls:SettingRow.RowContent>
+                    <TextBox Width="160"
+                             Text="{Binding State.CustomDohPath}"
+                             Watermark="{DynamicResource Settings.CustomDohPathWatermark}" />
+                  </controls:SettingRow.RowContent>
+                </controls:SettingRow>
+              </Grid>
             </StackPanel>
           </Border>
 

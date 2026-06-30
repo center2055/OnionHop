@@ -79,43 +79,46 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
             return;
         }
 
-        IReadOnlyList<string> candidates;
-        if (UseCustomBridges)
-        {
-            candidates = SplitLines(CustomBridges);
-            if (candidates.Count == 0)
-            {
-                ProgressText = "Paste at least one bridge line first.";
-                return;
-            }
-        }
-        else
-        {
-            ProgressText = "Fetching bridge list…";
-            var fetch = await BridgeSourceService
-                .FetchAsync(SelectedCategory, SelectedTransport, SelectedIpVersion, null, State.AppendLog, CancellationToken.None)
-                .ConfigureAwait(true);
-            if (fetch == null || fetch.Lines.Count == 0)
-            {
-                ProgressText = "Could not fetch bridges from any mirror. Check your connection or paste custom bridges.";
-                State.AppendLog("Bridge scanner: all bridge-source mirrors failed.");
-                return;
-            }
-
-            candidates = fetch.Lines;
-        }
-
-        ResetState(candidates.Count);
         IsScanning = true;
         _scanCts = new CancellationTokenSource();
-        State.AppendLog($"Bridge scanner: probing {candidates.Count} {SelectedTransport} bridge(s) " +
-                        $"({SelectedCategory}, {SelectedIpVersion}) with {Workers} worker(s), {TimeoutSeconds}s timeout.");
-
-        // Progress<T> captures the UI SynchronizationContext here, so OnResult runs on the UI thread.
-        var progress = new Progress<BridgeScanResult>(OnResult);
+        var scanStarted = false;
 
         try
         {
+            IReadOnlyList<string> candidates;
+            if (UseCustomBridges)
+            {
+                candidates = SplitLines(CustomBridges);
+                if (candidates.Count == 0)
+                {
+                    ProgressText = "Paste at least one bridge line first.";
+                    return;
+                }
+            }
+            else
+            {
+                ProgressText = "Fetching bridge list...";
+                var fetch = await BridgeSourceService
+                    .FetchAsync(SelectedCategory, SelectedTransport, SelectedIpVersion, null, State.AppendLog, _scanCts.Token)
+                    .ConfigureAwait(true);
+                if (fetch == null || fetch.Lines.Count == 0)
+                {
+                    ProgressText = "Could not fetch bridges from any mirror. Check your connection or paste custom bridges.";
+                    State.AppendLog("Bridge scanner: all bridge-source mirrors failed.");
+                    return;
+                }
+
+                candidates = fetch.Lines;
+            }
+
+            ResetState(candidates.Count);
+            scanStarted = true;
+            State.AppendLog($"Bridge scanner: probing {candidates.Count} {SelectedTransport} bridge(s) " +
+                            $"({SelectedCategory}, {SelectedIpVersion}) with {Workers} worker(s), {TimeoutSeconds}s timeout.");
+
+            // Progress<T> captures the UI SynchronizationContext here, so OnResult runs on the UI thread.
+            var progress = new Progress<BridgeScanResult>(OnResult);
+
             await BridgeScanService
                 .ScanAsync(candidates, Workers, TimeSpan.FromSeconds(TimeoutSeconds), progress, _scanCts.Token)
                 .ConfigureAwait(true);
@@ -135,7 +138,10 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
             IsScanning = false;
             _scanCts?.Dispose();
             _scanCts = null;
-            UpdateSummary(final: true);
+            if (scanStarted)
+            {
+                UpdateSummary(final: true);
+            }
         }
     }
 
