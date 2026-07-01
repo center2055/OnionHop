@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- Fixed the desktop window opening larger than the visible screen on Windows displays scaled above 100 percent, which pushed the title-bar buttons off screen with no way to move the window (#67). The window now clamps its size and minimum size to the current screen's work area and re-centers to stay fully reachable at any DPI.
+
 ## v3.4.5 (2026-06-30)
 
 Additions

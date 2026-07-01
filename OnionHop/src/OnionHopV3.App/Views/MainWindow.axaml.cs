@@ -22,6 +22,7 @@ public partial class MainWindow : Window
         {
             ApplyWindowChrome();
             UpdateMaximizeGlyph();
+            FitToScreenWorkingArea();
         };
         ActualThemeVariantChanged += (_, _) => ApplyWindowChrome();
 
@@ -38,6 +39,75 @@ public partial class MainWindow : Window
         if (change.Property == WindowStateProperty)
         {
             UpdateMaximizeGlyph();
+        }
+    }
+
+    // The default window size (and minimum size) can exceed the visible work area on displays scaled
+    // above 100 percent, because scaling shrinks the logical space the window is measured in. Since the
+    // window is chromeless (its own caption buttons live at the top of the client area), an oversized
+    // window pushes those buttons off screen with no OS title bar to grab (issue #67). Clamp the size
+    // and minimum to the current screen's working area, then re-center so everything stays reachable.
+    private void FitToScreenWorkingArea()
+    {
+        if (WindowState != WindowState.Normal)
+        {
+            return;
+        }
+
+        var screen = Screens.ScreenFromVisual(this) ?? Screens.Primary;
+        if (screen is null)
+        {
+            return;
+        }
+
+        var scaling = screen.Scaling <= 0 ? 1.0 : screen.Scaling;
+        // WorkingArea is in physical pixels; Width/Height/MinWidth/MinHeight are logical (DIP) units.
+        var workWidth = screen.WorkingArea.Width / scaling;
+        var workHeight = screen.WorkingArea.Height / scaling;
+
+        // Leave a small margin so the window border/shadow stays visible.
+        const double margin = 24;
+        var maxWidth = Math.Max(320, workWidth - margin);
+        var maxHeight = Math.Max(320, workHeight - margin);
+
+        // The minimum must never exceed the screen, or the window cannot be shrunk to fit and its
+        // off-screen edges (with the caption buttons) stay unreachable.
+        if (MinWidth > maxWidth)
+        {
+            MinWidth = maxWidth;
+        }
+
+        if (MinHeight > maxHeight)
+        {
+            MinHeight = maxHeight;
+        }
+
+        var resized = false;
+        if (Width > maxWidth)
+        {
+            Width = maxWidth;
+            resized = true;
+        }
+
+        if (Height > maxHeight)
+        {
+            Height = maxHeight;
+            resized = true;
+        }
+
+        // Re-center in the working area if we shrank the window or if it currently spills off screen.
+        var physWidth = (int)Math.Round(Width * scaling);
+        var physHeight = (int)Math.Round(Height * scaling);
+        var area = screen.WorkingArea;
+        var offScreen = Position.X < area.X || Position.Y < area.Y ||
+                        Position.X + physWidth > area.X + area.Width ||
+                        Position.Y + physHeight > area.Y + area.Height;
+
+        if (resized || offScreen)
+        {
+            var x = area.X + Math.Max(0, (area.Width - physWidth) / 2);
+            var y = area.Y + Math.Max(0, (area.Height - physHeight) / 2);
+            Position = new PixelPoint(x, y);
         }
     }
 
