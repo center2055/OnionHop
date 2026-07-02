@@ -266,6 +266,97 @@ internal sealed class TorService : IDisposable
         return (read.Value, written.Value);
     }
 
+    /// <summary>
+    /// Fingerprints of the relays tor currently holds an established OR connection to
+    /// (GETINFO orconn-status). With bridges configured, the connected entry is the bridge itself,
+    /// so matching these against the configured bridge lines tells which bridge is in use (#69).
+    /// Returns null when the control port is unavailable.
+    /// </summary>
+    public async Task<IReadOnlyList<string>?> TryGetConnectedOrFingerprintsAsync(CancellationToken token)
+    {
+        var port = await GetControlPortAsync(token);
+        if (!port.HasValue)
+        {
+            return null;
+        }
+
+        var cookie = await GetControlCookieHexAsync(token);
+        if (string.IsNullOrWhiteSpace(cookie))
+        {
+            return null;
+        }
+
+        using var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, port.Value, token);
+
+        await using var stream = client.GetStream();
+        using var reader = new StreamReader(stream, Encoding.ASCII);
+        using var writer = new StreamWriter(stream, Encoding.ASCII)
+        {
+            NewLine = "\r\n",
+            AutoFlush = true
+        };
+
+        await writer.WriteLineAsync($"AUTHENTICATE {cookie}");
+        var authResponse = await ReadControlResponseAsync(reader);
+        if (!authResponse.StartsWith("250", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        await writer.WriteLineAsync("GETINFO orconn-status");
+        var response = await ReadControlResponseAsync(reader);
+        await writer.WriteLineAsync("QUIT");
+
+        return ParseConnectedOrFingerprints(response);
+    }
+
+    // orconn-status lines look like "$<40-hex-fingerprint>~nickname CONNECTED" (one per OR
+    // connection; other states are LAUNCHED/FAILED/CLOSED). Internal for tests.
+    internal static IReadOnlyList<string> ParseConnectedOrFingerprints(string response)
+    {
+        var result = new List<string>();
+        foreach (var rawLine in response.Split('\n'))
+        {
+            var line = rawLine.Trim();
+            if (line.StartsWith("250", StringComparison.Ordinal))
+            {
+                // Both the "250+orconn-status=" header and the "250 OK" trailer.
+                var eq = line.IndexOf('=');
+                if (eq < 0 || eq + 1 >= line.Length)
+                {
+                    continue;
+                }
+
+                // Single-connection replies can be inline: "250-orconn-status=$FP~nick CONNECTED".
+                line = line[(eq + 1)..].Trim();
+            }
+
+            if (line.Length < 42 || line[0] != '$' || !line.EndsWith(" CONNECTED", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var fingerprint = line.Substring(1, 40);
+            var validHex = true;
+            foreach (var ch in fingerprint)
+            {
+                if (!Uri.IsHexDigit(ch))
+                {
+                    validHex = false;
+                    break;
+                }
+            }
+
+            if (validHex)
+            {
+                result.Add(fingerprint.ToUpperInvariant());
+            }
+        }
+
+        return result;
+    }
+
     public void Stop()
     {
         if (_process == null)

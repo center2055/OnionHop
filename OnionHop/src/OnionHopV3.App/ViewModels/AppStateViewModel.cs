@@ -68,6 +68,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public const string BridgeSourceOnlineOnly = OnionHopConnectOptions.BridgeSourceOnlineOnly;
     public const string BridgeSourceOfflineOnly = OnionHopConnectOptions.BridgeSourceOfflineOnly;
     public const string BridgeSourceCollectorOnly = OnionHopConnectOptions.BridgeSourceCollectorOnly;
+    public const string BridgeSourceCustom = OnionHopConnectOptions.BridgeSourceCustom;
     private static readonly Regex ExitFingerprintRegex = new("^[A-F0-9]{40}$", RegexOptions.Compiled);
     /// <summary>
     /// Maps runtime status text to localization resource keys.
@@ -201,6 +202,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     private bool _disposed;
     private bool _hasStatusSnapshot;
     private bool _wasConnected;
+    // Set once the issue #70 "custom bridges -> explicit Custom source" migration has run (persisted).
+    private bool _customBridgeSourceMigrated;
     private Dictionary<string, TorCountryNodeStats> _countryStatsByCode = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _pendingLogsLock = new();
     private readonly Queue<string> _pendingAppLogs = new();
@@ -297,7 +300,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BridgeSourceAuto,
             BridgeSourceOnlineOnly,
             BridgeSourceCollectorOnly,
-            BridgeSourceOfflineOnly
+            BridgeSourceOfflineOnly,
+            BridgeSourceCustom
         ];
 
         RefreshLanguageOptions();
@@ -362,6 +366,13 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> LogLines { get; } = [];
     // The bridge line(s) the current connection is using (issue #56), shown as a copyable Logs tab.
     public ObservableCollection<string> ActiveBridgeLines { get; } = [];
+
+    /// <summary>
+    /// Fingerprints of relays the running tor is connected to right now (classic engine only;
+    /// empty for Arti/ArtiHop). Used by the bridges view to mark the bridge in use (#69).
+    /// </summary>
+    public Task<IReadOnlyList<string>> GetConnectedRelayFingerprintsAsync(CancellationToken token = default)
+        => _client.TryGetConnectedRelayFingerprintsAsync(token);
     public ObservableCollection<string> DnsLogLines { get; } = [];
     public ObservableCollection<string> XrayLogLines { get; } = [];
     public string TunEngineLogTabHeader => string.Equals(
@@ -2705,6 +2716,21 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 : settings.SelectedBridgeType!.Trim().ToLowerInvariant();
             BridgeSourceMode = NormalizeBridgeSourceMode(settings.BridgeSourceMode);
             CustomBridges = settings.CustomBridges ?? string.Empty;
+
+            // One-time migration for the "Custom list" source (issue #70): saved custom bridge lines
+            // used to override every source implicitly, so anyone who has them saved was relying on
+            // that behavior - move them onto the explicit Custom mode once so nothing changes for
+            // them. Afterwards the box can stay filled while other sources are selected.
+            _customBridgeSourceMigrated = settings.CustomBridgeSourceMigrated == true;
+            if (!_customBridgeSourceMigrated)
+            {
+                if (!string.IsNullOrWhiteSpace(CustomBridges))
+                {
+                    BridgeSourceMode = BridgeSourceCustom;
+                }
+
+                _customBridgeSourceMigrated = true;
+            }
             CustomSniHosts = settings.CustomSniHosts ?? string.Empty;
             UseSnowflakeAmp = settings.UseSnowflakeAmp;
             SnowflakeAmpCache = settings.SnowflakeAmpCache ?? string.Empty;
@@ -2918,6 +2944,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             SelectedBridgeType = SelectedBridgeType,
             BridgeSourceMode = BridgeSourceMode,
             CustomBridges = CustomBridges,
+            CustomBridgeSourceMigrated = _customBridgeSourceMigrated,
             CustomSniHosts = CustomSniHosts,
             UseSnowflakeAmp = UseSnowflakeAmp,
             SnowflakeAmpCache = SnowflakeAmpCache,
@@ -3353,6 +3380,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BridgeSourceOnlineOnly => LocalizationService.Get("BridgeSource.OnlineOnly"),
             BridgeSourceOfflineOnly => LocalizationService.Get("BridgeSource.OfflineOnly"),
             BridgeSourceCollectorOnly => LocalizationService.Get("BridgeSource.CollectorOnly"),
+            BridgeSourceCustom => LocalizationService.Get("BridgeSource.Custom"),
             _ => sourceMode
         };
     }
@@ -3420,6 +3448,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         if (string.Equals(sourceMode, BridgeSourceCollectorOnly, StringComparison.OrdinalIgnoreCase))
         {
             return BridgeSourceCollectorOnly;
+        }
+
+        if (string.Equals(sourceMode, BridgeSourceCustom, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourceCustom;
         }
 
         return BridgeSourceAuto;

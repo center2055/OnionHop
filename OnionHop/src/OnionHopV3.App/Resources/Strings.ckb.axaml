@@ -282,6 +282,7 @@
   <x:String x:Key="BridgeSource.OnlineOnly">تەنها خزمەتگوزاری بریجی Tor</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">تەنها ئۆفلاین</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">تەنها کۆلێکتەری OnionHop</x:String>
+  <x:String x:Key="BridgeSource.Custom">لیستی تایبەت (لە ڕێکخستنەکانەوە)</x:String>
   <x:String x:Key="ProxyScope.System">پرۆکسی سیستەم (هەموو بەرنامەکان)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">پرۆکسی سیستەم (SOCKS وێبگەڕ/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">تەنها پرۆکسی شوێنی (بەرنامەی دەستی)</x:String>
@@ -451,6 +452,7 @@
   <x:String x:Key="Logs.ColumnType">جۆر</x:String>
   <x:String x:Key="Logs.ColumnAddress">ناونیشان</x:String>
   <x:String x:Key="Logs.ColumnDetails">وردەکاری</x:String>
+  <x:String x:Key="Logs.BridgeInUse">بەکاردێت</x:String>
   <x:String x:Key="Logs.EmptyTitle">هیچ نووسینی تۆماری لەگەڵ دیمەنی ئێستا نەگونجاو</x:String>
   <x:String x:Key="Logs.EmptyDescription">تابێکی دیکە هەڵبژێرە، دەقی گەڕان پاک بکەرەوە، یان چاوەڕێی چالاکییەکانی ڕانتایمی نوێ بکە.</x:String>
   <x:String x:Key="Logs.Summary">پوختە</x:String>

@@ -168,8 +168,9 @@
                 </Grid>
 
                 <!-- Bridge lines carry no timestamp, so the bridges tab gets its own columns instead
-                     of the log layout (the type used to land in the Time column - issue #69). -->
-                <Grid ColumnDefinitions="110,240,*"
+                     of the log layout (the type used to land in the Time column - issue #69). The
+                     Status column marks the bridge tor is connected to right now / last seen. -->
+                <Grid ColumnDefinitions="110,240,96,*"
                       ColumnSpacing="10"
                       Margin="14,12,14,10"
                       IsVisible="{Binding IsBridgesSelected}">
@@ -179,6 +180,9 @@
                              Text="{DynamicResource Logs.ColumnAddress}"
                              Classes="SectionCaption" />
                   <TextBlock Grid.Column="2"
+                             Text="{DynamicResource Scanner.ColStatus}"
+                             Classes="SectionCaption" />
+                  <TextBlock Grid.Column="3"
                              Text="{DynamicResource Logs.ColumnDetails}"
                              Classes="SectionCaption" />
                 </Grid>
@@ -256,7 +260,7 @@
                     <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                             BorderThickness="0,1,0,0"
                             Padding="14,10">
-                      <Grid ColumnDefinitions="110,240,*"
+                      <Grid ColumnDefinitions="110,240,96,*"
                             ColumnSpacing="10">
                         <controls:StatusBadge Text="{Binding Type}"
                                               Tone="info"
@@ -266,7 +270,12 @@
                                    FontFamily="Consolas"
                                    VerticalAlignment="Top"
                                    TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="2"
+                        <controls:StatusBadge Grid.Column="2"
+                                              Text="{Binding StatusLabel}"
+                                              Tone="{Binding StatusTone}"
+                                              VerticalAlignment="Top"
+                                              IsVisible="{Binding HasStatus}" />
+                        <TextBlock Grid.Column="3"
                                    Text="{Binding Details}"
                                    FontFamily="Consolas"
                                    TextWrapping="Wrap"

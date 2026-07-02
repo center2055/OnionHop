@@ -446,6 +446,28 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
+    /// <summary>
+    /// Fingerprints of the relays the classic tor engine is currently connected to (bridges show up
+    /// as their own fingerprints), for the "in use" indicator on the bridges view (#69). Returns an
+    /// empty list when the engine has no control port (Arti/ArtiHop) or tor is not running.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> TryGetConnectedRelayFingerprintsAsync(CancellationToken token = default)
+    {
+        try
+        {
+            if (!_torService.IsRunning || string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal))
+            {
+                return Array.Empty<string>();
+            }
+
+            return await _torService.TryGetConnectedOrFingerprintsAsync(token).ConfigureAwait(false) ?? Array.Empty<string>();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
     public Task<bool> EnsureDependenciesAsync(CancellationToken token = default)
         => EnsureDependenciesAsync(requireVpnDependencies: true, token);
 
@@ -924,6 +946,12 @@ public sealed class OnionHopClient : IDisposable
             PublishStatus();
 
             await RefreshIpAsync(updateStatusMessage: false, CancellationToken.None).ConfigureAwait(false);
+
+            // Refresh the geo rule-set cache through Tor in the background (issue #68 follow-up):
+            // raw.githubusercontent.com is blocked exactly where those rules matter most, so fetch
+            // the .srs lists over the circuit we now have. The next TUN start then references them
+            // as local files with no GitHub dependency.
+            StartGeoRuleSetBackgroundRefresh(resolvedOptions);
         }
         catch (OperationCanceledException)
         {
@@ -2982,6 +3010,55 @@ public sealed class OnionHopClient : IDisposable
             ManageOnionResolver = ShouldManageOnionDnsInsideMacTun(options),
             OnionDnsNameServer = _activeDnsBindAddress
         };
+    }
+
+    // Fire-and-forget refresh of the configured geo rule-sets through the live Tor SOCKS proxy
+    // (issue #68 follow-up). Runs in every connection mode: proxy-mode connects warm the cache for a
+    // later TUN connect too. No-op when no geo routing is configured.
+    private void StartGeoRuleSetBackgroundRefresh(OnionHopConnectOptions options)
+    {
+        var tags = new List<string>();
+        foreach (var code in VpnConfigBuilder.NormalizeCountryCodes(ParseRoutingRules(options.BypassCountries)))
+        {
+            tags.Add("geoip-" + code);
+        }
+
+        foreach (var code in VpnConfigBuilder.NormalizeCountryCodes(ParseRoutingRules(options.BlockCountries)))
+        {
+            tags.Add("geoip-" + code);
+        }
+
+        foreach (var cat in VpnConfigBuilder.NormalizeGeositeCategories(ParseRoutingRules(options.BypassSiteCategories)))
+        {
+            tags.Add("geosite-" + cat);
+        }
+
+        foreach (var cat in VpnConfigBuilder.NormalizeGeositeCategories(ParseRoutingRules(options.BlockSiteCategories)))
+        {
+            tags.Add("geosite-" + cat);
+        }
+
+        if (tags.Count == 0)
+        {
+            return;
+        }
+
+        var socksPort = _activeSocksPort;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await GeoRuleSetCache.RefreshAsync(
+                    tags,
+                    socksPort > 0 ? socksPort : null,
+                    RaiseLog,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Best-effort background job; the remote rule-set path still works as before.
+            }
+        });
     }
 
     private static bool ShouldManageOnionDnsInsideMacTun(OnionHopConnectOptions options)

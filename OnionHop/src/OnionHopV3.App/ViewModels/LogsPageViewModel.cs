@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Material.Icons;
@@ -31,9 +33,19 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         State.ActiveBridgeLines.CollectionChanged += OnSourceLogsChanged;
         State.PropertyChanged += OnStatePropertyChanged;
 
+        // Polls tor's control port for the relays it is connected to, so the bridges tab can mark
+        // the bridge actually in use (#69). Only runs while that tab is visible and bridges exist.
+        _bridgeStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _bridgeStatusTimer.Tick += async (_, _) => await RefreshBridgeStatusAsync();
+
         RebuildVisibleEntries();
         RebuildBridgeRows();
     }
+
+    private readonly DispatcherTimer _bridgeStatusTimer;
+    private readonly Dictionary<string, DateTime> _bridgeLastSeenUtc = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _connectedFingerprints = new(StringComparer.OrdinalIgnoreCase);
+    private bool _bridgeStatusRefreshInProgress;
 
     public ObservableCollection<StructuredLogEntry> VisibleEntries { get; } = [];
 
@@ -128,6 +140,57 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         OnPropertyChanged(nameof(ActiveSourcesSummary));
         RebuildVisibleEntries();
         OnPropertyChanged(nameof(ShowEmptyState));
+        UpdateBridgeStatusTimer();
+    }
+
+    private void UpdateBridgeStatusTimer()
+    {
+        var shouldRun = IsBridgesSelected && HasActiveBridges;
+        if (shouldRun && !_bridgeStatusTimer.IsEnabled)
+        {
+            _bridgeStatusTimer.Start();
+            _ = RefreshBridgeStatusAsync();
+        }
+        else if (!shouldRun && _bridgeStatusTimer.IsEnabled)
+        {
+            _bridgeStatusTimer.Stop();
+        }
+    }
+
+    private async Task RefreshBridgeStatusAsync()
+    {
+        if (_bridgeStatusRefreshInProgress || !IsBridgesSelected || !HasActiveBridges)
+        {
+            return;
+        }
+
+        _bridgeStatusRefreshInProgress = true;
+        try
+        {
+            var fingerprints = await State.GetConnectedRelayFingerprintsAsync();
+            var connected = new HashSet<string>(fingerprints, StringComparer.OrdinalIgnoreCase);
+            var now = DateTime.UtcNow;
+            foreach (var fp in connected)
+            {
+                _bridgeLastSeenUtc[fp] = now;
+            }
+
+            // Only rebuild the rows when the in-use set actually changed; the timer fires every
+            // few seconds and pointless rebuilds would fight row selection.
+            if (!connected.SetEquals(_connectedFingerprints))
+            {
+                _connectedFingerprints = connected;
+                RebuildBridgeRows();
+            }
+        }
+        catch
+        {
+            // Status polling is best-effort; the rows just keep their last known state.
+        }
+        finally
+        {
+            _bridgeStatusRefreshInProgress = false;
+        }
     }
 
     partial void OnSelectedLevelChanged(string value)
@@ -163,6 +226,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             // of pause - the list reflects live connection state, not a streaming log.
             OnPropertyChanged(nameof(HasActiveBridges));
             RebuildBridgeRows();
+            UpdateBridgeStatusTimer();
         }
 
         if (IsPaused)
@@ -390,6 +454,28 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             }
 
             var row = ParseBridgeLine(line);
+            if (row.Fingerprint is { } fp)
+            {
+                // Live status from the control-port poll (#69): a badge while tor holds a connection
+                // to this bridge, the last-seen time once it does not anymore.
+                if (_connectedFingerprints.Contains(fp))
+                {
+                    row = row with
+                    {
+                        StatusLabel = LocalizationService.Get("Logs.BridgeInUse"),
+                        StatusTone = "success"
+                    };
+                }
+                else if (_bridgeLastSeenUtc.TryGetValue(fp, out var lastSeen))
+                {
+                    row = row with
+                    {
+                        StatusLabel = lastSeen.ToLocalTime().ToString("HH:mm:ss"),
+                        StatusTone = "neutral"
+                    };
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(SearchText) ||
                 row.RawLine.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
             {
@@ -433,8 +519,39 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             Type = type,
             Address = address,
             Details = details,
-            RawLine = line
+            RawLine = line,
+            Fingerprint = TryExtractBridgeFingerprint(tokens)
         };
+    }
+
+    // The bridge's identity fingerprint is the first standalone 40-hex token in the line; it is what
+    // tor reports on the control port for the connection, so it links rows to live status (#69).
+    private static string? TryExtractBridgeFingerprint(IReadOnlyList<string> tokens)
+    {
+        foreach (var token in tokens)
+        {
+            if (token.Length != 40 || token.Contains('='))
+            {
+                continue;
+            }
+
+            var isHex = true;
+            foreach (var ch in token)
+            {
+                if (!Uri.IsHexDigit(ch))
+                {
+                    isHex = false;
+                    break;
+                }
+            }
+
+            if (isHex)
+            {
+                return token.ToUpperInvariant();
+            }
+        }
+
+        return null;
     }
 
     private StructuredLogEntry ParseLine(string line, string source)
@@ -484,10 +601,16 @@ public sealed class StructuredLogEntry
 }
 
 /// <summary>One row of the "Current Bridge" tab: a parsed bridge line, not a log entry (issue #69).</summary>
-public sealed class BridgeRowEntry
+public sealed record BridgeRowEntry
 {
     public string Type { get; init; } = string.Empty;
     public string Address { get; init; } = string.Empty;
     public string Details { get; init; } = string.Empty;
     public string RawLine { get; init; } = string.Empty;
+    /// <summary>The bridge's identity fingerprint (40 hex), when the line carries one.</summary>
+    public string? Fingerprint { get; init; }
+    /// <summary>"In use" while tor is connected to this bridge; the last-seen time afterwards.</summary>
+    public string StatusLabel { get; init; } = string.Empty;
+    public string StatusTone { get; init; } = "neutral";
+    public bool HasStatus => StatusLabel.Length > 0;
 }

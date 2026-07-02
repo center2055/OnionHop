@@ -282,6 +282,7 @@
   <x:String x:Key="BridgeSource.OnlineOnly">Только служба мостов Tor</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Только офлайн</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">Только коллектор OnionHop</x:String>
+  <x:String x:Key="BridgeSource.Custom">Свой список (из настроек)</x:String>
   <x:String x:Key="ProxyScope.System">Системный прокси (все приложения)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">Системный прокси (SOCKS браузер/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Только локальный прокси (ручные приложения)</x:String>
@@ -451,6 +452,7 @@
   <x:String x:Key="Logs.ColumnType">Тип</x:String>
   <x:String x:Key="Logs.ColumnAddress">Адрес</x:String>
   <x:String x:Key="Logs.ColumnDetails">Подробности</x:String>
+  <x:String x:Key="Logs.BridgeInUse">Активен</x:String>
   <x:String x:Key="Logs.EmptyTitle">Нет записей журнала, соответствующих текущему виду</x:String>
   <x:String x:Key="Logs.EmptyDescription">Попробуйте другую вкладку, очистите текст поиска или дождитесь новой активности среды выполнения.</x:String>
   <x:String x:Key="Logs.Summary">Сводка</x:String>

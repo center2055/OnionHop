@@ -282,6 +282,7 @@
   <x:String x:Key="BridgeSource.OnlineOnly">فقط سرویس پل Tor</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">فقط آفلاین</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">فقط collector OnionHop</x:String>
+  <x:String x:Key="BridgeSource.Custom">فهرست سفارشی (از تنظیمات)</x:String>
   <x:String x:Key="ProxyScope.System">پروکسی سیستم (همه برنامه‌ها)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">پروکسی سیستم (SOCKS مرورگر/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">فقط پروکسی محلی (برنامه‌های دستی)</x:String>
@@ -451,6 +452,7 @@
   <x:String x:Key="Logs.ColumnType">نوع</x:String>
   <x:String x:Key="Logs.ColumnAddress">نشانی</x:String>
   <x:String x:Key="Logs.ColumnDetails">جزئیات</x:String>
+  <x:String x:Key="Logs.BridgeInUse">در حال استفاده</x:String>
   <x:String x:Key="Logs.EmptyTitle">هیچ رکورد گزارشی با نمای فعلی مطابقت ندارد</x:String>
   <x:String x:Key="Logs.EmptyDescription">تب دیگری امتحان کنید، متن جستجو را پاک کنید، یا منتظر فعالیت جدید محیط اجرا باشید.</x:String>
   <x:String x:Key="Logs.Summary">خلاصه</x:String>

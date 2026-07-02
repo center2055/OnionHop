@@ -282,6 +282,7 @@
   <x:String x:Key="BridgeSource.OnlineOnly">یالنیز Tor بریج خیدمتی</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">یالنیز آوتلاین</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">یالنیز OnionHop قولکتورو</x:String>
+  <x:String x:Key="BridgeSource.Custom">اؤزل لیست (تنظیملردن)</x:String>
   <x:String x:Key="ProxyScope.System">سیستم پراکسی (بوتون آپپلار)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">سیستم پراکسی (SOCKS برائوزئر/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">یالنیز یئرلی پراکسی (اللی آپپلار)</x:String>
@@ -451,6 +452,7 @@
   <x:String x:Key="Logs.ColumnType">نوع</x:String>
   <x:String x:Key="Logs.ColumnAddress">آدرس</x:String>
   <x:String x:Key="Logs.ColumnDetails">جزئیات</x:String>
+  <x:String x:Key="Logs.BridgeInUse">ایشلدیلیر</x:String>
   <x:String x:Key="Logs.EmptyTitle">جاری گؤرونوشه اویغون لاق گیرشی یوخدور</x:String>
   <x:String x:Key="Logs.EmptyDescription">باشقا تب سئچین، آختاریش متنینی تمیزلیین یا یئنی ایجرا فعالیتینی گؤزله‌یین.</x:String>
   <x:String x:Key="Logs.Summary">اوزت</x:String>

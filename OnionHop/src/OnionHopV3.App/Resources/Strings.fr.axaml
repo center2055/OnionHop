@@ -282,6 +282,7 @@
   <x:String x:Key="BridgeSource.OnlineOnly">Service de ponts Tor uniquement</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Hors ligne uniquement</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">Collecteur OnionHop uniquement</x:String>
+  <x:String x:Key="BridgeSource.Custom">Liste personnalisée (depuis les réglages)</x:String>
   <x:String x:Key="ProxyScope.System">Proxy système (toutes les applications)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">Proxy système (navigateur SOCKS/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Proxy local uniquement (applications manuelles)</x:String>
@@ -451,6 +452,7 @@
   <x:String x:Key="Logs.ColumnType">Type</x:String>
   <x:String x:Key="Logs.ColumnAddress">Adresse</x:String>
   <x:String x:Key="Logs.ColumnDetails">Détails</x:String>
+  <x:String x:Key="Logs.BridgeInUse">Utilisé</x:String>
   <x:String x:Key="Logs.EmptyTitle">Aucune entrée de journal ne correspond à la vue actuelle</x:String>
   <x:String x:Key="Logs.EmptyDescription">Essayez un autre onglet, effacez le texte de recherche, ou attendez une nouvelle activité d'exécution.</x:String>
   <x:String x:Key="Logs.Summary">Résumé</x:String>

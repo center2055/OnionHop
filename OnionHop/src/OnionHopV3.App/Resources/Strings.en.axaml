@@ -311,6 +311,7 @@
   <x:String x:Key="BridgeSource.OnlineOnly">Tor bridge service only</x:String>
   <x:String x:Key="BridgeSource.OfflineOnly">Offline only</x:String>
   <x:String x:Key="BridgeSource.CollectorOnly">OnionHop collector only</x:String>
+  <x:String x:Key="BridgeSource.Custom">Custom list (from Settings)</x:String>
   <x:String x:Key="ProxyScope.System">System proxy (all apps)</x:String>
   <x:String x:Key="ProxyScope.SystemSocks">System proxy (SOCKS browser/.onion)</x:String>
   <x:String x:Key="ProxyScope.LocalOnly">Local proxy only (manual apps)</x:String>
@@ -480,6 +481,7 @@
   <x:String x:Key="Logs.ColumnType">Type</x:String>
   <x:String x:Key="Logs.ColumnAddress">Address</x:String>
   <x:String x:Key="Logs.ColumnDetails">Details</x:String>
+  <x:String x:Key="Logs.BridgeInUse">In use</x:String>
   <x:String x:Key="Logs.EmptyTitle">No log entries match the current view</x:String>
   <x:String x:Key="Logs.EmptyDescription">Try another tab, clear the search text, or wait for new runtime activity.</x:String>
   <x:String x:Key="Logs.Summary">Summary</x:String>
