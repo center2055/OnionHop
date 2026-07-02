@@ -448,6 +448,9 @@
   <x:String x:Key="Logs.ColumnLevel">级别</x:String>
   <x:String x:Key="Logs.ColumnSource">来源</x:String>
   <x:String x:Key="Logs.ColumnMessage">消息</x:String>
+  <x:String x:Key="Logs.ColumnType">类型</x:String>
+  <x:String x:Key="Logs.ColumnAddress">地址</x:String>
+  <x:String x:Key="Logs.ColumnDetails">详情</x:String>
   <x:String x:Key="Logs.EmptyTitle">没有日志条目与当前视图匹配</x:String>
   <x:String x:Key="Logs.EmptyDescription">尝试切换其他标签页、清除搜索文本，或等待新的运行时活动。</x:String>
   <x:String x:Key="Logs.Summary">摘要</x:String>

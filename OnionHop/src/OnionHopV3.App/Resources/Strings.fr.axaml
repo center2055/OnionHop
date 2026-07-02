@@ -448,6 +448,9 @@
   <x:String x:Key="Logs.ColumnLevel">Niveau</x:String>
   <x:String x:Key="Logs.ColumnSource">Source</x:String>
   <x:String x:Key="Logs.ColumnMessage">Message</x:String>
+  <x:String x:Key="Logs.ColumnType">Type</x:String>
+  <x:String x:Key="Logs.ColumnAddress">Adresse</x:String>
+  <x:String x:Key="Logs.ColumnDetails">Détails</x:String>
   <x:String x:Key="Logs.EmptyTitle">Aucune entrée de journal ne correspond à la vue actuelle</x:String>
   <x:String x:Key="Logs.EmptyDescription">Essayez un autre onglet, effacez le texte de recherche, ou attendez une nouvelle activité d'exécution.</x:String>
   <x:String x:Key="Logs.Summary">Résumé</x:String>

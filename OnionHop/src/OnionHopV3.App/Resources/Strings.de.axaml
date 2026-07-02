@@ -446,6 +446,9 @@
   <x:String x:Key="Logs.ColumnLevel">Level</x:String>
   <x:String x:Key="Logs.ColumnSource">Quelle</x:String>
   <x:String x:Key="Logs.ColumnMessage">Meldung</x:String>
+  <x:String x:Key="Logs.ColumnType">Typ</x:String>
+  <x:String x:Key="Logs.ColumnAddress">Adresse</x:String>
+  <x:String x:Key="Logs.ColumnDetails">Details</x:String>
   <x:String x:Key="Logs.EmptyTitle">Keine Einträge für die aktuelle Ansicht</x:String>
   <x:String x:Key="Logs.EmptyDescription">Anderen Tab wählen, Suche leeren oder auf neue Laufzeitaktivität warten.</x:String>
   <x:String x:Key="Logs.Summary">Zusammenfassung</x:String>

@@ -448,6 +448,9 @@
   <x:String x:Key="Logs.ColumnLevel">سویه</x:String>
   <x:String x:Key="Logs.ColumnSource">منبع</x:String>
   <x:String x:Key="Logs.ColumnMessage">پئیغام</x:String>
+  <x:String x:Key="Logs.ColumnType">نوع</x:String>
+  <x:String x:Key="Logs.ColumnAddress">آدرس</x:String>
+  <x:String x:Key="Logs.ColumnDetails">جزئیات</x:String>
   <x:String x:Key="Logs.EmptyTitle">جاری گؤرونوشه اویغون لاق گیرشی یوخدور</x:String>
   <x:String x:Key="Logs.EmptyDescription">باشقا تب سئچین، آختاریش متنینی تمیزلیین یا یئنی ایجرا فعالیتینی گؤزله‌یین.</x:String>
   <x:String x:Key="Logs.Summary">اوزت</x:String>

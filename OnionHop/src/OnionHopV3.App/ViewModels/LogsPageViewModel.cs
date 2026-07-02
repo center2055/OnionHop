@@ -32,9 +32,15 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         State.PropertyChanged += OnStatePropertyChanged;
 
         RebuildVisibleEntries();
+        RebuildBridgeRows();
     }
 
     public ObservableCollection<StructuredLogEntry> VisibleEntries { get; } = [];
+
+    // The "Current Bridge" tab shows connection state, not a timestamped log stream, so it gets its
+    // own Type | Address | Details rows instead of being squeezed through the log-line parser (which
+    // sliced the first 8 characters of the bridge line into the Time column - issue #69).
+    public ObservableCollection<BridgeRowEntry> BridgeRows { get; } = [];
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private string _selectedSource = SourceApp;
@@ -56,7 +62,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         SourceBridges => LocalizationService.Get("Logs.TabBridges"),
         _ => LocalizationService.Get("Logs.TabApp")
     };
-    public bool ShowEmptyState => VisibleEntries.Count == 0;
+    public bool ShowEmptyState => IsBridgesSelected ? BridgeRows.Count == 0 : VisibleEntries.Count == 0;
     public bool HasActiveBridges => State.ActiveBridgeLines.Count > 0;
     public bool IsAppSelected { get => SelectedSource == SourceApp; set { if (value) SelectedSource = SourceApp; } }
     public bool IsDnsSelected { get => SelectedSource == SourceDns; set { if (value) SelectedSource = SourceDns; } }
@@ -89,7 +95,11 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
 
     public string GetVisibleLogText()
     {
-        return string.Join(Environment.NewLine, VisibleEntries.Select(entry => entry.RawLine));
+        // The bridges tab renders BridgeRows, so Copy/Export must follow what is actually visible
+        // there (a lingering level filter from another tab does not apply to bridges).
+        return SelectedSource == SourceBridges
+            ? string.Join(Environment.NewLine, BridgeRows.Select(row => row.RawLine))
+            : string.Join(Environment.NewLine, VisibleEntries.Select(entry => entry.RawLine));
     }
 
     public string GetSelectedFileNameStem()
@@ -103,7 +113,12 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         };
     }
 
-    partial void OnSearchTextChanged(string value) => RebuildVisibleEntries();
+    partial void OnSearchTextChanged(string value)
+    {
+        RebuildVisibleEntries();
+        RebuildBridgeRows();
+    }
+
     partial void OnSelectedSourceChanged(string value)
     {
         OnPropertyChanged(nameof(IsAppSelected));
@@ -112,6 +127,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         OnPropertyChanged(nameof(IsBridgesSelected));
         OnPropertyChanged(nameof(ActiveSourcesSummary));
         RebuildVisibleEntries();
+        OnPropertyChanged(nameof(ShowEmptyState));
     }
 
     partial void OnSelectedLevelChanged(string value)
@@ -143,8 +159,10 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
     {
         if (ReferenceEquals(sender, State.ActiveBridgeLines))
         {
-            // Bridges set/cleared: refresh the "Current Bridge" tab's visibility regardless of pause.
+            // Bridges set/cleared: refresh the "Current Bridge" tab's visibility and rows regardless
+            // of pause - the list reflects live connection state, not a streaming log.
             OnPropertyChanged(nameof(HasActiveBridges));
+            RebuildBridgeRows();
         }
 
         if (IsPaused)
@@ -361,6 +379,64 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
         return false;
     }
 
+    private void RebuildBridgeRows()
+    {
+        BridgeRows.Clear();
+        foreach (var line in State.ActiveBridgeLines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            var row = ParseBridgeLine(line);
+            if (string.IsNullOrWhiteSpace(SearchText) ||
+                row.RawLine.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+            {
+                BridgeRows.Add(row);
+            }
+        }
+
+        OnPropertyChanged(nameof(ShowEmptyState));
+    }
+
+    // A bridge line is "<transport> host:port fingerprint key=value ..." for pluggable transports,
+    // or just "host:port fingerprint" for vanilla bridges (no transport token). Transport names never
+    // contain ':', so a colon in the first token means the line starts with the address.
+    internal static BridgeRowEntry ParseBridgeLine(string line)
+    {
+        var tokens = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string type;
+        string address;
+        string details;
+        if (tokens.Length == 0)
+        {
+            type = "?";
+            address = line.Trim();
+            details = string.Empty;
+        }
+        else if (tokens[0].Contains(':'))
+        {
+            type = "vanilla";
+            address = tokens[0];
+            details = string.Join(' ', tokens.Skip(1));
+        }
+        else
+        {
+            type = tokens[0];
+            address = tokens.Length > 1 ? tokens[1] : string.Empty;
+            details = string.Join(' ', tokens.Skip(2));
+        }
+
+        return new BridgeRowEntry
+        {
+            Type = type,
+            Address = address,
+            Details = details,
+            RawLine = line
+        };
+    }
+
     private StructuredLogEntry ParseLine(string line, string source)
     {
         var time = line.Length >= 8 ? line[..8] : "--:--:--";
@@ -404,5 +480,14 @@ public sealed class StructuredLogEntry
     public string LevelTone { get; init; } = string.Empty;
     public string Source { get; init; } = string.Empty;
     public string Message { get; init; } = string.Empty;
+    public string RawLine { get; init; } = string.Empty;
+}
+
+/// <summary>One row of the "Current Bridge" tab: a parsed bridge line, not a log entry (issue #69).</summary>
+public sealed class BridgeRowEntry
+{
+    public string Type { get; init; } = string.Empty;
+    public string Address { get; init; } = string.Empty;
+    public string Details { get; init; } = string.Empty;
     public string RawLine { get; init; } = string.Empty;
 }

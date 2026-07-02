@@ -448,6 +448,9 @@
   <x:String x:Key="Logs.ColumnLevel">سطح</x:String>
   <x:String x:Key="Logs.ColumnSource">منبع</x:String>
   <x:String x:Key="Logs.ColumnMessage">پیام</x:String>
+  <x:String x:Key="Logs.ColumnType">نوع</x:String>
+  <x:String x:Key="Logs.ColumnAddress">نشانی</x:String>
+  <x:String x:Key="Logs.ColumnDetails">جزئیات</x:String>
   <x:String x:Key="Logs.EmptyTitle">هیچ رکورد گزارشی با نمای فعلی مطابقت ندارد</x:String>
   <x:String x:Key="Logs.EmptyDescription">تب دیگری امتحان کنید، متن جستجو را پاک کنید، یا منتظر فعالیت جدید محیط اجرا باشید.</x:String>
   <x:String x:Key="Logs.Summary">خلاصه</x:String>

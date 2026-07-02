@@ -448,6 +448,9 @@
   <x:String x:Key="Logs.ColumnLevel">Уровень</x:String>
   <x:String x:Key="Logs.ColumnSource">Источник</x:String>
   <x:String x:Key="Logs.ColumnMessage">Сообщение</x:String>
+  <x:String x:Key="Logs.ColumnType">Тип</x:String>
+  <x:String x:Key="Logs.ColumnAddress">Адрес</x:String>
+  <x:String x:Key="Logs.ColumnDetails">Подробности</x:String>
   <x:String x:Key="Logs.EmptyTitle">Нет записей журнала, соответствующих текущему виду</x:String>
   <x:String x:Key="Logs.EmptyDescription">Попробуйте другую вкладку, очистите текст поиска или дождитесь новой активности среды выполнения.</x:String>
   <x:String x:Key="Logs.Summary">Сводка</x:String>

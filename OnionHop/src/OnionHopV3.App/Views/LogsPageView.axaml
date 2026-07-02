@@ -83,8 +83,10 @@
           <Grid Grid.Row="1"
                 ColumnDefinitions="*,Auto"
                 ColumnSpacing="12">
-            <WrapPanel Orientation="Horizontal"
-                       VerticalAlignment="Center">
+            <!-- Severity filters make no sense for the bridge list (it is connection state, not a log). -->
+          <WrapPanel Orientation="Horizontal"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding !IsBridgesSelected}">
             <RadioButton Classes="FilterChip"
                          GroupName="LogLevel"
                          IsChecked="{Binding IsAllSelected}"
@@ -147,21 +149,40 @@
                   MinHeight="0">
             <Grid RowDefinitions="Auto,*"
                   MinHeight="0">
-              <Grid ColumnDefinitions="82,86,138,*"
-                    ColumnSpacing="10"
-                    Margin="14,12,14,10">
-                <TextBlock Text="{DynamicResource Logs.ColumnTime}"
-                           Classes="SectionCaption" />
-                <TextBlock Grid.Column="1"
-                           Text="{DynamicResource Logs.ColumnLevel}"
-                           Classes="SectionCaption" />
-                <TextBlock Grid.Column="2"
-                           Text="{DynamicResource Logs.ColumnSource}"
-                           Classes="SectionCaption" />
-                <TextBlock Grid.Column="3"
-                           Text="{DynamicResource Logs.ColumnMessage}"
-                           Classes="SectionCaption" />
-              </Grid>
+              <Panel>
+                <Grid ColumnDefinitions="82,86,138,*"
+                      ColumnSpacing="10"
+                      Margin="14,12,14,10"
+                      IsVisible="{Binding !IsBridgesSelected}">
+                  <TextBlock Text="{DynamicResource Logs.ColumnTime}"
+                             Classes="SectionCaption" />
+                  <TextBlock Grid.Column="1"
+                             Text="{DynamicResource Logs.ColumnLevel}"
+                             Classes="SectionCaption" />
+                  <TextBlock Grid.Column="2"
+                             Text="{DynamicResource Logs.ColumnSource}"
+                             Classes="SectionCaption" />
+                  <TextBlock Grid.Column="3"
+                             Text="{DynamicResource Logs.ColumnMessage}"
+                             Classes="SectionCaption" />
+                </Grid>
+
+                <!-- Bridge lines carry no timestamp, so the bridges tab gets its own columns instead
+                     of the log layout (the type used to land in the Time column - issue #69). -->
+                <Grid ColumnDefinitions="110,240,*"
+                      ColumnSpacing="10"
+                      Margin="14,12,14,10"
+                      IsVisible="{Binding IsBridgesSelected}">
+                  <TextBlock Text="{DynamicResource Logs.ColumnType}"
+                             Classes="SectionCaption" />
+                  <TextBlock Grid.Column="1"
+                             Text="{DynamicResource Logs.ColumnAddress}"
+                             Classes="SectionCaption" />
+                  <TextBlock Grid.Column="2"
+                             Text="{DynamicResource Logs.ColumnDetails}"
+                             Classes="SectionCaption" />
+                </Grid>
+              </Panel>
 
               <!-- ListBox (not ItemsControl) so the log rows are virtualized: only the visible
                    rows get realized, instead of building a visual for every one of up to 2000
@@ -170,6 +191,7 @@
               <ListBox x:Name="EntriesListBox"
                        Grid.Row="1"
                        ItemsSource="{Binding VisibleEntries}"
+                       IsVisible="{Binding !IsBridgesSelected}"
                        ScrollViewer.VerticalScrollBarVisibility="Auto"
                        MinHeight="0"
                        Background="Transparent"
@@ -207,6 +229,48 @@
                                    Text="{Binding Message}"
                                    FontFamily="Consolas"
                                    TextWrapping="Wrap" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- Bridges tab body: parsed Type | Address | Details rows (issue #69). -->
+              <ListBox Grid.Row="1"
+                       ItemsSource="{Binding BridgeRows}"
+                       IsVisible="{Binding IsBridgesSelected}"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                       MinHeight="0"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Padding="0">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:BridgeRowEntry">
+                    <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="14,10">
+                      <Grid ColumnDefinitions="110,240,*"
+                            ColumnSpacing="10">
+                        <controls:StatusBadge Text="{Binding Type}"
+                                              Tone="info"
+                                              VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Address}"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Top"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Details}"
+                                   FontFamily="Consolas"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
                       </Grid>
                     </Border>
                   </DataTemplate>

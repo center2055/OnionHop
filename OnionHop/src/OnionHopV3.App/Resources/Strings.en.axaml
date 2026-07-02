@@ -477,6 +477,9 @@
   <x:String x:Key="Logs.ColumnLevel">Level</x:String>
   <x:String x:Key="Logs.ColumnSource">Source</x:String>
   <x:String x:Key="Logs.ColumnMessage">Message</x:String>
+  <x:String x:Key="Logs.ColumnType">Type</x:String>
+  <x:String x:Key="Logs.ColumnAddress">Address</x:String>
+  <x:String x:Key="Logs.ColumnDetails">Details</x:String>
   <x:String x:Key="Logs.EmptyTitle">No log entries match the current view</x:String>
   <x:String x:Key="Logs.EmptyDescription">Try another tab, clear the search text, or wait for new runtime activity.</x:String>
   <x:String x:Key="Logs.Summary">Summary</x:String>
