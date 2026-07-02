@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Additions
+- Added a macOS CLI: CI now builds self-contained OnionHopCLI tarballs for Apple Silicon (arm64) and Intel (x64) Macs with a universal native runtime (tor, pluggable transports incl. webtunnel/dnstt, sing-box, xray, ArtiHop, snowflake proxy), matching the Linux CLI packaging.
+
 Fixes
 - Fixed the desktop window opening larger than the visible screen on Windows displays scaled above 100 percent, which pushed the title-bar buttons off screen with no way to move the window (#67). The window now clamps its size and minimum size to the current screen's work area and re-centers to stay fully reachable at any DPI.
 - Fixed Smart Connect aborting the whole connect as "Canceled" when a network probe merely timed out (#65). HTTP timeouts surface as cancellation exceptions in .NET; those are now treated as probe failures that fall back to the generic connection plan, so connect works on networks where the geolocation/OONI endpoints hang or are blocked.

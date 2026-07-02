@@ -42,7 +42,7 @@ V3 is a ground-up rebuild on a new cross-platform UI stack, with a much smarter 
 - **Bridge Scanner** — fetch and reachability-test bridges of every transport, see color-coded latency, and one-click apply the ones that actually work on your network.
 - **More bridge sources** — the official Tor bridge service, the censorship-resistant [OnionHop Bridges Collector](https://github.com/center2055/OnionHop-Bridges-Collector) (derived from [Delta-Kronecker/Tor-Bridges-Collector](https://github.com/Delta-Kronecker/Tor-Bridges-Collector)), built-in community bridges, and a thin-set top-up so a tiny live fetch is automatically backed by bundled bridges.
 - **Relays browser** — search the live Tor relay list by nickname, country, role, flags and bandwidth, and pin a preferred entry/middle/exit.
-- **Command-line interface** — a full-featured TUI (`OnionHopV3.Cli`) with a live status dashboard, connect/scan/bridges/snowflake/relays commands and settings persistence. Windows and Linux packages are built by CI.
+- **Command-line interface** — a full-featured TUI (`OnionHopV3.Cli`) with a live status dashboard, connect/scan/bridges/snowflake/relays commands and settings persistence. Windows, Linux and macOS packages are built by CI.
 - **Stronger leak protection** — optional full DNS-over-Tor, a kill switch, UDP blocking in TUN mode, and an in-app WebRTC/UDP privacy notice.
 - **Volunteer as a Snowflake proxy** — help censored users reach Tor, straight from Settings.
 - **Quality-of-life** — decoupled system-proxy toggle (turn it off while Tor stays connected), an opt-in persistent admin helper to skip repeat UAC prompts in TUN mode (off by default), an in-app changelog, and Bitcoin donations.
@@ -61,6 +61,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 | **macOS** | `OnionHop-3.x-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
 | **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface |
 | **Linux CLI** | `OnionHopCLI-…linux-x64.tar.gz` | Terminal interface |
+| **macOS CLI** | `OnionHopCLI-…macos-arm64.tar.gz` (Apple Silicon) / `…macos-x64.tar.gz` (Intel) | Terminal interface; not notarized — run `xattr -dr com.apple.quarantine <extracted folder>` once after extracting |
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
 

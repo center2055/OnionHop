@@ -1,0 +1,97 @@
+name: Build macOS CLI
+
+# Builds the self-contained macOS OnionHop CLI (arm64 + x64) on a GitHub-hosted
+# macOS runner and packages each as a .tar.gz. The native runtime (tor, transports,
+# sing-box/xray, ArtiHop) is built once as universal binaries and shared by both
+# tarballs, matching how the mac GUI DMGs are produced. Run it manually from the
+# Actions tab; the tarballs are uploaded as build artifacts and can be attached to
+# a release.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to attach the CLI tarballs to (e.g. v3.1.0). Leave blank to only produce build artifacts."
+        required: false
+        default: ""
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Build macOS native dependencies (universal tor, PTs, dnstt-client, sing-box, xray, ArtiHop)
+        run: |
+          chmod +x download-deps-macos.sh
+          bash download-deps-macos.sh
+
+      - name: Test
+        run: dotnet test OnionHop/OnionHopV3.sln -c Release
+
+      - name: Publish CLI (osx-arm64 + osx-x64, self-contained)
+        run: |
+          for RID in osx-arm64 osx-x64; do
+            dotnet publish OnionHop/src/OnionHopV3.Cli/OnionHopV3.Cli.csproj \
+              -c Release -r "$RID" --self-contained true \
+              /p:PublishSingleFile=false /p:PublishReadyToRun=false \
+              -o "publish-cli-$RID"
+          done
+
+      - name: Strip Windows-only artifacts + set exec bits
+        run: |
+          for RID in osx-arm64 osx-x64; do
+            DIR="publish-cli-$RID"
+            find "$DIR" -type f -name '*.exe' -delete || true
+            find "$DIR" -type f -name 'wintun.dll' -delete || true
+            chmod +x "$DIR/OnionHopV3.Cli" || true
+            for d in "$DIR/tor" "$DIR/tor/pluggable_transports" "$DIR/vpn" "$DIR/snowflake" "$DIR/artihop"; do
+              [ -d "$d" ] && chmod +x "$d"/* 2>/dev/null || true
+            done
+          done
+
+      - name: Package tarballs
+        run: |
+          # BSD grep has no -P; pull the version out with sed instead.
+          VERSION=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' OnionHop/src/OnionHopV3.Cli/OnionHopV3.Cli.csproj | head -1)
+          [ -n "$VERSION" ] || VERSION=0.0.0
+          for ARCH in arm64 x64; do
+            NAME="OnionHopCLI-${VERSION}-macos-${ARCH}.tar.gz"
+            tar -C "publish-cli-osx-${ARCH}" -czf "$NAME" .
+            shasum -a 256 "$NAME" | tee "${NAME}.sha256.txt"
+            ls -lh "$NAME"
+          done
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnionHopCLI-macos
+          path: |
+            OnionHopCLI-*-macos-*.tar.gz
+            OnionHopCLI-*-macos-*.tar.gz.sha256.txt
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: ${{ github.event_name == 'release' || inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
+          gh release upload "$TAG" OnionHopCLI-*-macos-*.tar.gz OnionHopCLI-*-macos-*.tar.gz.sha256.txt --repo "${{ github.repository }}" --clobber
