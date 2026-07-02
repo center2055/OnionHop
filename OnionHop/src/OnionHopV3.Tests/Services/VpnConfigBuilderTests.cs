@@ -537,6 +537,30 @@ public sealed class VpnConfigBuilderTests
     }
 
     [Fact]
+    public void Cached_rule_sets_are_referenced_locally_instead_of_remotely()
+    {
+        // Issue #68 follow-up: a rule-set with an on-disk copy must not depend on GitHub at start.
+        var (geositeSets, _) = VpnConfigBuilder.BuildGeositeRules(
+            ["category-ir"],
+            null,
+            tag => tag == "geosite-category-ir" ? @"C:\cache\geosite-category-ir.srs" : null);
+        var geositeJson = JsonSerializer.Serialize(geositeSets);
+        Assert.Contains("\"local\"", geositeJson);
+        Assert.Contains("geosite-category-ir.srs", geositeJson);
+        Assert.DoesNotContain("raw.githubusercontent.com", geositeJson);
+
+        var (geoipSets, _) = VpnConfigBuilder.BuildCountryGeoRules(
+            ["ir", "de"],
+            null,
+            tag => tag == "geoip-ir" ? @"C:\cache\geoip-ir.srs" : null);
+        var geoipJson = JsonSerializer.Serialize(geoipSets);
+        // ir is cached -> local; de is not -> stays remote.
+        Assert.Contains("\"local\"", geoipJson);
+        Assert.Contains("geoip-ir.srs", geoipJson);
+        Assert.Contains("raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-de.srs", geoipJson);
+    }
+
+    [Fact]
     public void Site_category_routing_adds_geosite_rule_sets_and_rules()
     {
         var json = VpnConfigBuilder.BuildJson(

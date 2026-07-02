@@ -51,8 +51,19 @@ internal static class GeoRuleSetResolver
             token.ThrowIfCancellationRequested();
             if (!GeositeCache.TryGetValue(category, out var name))
             {
-                name = await ResolveGeositeNameAsync(category, token).ConfigureAwait(false);
-                GeositeCache[category] = name;
+                var (resolvedName, definitive) = await ResolveGeositeNameAsync(category, token).ConfigureAwait(false);
+                name = resolvedName;
+                if (definitive)
+                {
+                    // Only definitive verdicts (200/404) are remembered; network trouble is retried
+                    // on the next connect - by then the background Tor fetch may have cached the file.
+                    GeositeCache[category] = name;
+                }
+                else if (name == null)
+                {
+                    log($"Geosite category '{category}' cannot be verified or downloaded right now and will be skipped for this connection. It is fetched through Tor in the background after connecting and will apply automatically on a later connect.");
+                    continue;
+                }
             }
 
             if (name == null)
@@ -94,9 +105,26 @@ internal static class GeoRuleSetResolver
             token.ThrowIfCancellationRequested();
             if (!GeoipCache.TryGetValue(code, out var exists))
             {
-                // Unknown (network trouble) counts as existing - never drop user rules just because
-                // the probe could not run; a definitive 404 is what we are protecting against.
-                exists = await ProbeAsync(string.Format(CultureInfo.InvariantCulture, GeoipUrlFormat, code), token).ConfigureAwait(false) != false;
+                var probe = await ProbeAsync(string.Format(CultureInfo.InvariantCulture, GeoipUrlFormat, code), token).ConfigureAwait(false);
+                if (probe == null)
+                {
+                    // Network trouble: usable only when a cached copy exists (the config then points
+                    // at the local file); otherwise a remote entry would make the sing-box start
+                    // FATAL on the very network that cannot reach GitHub. Not cached - retried next
+                    // connect, by when the background Tor fetch may have cached the file.
+                    if (GeoRuleSetCache.TryGetLocalPath("geoip-" + code) != null)
+                    {
+                        resolved.Add(code);
+                    }
+                    else
+                    {
+                        log($"Country code '{code}' cannot be verified or downloaded right now and will be skipped for this connection. It is fetched through Tor in the background after connecting and will apply automatically on a later connect.");
+                    }
+
+                    continue;
+                }
+
+                exists = probe.Value;
                 GeoipCache[code] = exists;
             }
 
@@ -113,18 +141,37 @@ internal static class GeoRuleSetResolver
         return resolved;
     }
 
-    private static async Task<string?> ResolveGeositeNameAsync(string category, CancellationToken token)
+    /// <summary>(resolved name or null, verdict is definitive and cacheable)</summary>
+    private static async Task<(string? Name, bool Definitive)> ResolveGeositeNameAsync(string category, CancellationToken token)
     {
         var plain = await ProbeAsync(string.Format(CultureInfo.InvariantCulture, GeositeUrlFormat, category), token).ConfigureAwait(false);
-        if (plain != false)
+        if (plain == true)
         {
-            // Exists, or could not be checked (fail open - see class remarks).
-            return category;
+            return (category, true);
+        }
+
+        if (plain == null)
+        {
+            // Network trouble: fall back to whatever the on-disk cache has - either the plain name
+            // or its "category-" alias from an earlier through-Tor fetch. Without a cached copy a
+            // remote entry would make sing-box FATAL on this very network, so the caller skips it.
+            if (GeoRuleSetCache.TryGetLocalPath("geosite-" + category) != null)
+            {
+                return (category, false);
+            }
+
+            if (!category.StartsWith("category-", StringComparison.Ordinal) &&
+                GeoRuleSetCache.TryGetLocalPath("geosite-category-" + category) != null)
+            {
+                return ("category-" + category, false);
+            }
+
+            return (null, false);
         }
 
         if (category.StartsWith("category-", StringComparison.Ordinal))
         {
-            return null;
+            return (null, true);
         }
 
         // SagerNet publishes many country/topic collections only as "category-<name>" (issue #68:
@@ -132,7 +179,7 @@ internal static class GeoRuleSetResolver
         // confirmed 404 at this point, so an unverifiable alias is dropped rather than gambled on.
         var prefixed = "category-" + category;
         var aliasExists = await ProbeAsync(string.Format(CultureInfo.InvariantCulture, GeositeUrlFormat, prefixed), token).ConfigureAwait(false);
-        return aliasExists == true ? prefixed : null;
+        return aliasExists == true ? (prefixed, true) : (null, aliasExists == false);
     }
 
     /// <summary>true = exists, false = definitive 404, null = could not determine.</summary>

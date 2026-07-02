@@ -31,7 +31,8 @@ internal static class VpnConfigBuilder
         IReadOnlyList<string>? bypassCountries = null,
         IReadOnlyList<string>? blockCountries = null,
         IReadOnlyList<string>? bypassSiteCategories = null,
-        IReadOnlyList<string>? blockSiteCategories = null)
+        IReadOnlyList<string>? blockSiteCategories = null,
+        Func<string, string?>? localRuleSetPath = null)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -60,12 +61,12 @@ internal static class VpnConfigBuilder
         // update_interval, so sing-box fetches and auto-refreshes them itself - no static GeoIP DB to
         // ship or hand-update. Block wins over bypass for a country listed in both. As with the manual
         // rules above, a bypassed country leaves Tor with the real IP (the UI says so).
-        var (geoIpRuleSets, geoIpRules) = BuildCountryGeoRules(bypassCountries, blockCountries);
+        var (geoIpRuleSets, geoIpRules) = BuildCountryGeoRules(bypassCountries, blockCountries, localRuleSetPath);
         rules.AddRange(geoIpRules);
 
         // Domain-category routing (issue #55): keep or block whole categories of domains (ads, a
         // country's sites, etc.) using sing-box geosite rule-sets, also remote + auto-updating.
-        var (geoSiteRuleSets, geoSiteRules) = BuildGeositeRules(bypassSiteCategories, blockSiteCategories);
+        var (geoSiteRuleSets, geoSiteRules) = BuildGeositeRules(bypassSiteCategories, blockSiteCategories, localRuleSetPath);
         rules.AddRange(geoSiteRules);
 
         var geoRuleSets = new List<object>();
@@ -301,12 +302,16 @@ internal static class VpnConfigBuilder
         return (domains, ipCidrs);
     }
 
-    // Country routing helpers (issue #55). Builds the sing-box geoip rule-sets (remote + auto-updating)
-    // plus the route rules that send chosen countries direct (bypass) or block them. Block wins when a
-    // country appears in both lists, and each geoip rule-set is defined only once.
+    // Country routing helpers (issue #55). Builds the sing-box geoip rule-sets plus the route rules
+    // that send chosen countries direct (bypass) or block them. Block wins when a country appears in
+    // both lists, and each geoip rule-set is defined only once. A rule-set with a cached local copy
+    // (issue #68: fetched through Tor in the background) is referenced as a local file, so the start
+    // does not depend on raw.githubusercontent.com being reachable; otherwise it stays remote and
+    // sing-box fetches/refreshes it itself.
     internal static (List<object> RuleSets, List<object> Rules) BuildCountryGeoRules(
         IReadOnlyList<string>? bypassCountries,
-        IReadOnlyList<string>? blockCountries)
+        IReadOnlyList<string>? blockCountries,
+        Func<string, string?>? localRuleSetPath = null)
     {
         var ruleSets = new List<object>();
         var rules = new List<object>();
@@ -330,17 +335,24 @@ internal static class VpnConfigBuilder
                 return;
             }
 
-            ruleSets.Add(new Dictionary<string, object?>
-            {
-                ["type"] = "remote",
-                ["tag"] = tag,
-                ["format"] = "binary",
-                // sing-box fetches and refreshes this itself on the update_interval, so the country IP
-                // data stays current without shipping or hand-updating a static GeoIP database.
-                ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-" + cc + ".srs",
-                ["download_detour"] = "direct",
-                ["update_interval"] = "7d"
-            });
+            var localPath = localRuleSetPath?.Invoke(tag);
+            ruleSets.Add(localPath != null
+                ? new Dictionary<string, object?>
+                {
+                    ["type"] = "local",
+                    ["tag"] = tag,
+                    ["format"] = "binary",
+                    ["path"] = localPath
+                }
+                : new Dictionary<string, object?>
+                {
+                    ["type"] = "remote",
+                    ["tag"] = tag,
+                    ["format"] = "binary",
+                    ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-" + cc + ".srs",
+                    ["download_detour"] = "direct",
+                    ["update_interval"] = "7d"
+                });
         }
 
         var blockTags = new List<string>();
@@ -391,12 +403,13 @@ internal static class VpnConfigBuilder
         return result;
     }
 
-    // Builds the sing-box geosite rule-sets (remote + auto-updating) and route rules that send chosen
-    // domain categories direct (bypass) or block them (e.g. category-ads-all). Block wins on conflict,
-    // and each geosite rule-set is defined only once.
+    // Builds the sing-box geosite rule-sets and route rules that send chosen domain categories direct
+    // (bypass) or block them (e.g. category-ads-all). Block wins on conflict, and each geosite
+    // rule-set is defined only once. Same local-vs-remote logic as BuildCountryGeoRules (issue #68).
     internal static (List<object> RuleSets, List<object> Rules) BuildGeositeRules(
         IReadOnlyList<string>? bypassCategories,
-        IReadOnlyList<string>? blockCategories)
+        IReadOnlyList<string>? blockCategories,
+        Func<string, string?>? localRuleSetPath = null)
     {
         var ruleSets = new List<object>();
         var rules = new List<object>();
@@ -420,15 +433,24 @@ internal static class VpnConfigBuilder
                 return;
             }
 
-            ruleSets.Add(new Dictionary<string, object?>
-            {
-                ["type"] = "remote",
-                ["tag"] = tag,
-                ["format"] = "binary",
-                ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-" + cat + ".srs",
-                ["download_detour"] = "direct",
-                ["update_interval"] = "7d"
-            });
+            var localPath = localRuleSetPath?.Invoke(tag);
+            ruleSets.Add(localPath != null
+                ? new Dictionary<string, object?>
+                {
+                    ["type"] = "local",
+                    ["tag"] = tag,
+                    ["format"] = "binary",
+                    ["path"] = localPath
+                }
+                : new Dictionary<string, object?>
+                {
+                    ["type"] = "remote",
+                    ["tag"] = tag,
+                    ["format"] = "binary",
+                    ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-" + cat + ".srs",
+                    ["download_detour"] = "direct",
+                    ["update_interval"] = "7d"
+                });
         }
 
         var blockTags = new List<string>();

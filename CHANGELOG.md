@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Additions
+- Added a "Custom list" bridge source to the Home dropdown (#70). Saved custom bridge lines now apply only when this source is selected; previously a filled custom-bridges box silently overrode whichever source was chosen. Existing setups with saved custom bridges are migrated to the new source once, so nothing changes for them.
+- The Current Bridge tab now shows which bridge Tor is actually connected to: a live "In use" badge per bridge (classic tor engine, via the control port), and the last-seen time once a bridge is no longer in use (#69).
+- Geo rule-sets (country and domain-category routing) are now cached on disk and refreshed through Tor after connecting (#68). The TUN start references cached lists as local files, so once fetched they work with no dependency on raw.githubusercontent.com - which is blocked exactly where these rules matter most. A rule-set that cannot be verified or downloaded is skipped for that connection instead of breaking it, and applies automatically on a later connect.
+
 ## v3.5 (2026-07-02)
 
 Additions

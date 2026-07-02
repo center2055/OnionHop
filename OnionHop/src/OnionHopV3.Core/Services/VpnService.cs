@@ -612,7 +612,10 @@ internal sealed class VpnService : IDisposable
                 bypassCountryCodes,
                 blockCountryCodes,
                 bypassSiteCategories,
-                blockSiteCategories);
+                blockSiteCategories,
+                // Rule-sets cached on disk (fetched through Tor in the background, issue #68) are
+                // referenced locally so the start does not depend on GitHub being reachable.
+                GeoRuleSetCache.TryGetLocalPath);
         }
         await File.WriteAllTextAsync(configPath, configJson, token).ConfigureAwait(false);
 
