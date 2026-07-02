@@ -61,7 +61,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 | **macOS** | `OnionHop-3.x-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
 | **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface |
 | **Linux CLI** | `OnionHopCLI-…linux-x64.tar.gz` | Terminal interface |
-| **macOS CLI** | `OnionHopCLI-…macos-arm64.tar.gz` (Apple Silicon) / `…macos-x64.tar.gz` (Intel) | Terminal interface; not notarized — run `xattr -dr com.apple.quarantine <extracted folder>` once after extracting |
+| **macOS CLI** | `OnionHopCLI-…macos-arm64.tar.gz` (Apple Silicon) / `…macos-x64.tar.gz` (Intel) | Terminal interface; signed & notarized — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) like the DMGs |
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
 

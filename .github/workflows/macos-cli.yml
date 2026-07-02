@@ -3,9 +3,13 @@ name: Build macOS CLI
 # Builds the self-contained macOS OnionHop CLI (arm64 + x64) on a GitHub-hosted
 # macOS runner and packages each as a .tar.gz. The native runtime (tor, transports,
 # sing-box/xray, ArtiHop) is built once as universal binaries and shared by both
-# tarballs, matching how the mac GUI DMGs are produced. Run it manually from the
-# Actions tab; the tarballs are uploaded as build artifacts and can be attached to
-# a release.
+# tarballs, matching how the mac GUI DMGs are produced.
+#
+# NOTE: release builds normally come from the signing repo (rana-gmbh/onionhopMac),
+# whose build-sign-cli job produces SIGNED + NOTARIZED tarballs on every v* tag.
+# This workflow is the unsigned fallback: run it manually from the Actions tab if
+# the signing pipeline is unavailable; the tarballs are uploaded as build artifacts
+# and can optionally be attached to a release.
 on:
   workflow_dispatch:
     inputs:
@@ -13,8 +17,6 @@ on:
         description: "Release tag to attach the CLI tarballs to (e.g. v3.1.0). Leave blank to only produce build artifacts."
         required: false
         default: ""
-  release:
-    types: [published]
 
 permissions:
   contents: write
