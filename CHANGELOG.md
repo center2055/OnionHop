@@ -4,6 +4,9 @@
 
 Fixes
 - Fixed the desktop window opening larger than the visible screen on Windows displays scaled above 100 percent, which pushed the title-bar buttons off screen with no way to move the window (#67). The window now clamps its size and minimum size to the current screen's work area and re-centers to stay fully reachable at any DPI.
+- Fixed Smart Connect aborting the whole connect as "Canceled" when a network probe merely timed out (#65). HTTP timeouts surface as cancellation exceptions in .NET; those are now treated as probe failures that fall back to the generic connection plan, so connect works on networks where the geolocation/OONI endpoints hang or are blocked.
+- Fixed a mistyped or unpublished geosite category (e.g. `ir`) making the sing-box start FATAL and taking down the whole TUN connection (#68). Remote geo rule-sets are now verified before the config is built: plain-name misses are automatically upgraded to SagerNet's `category-` variant when that exists (`ir` -> `category-ir`), and entries that cannot be found upstream are skipped with a warning in the log instead of breaking the start. Unknown country codes in country routing are handled the same way.
+- Fixed the Current Bridge tab in Logs squeezing bridge lines through the log-line parser, which sliced the transport name into the Time column (#69). The tab now has its own Type, Address and Details columns, and severity filters (which do not apply to bridges) are hidden there.
 
 ## v3.4.5 (2026-06-30)
 
