@@ -45,6 +45,9 @@ public sealed record OnionHopConnectOptions
     public const string BridgeSourceOnlineOnly = "Tor bridge service only";
     public const string BridgeSourceOfflineOnly = "Offline only";
     public const string BridgeSourceCollectorOnly = "OnionHop collector only";
+    // Use the bridge lines the user saved in Settings -> Network. Custom lines apply ONLY in this
+    // mode (issue #70) - previously a filled custom-bridges box silently overrode every other source.
+    public const string BridgeSourceCustom = "Custom list";
 
     public const string DnsProviderCloudflare = "Cloudflare (DoH)";
     public const string DnsProviderGoogle = "Google (DoH)";

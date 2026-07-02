@@ -33,6 +33,7 @@ public sealed class TorBridgeManagerTests
             var options = new OnionHopConnectOptions
             {
                 SelectedBridgeType = "webtunnel",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom,
                 CustomBridges = "webtunnel [2001:db8:e524:683e:fb8d:e6ee:79c0:f397]:443 DA1ECF055635C1A6ED7F5B5F36296A5E3015CE57 url=https://np601p22.xoomlia.com/hlmb69xo/ ver=0.0.3"
             };
 
@@ -216,6 +217,7 @@ public sealed class TorBridgeManagerTests
             var options = new OnionHopConnectOptions
             {
                 SelectedBridgeType = "vanilla",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom,
                 CustomBridges = "8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875"
             };
 
@@ -243,6 +245,7 @@ public sealed class TorBridgeManagerTests
             var options = new OnionHopConnectOptions
             {
                 SelectedBridgeType = "custom",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom,
                 CustomBridges = "8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875"
             };
 
@@ -253,6 +256,65 @@ public sealed class TorBridgeManagerTests
             Assert.Equal("8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875", lines[0]);
             Assert.Empty(plugins);
             Assert.False(TorBridgeManager.BridgeLinesNeedClientTransportPlugins(lines));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_offline_mode_ignores_saved_custom_lines()
+    {
+        // Issue #70: a filled custom-bridges box must no longer override an explicitly chosen
+        // non-custom source.
+        var dir = CreateTempDir();
+        try
+        {
+            var ptDir = Path.Combine(dir, "tor", "pluggable_transports");
+            Directory.CreateDirectory(ptDir);
+            File.WriteAllText(
+                Path.Combine(ptDir, "bridges-obfs4.txt"),
+                "obfs4 1.2.3.4:443 74FAD13168806246602538555B5521A0383A1875 cert=abc iat-mode=0");
+
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "obfs4",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceOfflineOnly,
+                CustomBridges = "obfs4 9.9.9.9:443 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA cert=zzz iat-mode=0"
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Single(lines);
+            Assert.DoesNotContain(lines, line => line.Contains("9.9.9.9"));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_custom_mode_with_empty_box_returns_nothing_with_message()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "obfs4",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom,
+                CustomBridges = null
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Empty(lines);
+            Assert.NotNull(manager.BridgeValidationMessage);
+            Assert.Contains("Custom list", manager.BridgeValidationMessage, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

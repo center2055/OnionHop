@@ -61,7 +61,8 @@ internal sealed class TorBridgeManager
         Auto,
         OnlineOnly,
         OfflineOnly,
-        CollectorOnly
+        CollectorOnly,
+        Custom
     }
 
     private readonly string _baseDir;
@@ -335,6 +336,11 @@ internal sealed class TorBridgeManager
             return BridgeSourcePreference.CollectorOnly;
         }
 
+        if (string.Equals(mode, OnionHopConnectOptions.BridgeSourceCustom, StringComparison.OrdinalIgnoreCase))
+        {
+            return BridgeSourcePreference.Custom;
+        }
+
         return BridgeSourcePreference.Auto;
     }
 
@@ -420,23 +426,35 @@ internal sealed class TorBridgeManager
         IReadOnlyList<string> selected = Array.Empty<string>();
         var usingCustom = false;
 
-        var custom = ExtractBridgeLines(options.CustomBridges);
-        if (custom.Count > 0)
+        // Custom bridge lines apply ONLY when the user explicitly picked the "Custom list" source
+        // (issue #70). They previously overrode every other source whenever the Settings box had
+        // content, which made the Home source dropdown silently lie.
+        List<string> custom = [];
+        if (sourcePreference == BridgeSourcePreference.Custom)
         {
-            var filteredCustom = custom
-                .Where(line => !IsExplicitPlaceholderBridgeLine(line))
-                .ToList();
-            if (filteredCustom.Count != custom.Count)
+            custom = ExtractBridgeLines(options.CustomBridges).ToList();
+            if (custom.Count > 0)
             {
-                log($"Ignored {custom.Count - filteredCustom.Count} custom bridge line(s) because they look like placeholder examples.");
-            }
+                var filteredCustom = custom
+                    .Where(line => !IsExplicitPlaceholderBridgeLine(line))
+                    .ToList();
+                if (filteredCustom.Count != custom.Count)
+                {
+                    log($"Ignored {custom.Count - filteredCustom.Count} custom bridge line(s) because they look like placeholder examples.");
+                }
 
-            if (filteredCustom.Count == 0 && custom.Count > 0)
+                if (filteredCustom.Count == 0)
+                {
+                    BridgeValidationMessage = "All custom bridge lines were filtered because they look like placeholder examples.";
+                }
+
+                custom = filteredCustom;
+            }
+            else
             {
-                BridgeValidationMessage = "All custom bridge lines were filtered because they look like placeholder examples.";
+                BridgeValidationMessage = "Bridge source is set to Custom list, but no custom bridge lines are saved in Settings -> Network.";
+                log(BridgeValidationMessage);
             }
-
-            custom = filteredCustom;
         }
 
         if (custom.Count > 0)
@@ -444,7 +462,7 @@ internal sealed class TorBridgeManager
             selected = custom;
             usingCustom = true;
         }
-        else
+        else if (sourcePreference != BridgeSourcePreference.Custom)
         {
             if (allowBridgeServiceFetch)
             {

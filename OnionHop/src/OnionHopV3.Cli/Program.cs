@@ -169,7 +169,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteHint("  --engine <auto|classic|artihop>", "Tor engine (artihop = fast 2-hop)");
         WriteHint("  --bridges <on|off>", "force bridges (manual mode)");
         WriteHint("  --bridge-type <type>", "automatic, obfs4, snowflake, webtunnel, conjure, dnstt, meek-azure, vanilla, custom");
-        WriteHint("  --bridge-source <auto|online|collector|offline>", "where bridges come from");
+        WriteHint("  --bridge-source <auto|online|collector|offline|custom>", "where bridges come from (custom = saved custom bridge lines)");
         WriteHint("  --proxy-scope <system|socks|local>", "system = all apps, socks = browser/.onion, local = don't touch system proxy");
         WriteHint("  --exit <auto|cc>", "exit country, e.g. us, de");
         WriteHint("  --entry <auto|cc>", "entry country (ignored with bridges)");
@@ -1063,6 +1063,7 @@ internal sealed class CliHost : IAsyncDisposable
         "online" or "moat" or "service" => OnionHopConnectOptions.BridgeSourceOnlineOnly,
         "collector" => OnionHopConnectOptions.BridgeSourceCollectorOnly,
         "offline" => OnionHopConnectOptions.BridgeSourceOfflineOnly,
+        "custom" or "custom list" => OnionHopConnectOptions.BridgeSourceCustom,
         _ => OnionHopConnectOptions.BridgeSourceAuto
     };
 

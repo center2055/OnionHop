@@ -26,6 +26,9 @@ public sealed class UserSettings
     public string? SelectedBridgeType { get; set; }
     public string? BridgeSourceMode { get; set; }
     public string? CustomBridges { get; set; }
+    // One-time issue #70 migration marker: saved custom bridge lines used to override every bridge
+    // source implicitly; once migrated they only apply when the explicit "Custom list" source is set.
+    public bool? CustomBridgeSourceMigrated { get; set; }
     public string? CustomSniHosts { get; set; }
     public bool UseSnowflakeAmp { get; set; }
     public string? SnowflakeAmpCache { get; set; }
