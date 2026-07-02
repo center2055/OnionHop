@@ -1829,7 +1829,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             _smartConnectNetworkKey = null;
             AppendLog("Smart Connect planner returned no strategies. Falling back to generic profile.");
         }
-        catch (OperationCanceledException)
+        // Only real cancellation aborts the connect. HttpClient timeouts inside the planner throw
+        // TaskCanceledException too; those must fall through to the generic profile below (#65).
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             throw;
         }

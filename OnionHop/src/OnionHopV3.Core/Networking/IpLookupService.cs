@@ -76,7 +76,10 @@ internal static class IpLookupService
                     return ip;
                 }
             }
-            catch (OperationCanceledException)
+            // Real cancellation propagates; a per-request HTTP timeout also surfaces as
+            // OperationCanceledException (TaskCanceledException) and should just move on to the
+            // next endpoint instead of aborting the whole lookup (#65).
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 throw;
             }

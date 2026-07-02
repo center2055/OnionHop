@@ -651,7 +651,10 @@ public sealed class SmartConnectAdvisor
         {
             countryCode = await TryFetchCountryCodeFromOoniGeoLookupAsync(publicIp, token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        // Only user/system cancellation propagates. HttpClient timeouts throw TaskCanceledException
+        // (an OperationCanceledException) too - on hostile networks those must degrade to the
+        // fallback path below, not abort the whole connect as if the user pressed cancel (#65).
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             throw;
         }
@@ -670,7 +673,10 @@ public sealed class SmartConnectAdvisor
         {
             countryCode = await TryFetchCountryCodeFromIpWhoIsAsync(publicIp, token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        // Only user/system cancellation propagates. HttpClient timeouts throw TaskCanceledException
+        // (an OperationCanceledException) too - on hostile networks those must degrade to the
+        // fallback path below, not abort the whole connect as if the user pressed cancel (#65).
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             throw;
         }
@@ -830,7 +836,10 @@ public sealed class SmartConnectAdvisor
                 NotOkNetworks: Math.Max(0, notOkNetworks),
                 LastTested: lastTested);
         }
-        catch (OperationCanceledException)
+        // Only user/system cancellation propagates. HttpClient timeouts throw TaskCanceledException
+        // (an OperationCanceledException) too - on hostile networks those must degrade to the
+        // fallback path below, not abort the whole connect as if the user pressed cancel (#65).
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             throw;
         }
@@ -913,7 +922,8 @@ public sealed class SmartConnectAdvisor
                     }
                 }
             }
-            catch (OperationCanceledException)
+            // See the note above: HTTP-timeout cancellations must not masquerade as user cancel (#65).
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 throw;
             }
@@ -998,7 +1008,8 @@ public sealed class SmartConnectAdvisor
                     log?.Invoke($"Smart Connect: CSV baseline was found but no usable Tor rows were parsed ({csvPath}).");
                 }
             }
-            catch (OperationCanceledException)
+            // See the note above: HTTP-timeout cancellations must not masquerade as user cancel (#65).
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 throw;
             }

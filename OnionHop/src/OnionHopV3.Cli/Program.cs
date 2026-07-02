@@ -470,7 +470,9 @@ internal sealed class CliHost : IAsyncDisposable
             {
                 plan = await _advisor.BuildPlanAsync(baseOptions, m => { if (_showLogs) WriteLog("smart", m, ConsoleColor.Blue); }, token);
             }
-            catch (OperationCanceledException) { throw; }
+            // Only a real Ctrl+C aborts; an HTTP-timeout TaskCanceledException from a probe must
+            // fall through to the generic plan, not print "Canceled." and give up (#65).
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
                 WriteWarning($"Smart Connect planning failed: {ex.Message}");
