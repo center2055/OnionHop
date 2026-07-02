@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.5 (2026-07-02)
 
 Additions
 - Added a macOS CLI: CI now builds self-contained OnionHopCLI tarballs for Apple Silicon (arm64) and Intel (x64) Macs with a universal native runtime (tor, pluggable transports incl. webtunnel/dnstt, sing-box, xray, ArtiHop, snowflake proxy), matching the Linux CLI packaging.
