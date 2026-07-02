@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.5.1 (2026-07-03)
 
 Additions
 - Added a "Custom list" bridge source to the Home dropdown (#70). Saved custom bridge lines now apply only when this source is selected; previously a filled custom-bridges box silently overrode whichever source was chosen. Existing setups with saved custom bridges are migrated to the new source once, so nothing changes for them.
