@@ -562,8 +562,10 @@ internal sealed class VpnService : IDisposable
         Directory.CreateDirectory(configDir);
         var configPath = Path.Combine(configDir, $"{vpnCoreLabel}.json");
 
-        var configJson = string.Equals(vpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal)
-            ? XrayConfigBuilder.BuildJson(
+        string configJson;
+        if (string.Equals(vpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal))
+        {
+            configJson = XrayConfigBuilder.BuildJson(
                 config.HybridRouting,
                 config.SecureDns,
                 config.SocksPort,
@@ -577,8 +579,19 @@ internal sealed class VpnService : IDisposable
                 config.DohPath,
                 config.TunMtu,
                 ResolvePrimaryIpv4Address(),
-                _tunInterfaceName)
-            : VpnConfigBuilder.BuildJson(
+                _tunInterfaceName);
+        }
+        else
+        {
+            // Verify the remote geo rule-sets exist before referencing them: sing-box treats a
+            // rule-set 404 as FATAL and the whole start fails (issue #68). Misses are aliased
+            // ("ir" -> "category-ir") or dropped with a warning in the log.
+            var bypassCountryCodes = await GeoRuleSetResolver.FilterCountryCodesAsync(config.BypassCountryCodes, _log, token).ConfigureAwait(false);
+            var blockCountryCodes = await GeoRuleSetResolver.FilterCountryCodesAsync(config.BlockCountryCodes, _log, token).ConfigureAwait(false);
+            var bypassSiteCategories = await GeoRuleSetResolver.ResolveGeositeCategoriesAsync(config.BypassSiteCategories, _log, token).ConfigureAwait(false);
+            var blockSiteCategories = await GeoRuleSetResolver.ResolveGeositeCategoriesAsync(config.BlockSiteCategories, _log, token).ConfigureAwait(false);
+
+            configJson = VpnConfigBuilder.BuildJson(
                 config.HybridRouting,
                 config.SecureDns,
                 config.SocksPort,
@@ -596,10 +609,11 @@ internal sealed class VpnService : IDisposable
                 _tunInterfaceName,
                 config.BypassRoutingEntries,
                 config.BlockRoutingEntries,
-                config.BypassCountryCodes,
-                config.BlockCountryCodes,
-                config.BypassSiteCategories,
-                config.BlockSiteCategories);
+                bypassCountryCodes,
+                blockCountryCodes,
+                bypassSiteCategories,
+                blockSiteCategories);
+        }
         await File.WriteAllTextAsync(configPath, configJson, token).ConfigureAwait(false);
 
         _log($"Starting {vpnCoreLabel} with config: {configPath}");
