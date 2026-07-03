@@ -50,7 +50,11 @@ public partial class LogsPageView : UserControl
 
     private async void OnCopyCurrentTabClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var text = GetCurrentLogText();
+        // On the bridges tab, copy only the bridge(s) Tor is actually using so the user can carry a
+        // working bridge to another device, not the whole supplemented list (issue #56).
+        var text = ViewModel?.IsBridgesExport == true
+            ? ViewModel.GetBridgeCopyText()
+            : GetCurrentLogText();
         if (string.IsNullOrWhiteSpace(text))
         {
             return;
@@ -61,7 +65,10 @@ public partial class LogsPageView : UserControl
 
     private async void OnExportCurrentTabClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var text = GetCurrentLogText();
+        // The bridges tab exports a CSV with status columns (issue #56); every other tab exports the
+        // plain log text.
+        var isBridges = ViewModel?.IsBridgesExport == true;
+        var text = isBridges ? ViewModel!.GetBridgeCsv() : GetCurrentLogText();
         if (string.IsNullOrWhiteSpace(text))
         {
             return;
@@ -76,21 +83,30 @@ public partial class LogsPageView : UserControl
 
         var viewModel = DataContext as LogsPageViewModel;
         var name = viewModel?.GetSelectedFileNameStem() ?? "logs";
+        var extension = isBridges ? "csv" : "txt";
+        var fileType = isBridges
+            ? new FilePickerFileType("CSV file")
+            {
+                Patterns = new[] { "*.csv" },
+                MimeTypes = new[] { "text/csv" },
+                AppleUniformTypeIdentifiers = new[] { "public.comma-separated-values-text" }
+            }
+            : new FilePickerFileType("Text file")
+            {
+                Patterns = new[] { "*.txt" },
+                MimeTypes = new[] { "text/plain" },
+                AppleUniformTypeIdentifiers = new[] { "public.plain-text" }
+            };
         var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export logs",
-            SuggestedFileName = $"onionhop-{name.ToLowerInvariant()}-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
-            DefaultExtension = "txt",
-            // Offer an explicit text file type so the OS dialog appends .txt instead of saving an
+            Title = isBridges ? "Export bridges" : "Export logs",
+            SuggestedFileName = $"onionhop-{name.ToLowerInvariant()}-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}",
+            DefaultExtension = extension,
+            // Offer an explicit file type so the OS dialog appends the extension instead of saving an
             // extension-less / unknown file type (defaults to "All files" otherwise).
             FileTypeChoices = new[]
             {
-                new FilePickerFileType("Text file")
-                {
-                    Patterns = new[] { "*.txt" },
-                    MimeTypes = new[] { "text/plain" },
-                    AppleUniformTypeIdentifiers = new[] { "public.plain-text" }
-                },
+                fileType,
                 new FilePickerFileType("All files")
                 {
                     Patterns = new[] { "*" }

@@ -138,7 +138,7 @@ internal sealed class CliHost : IAsyncDisposable
 
         WriteSection("Bridges & censorship");
         WriteHint("  bridges", "list available bridge types");
-        WriteHint("  scan <type> [count]", "probe which bridges of a type are reachable here");
+        WriteHint("  scan <type> [count] [--use]", "probe reachable bridges; --use applies them as your custom list");
         WriteHint("  reachability", "race all bridge transports and rank by reachability");
         WriteHint("  update-bridges", "refresh bridge data from the collector / bridge service");
         WriteHint("  plan [options]", "show the Smart Connect strategy plan for your network");
@@ -619,12 +619,15 @@ internal sealed class CliHost : IAsyncDisposable
     {
         if (rest.Count == 0)
         {
-            WriteWarning("Usage: scan <bridge-type> [max-count].  e.g. scan obfs4 150");
+            WriteWarning("Usage: scan <bridge-type> [max-count] [--use].  e.g. scan obfs4 150 --use");
             return;
         }
 
         var bridgeType = NormalizeBridgeType(rest[0]);
-        var max = rest.Count > 1 && int.TryParse(rest[1], out var m) ? Math.Clamp(m, 1, 1000) : 200;
+        // --use / use applies the reachable bridges as the saved custom list after the scan.
+        var applyWorking = rest.Skip(1).Any(a => a.Trim().TrimStart('-').Equals("use", StringComparison.OrdinalIgnoreCase));
+        var countToken = rest.Skip(1).FirstOrDefault(a => int.TryParse(a, out _));
+        var max = countToken != null && int.TryParse(countToken, out var m) ? Math.Clamp(m, 1, 1000) : 200;
 
         WriteInfo($"Fetching {bridgeType} bridges...");
         var options = BuildBaseOptions(DefaultRequest() with { UseBridges = true, BridgeType = bridgeType, SmartConnect = false });
@@ -686,7 +689,35 @@ internal sealed class CliHost : IAsyncDisposable
         if (reachable.Count == 0)
         {
             WriteWarning("None reachable - this transport may be blocked on your network.");
+            return;
         }
+
+        if (applyWorking)
+        {
+            ApplyBridgesAsCustom(reachable.Select(r => r.RawLine));
+        }
+    }
+
+    // Persists the given bridge lines as the saved custom list and selects the Custom bridge source,
+    // so the next `connect` uses exactly these (the CLI equivalent of the GUI scanner's Apply button).
+    private void ApplyBridgesAsCustom(IEnumerable<string> lines)
+    {
+        var working = lines
+            .Where(l => !string.IsNullOrWhiteSpace(l))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (working.Count == 0)
+        {
+            return;
+        }
+
+        var s = _settingsService.Load() ?? new UserSettings();
+        s.CustomBridges = string.Join(Environment.NewLine, working);
+        s.BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom;
+        s.UseTorBridges = true;
+        s.CustomBridgeSourceMigrated = true;
+        _settingsService.Save(s);
+        WriteSuccess($"Applied {working.Count} reachable bridge(s) as your custom list. Run `connect` to use them.");
     }
 
     private async Task ReachabilityAsync(CancellationToken token)
@@ -987,14 +1018,24 @@ internal sealed class CliHost : IAsyncDisposable
             ? OnionHopConnectOptions.ConnectionModeTun
             : OnionHopConnectOptions.ConnectionModeProxy;
 
+        var saved = _settingsService.Load();
+
         // An explicit --proxy-scope wins; otherwise honor the saved default (so `config set proxy-scope
         // local` actually sticks across connects), falling back to system SOCKS.
         var proxyScope = request.ProxyScopeProvided
             ? MapProxyScopeToken(request.ProxyScope)
-            : NormalizeStoredProxyScope(_settingsService.Load()?.ProxyScopeMode);
+            : NormalizeStoredProxyScope(saved?.ProxyScopeMode);
 
         var bridgeType = NormalizeBridgeType(request.BridgeType);
-        var useBridges = request.UseBridges || request.BridgeTypeProvided;
+
+        // An explicit --bridge-source wins; otherwise fall back to a saved source (e.g. Custom, set by
+        // `scan --use`), so the reachable bridges the user just applied are actually used on connect.
+        var bridgeSource = request.BridgeSourceProvided
+            ? NormalizeBridgeSource(request.BridgeSource)
+            : NormalizeStoredBridgeSource(saved?.BridgeSourceMode, request.BridgeSource);
+
+        var usingCustomSource = string.Equals(bridgeSource, OnionHopConnectOptions.BridgeSourceCustom, StringComparison.Ordinal);
+        var useBridges = request.UseBridges || request.BridgeTypeProvided || usingCustomSource;
         var useCensoredMode = request.UseCensoredMode ?? useBridges;
 
         return new OnionHopConnectOptions
@@ -1008,7 +1049,10 @@ internal sealed class CliHost : IAsyncDisposable
             ExitNodeFingerprint = request.ExitNodeFingerprint,
             StrictManualExitNodeFingerprint = request.StrictManualExitNodeFingerprint,
             SelectedBridgeType = bridgeType,
-            BridgeSourceMode = NormalizeBridgeSource(request.BridgeSource),
+            BridgeSourceMode = bridgeSource,
+            // Custom bridge lines come from saved settings (the GUI's Custom bridges box, or the CLI's
+            // `scan --use`); they only apply when the Custom source is selected (issue #70).
+            CustomBridges = saved?.CustomBridges,
             UseTorBridges = useBridges,
             UseCensoredMode = useCensoredMode,
             UseSnowflakeAmp = request.UseSnowflakeAmp,
@@ -1066,6 +1110,23 @@ internal sealed class CliHost : IAsyncDisposable
         "custom" or "custom list" => OnionHopConnectOptions.BridgeSourceCustom,
         _ => OnionHopConnectOptions.BridgeSourceAuto
     };
+
+    // Accept a stored bridge-source value only if it's one we recognize; otherwise fall back to the
+    // request's (default) source. Lets `scan --use`'s saved Custom source take effect on a later
+    // `connect` without the user re-passing --bridge-source.
+    private static string NormalizeStoredBridgeSource(string? stored, string requestFallback)
+    {
+        if (stored == OnionHopConnectOptions.BridgeSourceOnlineOnly
+            || stored == OnionHopConnectOptions.BridgeSourceOfflineOnly
+            || stored == OnionHopConnectOptions.BridgeSourceCollectorOnly
+            || stored == OnionHopConnectOptions.BridgeSourceCustom
+            || stored == OnionHopConnectOptions.BridgeSourceAuto)
+        {
+            return stored!;
+        }
+
+        return NormalizeBridgeSource(requestFallback);
+    }
 
     private static string NormalizeEngine(string value) => value.Trim().ToLowerInvariant() switch
     {
@@ -1135,7 +1196,8 @@ internal sealed class CliHost : IAsyncDisposable
             ExitNodeFingerprint: NormalizeExitNodeFingerprint(GetAny(o, string.Empty, "exit-fingerprint", "fingerprint")),
             StrictManualExitNodeFingerprint: GetBool(o, "strict-exit-fingerprint", true),
             Engine: GetOption(o, "engine", "auto"),
-            BridgeSource: GetOption(o, "bridge-source", "auto"));
+            BridgeSource: GetOption(o, "bridge-source", "auto"),
+            BridgeSourceProvided: o.ContainsKey("bridge-source"));
     }
 
     private static Dictionary<string, string> ParseOptions(IReadOnlyList<string> args)
@@ -1423,5 +1485,6 @@ internal sealed class CliHost : IAsyncDisposable
         string? ExitNodeFingerprint,
         bool StrictManualExitNodeFingerprint,
         string Engine,
-        string BridgeSource);
+        string BridgeSource,
+        bool BridgeSourceProvided = false);
 }

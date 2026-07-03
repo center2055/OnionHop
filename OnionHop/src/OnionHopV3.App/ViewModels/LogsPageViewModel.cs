@@ -114,6 +114,54 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             : string.Join(Environment.NewLine, VisibleEntries.Select(entry => entry.RawLine));
     }
 
+    /// <summary>True while the bridges tab is selected, so the view can switch Copy/Export to the
+    /// bridge-specific formats (issue #56).</summary>
+    public bool IsBridgesExport => IsBridgesSelected;
+
+    /// <summary>
+    /// Copy text for the bridges tab (issue #56): only the bridge(s) Tor is actually using, so the
+    /// user gets the working bridge to carry to another device rather than the whole supplemented
+    /// list. Falls back to bridges seen in use this session, then to all rows when no live status is
+    /// available (e.g. the Arti engines expose none).
+    /// </summary>
+    public string GetBridgeCopyText()
+    {
+        var inUse = BridgeRows.Where(row => row.StatusTone == "success").ToList();
+        var seen = BridgeRows.Where(row => row.HasStatus).ToList();
+        var chosen = inUse.Count > 0 ? inUse : seen.Count > 0 ? seen : BridgeRows.ToList();
+        return string.Join(Environment.NewLine, chosen.Select(row => row.RawLine));
+    }
+
+    /// <summary>
+    /// CSV of the current bridges with status columns (issue #56): Type, Address, Status, Fingerprint
+    /// and the raw bridge line. Status is "In use", a last-seen time, or empty.
+    /// </summary>
+    public string GetBridgeCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("Type,Address,Status,Fingerprint,Bridge line\r\n");
+        foreach (var row in BridgeRows)
+        {
+            sb.Append(CsvField(row.Type)).Append(',')
+              .Append(CsvField(row.Address)).Append(',')
+              .Append(CsvField(row.StatusLabel)).Append(',')
+              .Append(CsvField(row.Fingerprint ?? string.Empty)).Append(',')
+              .Append(CsvField(row.RawLine)).Append("\r\n");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string CsvField(string value)
+    {
+        if (value.IndexOfAny([',', '"', '\n', '\r']) < 0)
+        {
+            return value;
+        }
+
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
+    }
+
     public string GetSelectedFileNameStem()
     {
         return SelectedSource switch
