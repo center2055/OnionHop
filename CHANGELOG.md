@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.6 (2026-07-05)
 
 Additions
 - Added an SNI scanner as a subtab of the Scanner page. It finds SNI/front hosts that work on your network via TLS handshakes: Domain mode tests a list of candidate domains as SNI on :443, and Range mode tests a single SNI across an IPv4 CIDR range (bounded). Working hosts can be applied as the app's custom SNI hosts (used by fronted webtunnel/meek/snowflake bridges) or saved to the library.
@@ -8,6 +8,9 @@ Additions
 - The Current Bridge tab gained a one-tap copy button on each row (copies just that bridge line) and sortable columns - click Type, Address or Status to sort, click again to reverse; the bridge in use always stays pinned to the top (#69).
 - The Current Bridge tab's Copy and Export now focus on the bridge that matters (#56). Copy returns only the bridge(s) Tor is actually using (falling back to bridges seen in use this session, then to all when no live status is available), so you get the working bridge to carry to another device instead of the whole supplemented list. Export writes a CSV with Type, Address, Status, Fingerprint and the raw bridge line.
 - Added `scan <type> [count] --use` to the CLI: after probing, the reachable bridges are saved as your custom list and selected as the bridge source, so the next `connect` uses exactly those - the command-line equivalent of the GUI scanner's Apply button. The CLI now also honors saved custom bridges and a saved bridge source on connect.
+
+Fixes
+- Fixed the Custom bridge source being ignored when Smart Connect was on (#70). Smart Connect (enabled by default) reset the bridge source to Auto and dropped the custom bridge list while racing its own transports, so a user who selected the Custom source and pasted, say, an obfs4 bridge could end up connected to a webtunnel bridge they never added. Smart Connect now honors an explicit Custom source and uses exactly those bridges.
 
 ## v3.5.1 (2026-07-03)
 
