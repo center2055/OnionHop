@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">حله SNI نتیجه‌سی یوخدور</x:String>
   <x:String x:Key="Sni.EmptyDescription">دامنه‌لری (یا بیر SNI + IP بازه) داخیل ائدیب تارامانی باشلادین.</x:String>
+  <x:String x:Key="Sni.Ready">حاضیر.</x:String>
+  <x:String x:Key="Sni.NeedDomains">یوخلاماق اوچون ان آزی بیر دامنه داخیل ائدین.</x:String>
+  <x:String x:Key="Sni.NeedSni">بازه بویو یوخلانیلاجاق بیر SNI هاست داخیل ائدین.</x:String>
+  <x:String x:Key="Sni.NeedCidr">دوز بیر IPv4 CIDR بازه‌سی داخیل ائدین، مثلا 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">تارانیر…</x:String>
+  <x:String x:Key="Sni.Done">بیتدی.</x:String>
+  <x:String x:Key="Sni.Stopped">تاراما دایاندیریلدی.</x:String>
+  <x:String x:Key="Sni.Stopping">دایاندیریلیر…</x:String>
+  <x:String x:Key="Sni.Failed">تاراما اوغورسوز اولدو</x:String>
   <x:String x:Key="Saved.Title">ساخلانیلمیش کؤرپولر و SNI</x:String>
   <x:String x:Key="Saved.Subtitle">ساخلانیلمیش کؤرپو و SNI هاستلار کیتابخاناز. ایشلتمک اوچون اعمال ائدین، یا آدینی دَییشین و سیلین.</x:String>
   <x:String x:Key="Saved.Clear">هامیسینی تمیزله</x:String>

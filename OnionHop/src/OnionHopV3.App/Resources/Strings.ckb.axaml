@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">هێشتا ئەنجامی SNI نییە</x:String>
   <x:String x:Key="Sni.EmptyDescription">دۆمەینەکان (یان SNI + مەودای IP) بنووسە و سکان دەست پێبکە.</x:String>
+  <x:String x:Key="Sni.Ready">ئامادە.</x:String>
+  <x:String x:Key="Sni.NeedDomains">بۆ تاقیکردنەوە لانیکەم یەک دۆمەین بنووسە.</x:String>
+  <x:String x:Key="Sni.NeedSni">هۆستێکی SNI بنووسە بۆ تاقیکردنەوە بەسەر مەوداکەدا.</x:String>
+  <x:String x:Key="Sni.NeedCidr">مەودایەکی دروستی IPv4 CIDR بنووسە، وەک 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">سکان دەکرێت…</x:String>
+  <x:String x:Key="Sni.Done">تەواو بوو.</x:String>
+  <x:String x:Key="Sni.Stopped">سکان ڕاگیرا.</x:String>
+  <x:String x:Key="Sni.Stopping">ڕادەگیرێت…</x:String>
+  <x:String x:Key="Sni.Failed">سکان سەرکەوتوو نەبوو</x:String>
   <x:String x:Key="Saved.Title">پردە و SNI پاشەکەوتکراوەکان</x:String>
   <x:String x:Key="Saved.Subtitle">کتێبخانەی پردە و هۆستە SNI پاشەکەوتکراوەکانت. بۆ بەکارهێنان جێبەجێی بکە، یان ناوی بگۆڕە و بیسڕەوە.</x:String>
   <x:String x:Key="Saved.Clear">سڕینەوەی هەموو</x:String>

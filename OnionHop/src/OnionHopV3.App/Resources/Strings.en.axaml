@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">No SNI results yet</x:String>
   <x:String x:Key="Sni.EmptyDescription">Enter domains (or an SNI + IP range) and press Start Scan.</x:String>
+  <x:String x:Key="Sni.Ready">Ready.</x:String>
+  <x:String x:Key="Sni.NeedDomains">Enter at least one domain to test.</x:String>
+  <x:String x:Key="Sni.NeedSni">Enter an SNI host to test across the range.</x:String>
+  <x:String x:Key="Sni.NeedCidr">Enter a valid IPv4 CIDR range, e.g. 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">Scanning…</x:String>
+  <x:String x:Key="Sni.Done">Done.</x:String>
+  <x:String x:Key="Sni.Stopped">Scan stopped.</x:String>
+  <x:String x:Key="Sni.Stopping">Stopping…</x:String>
+  <x:String x:Key="Sni.Failed">Scan failed</x:String>
   <x:String x:Key="Saved.Title">Saved bridges &amp; SNI</x:String>
   <x:String x:Key="Saved.Subtitle">Your library of saved bridges and SNI hosts. Apply one to use it, or relabel and remove entries.</x:String>
   <x:String x:Key="Saved.Clear">Clear all</x:String>

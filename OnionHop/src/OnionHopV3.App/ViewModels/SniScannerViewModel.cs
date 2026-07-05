@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OnionHopV3.App.Services;
 using OnionHopV3.Core.Models;
 using OnionHopV3.Core.Services;
 
@@ -29,6 +30,15 @@ public sealed partial class SniScannerViewModel : ObservableObject
     {
         _state = state;
         _store = store;
+        _progressText = L("Sni.Ready", "Ready.");
+    }
+
+    // Localized status text with an English fallback, so messages match the app language instead of
+    // showing English on a translated UI.
+    private static string L(string key, string fallback)
+    {
+        var v = LocalizationService.Get(key);
+        return string.IsNullOrEmpty(v) || v == key ? fallback : v;
     }
 
     public ObservableCollection<SniScanRow> Results { get; } = [];
@@ -52,7 +62,7 @@ public sealed partial class SniScannerViewModel : ObservableObject
     private bool _isScanning;
 
     [ObservableProperty] private double _progressValue;
-    [ObservableProperty] private string _progressText = "Ready.";
+    [ObservableProperty] private string _progressText = string.Empty;
     [ObservableProperty] private string _summaryText = string.Empty;
     [ObservableProperty] private bool _hasResults;
 
@@ -86,13 +96,13 @@ public sealed partial class SniScannerViewModel : ObservableObject
                 var sni = SniScanService.NormalizeSniHost(RangeSni);
                 if (sni.Length == 0)
                 {
-                    ProgressText = "Enter an SNI host to test across the range.";
+                    ProgressText = L("Sni.NeedSni", "Enter an SNI host to test across the range.");
                     return;
                 }
 
                 if (!SniScanService.TryEnumerateCidr(RangeCidr?.Trim() ?? string.Empty, SniScanService.MaxRangeHosts, out var addresses, out var truncated))
                 {
-                    ProgressText = "Enter a valid IPv4 CIDR range, e.g. 104.16.0.0/24.";
+                    ProgressText = L("Sni.NeedCidr", "Enter a valid IPv4 CIDR range, e.g. 104.16.0.0/24.");
                     return;
                 }
 
@@ -109,7 +119,7 @@ public sealed partial class SniScannerViewModel : ObservableObject
                 var domains = SplitLines(DomainList);
                 if (domains.Count == 0)
                 {
-                    ProgressText = "Enter at least one domain to test.";
+                    ProgressText = L("Sni.NeedDomains", "Enter at least one domain to test.");
                     return;
                 }
 
@@ -121,15 +131,15 @@ public sealed partial class SniScannerViewModel : ObservableObject
                     .ConfigureAwait(true);
             }
 
-            ProgressText = "Done.";
+            ProgressText = L("Sni.Done", "Done.");
         }
         catch (OperationCanceledException)
         {
-            ProgressText = "Scan stopped.";
+            ProgressText = L("Sni.Stopped", "Scan stopped.");
         }
         catch (Exception ex)
         {
-            ProgressText = $"Scan failed: {ex.Message}";
+            ProgressText = $"{L("Sni.Failed", "Scan failed")}: {ex.Message}";
             _state.AppendLog($"SNI scanner error: {ex.Message}");
         }
         finally
@@ -148,7 +158,7 @@ public sealed partial class SniScannerViewModel : ObservableObject
     private void StopScan()
     {
         _scanCts?.Cancel();
-        ProgressText = "Stopping…";
+        ProgressText = L("Sni.Stopping", "Stopping…");
     }
 
     [RelayCommand]
@@ -230,7 +240,7 @@ public sealed partial class SniScannerViewModel : ObservableObject
 
         _completed++;
         ProgressValue = _total > 0 ? _completed * 100.0 / _total : 0;
-        ProgressText = $"Scanning… {_completed}/{_total}";
+        ProgressText = $"{L("Sni.Scanning", "Scanning…")} {_completed}/{_total}";
         OnPropertyChanged(nameof(HasWorking));
         OnPropertyChanged(nameof(WorkingSniText));
         UpdateSummary(final: false);

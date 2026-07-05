@@ -224,8 +224,10 @@ public static class SniScanService
             await using var network = new NetworkStream(socket, ownsSocket: false);
             // Certificate is intentionally not validated: this is a reachability/SNI-block probe, and
             // in range mode we connect to arbitrary IPs where a cert-name match is never expected. A
-            // completed handshake is the signal we care about (the SNI was not reset/blocked).
-            await using var ssl = new SslStream(network, leaveInnerStreamOpen: false, static (_, _, _, _) => true);
+            // completed handshake is the signal we care about (the SNI was not reset/blocked). The
+            // accept-any callback is set ONLY via the options below - also passing it to the SslStream
+            // constructor makes AuthenticateAsClientAsync throw "already set" and every probe fail.
+            await using var ssl = new SslStream(network, leaveInnerStreamOpen: false);
             var authOptions = new SslClientAuthenticationOptions
             {
                 TargetHost = sni,

@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">هنوز نتیجه‌ای برای SNI نیست</x:String>
   <x:String x:Key="Sni.EmptyDescription">دامنه‌ها (یا یک SNI + بازه IP) را وارد کنید و اسکن را آغاز کنید.</x:String>
+  <x:String x:Key="Sni.Ready">آماده.</x:String>
+  <x:String x:Key="Sni.NeedDomains">حداقل یک دامنه برای آزمایش وارد کنید.</x:String>
+  <x:String x:Key="Sni.NeedSni">یک میزبان SNI برای آزمایش در سراسر بازه وارد کنید.</x:String>
+  <x:String x:Key="Sni.NeedCidr">یک بازه معتبر IPv4 CIDR وارد کنید، مثلاً 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">در حال اسکن…</x:String>
+  <x:String x:Key="Sni.Done">انجام شد.</x:String>
+  <x:String x:Key="Sni.Stopped">اسکن متوقف شد.</x:String>
+  <x:String x:Key="Sni.Stopping">در حال توقف…</x:String>
+  <x:String x:Key="Sni.Failed">اسکن ناموفق بود</x:String>
   <x:String x:Key="Saved.Title">پل‌ها و SNI ذخیره‌شده</x:String>
   <x:String x:Key="Saved.Subtitle">کتابخانه پل‌ها و میزبان‌های SNI ذخیره‌شده شما. برای استفاده اعمال کنید، یا برچسب‌گذاری و حذف کنید.</x:String>
   <x:String x:Key="Saved.Clear">پاک‌کردن همه</x:String>

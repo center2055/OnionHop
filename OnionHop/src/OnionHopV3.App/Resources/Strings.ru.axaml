@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">Пока нет результатов SNI</x:String>
   <x:String x:Key="Sni.EmptyDescription">Введите домены (или SNI + диапазон IP) и нажмите «Начать».</x:String>
+  <x:String x:Key="Sni.Ready">Готово.</x:String>
+  <x:String x:Key="Sni.NeedDomains">Введите хотя бы один домен для проверки.</x:String>
+  <x:String x:Key="Sni.NeedSni">Введите SNI-хост для проверки по диапазону.</x:String>
+  <x:String x:Key="Sni.NeedCidr">Введите корректный диапазон IPv4 CIDR, напр. 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">Сканирование…</x:String>
+  <x:String x:Key="Sni.Done">Готово.</x:String>
+  <x:String x:Key="Sni.Stopped">Сканирование остановлено.</x:String>
+  <x:String x:Key="Sni.Stopping">Остановка…</x:String>
+  <x:String x:Key="Sni.Failed">Сбой сканирования</x:String>
   <x:String x:Key="Saved.Title">Сохранённые мосты и SNI</x:String>
   <x:String x:Key="Saved.Subtitle">Ваша библиотека сохранённых мостов и SNI-хостов. Примените, либо переименуйте и удалите записи.</x:String>
   <x:String x:Key="Saved.Clear">Очистить всё</x:String>

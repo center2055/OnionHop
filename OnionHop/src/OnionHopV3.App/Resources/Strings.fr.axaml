@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">Aucun resultat SNI</x:String>
   <x:String x:Key="Sni.EmptyDescription">Saisissez des domaines (ou un SNI + une plage IP) puis lancez le scan.</x:String>
+  <x:String x:Key="Sni.Ready">Pret.</x:String>
+  <x:String x:Key="Sni.NeedDomains">Saisissez au moins un domaine a tester.</x:String>
+  <x:String x:Key="Sni.NeedSni">Saisissez un hote SNI a tester sur la plage.</x:String>
+  <x:String x:Key="Sni.NeedCidr">Saisissez une plage IPv4 CIDR valide, ex. 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">Analyse…</x:String>
+  <x:String x:Key="Sni.Done">Termine.</x:String>
+  <x:String x:Key="Sni.Stopped">Analyse arretee.</x:String>
+  <x:String x:Key="Sni.Stopping">Arret…</x:String>
+  <x:String x:Key="Sni.Failed">Echec de l'analyse</x:String>
   <x:String x:Key="Saved.Title">Ponts et SNI enregistres</x:String>
   <x:String x:Key="Saved.Subtitle">Votre bibliotheque de ponts et d'hotes SNI enregistres. Appliquez-en un, ou renommez et supprimez.</x:String>
   <x:String x:Key="Saved.Clear">Tout effacer</x:String>

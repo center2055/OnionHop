@@ -50,6 +50,15 @@
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">Noch keine SNI-Ergebnisse</x:String>
   <x:String x:Key="Sni.EmptyDescription">Domains (oder SNI + IP-Bereich) eingeben und Scan starten.</x:String>
+  <x:String x:Key="Sni.Ready">Bereit.</x:String>
+  <x:String x:Key="Sni.NeedDomains">Gib mindestens eine Domain zum Testen ein.</x:String>
+  <x:String x:Key="Sni.NeedSni">Gib einen SNI-Host ein, der ueber den Bereich getestet wird.</x:String>
+  <x:String x:Key="Sni.NeedCidr">Gib einen gueltigen IPv4-CIDR-Bereich ein, z. B. 104.16.0.0/24.</x:String>
+  <x:String x:Key="Sni.Scanning">Wird gescannt…</x:String>
+  <x:String x:Key="Sni.Done">Fertig.</x:String>
+  <x:String x:Key="Sni.Stopped">Scan gestoppt.</x:String>
+  <x:String x:Key="Sni.Stopping">Wird gestoppt…</x:String>
+  <x:String x:Key="Sni.Failed">Scan fehlgeschlagen</x:String>
   <x:String x:Key="Saved.Title">Gespeicherte Bridges &amp; SNI</x:String>
   <x:String x:Key="Saved.Subtitle">Deine Bibliothek gespeicherter Bridges und SNI-Hosts. Anwenden zum Verwenden, oder umbenennen und entfernen.</x:String>
   <x:String x:Key="Saved.Clear">Alle loeschen</x:String>
