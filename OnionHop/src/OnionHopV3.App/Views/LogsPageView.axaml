@@ -4,6 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:OnionHopV3.App.Controls"
              xmlns:vm="using:OnionHopV3.App.ViewModels"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons;assembly=Material.Icons"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="820"
@@ -169,22 +171,31 @@
 
                 <!-- Bridge lines carry no timestamp, so the bridges tab gets its own columns instead
                      of the log layout (the type used to land in the Time column - issue #69). The
-                     Status column marks the bridge tor is connected to right now / last seen. -->
-                <Grid ColumnDefinitions="110,240,96,*"
+                     Status column marks the bridge tor is connected to right now / last seen. The
+                     column captions are buttons that sort the rows (issue #69); the trailing column
+                     holds the per-row copy button. -->
+                <Grid ColumnDefinitions="110,240,96,*,Auto"
                       ColumnSpacing="10"
                       Margin="14,12,14,10"
                       IsVisible="{Binding IsBridgesSelected}">
-                  <TextBlock Text="{DynamicResource Logs.ColumnType}"
-                             Classes="SectionCaption" />
-                  <TextBlock Grid.Column="1"
-                             Text="{DynamicResource Logs.ColumnAddress}"
-                             Classes="SectionCaption" />
-                  <TextBlock Grid.Column="2"
-                             Text="{DynamicResource Scanner.ColStatus}"
-                             Classes="SectionCaption" />
+                  <Button Classes="ColumnSort"
+                          Command="{Binding SortBridgesCommand}"
+                          CommandParameter="Type"
+                          Content="{DynamicResource Logs.ColumnType}" />
+                  <Button Grid.Column="1"
+                          Classes="ColumnSort"
+                          Command="{Binding SortBridgesCommand}"
+                          CommandParameter="Address"
+                          Content="{DynamicResource Logs.ColumnAddress}" />
+                  <Button Grid.Column="2"
+                          Classes="ColumnSort"
+                          Command="{Binding SortBridgesCommand}"
+                          CommandParameter="Status"
+                          Content="{DynamicResource Scanner.ColStatus}" />
                   <TextBlock Grid.Column="3"
                              Text="{DynamicResource Logs.ColumnDetails}"
                              Classes="SectionCaption" />
+                  <TextBlock Grid.Column="4" Width="32" />
                 </Grid>
               </Panel>
 
@@ -260,7 +271,7 @@
                     <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                             BorderThickness="0,1,0,0"
                             Padding="14,10">
-                      <Grid ColumnDefinitions="110,240,96,*"
+                      <Grid ColumnDefinitions="110,240,96,*,Auto"
                             ColumnSpacing="10">
                         <controls:StatusBadge Text="{Binding Type}"
                                               Tone="info"
@@ -280,6 +291,18 @@
                                    FontFamily="Consolas"
                                    TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <!-- One-tap copy of this single bridge line (issue #69). -->
+                        <Button Grid.Column="4"
+                                Classes="ActionGhost"
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                VerticalAlignment="Top"
+                                Click="OnCopyBridgeRowClick"
+                                ToolTip.Tip="{DynamicResource Logs.CopyRow}">
+                          <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}"
+                                              Width="16" Height="16" />
+                        </Button>
                       </Grid>
                     </Border>
                   </DataTemplate>

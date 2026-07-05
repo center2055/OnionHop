@@ -453,6 +453,7 @@
   <x:String x:Key="Logs.ColumnAddress">آدرس</x:String>
   <x:String x:Key="Logs.ColumnDetails">جزئیات</x:String>
   <x:String x:Key="Logs.BridgeInUse">ایشلدیلیر</x:String>
+  <x:String x:Key="Logs.CopyRow">بۇ کؤرپونو کپی ائت</x:String>
   <x:String x:Key="Logs.EmptyTitle">جاری گؤرونوشه اویغون لاق گیرشی یوخدور</x:String>
   <x:String x:Key="Logs.EmptyDescription">باشقا تب سئچین، آختاریش متنینی تمیزلیین یا یئنی ایجرا فعالیتینی گؤزله‌یین.</x:String>
   <x:String x:Key="Logs.Summary">اوزت</x:String>

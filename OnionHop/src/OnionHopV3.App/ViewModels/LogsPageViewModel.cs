@@ -47,6 +47,10 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
     private HashSet<string> _connectedFingerprints = new(StringComparer.OrdinalIgnoreCase);
     private bool _bridgeStatusRefreshInProgress;
 
+    // Bridges tab sort state (#69): which column and direction the rows are ordered by.
+    [ObservableProperty] private string _bridgeSortColumn = "Type";
+    [ObservableProperty] private bool _bridgeSortDescending;
+
     public ObservableCollection<StructuredLogEntry> VisibleEntries { get; } = [];
 
     // The "Current Bridge" tab shows connection state, not a timestamped log stream, so it gets its
@@ -493,7 +497,7 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
 
     private void RebuildBridgeRows()
     {
-        BridgeRows.Clear();
+        var rows = new List<BridgeRowEntry>();
         foreach (var line in State.ActiveBridgeLines)
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -527,12 +531,62 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
             if (string.IsNullOrWhiteSpace(SearchText) ||
                 row.RawLine.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
             {
-                BridgeRows.Add(row);
+                rows.Add(row);
             }
+        }
+
+        // In-use bridges always float to the top; the chosen column then orders the rest (#69).
+        var sorted = SortBridgeRows(rows);
+        BridgeRows.Clear();
+        foreach (var row in sorted)
+        {
+            BridgeRows.Add(row);
         }
 
         OnPropertyChanged(nameof(ShowEmptyState));
     }
+
+    private IEnumerable<BridgeRowEntry> SortBridgeRows(List<BridgeRowEntry> rows)
+    {
+        Func<BridgeRowEntry, string> key = BridgeSortColumn switch
+        {
+            "Address" => r => r.Address,
+            "Status" => r => r.StatusLabel,
+            _ => r => r.Type
+        };
+
+        var ordered = BridgeSortDescending
+            ? rows.OrderByDescending(key, StringComparer.OrdinalIgnoreCase)
+            : rows.OrderBy(key, StringComparer.OrdinalIgnoreCase);
+
+        // Keep the bridge actually in use pinned to the top regardless of sort, so it stays obvious.
+        return ordered.OrderByDescending(r => r.StatusTone == "success");
+    }
+
+    /// <summary>Sort the bridges tab by a column, toggling ascending/descending on repeat clicks (#69).</summary>
+    [RelayCommand]
+    private void SortBridges(string? column)
+    {
+        if (string.IsNullOrWhiteSpace(column))
+        {
+            return;
+        }
+
+        if (string.Equals(BridgeSortColumn, column, StringComparison.Ordinal))
+        {
+            BridgeSortDescending = !BridgeSortDescending;
+        }
+        else
+        {
+            BridgeSortColumn = column;
+            BridgeSortDescending = false;
+        }
+
+        RebuildBridgeRows();
+    }
+
+    /// <summary>Copy a single bridge row's raw line (#69: one-tap copy per row).</summary>
+    public string GetBridgeRowLine(BridgeRowEntry? row) => row?.RawLine ?? string.Empty;
 
     // A bridge line is "<transport> host:port fingerprint key=value ..." for pluggable transports,
     // or just "host:port fingerprint" for vanilla bridges (no transport token). Transport names never

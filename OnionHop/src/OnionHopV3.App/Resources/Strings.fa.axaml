@@ -453,6 +453,7 @@
   <x:String x:Key="Logs.ColumnAddress">نشانی</x:String>
   <x:String x:Key="Logs.ColumnDetails">جزئیات</x:String>
   <x:String x:Key="Logs.BridgeInUse">در حال استفاده</x:String>
+  <x:String x:Key="Logs.CopyRow">کپی این پل</x:String>
   <x:String x:Key="Logs.EmptyTitle">هیچ رکورد گزارشی با نمای فعلی مطابقت ندارد</x:String>
   <x:String x:Key="Logs.EmptyDescription">تب دیگری امتحان کنید، متن جستجو را پاک کنید، یا منتظر فعالیت جدید محیط اجرا باشید.</x:String>
   <x:String x:Key="Logs.Summary">خلاصه</x:String>

@@ -133,6 +133,17 @@ public partial class LogsPageView : UserControl
         }
     }
 
+    private async void OnCopyBridgeRowClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        // Copy just this row's bridge line (issue #69). The button's DataContext is the BridgeRowEntry.
+        if ((sender as Control)?.DataContext is not BridgeRowEntry row || string.IsNullOrWhiteSpace(row.RawLine))
+        {
+            return;
+        }
+
+        await ClipboardHelper.SetTextAsync(this, row.RawLine, State?.ClipboardProtectionEnabled == true);
+    }
+
     private void OnClearCurrentTabClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var state = State;

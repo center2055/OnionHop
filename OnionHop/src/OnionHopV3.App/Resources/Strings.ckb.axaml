@@ -453,6 +453,7 @@
   <x:String x:Key="Logs.ColumnAddress">ناونیشان</x:String>
   <x:String x:Key="Logs.ColumnDetails">وردەکاری</x:String>
   <x:String x:Key="Logs.BridgeInUse">بەکاردێت</x:String>
+  <x:String x:Key="Logs.CopyRow">ئەم پردەیە لەبەربگرەوە</x:String>
   <x:String x:Key="Logs.EmptyTitle">هیچ نووسینی تۆماری لەگەڵ دیمەنی ئێستا نەگونجاو</x:String>
   <x:String x:Key="Logs.EmptyDescription">تابێکی دیکە هەڵبژێرە، دەقی گەڕان پاک بکەرەوە، یان چاوەڕێی چالاکییەکانی ڕانتایمی نوێ بکە.</x:String>
   <x:String x:Key="Logs.Summary">پوختە</x:String>
