@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">Status</x:String>
   <x:String x:Key="Scanner.EmptyTitle">No scan results yet</x:String>
   <x:String x:Key="Scanner.EmptyDescription">Pick a category/transport and press Start Scan, or paste a custom list.</x:String>
+  <x:String x:Key="Scanner.TabBridge">Bridge Scanner</x:String>
+  <x:String x:Key="Scanner.TabSni">SNI Scanner</x:String>
+  <x:String x:Key="Scanner.TabSaved">Saved</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">Save to Library</x:String>
+  <x:String x:Key="Sni.Title">SNI Scanner</x:String>
+  <x:String x:Key="Sni.Subtitle">Find SNI/front hosts that work on your network. Domain mode tests a list of domains; Range mode tests one SNI across an IPv4 range. Green = TLS handshake succeeded (usable front), red = blocked.</x:String>
+  <x:String x:Key="Sni.ModeDomain">Test domains</x:String>
+  <x:String x:Key="Sni.ModeRange">Scan IP range</x:String>
+  <x:String x:Key="Sni.Domains">Candidate domains</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">One domain per line (e.g. www.cloudflare.com)</x:String>
+  <x:String x:Key="Sni.RangeSni">SNI host</x:String>
+  <x:String x:Key="Sni.RangeCidr">IPv4 range (CIDR)</x:String>
+  <x:String x:Key="Sni.Port">Port</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">Use as SNI hosts</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">No SNI results yet</x:String>
+  <x:String x:Key="Sni.EmptyDescription">Enter domains (or an SNI + IP range) and press Start Scan.</x:String>
+  <x:String x:Key="Saved.Title">Saved bridges &amp; SNI</x:String>
+  <x:String x:Key="Saved.Subtitle">Your library of saved bridges and SNI hosts. Apply one to use it, or relabel and remove entries.</x:String>
+  <x:String x:Key="Saved.Clear">Clear all</x:String>
+  <x:String x:Key="Saved.ColType">Type</x:String>
+  <x:String x:Key="Saved.ColLine">Bridge / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">Label</x:String>
+  <x:String x:Key="Saved.ColAdded">Added</x:String>
+  <x:String x:Key="Saved.LabelWatermark">label</x:String>
+  <x:String x:Key="Saved.Apply">Apply</x:String>
+  <x:String x:Key="Saved.Delete">Delete</x:String>
+  <x:String x:Key="Saved.EmptyTitle">Nothing saved yet</x:String>
+  <x:String x:Key="Saved.EmptyDescription">Save working bridges or SNI hosts from the scanner to build your library.</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">Connection</x:String>

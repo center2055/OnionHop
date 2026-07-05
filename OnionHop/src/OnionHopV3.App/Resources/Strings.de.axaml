@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">Status</x:String>
   <x:String x:Key="Scanner.EmptyTitle">Noch keine Scan-Ergebnisse</x:String>
   <x:String x:Key="Scanner.EmptyDescription">Kategorie/Transport w&#228;hlen und Scan starten, oder eine eigene Liste einf&#252;gen.</x:String>
+  <x:String x:Key="Scanner.TabBridge">Bridge-Scanner</x:String>
+  <x:String x:Key="Scanner.TabSni">SNI-Scanner</x:String>
+  <x:String x:Key="Scanner.TabSaved">Gespeichert</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">In Bibliothek speichern</x:String>
+  <x:String x:Key="Sni.Title">SNI-Scanner</x:String>
+  <x:String x:Key="Sni.Subtitle">Findet SNI-/Front-Hosts, die in deinem Netzwerk funktionieren. Domain-Modus testet eine Liste von Domains; Bereichsmodus testet eine SNI ueber einen IPv4-Bereich. Gruen = TLS-Handshake erfolgreich, rot = blockiert.</x:String>
+  <x:String x:Key="Sni.ModeDomain">Domains testen</x:String>
+  <x:String x:Key="Sni.ModeRange">IP-Bereich scannen</x:String>
+  <x:String x:Key="Sni.Domains">Kandidaten-Domains</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">Eine Domain pro Zeile (z. B. www.cloudflare.com)</x:String>
+  <x:String x:Key="Sni.RangeSni">SNI-Host</x:String>
+  <x:String x:Key="Sni.RangeCidr">IPv4-Bereich (CIDR)</x:String>
+  <x:String x:Key="Sni.Port">Port</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">Als SNI-Hosts verwenden</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">Noch keine SNI-Ergebnisse</x:String>
+  <x:String x:Key="Sni.EmptyDescription">Domains (oder SNI + IP-Bereich) eingeben und Scan starten.</x:String>
+  <x:String x:Key="Saved.Title">Gespeicherte Bridges &amp; SNI</x:String>
+  <x:String x:Key="Saved.Subtitle">Deine Bibliothek gespeicherter Bridges und SNI-Hosts. Anwenden zum Verwenden, oder umbenennen und entfernen.</x:String>
+  <x:String x:Key="Saved.Clear">Alle loeschen</x:String>
+  <x:String x:Key="Saved.ColType">Typ</x:String>
+  <x:String x:Key="Saved.ColLine">Bridge / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">Bezeichnung</x:String>
+  <x:String x:Key="Saved.ColAdded">Hinzugefuegt</x:String>
+  <x:String x:Key="Saved.LabelWatermark">Bezeichnung</x:String>
+  <x:String x:Key="Saved.Apply">Anwenden</x:String>
+  <x:String x:Key="Saved.Delete">Loeschen</x:String>
+  <x:String x:Key="Saved.EmptyTitle">Noch nichts gespeichert</x:String>
+  <x:String x:Key="Saved.EmptyDescription">Speichere funktionierende Bridges oder SNI-Hosts aus dem Scanner in deiner Bibliothek.</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">Verbindung</x:String>

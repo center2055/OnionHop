@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">وضعیت</x:String>
   <x:String x:Key="Scanner.EmptyTitle">هنوز اسکن نتیجه‌سی یوخدور</x:String>
   <x:String x:Key="Scanner.EmptyDescription">بیر کاتقوری/ناقلیه سئچیب اسکنی باشلادین، یا اؤزل لیست یاپیشدیرین.</x:String>
+  <x:String x:Key="Scanner.TabBridge">کؤرپو تاراییجی</x:String>
+  <x:String x:Key="Scanner.TabSni">SNI تاراییجی</x:String>
+  <x:String x:Key="Scanner.TabSaved">ساخلانیلمیش</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">کیتابخانایا ساخلا</x:String>
+  <x:String x:Key="Sni.Title">SNI تاراییجی</x:String>
+  <x:String x:Key="Sni.Subtitle">شبکه‌نیزده ایشلَین SNI/فرانت هاستلارینی تاپیر. دامنه مودو بیر دامنه لیستینی، بازه مودو بیر SNI-نی IPv4 بازه‌سینده یوخلاییر. یاشیل = TLS ال‌سیخما اوغورلو، قیرمیزی = بلوکلانیب.</x:String>
+  <x:String x:Key="Sni.ModeDomain">دامنه‌لری یوخلا</x:String>
+  <x:String x:Key="Sni.ModeRange">IP بازه‌سینی تارا</x:String>
+  <x:String x:Key="Sni.Domains">نامزد دامنه‌لر</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">هر سطیرده بیر دامنه (مثلا www.cloudflare.com)</x:String>
+  <x:String x:Key="Sni.RangeSni">SNI هاست</x:String>
+  <x:String x:Key="Sni.RangeCidr">IPv4 بازه (CIDR)</x:String>
+  <x:String x:Key="Sni.Port">پورت</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">SNI هاست کیمی ایشلت</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">حله SNI نتیجه‌سی یوخدور</x:String>
+  <x:String x:Key="Sni.EmptyDescription">دامنه‌لری (یا بیر SNI + IP بازه) داخیل ائدیب تارامانی باشلادین.</x:String>
+  <x:String x:Key="Saved.Title">ساخلانیلمیش کؤرپولر و SNI</x:String>
+  <x:String x:Key="Saved.Subtitle">ساخلانیلمیش کؤرپو و SNI هاستلار کیتابخاناز. ایشلتمک اوچون اعمال ائدین، یا آدینی دَییشین و سیلین.</x:String>
+  <x:String x:Key="Saved.Clear">هامیسینی تمیزله</x:String>
+  <x:String x:Key="Saved.ColType">نوع</x:String>
+  <x:String x:Key="Saved.ColLine">کؤرپو / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">برچسب</x:String>
+  <x:String x:Key="Saved.ColAdded">الاوه اولونوب</x:String>
+  <x:String x:Key="Saved.LabelWatermark">برچسب</x:String>
+  <x:String x:Key="Saved.Apply">اعمال ائت</x:String>
+  <x:String x:Key="Saved.Delete">سیل</x:String>
+  <x:String x:Key="Saved.EmptyTitle">حله بیرشی ساخلانماییب</x:String>
+  <x:String x:Key="Saved.EmptyDescription">تاراییجیدان ایشلَین کؤرپو یا SNI هاستلاری ساخلایین.</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">باغلانتی</x:String>

@@ -17,6 +17,15 @@ public partial class BridgeScannerPageView : UserControl
 
     private BridgeScannerPageViewModel? ViewModel => DataContext as BridgeScannerPageViewModel;
 
+    // Persist an edited label when the row's label TextBox loses focus (saved-library subtab, v3.6).
+    private void OnSavedLabelLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is SavedBridgeRow row)
+        {
+            ViewModel?.Saved.CommitLabel(row);
+        }
+    }
+
     private async void OnExportWorkingClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var viewModel = ViewModel;

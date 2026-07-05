@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">État</x:String>
   <x:String x:Key="Scanner.EmptyTitle">Aucun résultat d'analyse pour l'instant</x:String>
   <x:String x:Key="Scanner.EmptyDescription">Choisissez une catégorie/un transport et appuyez sur Lancer l'analyse, ou collez une liste personnalisée.</x:String>
+  <x:String x:Key="Scanner.TabBridge">Scanner de ponts</x:String>
+  <x:String x:Key="Scanner.TabSni">Scanner SNI</x:String>
+  <x:String x:Key="Scanner.TabSaved">Enregistres</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">Enregistrer dans la bibliotheque</x:String>
+  <x:String x:Key="Sni.Title">Scanner SNI</x:String>
+  <x:String x:Key="Sni.Subtitle">Trouve des hotes SNI/front qui fonctionnent sur votre reseau. Le mode Domaines teste une liste de domaines ; le mode Plage teste un SNI sur une plage IPv4. Vert = handshake TLS reussi, rouge = bloque.</x:String>
+  <x:String x:Key="Sni.ModeDomain">Tester des domaines</x:String>
+  <x:String x:Key="Sni.ModeRange">Scanner une plage IP</x:String>
+  <x:String x:Key="Sni.Domains">Domaines candidats</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">Un domaine par ligne (ex. www.cloudflare.com)</x:String>
+  <x:String x:Key="Sni.RangeSni">Hote SNI</x:String>
+  <x:String x:Key="Sni.RangeCidr">Plage IPv4 (CIDR)</x:String>
+  <x:String x:Key="Sni.Port">Port</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">Utiliser comme hotes SNI</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">Aucun resultat SNI</x:String>
+  <x:String x:Key="Sni.EmptyDescription">Saisissez des domaines (ou un SNI + une plage IP) puis lancez le scan.</x:String>
+  <x:String x:Key="Saved.Title">Ponts et SNI enregistres</x:String>
+  <x:String x:Key="Saved.Subtitle">Votre bibliotheque de ponts et d'hotes SNI enregistres. Appliquez-en un, ou renommez et supprimez.</x:String>
+  <x:String x:Key="Saved.Clear">Tout effacer</x:String>
+  <x:String x:Key="Saved.ColType">Type</x:String>
+  <x:String x:Key="Saved.ColLine">Pont / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">Etiquette</x:String>
+  <x:String x:Key="Saved.ColAdded">Ajoute</x:String>
+  <x:String x:Key="Saved.LabelWatermark">etiquette</x:String>
+  <x:String x:Key="Saved.Apply">Appliquer</x:String>
+  <x:String x:Key="Saved.Delete">Supprimer</x:String>
+  <x:String x:Key="Saved.EmptyTitle">Rien d'enregistre</x:String>
+  <x:String x:Key="Saved.EmptyDescription">Enregistrez les ponts ou hotes SNI fonctionnels du scanner pour constituer votre bibliotheque.</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">Connexion</x:String>

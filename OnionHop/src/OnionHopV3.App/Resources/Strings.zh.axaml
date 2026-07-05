@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">状态</x:String>
   <x:String x:Key="Scanner.EmptyTitle">暂无扫描结果</x:String>
   <x:String x:Key="Scanner.EmptyDescription">选择一个类别/传输方式并点击“开始扫描”，或粘贴自定义列表。</x:String>
+  <x:String x:Key="Scanner.TabBridge">网桥扫描</x:String>
+  <x:String x:Key="Scanner.TabSni">SNI 扫描</x:String>
+  <x:String x:Key="Scanner.TabSaved">已保存</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">保存到库</x:String>
+  <x:String x:Key="Sni.Title">SNI 扫描</x:String>
+  <x:String x:Key="Sni.Subtitle">查找在你网络上可用的 SNI/前置域名。域名模式测试一组域名；范围模式在 IPv4 段内测试一个 SNI。绿色 = TLS 握手成功，红色 = 被封锁。</x:String>
+  <x:String x:Key="Sni.ModeDomain">测试域名</x:String>
+  <x:String x:Key="Sni.ModeRange">扫描 IP 段</x:String>
+  <x:String x:Key="Sni.Domains">候选域名</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">每行一个域名（如 www.cloudflare.com）</x:String>
+  <x:String x:Key="Sni.RangeSni">SNI 主机</x:String>
+  <x:String x:Key="Sni.RangeCidr">IPv4 段（CIDR）</x:String>
+  <x:String x:Key="Sni.Port">端口</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">用作 SNI 主机</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">暂无 SNI 结果</x:String>
+  <x:String x:Key="Sni.EmptyDescription">输入域名（或一个 SNI + IP 段）并开始扫描。</x:String>
+  <x:String x:Key="Saved.Title">已保存的网桥和 SNI</x:String>
+  <x:String x:Key="Saved.Subtitle">你保存的网桥和 SNI 主机库。点击应用即可使用，或重命名、删除。</x:String>
+  <x:String x:Key="Saved.Clear">全部清除</x:String>
+  <x:String x:Key="Saved.ColType">类型</x:String>
+  <x:String x:Key="Saved.ColLine">网桥 / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">标签</x:String>
+  <x:String x:Key="Saved.ColAdded">添加时间</x:String>
+  <x:String x:Key="Saved.LabelWatermark">标签</x:String>
+  <x:String x:Key="Saved.Apply">应用</x:String>
+  <x:String x:Key="Saved.Delete">删除</x:String>
+  <x:String x:Key="Saved.EmptyTitle">尚未保存任何内容</x:String>
+  <x:String x:Key="Saved.EmptyDescription">将扫描到的可用网桥或 SNI 主机保存下来，建立你的库。</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">连接</x:String>

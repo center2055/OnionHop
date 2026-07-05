@@ -9,14 +9,20 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Material.Icons;
 using OnionHopV3.App.Services;
+using OnionHopV3.Core.Models;
 using OnionHopV3.Core.Services;
 
 namespace OnionHopV3.App.ViewModels;
 
 public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
 {
+    private const string SubTabBridge = "bridge";
+    private const string SubTabSni = "sni";
+    private const string SubTabSaved = "saved";
+
     private CancellationTokenSource? _scanCts;
     private readonly List<string> _workingLines = new();
+    private readonly SavedBridgeStore _savedStore = new();
 
     public BridgeScannerPageViewModel(AppStateViewModel state)
         : base("Nav.Scanner", MaterialIconKind.Radar, state, 0xE721)
@@ -35,7 +41,44 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
         {
             IpVersions.Add(ipVersion);
         }
+
+        // The Scanner page hosts three subtabs (v3.6): the bridge scanner (this VM), the SNI scanner,
+        // and the saved-bridges library. The child VMs share one library store.
+        Sni = new SniScannerViewModel(state, _savedStore);
+        Saved = new SavedBridgesViewModel(state, _savedStore);
     }
+
+    public SniScannerViewModel Sni { get; }
+    public SavedBridgesViewModel Saved { get; }
+
+    // Which subtab is showing. Setting it refreshes the library when that tab opens so freshly-saved
+    // items appear without a manual reload.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBridgeTab))]
+    [NotifyPropertyChangedFor(nameof(IsSniTab))]
+    [NotifyPropertyChangedFor(nameof(IsSavedTab))]
+    private string _subTab = SubTabBridge;
+
+    public bool IsBridgeTab => SubTab == SubTabBridge;
+    public bool IsSniTab => SubTab == SubTabSni;
+    public bool IsSavedTab => SubTab == SubTabSaved;
+
+    partial void OnSubTabChanged(string value)
+    {
+        if (value == SubTabSaved)
+        {
+            Saved.Refresh();
+        }
+    }
+
+    [RelayCommand]
+    private void ShowBridgeTab() => SubTab = SubTabBridge;
+
+    [RelayCommand]
+    private void ShowSniTab() => SubTab = SubTabSni;
+
+    [RelayCommand]
+    private void ShowSavedTab() => SubTab = SubTabSaved;
 
     public ObservableCollection<string> Categories { get; } = [];
     public ObservableCollection<string> Transports { get; } = [];
@@ -161,12 +204,40 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
         }
 
         // Push the reachable bridges into the app's custom-bridge setting so the user can connect
-        // with exactly the bridges that passed the scan.
+        // with exactly the bridges that passed the scan. Selecting the Custom source makes them
+        // actually take effect (issue #70).
         State.CustomBridges = string.Join(Environment.NewLine, _workingLines);
         State.SelectedBridgeType = "custom";
+        State.BridgeSourceMode = AppStateViewModel.BridgeSourceCustom;
         State.UseTorBridges = true;
         State.AppendLog($"Bridge scanner: applied {_workingLines.Count} working bridge(s) as custom bridges.");
         ProgressText = $"Applied {_workingLines.Count} working bridge(s) as custom bridges.";
+    }
+
+    /// <summary>Save the working bridges from the last scan to the library (v3.6) for reuse later.</summary>
+    [RelayCommand]
+    private void SaveWorkingToLibrary()
+    {
+        if (_workingLines.Count == 0)
+        {
+            return;
+        }
+
+        var entries = _workingLines.Select(line => new SavedBridge
+        {
+            Line = line,
+            Kind = SavedBridgeKind.Bridge,
+            Transport = SelectedTransport,
+            Source = "bridge-scan",
+            AddedUtc = DateTime.UtcNow.ToString("o"),
+            LastStatus = "reachable"
+        });
+
+        var added = _savedStore.AddRange(entries);
+        ProgressText = added > 0
+            ? $"Saved {added} bridge(s) to your library."
+            : "Those bridges are already in your library.";
+        Saved.Refresh();
     }
 
     private void OnResult(BridgeScanResult result)

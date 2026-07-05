@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">دۆخ</x:String>
   <x:String x:Key="Scanner.EmptyTitle">هێشتا ئەنجامی سکانێک نییە</x:String>
   <x:String x:Key="Scanner.EmptyDescription">پۆل/گواستنەوەیەک هەڵبژێرە و سکان دەست پێ بکە، یان لیستێکی تایبەت پەیست بکە.</x:String>
+  <x:String x:Key="Scanner.TabBridge">سکانەری پرد</x:String>
+  <x:String x:Key="Scanner.TabSni">سکانەری SNI</x:String>
+  <x:String x:Key="Scanner.TabSaved">پاشەکەوتکراو</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">پاشەکەوت لە کتێبخانە</x:String>
+  <x:String x:Key="Sni.Title">سکانەری SNI</x:String>
+  <x:String x:Key="Sni.Subtitle">هۆستە SNI/فڕۆنتەکان دەدۆزێتەوە کە لە تۆڕەکەت کاردەکەن. دۆخی دۆمەین لیستێک دۆمەین تاقی دەکاتەوە؛ دۆخی مەودا یەک SNI بەسەر مەودای IPv4 تاقی دەکاتەوە. سەوز = تۆکەڵی TLS سەرکەوتوو، سوور = بلۆککراو.</x:String>
+  <x:String x:Key="Sni.ModeDomain">تاقیکردنەوەی دۆمەینەکان</x:String>
+  <x:String x:Key="Sni.ModeRange">سکانی مەودای IP</x:String>
+  <x:String x:Key="Sni.Domains">دۆمەینە بەربژێرەکان</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">هەر دێڕێک یەک دۆمەین (وەک www.cloudflare.com)</x:String>
+  <x:String x:Key="Sni.RangeSni">هۆستی SNI</x:String>
+  <x:String x:Key="Sni.RangeCidr">مەودای IPv4 (CIDR)</x:String>
+  <x:String x:Key="Sni.Port">پۆرت</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">وەک هۆستی SNI بەکاربهێنە</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">هێشتا ئەنجامی SNI نییە</x:String>
+  <x:String x:Key="Sni.EmptyDescription">دۆمەینەکان (یان SNI + مەودای IP) بنووسە و سکان دەست پێبکە.</x:String>
+  <x:String x:Key="Saved.Title">پردە و SNI پاشەکەوتکراوەکان</x:String>
+  <x:String x:Key="Saved.Subtitle">کتێبخانەی پردە و هۆستە SNI پاشەکەوتکراوەکانت. بۆ بەکارهێنان جێبەجێی بکە، یان ناوی بگۆڕە و بیسڕەوە.</x:String>
+  <x:String x:Key="Saved.Clear">سڕینەوەی هەموو</x:String>
+  <x:String x:Key="Saved.ColType">جۆر</x:String>
+  <x:String x:Key="Saved.ColLine">پرد / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">ناونیشان</x:String>
+  <x:String x:Key="Saved.ColAdded">زیادکراو</x:String>
+  <x:String x:Key="Saved.LabelWatermark">ناونیشان</x:String>
+  <x:String x:Key="Saved.Apply">جێبەجێکردن</x:String>
+  <x:String x:Key="Saved.Delete">سڕینەوە</x:String>
+  <x:String x:Key="Saved.EmptyTitle">هێشتا هیچ پاشەکەوت نەکراوە</x:String>
+  <x:String x:Key="Saved.EmptyDescription">پردە یان هۆستە SNI کارکردووەکان لە سکانەرەوە پاشەکەوت بکە بۆ دروستکردنی کتێبخانەکەت.</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">پەیوەندی</x:String>

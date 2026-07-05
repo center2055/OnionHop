@@ -10,180 +10,293 @@
              x:Class="OnionHopV3.App.Views.BridgeScannerPageView"
              x:DataType="vm:BridgeScannerPageViewModel">
 
-  <Grid RowDefinitions="Auto,Auto,*"
-        RowSpacing="14">
+  <Grid RowDefinitions="Auto,*" RowSpacing="14">
 
-    <!-- Controls -->
-    <Border Classes="SectionCard">
-      <StackPanel Spacing="12">
-        <TextBlock Text="{DynamicResource Scanner.Title}"
-                   Classes="SectionTitle" />
-        <TextBlock Text="{DynamicResource Scanner.Subtitle}"
-                   Classes="SectionCaption"
-                   TextWrapping="Wrap" />
+    <!-- Subtabs: bridge scanner (existing), SNI scanner, and the saved-bridges library (v3.6). -->
+    <WrapPanel Orientation="Horizontal">
+      <RadioButton Classes="TabChip"
+                   GroupName="ScannerTab"
+                   IsChecked="{Binding IsBridgeTab, Mode=OneWay}"
+                   Command="{Binding ShowBridgeTabCommand}"
+                   Content="{DynamicResource Scanner.TabBridge}"
+                   Width="170" Height="40" Margin="0,0,10,0" />
+      <RadioButton Classes="TabChip"
+                   GroupName="ScannerTab"
+                   IsChecked="{Binding IsSniTab, Mode=OneWay}"
+                   Command="{Binding ShowSniTabCommand}"
+                   Content="{DynamicResource Scanner.TabSni}"
+                   Width="170" Height="40" Margin="0,0,10,0" />
+      <RadioButton Classes="TabChip"
+                   GroupName="ScannerTab"
+                   IsChecked="{Binding IsSavedTab, Mode=OneWay}"
+                   Command="{Binding ShowSavedTabCommand}"
+                   Content="{DynamicResource Scanner.TabSaved}"
+                   Width="170" Height="40" />
+    </WrapPanel>
 
-        <WrapPanel Orientation="Horizontal">
-          <StackPanel Spacing="4" Margin="0,0,16,8">
-            <TextBlock Text="{DynamicResource Scanner.Category}" Classes="SectionCaption" />
-            <ComboBox Width="170"
-                      ItemsSource="{Binding Categories}"
-                      SelectedItem="{Binding SelectedCategory}"
-                      IsEnabled="{Binding !UseCustomBridges}" />
-          </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,16,8">
-            <TextBlock Text="{DynamicResource Scanner.Transport}" Classes="SectionCaption" />
-            <ComboBox Width="140"
-                      ItemsSource="{Binding Transports}"
-                      SelectedItem="{Binding SelectedTransport}"
-                      IsEnabled="{Binding !UseCustomBridges}" />
-          </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,16,8">
-            <TextBlock Text="{DynamicResource Scanner.IpVersion}" Classes="SectionCaption" />
-            <ComboBox Width="100"
-                      ItemsSource="{Binding IpVersions}"
-                      SelectedItem="{Binding SelectedIpVersion}"
-                      IsEnabled="{Binding !UseCustomBridges}" />
-          </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,16,8">
-            <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
-            <NumericUpDown Width="110"
-                           Minimum="1"
-                           Maximum="64"
-                           Increment="1"
-                           FormatString="0"
-                           Value="{Binding Workers}" />
-          </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,16,8">
-            <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
-            <NumericUpDown Width="110"
-                           Minimum="1"
-                           Maximum="60"
-                           Increment="1"
-                           FormatString="0"
-                           Value="{Binding TimeoutSeconds}" />
-          </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,16,8"
-                      VerticalAlignment="Bottom">
-            <TextBlock Text="{DynamicResource Scanner.CustomSource}" Classes="SectionCaption" />
-            <ToggleButton Classes="V3Switch"
-                          IsChecked="{Binding UseCustomBridges}"
-                          ToolTip.Tip="{DynamicResource Scanner.CustomSourceHint}" />
-          </StackPanel>
-        </WrapPanel>
+    <!-- ============================ BRIDGE SCANNER ============================ -->
+    <Grid Grid.Row="1"
+          RowDefinitions="Auto,Auto,*"
+          RowSpacing="14"
+          IsVisible="{Binding IsBridgeTab}">
+      <Border Classes="SectionCard">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{DynamicResource Scanner.Title}" Classes="SectionTitle" />
+          <TextBlock Text="{DynamicResource Scanner.Subtitle}" Classes="SectionCaption" TextWrapping="Wrap" />
 
-        <TextBox AcceptsReturn="True"
-                 MinHeight="86"
-                 MaxHeight="160"
-                 TextWrapping="NoWrap"
-                 FontFamily="Consolas"
-                 Watermark="{DynamicResource Scanner.CustomWatermark}"
-                 Text="{Binding CustomBridges}"
-                 IsVisible="{Binding UseCustomBridges}" />
+          <WrapPanel Orientation="Horizontal">
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Category}" Classes="SectionCaption" />
+              <ComboBox Width="170" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" IsEnabled="{Binding !UseCustomBridges}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Transport}" Classes="SectionCaption" />
+              <ComboBox Width="140" ItemsSource="{Binding Transports}" SelectedItem="{Binding SelectedTransport}" IsEnabled="{Binding !UseCustomBridges}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.IpVersion}" Classes="SectionCaption" />
+              <ComboBox Width="100" ItemsSource="{Binding IpVersions}" SelectedItem="{Binding SelectedIpVersion}" IsEnabled="{Binding !UseCustomBridges}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
+              <NumericUpDown Width="110" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
+              <NumericUpDown Width="110" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8" VerticalAlignment="Bottom">
+              <TextBlock Text="{DynamicResource Scanner.CustomSource}" Classes="SectionCaption" />
+              <ToggleButton Classes="V3Switch" IsChecked="{Binding UseCustomBridges}" ToolTip.Tip="{DynamicResource Scanner.CustomSourceHint}" />
+            </StackPanel>
+          </WrapPanel>
 
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <Button Classes="ActionPrimary"
-                  Height="36"
-                  MinWidth="120"
-                  Command="{Binding StartScanCommand}"
-                  IsVisible="{Binding CanStartScan}"
-                  Content="{DynamicResource Scanner.Start}" />
-          <Button Classes="ActionDanger"
-                  Height="36"
-                  MinWidth="100"
-                  Command="{Binding StopScanCommand}"
-                  IsVisible="{Binding IsScanning}"
-                  Content="{DynamicResource Scanner.Stop}" />
-          <Button Classes="ActionGhost"
-                  Height="36"
-                  MinWidth="150"
-                  Click="OnExportWorkingClick"
-                  IsEnabled="{Binding HasWorkingBridges}"
-                  Content="{DynamicResource Scanner.Export}" />
-          <Button Classes="ActionGhost"
-                  Height="36"
-                  MinWidth="180"
-                  Command="{Binding ApplyWorkingAsCustomBridgesCommand}"
-                  IsEnabled="{Binding HasWorkingBridges}"
-                  Content="{DynamicResource Scanner.ApplyAsCustom}" />
+          <TextBox AcceptsReturn="True" MinHeight="86" MaxHeight="160" TextWrapping="NoWrap" FontFamily="Consolas"
+                   Watermark="{DynamicResource Scanner.CustomWatermark}" Text="{Binding CustomBridges}" IsVisible="{Binding UseCustomBridges}" />
+
+          <WrapPanel Orientation="Horizontal">
+            <Button Classes="ActionPrimary" Height="36" MinWidth="120" Margin="0,0,12,8"
+                    Command="{Binding StartScanCommand}" IsVisible="{Binding CanStartScan}" Content="{DynamicResource Scanner.Start}" />
+            <Button Classes="ActionDanger" Height="36" MinWidth="100" Margin="0,0,12,8"
+                    Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Content="{DynamicResource Scanner.Stop}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
+                    Click="OnExportWorkingClick" IsEnabled="{Binding HasWorkingBridges}" Content="{DynamicResource Scanner.Export}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
+                    Command="{Binding SaveWorkingToLibraryCommand}" IsEnabled="{Binding HasWorkingBridges}" Content="{DynamicResource Scanner.SaveToLibrary}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="180" Margin="0,0,12,8"
+                    Command="{Binding ApplyWorkingAsCustomBridgesCommand}" IsEnabled="{Binding HasWorkingBridges}" Content="{DynamicResource Scanner.ApplyAsCustom}" />
+          </WrapPanel>
         </StackPanel>
-      </StackPanel>
-    </Border>
+      </Border>
 
-    <!-- Progress -->
-    <Border Grid.Row="1" Classes="SectionCard">
-      <StackPanel Spacing="8">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{Binding ProgressText}"
-                     Classes="SectionCaption"
-                     VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1"
-                     Text="{Binding SummaryText}"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource SuccessBrush}"
-                     VerticalAlignment="Center" />
+      <Border Grid.Row="1" Classes="SectionCard">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding ProgressText}" Classes="SectionCaption" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding SummaryText}" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" />
+          </Grid>
+          <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="2" Classes="InsetPanel" Padding="0" MinHeight="0">
+        <Grid RowDefinitions="Auto,*" MinHeight="0">
+          <Grid ColumnDefinitions="120,*,80,90,160" ColumnSpacing="10" Margin="14,12,14,10">
+            <TextBlock Text="{DynamicResource Scanner.ColType}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="1" Text="{DynamicResource Scanner.ColHost}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="2" Text="{DynamicResource Scanner.ColPort}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="3" Text="{DynamicResource Scanner.ColPing}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="4" Text="{DynamicResource Scanner.ColStatus}" Classes="SectionCaption" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MinHeight="0">
+            <ItemsControl ItemsSource="{Binding Results}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:BridgeScanRow">
+                  <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="14,9">
+                    <Grid ColumnDefinitions="120,*,80,90,160" ColumnSpacing="10">
+                      <TextBlock Text="{Binding Transport}" Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Host}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="2" Text="{Binding Port}" FontFamily="Consolas" />
+                      <TextBlock Grid.Column="3" Text="{Binding Ping}" FontFamily="Consolas" />
+                      <controls:StatusBadge Grid.Column="4" Text="{Binding StatusText}" Tone="{Binding Tone}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <controls:EmptyState Grid.Row="1" Margin="20" Title="{DynamicResource Scanner.EmptyTitle}" Description="{DynamicResource Scanner.EmptyDescription}" Icon="Radar" IsVisible="{Binding !HasResults}" />
         </Grid>
-        <ProgressBar Minimum="0"
-                     Maximum="100"
-                     Value="{Binding ProgressValue}" />
-      </StackPanel>
-    </Border>
+      </Border>
+    </Grid>
 
-    <!-- Results -->
-    <Border Grid.Row="2"
-            Classes="InsetPanel"
-            Padding="0"
-            MinHeight="0">
-      <Grid RowDefinitions="Auto,*" MinHeight="0">
-        <Grid ColumnDefinitions="120,*,80,90,160"
-              ColumnSpacing="10"
-              Margin="14,12,14,10">
-          <TextBlock Text="{DynamicResource Scanner.ColType}" Classes="SectionCaption" />
-          <TextBlock Grid.Column="1" Text="{DynamicResource Scanner.ColHost}" Classes="SectionCaption" />
-          <TextBlock Grid.Column="2" Text="{DynamicResource Scanner.ColPort}" Classes="SectionCaption" />
-          <TextBlock Grid.Column="3" Text="{DynamicResource Scanner.ColPing}" Classes="SectionCaption" />
-          <TextBlock Grid.Column="4" Text="{DynamicResource Scanner.ColStatus}" Classes="SectionCaption" />
+    <!-- ============================ SNI SCANNER ============================ -->
+    <Grid Grid.Row="1"
+          RowDefinitions="Auto,Auto,*"
+          RowSpacing="14"
+          IsVisible="{Binding $parent[UserControl].((vm:BridgeScannerPageViewModel)DataContext).IsSniTab}"
+          DataContext="{Binding Sni}"
+          x:DataType="vm:SniScannerViewModel">
+      <Border Classes="SectionCard">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{DynamicResource Sni.Title}" Classes="SectionTitle" />
+          <TextBlock Text="{DynamicResource Sni.Subtitle}" Classes="SectionCaption" TextWrapping="Wrap" />
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <RadioButton Classes="TabChip" GroupName="SniMode" Width="150" Height="36"
+                         IsChecked="{Binding IsDomainMode, Mode=OneWay}"
+                         Command="{Binding SetDomainModeCommand}"
+                         Content="{DynamicResource Sni.ModeDomain}" />
+            <RadioButton Classes="TabChip" GroupName="SniMode" Width="150" Height="36"
+                         IsChecked="{Binding IsRangeMode, Mode=OneWay}"
+                         Command="{Binding SetRangeModeCommand}"
+                         Content="{DynamicResource Sni.ModeRange}" />
+          </StackPanel>
+
+          <!-- Domain mode: a list of candidate domains to test as SNI. -->
+          <StackPanel Spacing="4" IsVisible="{Binding IsDomainMode}">
+            <TextBlock Text="{DynamicResource Sni.Domains}" Classes="SectionCaption" />
+            <TextBox AcceptsReturn="True" MinHeight="86" MaxHeight="160" TextWrapping="NoWrap" FontFamily="Consolas"
+                     Watermark="{DynamicResource Sni.DomainsWatermark}" Text="{Binding DomainList}" />
+          </StackPanel>
+
+          <!-- Range mode: one SNI probed across an IPv4 CIDR. -->
+          <WrapPanel Orientation="Horizontal" IsVisible="{Binding IsRangeMode}">
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Sni.RangeSni}" Classes="SectionCaption" />
+              <TextBox Width="240" FontFamily="Consolas" Watermark="cdn.example.com" Text="{Binding RangeSni}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Sni.RangeCidr}" Classes="SectionCaption" />
+              <TextBox Width="200" FontFamily="Consolas" Watermark="104.16.0.0/24" Text="{Binding RangeCidr}" />
+            </StackPanel>
+          </WrapPanel>
+
+          <WrapPanel Orientation="Horizontal">
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
+              <NumericUpDown Width="110" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
+              <NumericUpDown Width="110" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Sni.Port}" Classes="SectionCaption" />
+              <NumericUpDown Width="100" Minimum="1" Maximum="65535" Increment="1" FormatString="0" Value="{Binding Port}" />
+            </StackPanel>
+          </WrapPanel>
+
+          <WrapPanel Orientation="Horizontal">
+            <Button Classes="ActionPrimary" Height="36" MinWidth="120" Margin="0,0,12,8"
+                    Command="{Binding StartScanCommand}" IsVisible="{Binding CanStartScan}" Content="{DynamicResource Scanner.Start}" />
+            <Button Classes="ActionDanger" Height="36" MinWidth="100" Margin="0,0,12,8"
+                    Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Content="{DynamicResource Scanner.Stop}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
+                    Command="{Binding SaveWorkingToLibraryCommand}" IsEnabled="{Binding HasWorking}" Content="{DynamicResource Scanner.SaveToLibrary}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="180" Margin="0,0,12,8"
+                    Command="{Binding ApplyWorkingAsSniCommand}" IsEnabled="{Binding HasWorking}" Content="{DynamicResource Sni.ApplyAsSni}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Classes="SectionCard">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding ProgressText}" Classes="SectionCaption" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding SummaryText}" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" />
+          </Grid>
+          <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="2" Classes="InsetPanel" Padding="0" MinHeight="0">
+        <Grid RowDefinitions="Auto,*" MinHeight="0">
+          <Grid ColumnDefinitions="*,160,80,160" ColumnSpacing="10" Margin="14,12,14,10">
+            <TextBlock Text="{DynamicResource Sni.ColSni}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="1" Text="{DynamicResource Sni.ColIp}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="2" Text="{DynamicResource Scanner.ColPing}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="3" Text="{DynamicResource Scanner.ColStatus}" Classes="SectionCaption" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MinHeight="0">
+            <ItemsControl ItemsSource="{Binding Results}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SniScanRow">
+                  <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="14,9">
+                    <Grid ColumnDefinitions="*,160,80,160" ColumnSpacing="10">
+                      <TextBlock Text="{Binding Sni}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Text="{Binding Ip}" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Grid.Column="2" Text="{Binding Ping}" FontFamily="Consolas" />
+                      <controls:StatusBadge Grid.Column="3" Text="{Binding StatusText}" Tone="{Binding Tone}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <controls:EmptyState Grid.Row="1" Margin="20" Title="{DynamicResource Sni.EmptyTitle}" Description="{DynamicResource Sni.EmptyDescription}" Icon="ShieldSearch" IsVisible="{Binding !HasResults}" />
         </Grid>
+      </Border>
+    </Grid>
 
-        <ScrollViewer Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto"
-                      MinHeight="0">
-          <ItemsControl ItemsSource="{Binding Results}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:BridgeScanRow">
-                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="0,1,0,0"
-                        Padding="14,9">
-                  <Grid ColumnDefinitions="120,*,80,90,160"
-                        ColumnSpacing="10">
-                    <TextBlock Text="{Binding Transport}"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding Host}"
-                               FontFamily="Consolas"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="2"
-                               Text="{Binding Port}"
-                               FontFamily="Consolas" />
-                    <TextBlock Grid.Column="3"
-                               Text="{Binding Ping}"
-                               FontFamily="Consolas" />
-                    <controls:StatusBadge Grid.Column="4"
-                                          Text="{Binding StatusText}"
-                                          Tone="{Binding Tone}" />
-                  </Grid>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </ScrollViewer>
+    <!-- ============================ SAVED LIBRARY ============================ -->
+    <Grid Grid.Row="1"
+          RowDefinitions="Auto,*"
+          RowSpacing="14"
+          IsVisible="{Binding $parent[UserControl].((vm:BridgeScannerPageViewModel)DataContext).IsSavedTab}"
+          DataContext="{Binding Saved}"
+          x:DataType="vm:SavedBridgesViewModel">
+      <Border Classes="SectionCard">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{DynamicResource Saved.Title}" Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource Saved.Subtitle}" Classes="SectionCaption" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="ActionDanger" Height="36" MinWidth="120" VerticalAlignment="Top"
+                    Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}" Content="{DynamicResource Saved.Clear}" />
+          </Grid>
+          <TextBlock Text="{Binding StatusText}" Classes="SectionCaption" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </Border>
 
-        <controls:EmptyState Grid.Row="1"
-                             Margin="20"
-                             Title="{DynamicResource Scanner.EmptyTitle}"
-                             Description="{DynamicResource Scanner.EmptyDescription}"
-                             Icon="Radar"
-                             IsVisible="{Binding !HasResults}" />
-      </Grid>
-    </Border>
+      <Border Grid.Row="1" Classes="InsetPanel" Padding="0" MinHeight="0">
+        <Grid RowDefinitions="Auto,*" MinHeight="0">
+          <Grid ColumnDefinitions="90,*,150,120,Auto" ColumnSpacing="10" Margin="14,12,14,10">
+            <TextBlock Text="{DynamicResource Saved.ColType}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="1" Text="{DynamicResource Saved.ColLine}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="2" Text="{DynamicResource Saved.ColLabel}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="3" Text="{DynamicResource Saved.ColAdded}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="4" Width="150" Text="" Classes="SectionCaption" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MinHeight="0">
+            <ItemsControl ItemsSource="{Binding Items}" x:Name="SavedList">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SavedBridgeRow">
+                  <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="14,9">
+                    <Grid ColumnDefinitions="90,*,150,120,Auto" ColumnSpacing="10">
+                      <controls:StatusBadge Text="{Binding TypeLabel}" Tone="info" VerticalAlignment="Top" />
+                      <TextBlock Grid.Column="1" Text="{Binding Line}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="2" Text="{Binding Label}" Watermark="{DynamicResource Saved.LabelWatermark}" VerticalAlignment="Center"
+                               LostFocus="OnSavedLabelLostFocus" />
+                      <TextBlock Grid.Column="3" Text="{Binding Added}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Classes="ActionGhost" Height="32" MinWidth="70"
+                                Command="{Binding #SavedList.((vm:SavedBridgesViewModel)DataContext).ApplyCommand}"
+                                CommandParameter="{Binding}" Content="{DynamicResource Saved.Apply}" />
+                        <Button Classes="ActionGhost" Height="32" MinWidth="70"
+                                Command="{Binding #SavedList.((vm:SavedBridgesViewModel)DataContext).DeleteCommand}"
+                                CommandParameter="{Binding}" Content="{DynamicResource Saved.Delete}" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <controls:EmptyState Grid.Row="1" Margin="20" Title="{DynamicResource Saved.EmptyTitle}" Description="{DynamicResource Saved.EmptyDescription}" Icon="BookmarkOutline" IsVisible="{Binding !HasItems}" />
+        </Grid>
+      </Border>
+    </Grid>
   </Grid>
 </UserControl>

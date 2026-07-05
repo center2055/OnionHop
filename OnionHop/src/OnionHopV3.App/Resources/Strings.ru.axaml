@@ -32,6 +32,36 @@
   <x:String x:Key="Scanner.ColStatus">Статус</x:String>
   <x:String x:Key="Scanner.EmptyTitle">Результатов сканирования пока нет</x:String>
   <x:String x:Key="Scanner.EmptyDescription">Выберите категорию/транспорт и нажмите «Начать сканирование» или вставьте свой список.</x:String>
+  <x:String x:Key="Scanner.TabBridge">Сканер мостов</x:String>
+  <x:String x:Key="Scanner.TabSni">Сканер SNI</x:String>
+  <x:String x:Key="Scanner.TabSaved">Сохранённое</x:String>
+  <x:String x:Key="Scanner.SaveToLibrary">Сохранить в библиотеку</x:String>
+  <x:String x:Key="Sni.Title">Сканер SNI</x:String>
+  <x:String x:Key="Sni.Subtitle">Находит SNI/фронт-хосты, работающие в вашей сети. Режим доменов проверяет список доменов; режим диапазона проверяет один SNI по диапазону IPv4. Зелёный = TLS-рукопожатие успешно, красный = заблокировано.</x:String>
+  <x:String x:Key="Sni.ModeDomain">Проверить домены</x:String>
+  <x:String x:Key="Sni.ModeRange">Сканировать диапазон IP</x:String>
+  <x:String x:Key="Sni.Domains">Домены-кандидаты</x:String>
+  <x:String x:Key="Sni.DomainsWatermark">По одному домену в строке (напр. www.cloudflare.com)</x:String>
+  <x:String x:Key="Sni.RangeSni">SNI-хост</x:String>
+  <x:String x:Key="Sni.RangeCidr">Диапазон IPv4 (CIDR)</x:String>
+  <x:String x:Key="Sni.Port">Порт</x:String>
+  <x:String x:Key="Sni.ApplyAsSni">Использовать как SNI-хосты</x:String>
+  <x:String x:Key="Sni.ColSni">SNI</x:String>
+  <x:String x:Key="Sni.ColIp">IP</x:String>
+  <x:String x:Key="Sni.EmptyTitle">Пока нет результатов SNI</x:String>
+  <x:String x:Key="Sni.EmptyDescription">Введите домены (или SNI + диапазон IP) и нажмите «Начать».</x:String>
+  <x:String x:Key="Saved.Title">Сохранённые мосты и SNI</x:String>
+  <x:String x:Key="Saved.Subtitle">Ваша библиотека сохранённых мостов и SNI-хостов. Примените, либо переименуйте и удалите записи.</x:String>
+  <x:String x:Key="Saved.Clear">Очистить всё</x:String>
+  <x:String x:Key="Saved.ColType">Тип</x:String>
+  <x:String x:Key="Saved.ColLine">Мост / SNI</x:String>
+  <x:String x:Key="Saved.ColLabel">Метка</x:String>
+  <x:String x:Key="Saved.ColAdded">Добавлено</x:String>
+  <x:String x:Key="Saved.LabelWatermark">метка</x:String>
+  <x:String x:Key="Saved.Apply">Применить</x:String>
+  <x:String x:Key="Saved.Delete">Удалить</x:String>
+  <x:String x:Key="Saved.EmptyTitle">Пока ничего не сохранено</x:String>
+  <x:String x:Key="Saved.EmptyDescription">Сохраняйте рабочие мосты или SNI-хосты из сканера, чтобы собрать библиотеку.</x:String>
 
   <!-- Home -->
   <x:String x:Key="Home.Title">Подключение</x:String>
