@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Additions
+- The saved-bridges library now shows the ping (latency in ms) of each saved entry, carried over from the scan that saved it.
+
 Fixes
 - Fixed the SNI scanner never finding any working host. Every probe failed with an internal ".NET SslStream" error because the certificate-validation callback was set in two places at once, so results always came back "blocked" and the scanner appeared to do nothing. It now completes handshakes and reports reachable SNI hosts correctly.
 - The SNI scanner's status messages ("Ready.", "Scanning…", "Enter at least one domain to test.", etc.) are now localized instead of always showing in English.

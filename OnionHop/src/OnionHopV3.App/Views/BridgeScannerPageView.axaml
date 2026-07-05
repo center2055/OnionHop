@@ -262,25 +262,27 @@
 
       <Border Grid.Row="1" Classes="InsetPanel" Padding="0" MinHeight="0">
         <Grid RowDefinitions="Auto,*" MinHeight="0">
-          <Grid ColumnDefinitions="90,*,150,120,Auto" ColumnSpacing="10" Margin="14,12,14,10">
+          <Grid ColumnDefinitions="90,*,80,150,120,Auto" ColumnSpacing="10" Margin="14,12,14,10">
             <TextBlock Text="{DynamicResource Saved.ColType}" Classes="SectionCaption" />
             <TextBlock Grid.Column="1" Text="{DynamicResource Saved.ColLine}" Classes="SectionCaption" />
-            <TextBlock Grid.Column="2" Text="{DynamicResource Saved.ColLabel}" Classes="SectionCaption" />
-            <TextBlock Grid.Column="3" Text="{DynamicResource Saved.ColAdded}" Classes="SectionCaption" />
-            <TextBlock Grid.Column="4" Width="150" Text="" Classes="SectionCaption" />
+            <TextBlock Grid.Column="2" Text="{DynamicResource Scanner.ColPing}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="3" Text="{DynamicResource Saved.ColLabel}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="4" Text="{DynamicResource Saved.ColAdded}" Classes="SectionCaption" />
+            <TextBlock Grid.Column="5" Width="150" Text="" Classes="SectionCaption" />
           </Grid>
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MinHeight="0">
             <ItemsControl ItemsSource="{Binding Items}" x:Name="SavedList">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:SavedBridgeRow">
                   <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="14,9">
-                    <Grid ColumnDefinitions="90,*,150,120,Auto" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="90,*,80,150,120,Auto" ColumnSpacing="10">
                       <controls:StatusBadge Text="{Binding TypeLabel}" Tone="info" VerticalAlignment="Top" />
                       <TextBlock Grid.Column="1" Text="{Binding Line}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                      <TextBox Grid.Column="2" Text="{Binding Label}" Watermark="{DynamicResource Saved.LabelWatermark}" VerticalAlignment="Center"
+                      <TextBlock Grid.Column="2" Text="{Binding Ping}" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="3" Text="{Binding Label}" Watermark="{DynamicResource Saved.LabelWatermark}" VerticalAlignment="Center"
                                LostFocus="OnSavedLabelLostFocus" />
-                      <TextBlock Grid.Column="3" Text="{Binding Added}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <TextBlock Grid.Column="4" Text="{Binding Added}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Button Classes="ActionGhost" Height="32" MinWidth="70"
                                 Command="{Binding #SavedList.((vm:SavedBridgesViewModel)DataContext).ApplyCommand}"
                                 CommandParameter="{Binding}" Content="{DynamicResource Saved.Apply}" />

@@ -136,6 +136,9 @@ public sealed partial class SavedBridgeRow : ObservableObject
         LastStatus = entry.LastStatus;
         _label = entry.Label;
         Added = FormatAdded(entry.AddedUtc);
+        Ping = entry.LastPingMs.HasValue
+            ? entry.LastPingMs.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : "—";
     }
 
     public string Id { get; }
@@ -145,6 +148,9 @@ public sealed partial class SavedBridgeRow : ObservableObject
     public string Source { get; }
     public string LastStatus { get; }
     public string Added { get; }
+
+    /// <summary>Latency at save time (ms), or "—" when it wasn't recorded.</summary>
+    public string Ping { get; }
 
     [ObservableProperty] private string _label = string.Empty;
 

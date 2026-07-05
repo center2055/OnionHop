@@ -22,6 +22,8 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
 
     private CancellationTokenSource? _scanCts;
     private readonly List<string> _workingLines = new();
+    // Ping + reachability per working line, so a saved bridge carries its latency into the library.
+    private readonly Dictionary<string, (int? Ping, string Status)> _workingMeta = new(StringComparer.Ordinal);
     private readonly SavedBridgeStore _savedStore = new();
 
     public BridgeScannerPageViewModel(AppStateViewModel state)
@@ -223,14 +225,19 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
             return;
         }
 
-        var entries = _workingLines.Select(line => new SavedBridge
+        var entries = _workingLines.Select(line =>
         {
-            Line = line,
-            Kind = SavedBridgeKind.Bridge,
-            Transport = SelectedTransport,
-            Source = "bridge-scan",
-            AddedUtc = DateTime.UtcNow.ToString("o"),
-            LastStatus = "reachable"
+            _workingMeta.TryGetValue(line, out var meta);
+            return new SavedBridge
+            {
+                Line = line,
+                Kind = SavedBridgeKind.Bridge,
+                Transport = SelectedTransport,
+                Source = "bridge-scan",
+                AddedUtc = DateTime.UtcNow.ToString("o"),
+                LastStatus = string.IsNullOrEmpty(meta.Status) ? "reachable" : meta.Status,
+                LastPingMs = meta.Ping
+            };
         });
 
         var added = _savedStore.AddRange(entries);
@@ -268,6 +275,7 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
         if (result.IsWorking)
         {
             _workingLines.Add(result.RawLine);
+            _workingMeta[result.RawLine] = (result.PingMs, result.Reachability == BridgeReachability.Slow ? "slow" : "reachable");
             _reachable += result.Reachability == BridgeReachability.Reachable ? 1 : 0;
             _slow += result.Reachability == BridgeReachability.Slow ? 1 : 0;
         }
@@ -284,6 +292,7 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
     {
         Results.Clear();
         _workingLines.Clear();
+        _workingMeta.Clear();
         _total = total;
         _completed = 0;
         _reachable = 0;
