@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.6.1 (2026-07-05)
 
 Additions
 - The saved-bridges library now shows the ping (latency in ms) of each saved entry, carried over from the scan that saved it.
