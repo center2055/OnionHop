@@ -96,6 +96,30 @@ public sealed class SmartConnectAdvisor
 
     public async Task<Plan> BuildPlanAsync(OnionHopConnectOptions baseOptions, Action<string>? log, CancellationToken token)
     {
+        // The user explicitly chose the Custom bridge source: honor it instead of racing our own
+        // transports (issue #70). Smart Connect's per-transport strategies reset the source to Auto
+        // and drop CustomBridges, so without this a pasted obfs4 bridge was ignored and the connect
+        // ended up on a raced webtunnel/snowflake bridge the user never added.
+        if (string.Equals(baseOptions.BridgeSourceMode, OnionHopConnectOptions.BridgeSourceCustom, StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(baseOptions.CustomBridges))
+        {
+            log?.Invoke("Smart Connect: using your custom bridge list (Custom source selected); skipping transport racing.");
+            var customStrategy = new Strategy(
+                Name: "custom",
+                Reason: "Custom bridge list from your settings.",
+                Options: baseOptions with { UseTorBridges = true, UseCensoredMode = true });
+            return new Plan(
+                PublicIp: null,
+                CountryCode: null,
+                Risk: RiskLevel.Unknown,
+                RestrictionScore: 0,
+                SampleCount: 0,
+                NetworkCount: 0,
+                NotOkNetworks: 0,
+                LastTested: null,
+                Strategies: [customStrategy]);
+        }
+
         var publicIp = await IpLookupService.TryFetchDirectIpAsync(
             message => log?.Invoke($"Smart Connect: {message}"),
             token).ConfigureAwait(false);

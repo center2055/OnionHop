@@ -7,6 +7,29 @@ namespace OnionHopV3.Tests.Services;
 public sealed class SmartConnectAdvisorTests
 {
     [Fact]
+    public async System.Threading.Tasks.Task BuildPlanAsync_custom_source_uses_custom_bridges_without_racing()
+    {
+        // Issue #70: when the user picked the Custom bridge source, Smart Connect must use their
+        // bridges as-is, not race its own transports (which reset the source and dropped the lines).
+        // The short-circuit returns before any network call, so this test needs no I/O.
+        var advisor = new SmartConnectAdvisor();
+        var options = new OnionHopConnectOptions
+        {
+            BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom,
+            CustomBridges = "obfs4 1.2.3.4:443 74FAD13168806246602538555B5521A0383A1875 cert=abc iat-mode=0",
+            SelectedBridgeType = "obfs4"
+        };
+
+        var plan = await advisor.BuildPlanAsync(options, null, System.Threading.CancellationToken.None);
+
+        var strategy = Assert.Single(plan.Strategies);
+        Assert.Equal("custom", strategy.Name);
+        Assert.True(strategy.Options.UseTorBridges);
+        Assert.Equal(OnionHopConnectOptions.BridgeSourceCustom, strategy.Options.BridgeSourceMode);
+        Assert.Equal(options.CustomBridges, strategy.Options.CustomBridges);
+    }
+
+    [Fact]
     public void ComputeRestrictionScore_IncreasesWhenFailuresIncrease()
     {
         var low = SmartConnectAdvisor.ComputeRestrictionScore(
