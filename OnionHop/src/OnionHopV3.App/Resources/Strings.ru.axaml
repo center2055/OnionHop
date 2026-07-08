@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">Сканер SNI</x:String>
   <x:String x:Key="Scanner.TabSaved">Сохранённое</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">Сохранить в библиотеку</x:String>
+  <x:String x:Key="Scanner.LoadBridges">Загрузить мосты</x:String>
+  <x:String x:Key="Scanner.ImportFile">Импорт из файла</x:String>
   <x:String x:Key="Sni.Title">Сканер SNI</x:String>
   <x:String x:Key="Sni.Subtitle">Находит SNI/фронт-хосты, работающие в вашей сети. Режим доменов проверяет список доменов; режим диапазона проверяет один SNI по диапазону IPv4. Зелёный = TLS-рукопожатие успешно, красный = заблокировано.</x:String>
   <x:String x:Key="Sni.ModeDomain">Проверить домены</x:String>

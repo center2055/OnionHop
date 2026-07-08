@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">SNI 扫描</x:String>
   <x:String x:Key="Scanner.TabSaved">已保存</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">保存到库</x:String>
+  <x:String x:Key="Scanner.LoadBridges">加载网桥</x:String>
+  <x:String x:Key="Scanner.ImportFile">导入文件</x:String>
   <x:String x:Key="Sni.Title">SNI 扫描</x:String>
   <x:String x:Key="Sni.Subtitle">查找在你网络上可用的 SNI/前置域名。域名模式测试一组域名；范围模式在 IPv4 段内测试一个 SNI。绿色 = TLS 握手成功，红色 = 被封锁。</x:String>
   <x:String x:Key="Sni.ModeDomain">测试域名</x:String>

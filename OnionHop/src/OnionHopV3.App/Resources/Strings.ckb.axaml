@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">سکانەری SNI</x:String>
   <x:String x:Key="Scanner.TabSaved">پاشەکەوتکراو</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">پاشەکەوت لە کتێبخانە</x:String>
+  <x:String x:Key="Scanner.LoadBridges">بارکردنی پردەکان</x:String>
+  <x:String x:Key="Scanner.ImportFile">هاوردەکردنی پەڕگە</x:String>
   <x:String x:Key="Sni.Title">سکانەری SNI</x:String>
   <x:String x:Key="Sni.Subtitle">هۆستە SNI/فڕۆنتەکان دەدۆزێتەوە کە لە تۆڕەکەت کاردەکەن. دۆخی دۆمەین لیستێک دۆمەین تاقی دەکاتەوە؛ دۆخی مەودا یەک SNI بەسەر مەودای IPv4 تاقی دەکاتەوە. سەوز = تۆکەڵی TLS سەرکەوتوو، سوور = بلۆککراو.</x:String>
   <x:String x:Key="Sni.ModeDomain">تاقیکردنەوەی دۆمەینەکان</x:String>

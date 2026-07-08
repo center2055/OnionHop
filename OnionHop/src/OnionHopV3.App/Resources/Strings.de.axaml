@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">SNI-Scanner</x:String>
   <x:String x:Key="Scanner.TabSaved">Gespeichert</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">In Bibliothek speichern</x:String>
+  <x:String x:Key="Scanner.LoadBridges">Bridges laden</x:String>
+  <x:String x:Key="Scanner.ImportFile">Datei importieren</x:String>
   <x:String x:Key="Sni.Title">SNI-Scanner</x:String>
   <x:String x:Key="Sni.Subtitle">Findet SNI-/Front-Hosts, die in deinem Netzwerk funktionieren. Domain-Modus testet eine Liste von Domains; Bereichsmodus testet eine SNI ueber einen IPv4-Bereich. Gruen = TLS-Handshake erfolgreich, rot = blockiert.</x:String>
   <x:String x:Key="Sni.ModeDomain">Domains testen</x:String>

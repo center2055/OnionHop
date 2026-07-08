@@ -79,6 +79,10 @@
                     Command="{Binding StartScanCommand}" IsVisible="{Binding CanStartScan}" Content="{DynamicResource Scanner.Start}" />
             <Button Classes="ActionDanger" Height="36" MinWidth="100" Margin="0,0,12,8"
                     Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Content="{DynamicResource Scanner.Stop}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="140" Margin="0,0,12,8"
+                    Command="{Binding LoadBridgesCommand}" IsEnabled="{Binding CanStartScan}" Content="{DynamicResource Scanner.LoadBridges}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="130" Margin="0,0,12,8"
+                    Click="OnImportBridgeFileClick" Content="{DynamicResource Scanner.ImportFile}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
                     Click="OnExportWorkingClick" IsEnabled="{Binding HasWorkingBridges}" Content="{DynamicResource Scanner.Export}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
@@ -156,7 +160,7 @@
           <!-- Domain mode: a list of candidate domains to test as SNI. -->
           <StackPanel Spacing="4" IsVisible="{Binding IsDomainMode}">
             <TextBlock Text="{DynamicResource Sni.Domains}" Classes="SectionCaption" />
-            <TextBox AcceptsReturn="True" MinHeight="86" MaxHeight="160" TextWrapping="NoWrap" FontFamily="Consolas"
+            <TextBox AcceptsReturn="True" MinHeight="64" MaxHeight="140" TextWrapping="NoWrap" FontFamily="Consolas"
                      Watermark="{DynamicResource Sni.DomainsWatermark}" Text="{Binding DomainList}" />
           </StackPanel>
 
@@ -192,6 +196,8 @@
                     Command="{Binding StartScanCommand}" IsVisible="{Binding CanStartScan}" Content="{DynamicResource Scanner.Start}" />
             <Button Classes="ActionDanger" Height="36" MinWidth="100" Margin="0,0,12,8"
                     Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Content="{DynamicResource Scanner.Stop}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="130" Margin="0,0,12,8"
+                    Click="OnImportSniFileClick" Content="{DynamicResource Scanner.ImportFile}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
                     Command="{Binding SaveWorkingToLibraryCommand}" IsEnabled="{Binding HasWorking}" Content="{DynamicResource Scanner.SaveToLibrary}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="180" Margin="0,0,12,8"
@@ -278,7 +284,8 @@
                     <Grid ColumnDefinitions="90,*,80,150,120,Auto" ColumnSpacing="10">
                       <controls:StatusBadge Text="{Binding TypeLabel}" Tone="info" VerticalAlignment="Top" />
                       <TextBlock Grid.Column="1" Text="{Binding Line}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="2" Text="{Binding Ping}" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                      <controls:StatusBadge Grid.Column="2" Text="{Binding Ping}" Tone="{Binding PingTone}" VerticalAlignment="Center" IsVisible="{Binding HasPing}" />
+                      <TextBlock Grid.Column="2" Text="—" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" IsVisible="{Binding !HasPing}" />
                       <TextBox Grid.Column="3" Text="{Binding Label}" Watermark="{DynamicResource Saved.LabelWatermark}" VerticalAlignment="Center"
                                LostFocus="OnSavedLabelLostFocus" />
                       <TextBlock Grid.Column="4" Text="{Binding Added}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />

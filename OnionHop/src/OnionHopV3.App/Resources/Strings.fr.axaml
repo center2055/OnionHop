@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">Scanner SNI</x:String>
   <x:String x:Key="Scanner.TabSaved">Enregistres</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">Enregistrer dans la bibliotheque</x:String>
+  <x:String x:Key="Scanner.LoadBridges">Charger les ponts</x:String>
+  <x:String x:Key="Scanner.ImportFile">Importer un fichier</x:String>
   <x:String x:Key="Sni.Title">Scanner SNI</x:String>
   <x:String x:Key="Sni.Subtitle">Trouve des hotes SNI/front qui fonctionnent sur votre reseau. Le mode Domaines teste une liste de domaines ; le mode Plage teste un SNI sur une plage IPv4. Vert = handshake TLS reussi, rouge = bloque.</x:String>
   <x:String x:Key="Sni.ModeDomain">Tester des domaines</x:String>

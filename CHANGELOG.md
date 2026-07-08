@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Additions
+- The bridge scanner and SNI scanner gained an "Import file" button to load bridge lines / candidate domains from a text file, and the bridge scanner gained a "Load bridges" button that fetches the selected list into the input without scanning (so you can review or edit it first, then scan).
+- The saved-bridges library now shows each entry's ping as a green (or amber, when slow) "✔ ms" badge instead of a plain number.
+
 ## v3.6.1 (2026-07-05)
 
 Additions

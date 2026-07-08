@@ -26,6 +26,65 @@ public partial class BridgeScannerPageView : UserControl
         }
     }
 
+    // Import bridge lines from a file into the bridge scanner's input (BridgeHop parity).
+    private async void OnImportBridgeFileClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var text = await PickAndReadTextFileAsync("Import bridge list");
+        if (text != null)
+        {
+            ViewModel?.LoadBridgesFromText(text);
+        }
+    }
+
+    // Import candidate domains from a file into the SNI scanner's input.
+    private async void OnImportSniFileClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var text = await PickAndReadTextFileAsync("Import domains");
+        if (text != null && ViewModel != null)
+        {
+            ViewModel.Sni.DomainList = text;
+        }
+    }
+
+    private async System.Threading.Tasks.Task<string?> PickAndReadTextFileAsync(string title)
+    {
+        var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
+        if (storageProvider == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = title,
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType("Text file") { Patterns = new[] { "*.txt", "*.csv" } },
+                    new FilePickerFileType("All files") { Patterns = new[] { "*" } }
+                }
+            });
+
+            var file = files.Count > 0 ? files[0] : null;
+            if (file == null)
+            {
+                return null;
+            }
+
+            await using var stream = await file.OpenReadAsync();
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return await reader.ReadToEndAsync();
+        }
+        catch (Exception ex)
+        {
+            // An async-void caller must never throw to the dispatcher; a failed import is logged.
+            StartupLogger.Write("Import file failed.", ex);
+            return null;
+        }
+    }
+
     private async void OnExportWorkingClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var viewModel = ViewModel;

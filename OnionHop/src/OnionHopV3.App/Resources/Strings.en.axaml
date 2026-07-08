@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">SNI Scanner</x:String>
   <x:String x:Key="Scanner.TabSaved">Saved</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">Save to Library</x:String>
+  <x:String x:Key="Scanner.LoadBridges">Load bridges</x:String>
+  <x:String x:Key="Scanner.ImportFile">Import file</x:String>
   <x:String x:Key="Sni.Title">SNI Scanner</x:String>
   <x:String x:Key="Sni.Subtitle">Find SNI/front hosts that work on your network. Domain mode tests a list of domains; Range mode tests one SNI across an IPv4 range. Green = TLS handshake succeeded (usable front), red = blocked.</x:String>
   <x:String x:Key="Sni.ModeDomain">Test domains</x:String>

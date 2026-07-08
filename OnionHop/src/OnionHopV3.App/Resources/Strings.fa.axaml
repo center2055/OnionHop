@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">اسکنر SNI</x:String>
   <x:String x:Key="Scanner.TabSaved">ذخیره‌شده</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">ذخیره در کتابخانه</x:String>
+  <x:String x:Key="Scanner.LoadBridges">بارگذاری پل‌ها</x:String>
+  <x:String x:Key="Scanner.ImportFile">درون‌ریزی پرونده</x:String>
   <x:String x:Key="Sni.Title">اسکنر SNI</x:String>
   <x:String x:Key="Sni.Subtitle">میزبان‌های SNI/فرانت که در شبکه شما کار می‌کنند را پیدا می‌کند. حالت دامنه فهرستی از دامنه‌ها را آزمایش می‌کند؛ حالت محدوده یک SNI را در یک بازه IPv4 آزمایش می‌کند. سبز = دست‌دهی TLS موفق، قرمز = مسدود.</x:String>
   <x:String x:Key="Sni.ModeDomain">آزمایش دامنه‌ها</x:String>

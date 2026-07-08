@@ -197,6 +197,48 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
         ProgressText = "Stopping…";
     }
 
+    /// <summary>
+    /// Fetch the selected category/transport bridge list into the input box WITHOUT scanning
+    /// (BridgeHop-style two-step: load, then scan), so the user can review or edit the list first.
+    /// </summary>
+    [RelayCommand]
+    private async Task LoadBridgesAsync()
+    {
+        if (IsScanning)
+        {
+            return;
+        }
+
+        try
+        {
+            ProgressText = "Fetching bridge list…";
+            var fetch = await BridgeSourceService
+                .FetchAsync(SelectedCategory, SelectedTransport, SelectedIpVersion, null, State.AppendLog, CancellationToken.None)
+                .ConfigureAwait(true);
+            if (fetch == null || fetch.Lines.Count == 0)
+            {
+                ProgressText = "Could not fetch bridges from any mirror. Check your connection or paste a custom list.";
+                return;
+            }
+
+            CustomBridges = string.Join(Environment.NewLine, fetch.Lines);
+            UseCustomBridges = true;
+            ProgressText = $"Loaded {fetch.Lines.Count} bridge(s). Press Start Scan to test them.";
+        }
+        catch (Exception ex)
+        {
+            ProgressText = $"Load failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>Load bridge lines from imported file text into the input box (used by Import file).</summary>
+    public void LoadBridgesFromText(string text)
+    {
+        CustomBridges = text;
+        UseCustomBridges = true;
+        ProgressText = "Imported bridge list. Press Start Scan to test them.";
+    }
+
     [RelayCommand]
     private void ApplyWorkingAsCustomBridges()
     {

@@ -36,6 +36,8 @@
   <x:String x:Key="Scanner.TabSni">SNI تاراییجی</x:String>
   <x:String x:Key="Scanner.TabSaved">ساخلانیلمیش</x:String>
   <x:String x:Key="Scanner.SaveToLibrary">کیتابخانایا ساخلا</x:String>
+  <x:String x:Key="Scanner.LoadBridges">کؤرپولری یوکله</x:String>
+  <x:String x:Key="Scanner.ImportFile">فایل ایمپورت ائت</x:String>
   <x:String x:Key="Sni.Title">SNI تاراییجی</x:String>
   <x:String x:Key="Sni.Subtitle">شبکه‌نیزده ایشلَین SNI/فرانت هاستلارینی تاپیر. دامنه مودو بیر دامنه لیستینی، بازه مودو بیر SNI-نی IPv4 بازه‌سینده یوخلاییر. یاشیل = TLS ال‌سیخما اوغورلو، قیرمیزی = بلوکلانیب.</x:String>
   <x:String x:Key="Sni.ModeDomain">دامنه‌لری یوخلا</x:String>

@@ -136,9 +136,12 @@ public sealed partial class SavedBridgeRow : ObservableObject
         LastStatus = entry.LastStatus;
         _label = entry.Label;
         Added = FormatAdded(entry.AddedUtc);
-        Ping = entry.LastPingMs.HasValue
-            ? entry.LastPingMs.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        HasPing = entry.LastPingMs.HasValue;
+        Ping = HasPing
+            ? $"✔ {entry.LastPingMs!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)} ms"
             : "—";
+        // Green for a healthy latency, amber for a slow one - same tone language as the scanner.
+        PingTone = string.Equals(entry.LastStatus, "slow", StringComparison.OrdinalIgnoreCase) ? "warning" : "success";
     }
 
     public string Id { get; }
@@ -149,8 +152,10 @@ public sealed partial class SavedBridgeRow : ObservableObject
     public string LastStatus { get; }
     public string Added { get; }
 
-    /// <summary>Latency at save time (ms), or "—" when it wasn't recorded.</summary>
+    /// <summary>Latency at save time as a badge ("✔ 289 ms"), shown green/amber; "—" when unknown.</summary>
     public string Ping { get; }
+    public bool HasPing { get; }
+    public string PingTone { get; }
 
     [ObservableProperty] private string _label = string.Empty;
 
