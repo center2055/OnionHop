@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.6.2 (2026-07-08)
 
 Additions
 - The bridge scanner and SNI scanner gained an "Import file" button to load bridge lines / candidate domains from a text file, and the bridge scanner gained a "Load bridges" button that fetches the selected list into the input without scanning (so you can review or edit it first, then scan).
