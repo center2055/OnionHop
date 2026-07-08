@@ -48,6 +48,8 @@
   <x:String x:Key="Sni.RangeCidr">بازه IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">درگاه</x:String>
   <x:String x:Key="Sni.ApplyAsSni">استفاده به‌عنوان میزبان SNI</x:String>
+  <x:String x:Key="Sni.LoadCandidates">بارگذاری نامزدها</x:String>
+  <x:String x:Key="Sni.CandidatesLoaded">فهرست آغازین نامزدهای SNI بارگذاری شد. اسکن را آغاز کنید.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">هنوز نتیجه‌ای برای SNI نیست</x:String>

@@ -48,6 +48,8 @@
   <x:String x:Key="Sni.RangeCidr">Plage IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">Port</x:String>
   <x:String x:Key="Sni.ApplyAsSni">Utiliser comme hotes SNI</x:String>
+  <x:String x:Key="Sni.LoadCandidates">Charger des candidats</x:String>
+  <x:String x:Key="Sni.CandidatesLoaded">Liste de candidats SNI chargee. Lancez le scan.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">Aucun resultat SNI</x:String>

@@ -48,6 +48,8 @@
   <x:String x:Key="Sni.RangeCidr">IPv4 段（CIDR）</x:String>
   <x:String x:Key="Sni.Port">端口</x:String>
   <x:String x:Key="Sni.ApplyAsSni">用作 SNI 主机</x:String>
+  <x:String x:Key="Sni.LoadCandidates">加载候选域名</x:String>
+  <x:String x:Key="Sni.CandidatesLoaded">已加载 SNI 候选域名列表。点击开始扫描。</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">暂无 SNI 结果</x:String>

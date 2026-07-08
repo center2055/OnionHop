@@ -48,6 +48,8 @@
   <x:String x:Key="Sni.RangeCidr">مەودای IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">پۆرت</x:String>
   <x:String x:Key="Sni.ApplyAsSni">وەک هۆستی SNI بەکاربهێنە</x:String>
+  <x:String x:Key="Sni.LoadCandidates">بارکردنی بەربژێرەکان</x:String>
+  <x:String x:Key="Sni.CandidatesLoaded">لیستێکی سەرەتایی بەربژێری SNI بارکرا. سکان دەست پێبکە.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">هێشتا ئەنجامی SNI نییە</x:String>

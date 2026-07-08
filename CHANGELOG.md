@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Additions
+- The SNI scanner now has a "Load candidates" button that fills the box with a built-in starter list of common CDN/front domains, so you have something to scan without needing to know which domains to try (the SNI equivalent of the bridge scanner's "Load bridges"). You can still edit the list, import your own, or paste more.
+
 ## v3.6.2 (2026-07-08)
 
 Additions

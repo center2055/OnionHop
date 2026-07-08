@@ -48,6 +48,8 @@
   <x:String x:Key="Sni.RangeCidr">IPv4 بازه (CIDR)</x:String>
   <x:String x:Key="Sni.Port">پورت</x:String>
   <x:String x:Key="Sni.ApplyAsSni">SNI هاست کیمی ایشلت</x:String>
+  <x:String x:Key="Sni.LoadCandidates">نامزدلری یوکله</x:String>
+  <x:String x:Key="Sni.CandidatesLoaded">SNI نامزدلرینین باشلانغیج لیستی یوکلندی. تارامانی باشلادین.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">حله SNI نتیجه‌سی یوخدور</x:String>

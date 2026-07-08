@@ -196,6 +196,8 @@
                     Command="{Binding StartScanCommand}" IsVisible="{Binding CanStartScan}" Content="{DynamicResource Scanner.Start}" />
             <Button Classes="ActionDanger" Height="36" MinWidth="100" Margin="0,0,12,8"
                     Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Content="{DynamicResource Scanner.Stop}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
+                    Command="{Binding LoadCandidatesCommand}" Content="{DynamicResource Sni.LoadCandidates}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="130" Margin="0,0,12,8"
                     Click="OnImportSniFileClick" Content="{DynamicResource Scanner.ImportFile}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"

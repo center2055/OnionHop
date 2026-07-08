@@ -64,6 +64,41 @@ public static class SniScanService
     public const int MaxRangeHosts = 4096;
 
     /// <summary>
+    /// A built-in starter list of common SNI/front candidates, so the user has something to scan
+    /// without having to know which domains to try. These are large, widely-used HTTPS hosts (major
+    /// CDNs and popular sites) - the kind that make good fronts because blocking them has heavy
+    /// collateral, and that are a useful probe for "which SNIs get through my network". The user can
+    /// edit the list, import their own, or paste more before scanning.
+    /// </summary>
+    public static readonly IReadOnlyList<string> DefaultSniCandidates = new[]
+    {
+        "www.cloudflare.com",
+        "cdnjs.cloudflare.com",
+        "ajax.cloudflare.com",
+        "www.fastly.com",
+        "ajax.googleapis.com",
+        "fonts.googleapis.com",
+        "www.gstatic.com",
+        "www.google.com",
+        "www.youtube.com",
+        "www.microsoft.com",
+        "ajax.aspnetcdn.com",
+        "azure.microsoft.com",
+        "www.apple.com",
+        "www.icloud.com",
+        "www.amazon.com",
+        "cdn.jsdelivr.net",
+        "unpkg.com",
+        "www.wikipedia.org",
+        "en.wikipedia.org",
+        "www.mozilla.org",
+        "www.bing.com",
+        "outlook.office.com",
+        "www.akamai.com",
+        "discord.com"
+    };
+
+    /// <summary>
     /// Probe each candidate domain: resolve it, then TLS-handshake its address on <paramref name="port"/>
     /// using the domain as SNI. Reports each result as it completes.
     /// </summary>

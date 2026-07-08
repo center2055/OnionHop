@@ -167,6 +167,24 @@ public sealed partial class SniScannerViewModel : ObservableObject
     [RelayCommand]
     private void SetRangeMode() => IsRangeMode = true;
 
+    /// <summary>
+    /// Fill the domain box with the built-in starter list of common SNI/front candidates, so the user
+    /// has something to scan without needing to know which domains to try (the SNI equivalent of the
+    /// bridge scanner's "Load bridges"). Switches to domain mode and doesn't clobber a non-empty box.
+    /// </summary>
+    [RelayCommand]
+    private void LoadCandidates()
+    {
+        IsRangeMode = false;
+        var existing = SplitLines(DomainList);
+        var merged = existing
+            .Concat(SniScanService.DefaultSniCandidates)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        DomainList = string.Join(Environment.NewLine, merged);
+        ProgressText = L("Sni.CandidatesLoaded", "Loaded a starter list of SNI candidates. Press Start Scan.");
+    }
+
     /// <summary>Apply the working SNI hosts as the app's custom SNI/front hosts (used by fronted bridges).</summary>
     [RelayCommand]
     private void ApplyWorkingAsSni()

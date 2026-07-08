@@ -48,6 +48,8 @@
   <x:String x:Key="Sni.RangeCidr">Диапазон IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">Порт</x:String>
   <x:String x:Key="Sni.ApplyAsSni">Использовать как SNI-хосты</x:String>
+  <x:String x:Key="Sni.LoadCandidates">Загрузить кандидатов</x:String>
+  <x:String x:Key="Sni.CandidatesLoaded">Загружен стартовый список SNI-кандидатов. Нажмите «Начать».</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
   <x:String x:Key="Sni.ColIp">IP</x:String>
   <x:String x:Key="Sni.EmptyTitle">Пока нет результатов SNI</x:String>
