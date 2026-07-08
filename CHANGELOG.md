@@ -5,7 +5,7 @@
 Additions
 - The SNI scanner now matches the bridge scanner's compact layout: a "Custom list" toggle keeps the candidate-domain box collapsed until you turn it on or load/import/request a list, so the controls take less space.
 - SNI scanner: added an "Export Working" button to save the working SNI hosts to a text file, and a "Request SNI" button that fetches a per-country SNI candidate list from the OnionHop SNI-lists source (working SNIs are country-specific) and loads it for scanning. A country picker appears when the source is reachable.
-- About page: each release in the changelog history now has a "View on GitHub" link that opens that release's page in your browser.
+- About page: each release in the changelog history now has a "View on GitHub" link that opens that release's page in your browser, and the sources section now lists the new OnionHop SNI Lists source (the per-country lists behind Request SNI).
 
 ## v3.6.3 (2026-07-08)
 

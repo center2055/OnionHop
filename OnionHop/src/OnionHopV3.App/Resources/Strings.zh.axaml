@@ -148,6 +148,7 @@
   <x:String x:Key="About.CollectorDerived">我们的收集器衍生自 Delta-Kronecker 的 Tor-Bridges-Collector（AGPL-3.0）：</x:String>
   <x:String x:Key="About.RussiaBridges">内置网桥还包含来自 igareck 的 vpn-configs-for-russia 项目的列表：</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake、meek 和 conjure 使用 Tor Browser 自带的默认网桥行。</x:String>
+  <x:String x:Key="About.SniSources">SNI/前置主机候选列表，供 SNI 扫描器的“请求 SNI”使用：</x:String>
   <x:String x:Key="About.Changelog">OnionHop 历史</x:String>
   <x:String x:Key="About.Refresh">刷新</x:String>
   <x:String x:Key="About.ChangelogDetails">详情</x:String>

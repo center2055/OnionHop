@@ -151,6 +151,7 @@
   <x:String x:Key="About.CollectorDerived">Our collector is derived from Delta-Kronecker's Tor-Bridges-Collector (AGPL-3.0):</x:String>
   <x:String x:Key="About.RussiaBridges">Built-in bridges also include lists from igareck's vpn-configs-for-russia project:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake, meek and conjure use the default bridge lines shipped with Tor Browser.</x:String>
+  <x:String x:Key="About.SniSources">SNI / front-host candidate lists, used by the SNI scanner's Request SNI:</x:String>
   <x:String x:Key="About.Changelog">History of OnionHop</x:String>
   <x:String x:Key="About.Refresh">Refresh</x:String>
   <x:String x:Key="About.ChangelogDetails">Details</x:String>

@@ -148,6 +148,7 @@
   <x:String x:Key="About.CollectorDerived">Наш сборщик основан на Tor-Bridges-Collector от Delta-Kronecker (AGPL-3.0):</x:String>
   <x:String x:Key="About.RussiaBridges">Встроенные мосты также включают списки из проекта vpn-configs-for-russia от igareck:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake, meek и conjure используют стандартные строки мостов из Tor Browser.</x:String>
+  <x:String x:Key="About.SniSources">Списки кандидатов SNI / фронт-хостов, используемые функцией «Запросить SNI»:</x:String>
   <x:String x:Key="About.Changelog">История OnionHop</x:String>
   <x:String x:Key="About.Refresh">Обновить</x:String>
   <x:String x:Key="About.ChangelogDetails">Подробнее</x:String>

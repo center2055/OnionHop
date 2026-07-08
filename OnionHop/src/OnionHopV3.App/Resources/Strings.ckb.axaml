@@ -148,6 +148,7 @@
   <x:String x:Key="About.CollectorDerived">کۆلێکتەرەکەمان لە Tor-Bridges-Collector-ی Delta-Kronecker وەرگیراوە (AGPL-3.0):</x:String>
   <x:String x:Key="About.RussiaBridges">بریجە چەسپێنراوەکان هەروەها لیستەکانی پرۆژەی vpn-configs-for-russia-ی igareck دەگرێتەوە:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake، meek و conjure ڕیزەکانی بریجی پێشوەخت کە لەگەڵ Tor Browser دێن بەکاردەهێنن.</x:String>
+  <x:String x:Key="About.SniSources">لیستی بەربژێری SNI / هۆستی فڕۆنت، کە «داواکردنی SNI»ی سکانەری SNI بەکاریدەهێنێت:</x:String>
   <x:String x:Key="About.Changelog">مێژووی OnionHop</x:String>
   <x:String x:Key="About.Refresh">نوێکردنەوە</x:String>
   <x:String x:Key="About.ChangelogDetails">وردەکاری</x:String>

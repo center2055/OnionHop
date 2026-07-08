@@ -148,6 +148,7 @@
   <x:String x:Key="About.CollectorDerived">بیزیم قولکتورومز Delta-Kronecker-ین Tor-Bridges-Collector (AGPL-3.0) پروژه‌سیندن توره‌تیلمیشدیر:</x:String>
   <x:String x:Key="About.RussiaBridges">داخیلی بریجلره igareck-ین vpn-configs-for-russia پروژه‌سیندن لیست‌لر ده داخیلدیر:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake، meek و conjure Tor Browser ایله گلن ده‌فالت بریج سطرلرینی ایشلدیر.</x:String>
+  <x:String x:Key="About.SniSources">SNI / فرانت هاست نامزد لیستلری، SNI تاراییجینین «SNI ایسته» بؤلومونده ایشلنیر:</x:String>
   <x:String x:Key="About.Changelog">OnionHop تاریخچه‌سی</x:String>
   <x:String x:Key="About.Refresh">یئنیله</x:String>
   <x:String x:Key="About.ChangelogDetails">تفصیلات</x:String>

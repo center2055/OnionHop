@@ -148,6 +148,7 @@
   <x:String x:Key="About.CollectorDerived">collector ما از Tor-Bridges-Collector اثر Delta-Kronecker (AGPL-3.0) مشتق شده است:</x:String>
   <x:String x:Key="About.RussiaBridges">پل‌های داخلی همچنین شامل لیست‌هایی از پروژه vpn-configs-for-russia اثر igareck است:</x:String>
   <x:String x:Key="About.FrontedDefaults">Snowflake، meek و conjure از خطوط پل پیش‌فرض ارائه‌شده با Tor Browser استفاده می‌کنند.</x:String>
+  <x:String x:Key="About.SniSources">فهرست‌های نامزد SNI / میزبان فرانت، که «درخواست SNI» اسکنر SNI از آن استفاده می‌کند:</x:String>
   <x:String x:Key="About.Changelog">تاریخچه OnionHop</x:String>
   <x:String x:Key="About.Refresh">بروزرسانی</x:String>
   <x:String x:Key="About.ChangelogDetails">جزئیات</x:String>
