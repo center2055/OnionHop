@@ -48,6 +48,13 @@
   <x:String x:Key="Sni.RangeCidr">بازه IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">درگاه</x:String>
   <x:String x:Key="Sni.ApplyAsSni">استفاده به‌عنوان میزبان SNI</x:String>
+  <x:String x:Key="Sni.Mode">حالت</x:String>
+  <x:String x:Key="Sni.CustomSourceHint">جعبه دامنه‌های نامزد را برای وارد کردن فهرست خودتان نشان بده.</x:String>
+  <x:String x:Key="Sni.Country">کشور</x:String>
+  <x:String x:Key="Sni.RequestSni">درخواست SNI</x:String>
+  <x:String x:Key="Sni.Requesting">در حال درخواست فهرست SNI…</x:String>
+  <x:String x:Key="Sni.RequestEmpty">هنوز فهرست SNI برای این کشور نیست.</x:String>
+  <x:String x:Key="Sni.NoCountries">هنوز فهرست SNI موجود نیست. از بارگذاری نامزدها استفاده کنید.</x:String>
   <x:String x:Key="Sni.LoadCandidates">بارگذاری نامزدها</x:String>
   <x:String x:Key="Sni.CandidatesLoaded">فهرست آغازین نامزدهای SNI بارگذاری شد. اسکن را آغاز کنید.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
@@ -145,6 +152,7 @@
   <x:String x:Key="About.Refresh">بروزرسانی</x:String>
   <x:String x:Key="About.ChangelogDetails">جزئیات</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">جزئیات +</x:String>
+  <x:String x:Key="About.ChangelogViewOnline">مشاهده در گیت‌هاب</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">جزئیات -</x:String>
   <x:String x:Key="About.ChangelogLoading">در حال بارگذاری تاریخچه تغییرات از GitHub...</x:String>
   <x:String x:Key="About.ChangelogLoaded">تاریخچه تغییرات بارگذاری شد.</x:String>

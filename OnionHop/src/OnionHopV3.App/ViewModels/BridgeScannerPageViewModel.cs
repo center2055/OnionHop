@@ -71,6 +71,12 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
         {
             Saved.Refresh();
         }
+        else if (value == SubTabSni)
+        {
+            // Populate the Request SNI country picker the first time the tab is opened (best-effort;
+            // stays empty and the picker hides if the source is unreachable).
+            _ = Sni.LoadCountriesCommand.ExecuteAsync(null);
+        }
     }
 
     [RelayCommand]

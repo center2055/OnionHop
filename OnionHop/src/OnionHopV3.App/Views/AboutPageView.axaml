@@ -283,7 +283,15 @@
                               BorderThickness="1"
                               CornerRadius="8"
                               Padding="12">
-                        <controls:MarkdownTextBlock Markdown="{Binding Notes}" />
+                        <StackPanel Spacing="10">
+                          <controls:MarkdownTextBlock Markdown="{Binding Notes}" />
+                          <!-- Open this release's page on GitHub in the browser (issue: About release links). -->
+                          <Button Classes="ActionGhost"
+                                  HorizontalAlignment="Left"
+                                  Tag="{Binding ReleaseUrl}"
+                                  Click="OnOpenLinkClick"
+                                  Content="{DynamicResource About.ChangelogViewOnline}" />
+                        </StackPanel>
                       </Border>
                     </StackPanel>
                   </Border>

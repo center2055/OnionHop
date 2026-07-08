@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:OnionHopV3.App.Controls"
              xmlns:vm="using:OnionHopV3.App.ViewModels"
+             xmlns:svc="using:OnionHopV3.Core.Services"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="820"
@@ -146,19 +147,51 @@
           <TextBlock Text="{DynamicResource Sni.Title}" Classes="SectionTitle" />
           <TextBlock Text="{DynamicResource Sni.Subtitle}" Classes="SectionCaption" TextWrapping="Wrap" />
 
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <RadioButton Classes="TabChip" GroupName="SniMode" Width="150" Height="36"
-                         IsChecked="{Binding IsDomainMode, Mode=OneWay}"
-                         Command="{Binding SetDomainModeCommand}"
-                         Content="{DynamicResource Sni.ModeDomain}" />
-            <RadioButton Classes="TabChip" GroupName="SniMode" Width="150" Height="36"
-                         IsChecked="{Binding IsRangeMode, Mode=OneWay}"
-                         Command="{Binding SetRangeModeCommand}"
-                         Content="{DynamicResource Sni.ModeRange}" />
-          </StackPanel>
+          <!-- Compact controls: mode, workers/timeout/port, the Custom list toggle, and (when the
+               source has any) the country picker for Request SNI - one row, like the bridge scanner,
+               so the tab stays small until the domain box is revealed. -->
+          <WrapPanel Orientation="Horizontal">
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Sni.Mode}" Classes="SectionCaption" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <RadioButton Classes="TabChip" GroupName="SniMode" Width="130" Height="36"
+                             IsChecked="{Binding IsDomainMode, Mode=OneWay}"
+                             Command="{Binding SetDomainModeCommand}" Content="{DynamicResource Sni.ModeDomain}" />
+                <RadioButton Classes="TabChip" GroupName="SniMode" Width="130" Height="36"
+                             IsChecked="{Binding IsRangeMode, Mode=OneWay}"
+                             Command="{Binding SetRangeModeCommand}" Content="{DynamicResource Sni.ModeRange}" />
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
+              <NumericUpDown Width="100" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
+              <NumericUpDown Width="100" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8">
+              <TextBlock Text="{DynamicResource Sni.Port}" Classes="SectionCaption" />
+              <NumericUpDown Width="90" Minimum="1" Maximum="65535" Increment="1" FormatString="0" Value="{Binding Port}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8" IsVisible="{Binding IsDomainMode}">
+              <TextBlock Text="{DynamicResource Scanner.CustomSource}" Classes="SectionCaption" />
+              <ToggleButton Classes="V3Switch" IsChecked="{Binding UseCustomDomains}" ToolTip.Tip="{DynamicResource Sni.CustomSourceHint}" />
+            </StackPanel>
+            <StackPanel Spacing="4" Margin="0,0,16,8" IsVisible="{Binding HasCountries}">
+              <TextBlock Text="{DynamicResource Sni.Country}" Classes="SectionCaption" />
+              <ComboBox Width="190" ItemsSource="{Binding Countries}" SelectedItem="{Binding SelectedCountry}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="svc:SniCountry">
+                    <TextBlock Text="{Binding Display}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+          </WrapPanel>
 
-          <!-- Domain mode: a list of candidate domains to test as SNI. -->
-          <StackPanel Spacing="4" IsVisible="{Binding IsDomainMode}">
+          <!-- Candidate domains: collapsed until Custom list is on, or a list is loaded/imported/requested. -->
+          <StackPanel Spacing="4" IsVisible="{Binding ShowDomainBox}">
             <TextBlock Text="{DynamicResource Sni.Domains}" Classes="SectionCaption" />
             <TextBox AcceptsReturn="True" MinHeight="64" MaxHeight="140" TextWrapping="NoWrap" FontFamily="Consolas"
                      Watermark="{DynamicResource Sni.DomainsWatermark}" Text="{Binding DomainList}" />
@@ -177,29 +210,18 @@
           </WrapPanel>
 
           <WrapPanel Orientation="Horizontal">
-            <StackPanel Spacing="4" Margin="0,0,16,8">
-              <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
-              <NumericUpDown Width="110" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
-            </StackPanel>
-            <StackPanel Spacing="4" Margin="0,0,16,8">
-              <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
-              <NumericUpDown Width="110" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
-            </StackPanel>
-            <StackPanel Spacing="4" Margin="0,0,16,8">
-              <TextBlock Text="{DynamicResource Sni.Port}" Classes="SectionCaption" />
-              <NumericUpDown Width="100" Minimum="1" Maximum="65535" Increment="1" FormatString="0" Value="{Binding Port}" />
-            </StackPanel>
-          </WrapPanel>
-
-          <WrapPanel Orientation="Horizontal">
             <Button Classes="ActionPrimary" Height="36" MinWidth="120" Margin="0,0,12,8"
                     Command="{Binding StartScanCommand}" IsVisible="{Binding CanStartScan}" Content="{DynamicResource Scanner.Start}" />
             <Button Classes="ActionDanger" Height="36" MinWidth="100" Margin="0,0,12,8"
                     Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Content="{DynamicResource Scanner.Stop}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="140" Margin="0,0,12,8"
+                    Command="{Binding RequestSniCommand}" Content="{DynamicResource Sni.RequestSni}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
                     Command="{Binding LoadCandidatesCommand}" Content="{DynamicResource Sni.LoadCandidates}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="130" Margin="0,0,12,8"
                     Click="OnImportSniFileClick" Content="{DynamicResource Scanner.ImportFile}" />
+            <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
+                    Click="OnExportSniWorkingClick" IsEnabled="{Binding HasWorking}" Content="{DynamicResource Scanner.Export}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="150" Margin="0,0,12,8"
                     Command="{Binding SaveWorkingToLibraryCommand}" IsEnabled="{Binding HasWorking}" Content="{DynamicResource Scanner.SaveToLibrary}" />
             <Button Classes="ActionGhost" Height="36" MinWidth="180" Margin="0,0,12,8"

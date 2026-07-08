@@ -43,12 +43,32 @@ public sealed partial class SniScannerViewModel : ObservableObject
 
     public ObservableCollection<SniScanRow> Results { get; } = [];
 
+    /// <summary>Countries available from the SNI-lists source, for the Request SNI picker.</summary>
+    public ObservableCollection<SniCountry> Countries { get; } = [];
+
+    [ObservableProperty] private SniCountry? _selectedCountry;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCountries))]
+    private bool _countriesLoaded;
+
+    public bool HasCountries => Countries.Count > 0;
+
     // false = domain mode (test many domains as SNI); true = range mode (one SNI across a CIDR).
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDomainMode))]
+    [NotifyPropertyChangedFor(nameof(ShowDomainBox))]
     private bool _isRangeMode;
 
     public bool IsDomainMode => !IsRangeMode;
+
+    // Mirrors the bridge scanner's "Custom list" toggle: the candidate-domain box is collapsed by
+    // default (keeps the controls compact), and appears when the user turns this on or loads/imports/
+    // requests a list.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowDomainBox))]
+    private bool _useCustomDomains;
+
+    public bool ShowDomainBox => IsDomainMode && UseCustomDomains;
 
     [ObservableProperty] private string _domainList = string.Empty;
     [ObservableProperty] private string _rangeSni = string.Empty;
@@ -170,19 +190,79 @@ public sealed partial class SniScannerViewModel : ObservableObject
     /// <summary>
     /// Fill the domain box with the built-in starter list of common SNI/front candidates, so the user
     /// has something to scan without needing to know which domains to try (the SNI equivalent of the
-    /// bridge scanner's "Load bridges"). Switches to domain mode and doesn't clobber a non-empty box.
+    /// bridge scanner's "Load bridges"). Switches to domain mode, reveals the box, and merges with
+    /// anything already there.
     /// </summary>
     [RelayCommand]
     private void LoadCandidates()
     {
         IsRangeMode = false;
-        var existing = SplitLines(DomainList);
-        var merged = existing
-            .Concat(SniScanService.DefaultSniCandidates)
+        UseCustomDomains = true;
+        MergeIntoDomainList(SniScanService.DefaultSniCandidates);
+        ProgressText = L("Sni.CandidatesLoaded", "Loaded a starter list of SNI candidates. Press Start Scan.");
+    }
+
+    /// <summary>Load the countries available from the SNI-lists source into the Request SNI picker.</summary>
+    [RelayCommand]
+    private async Task LoadCountriesAsync()
+    {
+        if (CountriesLoaded)
+        {
+            return;
+        }
+
+        var countries = await SniListSource.FetchCountriesAsync(CancellationToken.None).ConfigureAwait(true);
+        Countries.Clear();
+        foreach (var c in countries)
+        {
+            Countries.Add(c);
+        }
+
+        SelectedCountry ??= Countries.FirstOrDefault();
+        CountriesLoaded = true;
+        OnPropertyChanged(nameof(HasCountries));
+    }
+
+    /// <summary>
+    /// Fetch the country-specific SNI candidate list from the source and load it into the box
+    /// ("Request SNI"). Working SNIs differ by country, so this pulls the list for the selected one.
+    /// </summary>
+    [RelayCommand]
+    private async Task RequestSniAsync()
+    {
+        var country = SelectedCountry;
+        if (country == null)
+        {
+            await LoadCountriesAsync().ConfigureAwait(true);
+            country = SelectedCountry;
+            if (country == null)
+            {
+                ProgressText = L("Sni.NoCountries", "No SNI lists are available yet. Use Load candidates instead.");
+                return;
+            }
+        }
+
+        ProgressText = L("Sni.Requesting", "Requesting SNI list…");
+        var list = await SniListSource.FetchListAsync(country.Code, CancellationToken.None).ConfigureAwait(true);
+        if (list.Count == 0)
+        {
+            ProgressText = L("Sni.RequestEmpty", "No SNI list found for this country yet.");
+            return;
+        }
+
+        IsRangeMode = false;
+        UseCustomDomains = true;
+        MergeIntoDomainList(list);
+        ProgressText = $"{country.Name}: {list.Count} SNI candidate(s) loaded. Press Start Scan.";
+    }
+
+    private void MergeIntoDomainList(IEnumerable<string> add)
+    {
+        var merged = SplitLines(DomainList)
+            .Concat(add)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         DomainList = string.Join(Environment.NewLine, merged);
-        ProgressText = L("Sni.CandidatesLoaded", "Loaded a starter list of SNI candidates. Press Start Scan.");
     }
 
     /// <summary>Apply the working SNI hosts as the app's custom SNI/front hosts (used by fronted bridges).</summary>

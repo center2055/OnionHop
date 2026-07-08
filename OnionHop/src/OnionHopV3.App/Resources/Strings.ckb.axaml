@@ -48,6 +48,13 @@
   <x:String x:Key="Sni.RangeCidr">مەودای IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">پۆرت</x:String>
   <x:String x:Key="Sni.ApplyAsSni">وەک هۆستی SNI بەکاربهێنە</x:String>
+  <x:String x:Key="Sni.Mode">دۆخ</x:String>
+  <x:String x:Key="Sni.CustomSourceHint">سنووقی دۆمەینە بەربژێرەکان پیشان بدە بۆ لکاندنی لیستی خۆت.</x:String>
+  <x:String x:Key="Sni.Country">وڵات</x:String>
+  <x:String x:Key="Sni.RequestSni">داواکردنی SNI</x:String>
+  <x:String x:Key="Sni.Requesting">داوای لیستی SNI دەکرێت…</x:String>
+  <x:String x:Key="Sni.RequestEmpty">هێشتا لیستی SNI بۆ ئەم وڵاتە نییە.</x:String>
+  <x:String x:Key="Sni.NoCountries">هێشتا لیستی SNI بەردەست نییە. لەبری ئەوە بارکردنی بەربژێرەکان بەکاربهێنە.</x:String>
   <x:String x:Key="Sni.LoadCandidates">بارکردنی بەربژێرەکان</x:String>
   <x:String x:Key="Sni.CandidatesLoaded">لیستێکی سەرەتایی بەربژێری SNI بارکرا. سکان دەست پێبکە.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
@@ -145,6 +152,7 @@
   <x:String x:Key="About.Refresh">نوێکردنەوە</x:String>
   <x:String x:Key="About.ChangelogDetails">وردەکاری</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">وردەکاری +</x:String>
+  <x:String x:Key="About.ChangelogViewOnline">لە گیتهەب ببینە</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">وردەکاری -</x:String>
   <x:String x:Key="About.ChangelogLoading">داگرتنی تۆماری گۆڕانکارییەکان لە GitHub...</x:String>
   <x:String x:Key="About.ChangelogLoaded">تۆماری گۆڕانکارییەکان بارکرا.</x:String>

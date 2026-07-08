@@ -48,6 +48,13 @@
   <x:String x:Key="Sni.RangeCidr">IPv4 range (CIDR)</x:String>
   <x:String x:Key="Sni.Port">Port</x:String>
   <x:String x:Key="Sni.ApplyAsSni">Use as SNI hosts</x:String>
+  <x:String x:Key="Sni.Mode">Mode</x:String>
+  <x:String x:Key="Sni.CustomSourceHint">Show the candidate-domains box to paste or edit your own list.</x:String>
+  <x:String x:Key="Sni.Country">Country</x:String>
+  <x:String x:Key="Sni.RequestSni">Request SNI</x:String>
+  <x:String x:Key="Sni.Requesting">Requesting SNI list…</x:String>
+  <x:String x:Key="Sni.RequestEmpty">No SNI list found for this country yet.</x:String>
+  <x:String x:Key="Sni.NoCountries">No SNI lists are available yet. Use Load candidates instead.</x:String>
   <x:String x:Key="Sni.LoadCandidates">Load candidates</x:String>
   <x:String x:Key="Sni.CandidatesLoaded">Loaded a starter list of SNI candidates. Press Start Scan.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
@@ -148,6 +155,7 @@
   <x:String x:Key="About.Refresh">Refresh</x:String>
   <x:String x:Key="About.ChangelogDetails">Details</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">Details +</x:String>
+  <x:String x:Key="About.ChangelogViewOnline">View on GitHub</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">Details -</x:String>
   <x:String x:Key="About.ChangelogLoading">Loading changelog entries from GitHub...</x:String>
   <x:String x:Key="About.ChangelogLoaded">Changelog loaded.</x:String>

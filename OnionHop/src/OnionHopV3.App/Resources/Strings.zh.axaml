@@ -48,6 +48,13 @@
   <x:String x:Key="Sni.RangeCidr">IPv4 段（CIDR）</x:String>
   <x:String x:Key="Sni.Port">端口</x:String>
   <x:String x:Key="Sni.ApplyAsSni">用作 SNI 主机</x:String>
+  <x:String x:Key="Sni.Mode">模式</x:String>
+  <x:String x:Key="Sni.CustomSourceHint">显示候选域名框以粘贴或编辑你自己的列表。</x:String>
+  <x:String x:Key="Sni.Country">国家/地区</x:String>
+  <x:String x:Key="Sni.RequestSni">请求 SNI</x:String>
+  <x:String x:Key="Sni.Requesting">正在请求 SNI 列表…</x:String>
+  <x:String x:Key="Sni.RequestEmpty">该国家/地区暂无 SNI 列表。</x:String>
+  <x:String x:Key="Sni.NoCountries">暂无可用的 SNI 列表。请改用加载候选域名。</x:String>
   <x:String x:Key="Sni.LoadCandidates">加载候选域名</x:String>
   <x:String x:Key="Sni.CandidatesLoaded">已加载 SNI 候选域名列表。点击开始扫描。</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
@@ -145,6 +152,7 @@
   <x:String x:Key="About.Refresh">刷新</x:String>
   <x:String x:Key="About.ChangelogDetails">详情</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">详情 +</x:String>
+  <x:String x:Key="About.ChangelogViewOnline">在 GitHub 上查看</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">详情 -</x:String>
   <x:String x:Key="About.ChangelogLoading">正在从 GitHub 加载更新日志条目...</x:String>
   <x:String x:Key="About.ChangelogLoaded">更新日志已加载。</x:String>

@@ -43,6 +43,61 @@ public partial class BridgeScannerPageView : UserControl
         if (text != null && ViewModel != null)
         {
             ViewModel.Sni.DomainList = text;
+            ViewModel.Sni.UseCustomDomains = true;
+        }
+    }
+
+    // Save the working SNI hosts to a .txt file, mirroring the bridge scanner's Export Working.
+    private async void OnExportSniWorkingClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var text = ViewModel?.Sni.WorkingSniText;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        await SaveTextFileAsync("Export working SNI hosts", $"onionhop-working-sni-{DateTime.Now:yyyyMMdd-HHmmss}.txt", text);
+    }
+
+    private async System.Threading.Tasks.Task SaveTextFileAsync(string title, string suggestedName, string text)
+    {
+        var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
+        if (storageProvider == null)
+        {
+            return;
+        }
+
+        var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedName,
+            DefaultExtension = "txt",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Text file")
+                {
+                    Patterns = new[] { "*.txt" },
+                    MimeTypes = new[] { "text/plain" },
+                    AppleUniformTypeIdentifiers = new[] { "public.plain-text" }
+                },
+                new FilePickerFileType("All files") { Patterns = new[] { "*" } }
+            }
+        });
+
+        if (file == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream, Encoding.UTF8);
+            await writer.WriteAsync(text);
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write("SNI export failed.", ex);
         }
     }
 

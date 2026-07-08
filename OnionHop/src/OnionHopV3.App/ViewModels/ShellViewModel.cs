@@ -338,6 +338,11 @@ public sealed class AboutPageViewModel : PageViewModelBase
 
         var notes = NormalizeNotes(release.Body);
 
+        // Link each entry to its GitHub release page (opened from the About page).
+        var releaseUrl = string.Equals(tag, "untagged", StringComparison.Ordinal)
+            ? "https://github.com/center2055/OnionHop/releases"
+            : $"https://github.com/center2055/OnionHop/releases/tag/{Uri.EscapeDataString(tag)}";
+
         return new AboutChangelogEntry
         {
             Title = title,
@@ -345,6 +350,7 @@ public sealed class AboutPageViewModel : PageViewModelBase
             PublishedText = publishedText,
             ReleaseType = releaseType,
             Notes = notes,
+            ReleaseUrl = releaseUrl,
             IsExpanded = expandedByDefault
         };
     }
@@ -432,5 +438,7 @@ public sealed partial class AboutChangelogEntry : ObservableObject
     public string PublishedText { get; init; } = string.Empty;
     public string ReleaseType { get; init; } = string.Empty;
     public string Notes { get; init; } = string.Empty;
+    /// <summary>Web URL of this release on GitHub, so the About page can link out to it.</summary>
+    public string ReleaseUrl { get; init; } = string.Empty;
     [ObservableProperty] private bool _isExpanded;
 }

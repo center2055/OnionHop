@@ -48,6 +48,13 @@
   <x:String x:Key="Sni.RangeCidr">IPv4 بازه (CIDR)</x:String>
   <x:String x:Key="Sni.Port">پورت</x:String>
   <x:String x:Key="Sni.ApplyAsSni">SNI هاست کیمی ایشلت</x:String>
+  <x:String x:Key="Sni.Mode">مود</x:String>
+  <x:String x:Key="Sni.CustomSourceHint">اؤز لیستینی یاپیشدیرماق اوچون نامزد دامنه‌لر قوطوسونو گؤستر.</x:String>
+  <x:String x:Key="Sni.Country">اؤلکه</x:String>
+  <x:String x:Key="Sni.RequestSni">SNI ایسته</x:String>
+  <x:String x:Key="Sni.Requesting">SNI لیستی ایسته‌نیلیر…</x:String>
+  <x:String x:Key="Sni.RequestEmpty">بو اؤلکه اوچون حله SNI لیستی یوخدور.</x:String>
+  <x:String x:Key="Sni.NoCountries">حله SNI لیستی یوخدور. اونون یرینه نامزدلری یوکله.</x:String>
   <x:String x:Key="Sni.LoadCandidates">نامزدلری یوکله</x:String>
   <x:String x:Key="Sni.CandidatesLoaded">SNI نامزدلرینین باشلانغیج لیستی یوکلندی. تارامانی باشلادین.</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
@@ -145,6 +152,7 @@
   <x:String x:Key="About.Refresh">یئنیله</x:String>
   <x:String x:Key="About.ChangelogDetails">تفصیلات</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">تفصیلات +</x:String>
+  <x:String x:Key="About.ChangelogViewOnline">گیت‌هابدا گؤر</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">تفصیلات -</x:String>
   <x:String x:Key="About.ChangelogLoading">دییشیکلیک تاریخچه‌سی GitHub-دان یوکله‌نیر...</x:String>
   <x:String x:Key="About.ChangelogLoaded">دییشیکلیک تاریخچه‌سی یوکله‌ندی.</x:String>

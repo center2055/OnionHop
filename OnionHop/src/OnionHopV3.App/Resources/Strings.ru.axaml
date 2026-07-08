@@ -48,6 +48,13 @@
   <x:String x:Key="Sni.RangeCidr">Диапазон IPv4 (CIDR)</x:String>
   <x:String x:Key="Sni.Port">Порт</x:String>
   <x:String x:Key="Sni.ApplyAsSni">Использовать как SNI-хосты</x:String>
+  <x:String x:Key="Sni.Mode">Режим</x:String>
+  <x:String x:Key="Sni.CustomSourceHint">Показать поле доменов-кандидатов для вставки своего списка.</x:String>
+  <x:String x:Key="Sni.Country">Страна</x:String>
+  <x:String x:Key="Sni.RequestSni">Запросить SNI</x:String>
+  <x:String x:Key="Sni.Requesting">Запрос списка SNI…</x:String>
+  <x:String x:Key="Sni.RequestEmpty">Для этой страны пока нет списка SNI.</x:String>
+  <x:String x:Key="Sni.NoCountries">Списки SNI пока недоступны. Используйте Загрузить кандидатов.</x:String>
   <x:String x:Key="Sni.LoadCandidates">Загрузить кандидатов</x:String>
   <x:String x:Key="Sni.CandidatesLoaded">Загружен стартовый список SNI-кандидатов. Нажмите «Начать».</x:String>
   <x:String x:Key="Sni.ColSni">SNI</x:String>
@@ -145,6 +152,7 @@
   <x:String x:Key="About.Refresh">Обновить</x:String>
   <x:String x:Key="About.ChangelogDetails">Подробнее</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">Подробнее +</x:String>
+  <x:String x:Key="About.ChangelogViewOnline">Открыть на GitHub</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">Подробнее -</x:String>
   <x:String x:Key="About.ChangelogLoading">Загрузка записей журнала изменений с GitHub...</x:String>
   <x:String x:Key="About.ChangelogLoaded">Журнал изменений загружен.</x:String>
