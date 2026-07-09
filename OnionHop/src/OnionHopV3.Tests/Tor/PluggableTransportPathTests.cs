@@ -21,7 +21,13 @@ public sealed class PluggableTransportPathTests
         var exe = Path.Combine(dir, "lyrebird.exe");
         File.WriteAllText(exe, "stub");
 
-        Assert.Equal(exe, TorBridgeManager.MakeExecutablePathTokenSafe(exe));
+        // Path.GetTempPath() can itself contain a space when the Windows username has one (e.g.
+        // "C:\Users\MSI Alpha 17\AppData\Local\Temp"), which would make this the *with-space* case and
+        // shorten the path. Normalize to a space-free form first, then assert the real invariant: a
+        // path that already has no space is returned unchanged (idempotent).
+        var noSpaceExe = TorBridgeManager.MakeExecutablePathTokenSafe(exe);
+        Assert.False(noSpaceExe.Contains(' '), $"Expected a space-free path, got: {noSpaceExe}");
+        Assert.Equal(noSpaceExe, TorBridgeManager.MakeExecutablePathTokenSafe(noSpaceExe));
     }
 
     [Fact]
