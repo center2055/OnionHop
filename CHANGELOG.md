@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Fixes
+- Fixed Snowflake failing to start ("Managed proxy ... terminated with status code 2", connection bar stuck) when the AMP-cache rendezvous was enabled (#71). The AMP cache was passed as a `-ampcache` command-line flag to the transport binary, but lyrebird (the bundled Snowflake) rejects that flag and exits immediately. It is now set as an `ampcache=` parameter on the Snowflake bridge line, which lyrebird reads. This mainly affected heavily-censored networks (e.g. Iran) where Smart Connect forces Snowflake AMP.
+
 Additions
 - The SNI scanner now matches the bridge scanner's compact layout: a "Custom list" toggle keeps the candidate-domain box collapsed until you turn it on or load/import/request a list, so the controls take less space.
 - SNI scanner: added an "Export Working" button to save the working SNI hosts to a text file, and a "Request SNI" button that fetches a per-country SNI candidate list from the OnionHop SNI-lists source (working SNIs are country-specific) and loads it for scanning. A country picker appears when the source is reachable.

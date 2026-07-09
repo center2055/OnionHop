@@ -620,6 +620,15 @@ internal sealed class TorBridgeManager
             selected = ApplyCustomSniHosts(selected, customSni);
         }
 
+        // Snowflake AMP-cache rendezvous is configured on the BRIDGE LINE (ampcache=<url>), not as a
+        // -ampcache CLI flag on the transport plugin: lyrebird (the bundled snowflake binary) rejects
+        // the flag ("flag provided but not defined: -ampcache") and exits with status 2, which killed
+        // every snowflake attempt for heavily-censored users where Smart Connect forces AMP (issue #71).
+        if (options.UseSnowflakeAmp && selected.Count > 0)
+        {
+            selected = ApplySnowflakeAmpCacheToBridges(options, selected, log);
+        }
+
         var filteredToZeroByHealth = false;
         if (selected.Count > 0)
         {
@@ -1476,8 +1485,10 @@ internal sealed class TorBridgeManager
                 continue;
             }
 
+            // AMP cache is applied to the snowflake BRIDGE line (ampcache=), not here on the plugin
+            // exec line - lyrebird rejects a -ampcache CLI flag (issue #71). See
+            // ApplySnowflakeAmpCacheToBridges.
             var pluginLine = EnsureSnowflakeClientPlugin(line, ptRelativePath);
-            pluginLine = ApplySnowflakeAmpCache(options, pluginLine, log);
             updated.Add(pluginLine);
         }
 
@@ -1516,33 +1527,52 @@ internal sealed class TorBridgeManager
         return $"ClientTransportPlugin snowflake exec {Path.Combine(ptRelativePath, LyrebirdFileName)}";
     }
 
-    private static string ApplySnowflakeAmpCache(OnionHopConnectOptions options, string pluginLine, Action<string> log)
+    /// <summary>
+    /// Add the AMP-cache rendezvous to each snowflake bridge line as an <c>ampcache=&lt;url&gt;</c>
+    /// SOCKS arg - the form both lyrebird and snowflake-client read from the bridge line. Lines that
+    /// already carry an <c>ampcache=</c> are left untouched, and non-snowflake lines are ignored.
+    /// (Replaces the old <c>-ampcache</c> plugin-exec flag that lyrebird rejects, issue #71.)
+    /// </summary>
+    internal static IReadOnlyList<string> ApplySnowflakeAmpCacheToBridges(
+        OnionHopConnectOptions options, IReadOnlyList<string> bridgeLines, Action<string> log)
     {
-        if (!options.UseSnowflakeAmp)
+        if (!options.UseSnowflakeAmp || bridgeLines.Count == 0)
         {
-            return pluginLine;
+            return bridgeLines;
         }
 
-        if (pluginLine.Contains("-ampcache", StringComparison.OrdinalIgnoreCase))
-        {
-            return pluginLine;
-        }
-
-        var cache = options.SnowflakeAmpCache;
-        if (string.IsNullOrWhiteSpace(cache))
-        {
-            cache = "https://cdn.ampproject.org/";
-        }
-        cache = cache.Trim();
-
+        var cache = string.IsNullOrWhiteSpace(options.SnowflakeAmpCache)
+            ? "https://cdn.ampproject.org/"
+            : options.SnowflakeAmpCache.Trim();
         if (!Uri.TryCreate(cache, UriKind.Absolute, out var uri))
         {
             log($"Invalid Snowflake AMP cache URL: {cache}");
-            return pluginLine;
+            return bridgeLines;
         }
 
-        log($"Snowflake AMP cache enabled: {uri}");
-        return pluginLine + $" -ampcache {uri}";
+        var url = uri.ToString();
+        var updated = new List<string>(bridgeLines.Count);
+        var applied = 0;
+        foreach (var line in bridgeLines)
+        {
+            if (line.TrimStart().StartsWith("snowflake", StringComparison.OrdinalIgnoreCase) &&
+                !Regex.IsMatch(line, @"(?:^|\s)ampcache=", RegexOptions.IgnoreCase))
+            {
+                updated.Add(line.TrimEnd() + " ampcache=" + url);
+                applied++;
+            }
+            else
+            {
+                updated.Add(line);
+            }
+        }
+
+        if (applied > 0)
+        {
+            log($"Snowflake AMP cache enabled: {url}");
+        }
+
+        return updated;
     }
 
     public static string NormalizeClientTransportPlugin(string pluginLine)

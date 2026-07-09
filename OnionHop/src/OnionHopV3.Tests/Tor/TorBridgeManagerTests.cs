@@ -323,6 +323,37 @@ public sealed class TorBridgeManagerTests
     }
 
     [Fact]
+    public void SnowflakeAmpCache_goes_on_the_bridge_line_not_a_cli_flag()
+    {
+        // Issue #71: AMP cache must be an ampcache= param on the snowflake bridge line, NOT a
+        // -ampcache flag on the plugin exec line (lyrebird rejects that flag and exits with status 2).
+        var options = new OnionHopConnectOptions { UseSnowflakeAmp = true };
+        var lines = new[]
+        {
+            "snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://example.test/ fronts=a.test",
+            "obfs4 1.2.3.4:443 ABC cert=x iat-mode=0"
+        };
+
+        var result = TorBridgeManager.ApplySnowflakeAmpCacheToBridges(options, lines, _ => { });
+
+        Assert.Contains("ampcache=https://cdn.ampproject.org/", result[0]);
+        Assert.DoesNotContain("-ampcache", result[0]);   // never the CLI flag form
+        Assert.Equal(lines[1], result[1]);               // obfs4 line untouched
+    }
+
+    [Fact]
+    public void SnowflakeAmpCache_does_not_double_apply_or_run_when_disabled()
+    {
+        var withAmp = new[] { "snowflake 192.0.2.3:80 ABC url=https://b.test/ ampcache=https://existing.test/" };
+        var kept = TorBridgeManager.ApplySnowflakeAmpCacheToBridges(new OnionHopConnectOptions { UseSnowflakeAmp = true }, withAmp, _ => { });
+        Assert.Equal(withAmp[0], kept[0]);   // already has ampcache= -> left as-is
+
+        var plain = new[] { "snowflake 192.0.2.3:80 ABC url=https://b.test/" };
+        var off = TorBridgeManager.ApplySnowflakeAmpCacheToBridges(new OnionHopConnectOptions { UseSnowflakeAmp = false }, plain, _ => { });
+        Assert.Equal(plain[0], off[0]);      // AMP disabled -> unchanged
+    }
+
+    [Fact]
     public void GetBridgeTypeKeys_includes_conjure_when_transport_exists()
     {
         var config = new PluggableTransportConfig
