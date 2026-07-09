@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7 (2026-07-09)
 
 Fixes
 - Fixed Snowflake failing to start ("Managed proxy ... terminated with status code 2", connection bar stuck) when the AMP-cache rendezvous was enabled (#71). The AMP cache was passed as a `-ampcache` command-line flag to the transport binary, but lyrebird (the bundled Snowflake) rejects that flag and exits immediately. It is now set as an `ampcache=` parameter on the Snowflake bridge line, which lyrebird reads. This mainly affected heavily-censored networks (e.g. Iran) where Smart Connect forces Snowflake AMP.
