@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using OnionHopV3.App.Services;
 using OnionHopV3.App.ViewModels;
 using OnionHopV3.Core.Services;
 
@@ -24,6 +25,19 @@ public partial class BridgeScannerPageView : UserControl
         {
             ViewModel?.Saved.CommitLabel(row);
         }
+    }
+
+    // Copy a saved row's bridge/SNI line to the clipboard so it can be pasted straight into the
+    // bridge or SNI scanner and rescanned, without having to apply it first (tester request).
+    private async void OnCopySavedRowClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not SavedBridgeRow row || ViewModel == null)
+        {
+            return;
+        }
+
+        await ClipboardHelper.SetTextAsync(this, row.Line, ViewModel.Saved.ClipboardProtectionEnabled);
+        ViewModel.Saved.NotifyCopied();
     }
 
     // Import bridge lines from a file into the bridge scanner's input (BridgeHop parity).

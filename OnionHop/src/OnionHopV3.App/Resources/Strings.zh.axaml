@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">标签</x:String>
   <x:String x:Key="Saved.Apply">应用</x:String>
   <x:String x:Key="Saved.Delete">删除</x:String>
+  <x:String x:Key="Saved.Copy">复制</x:String>
   <x:String x:Key="Saved.EmptyTitle">尚未保存任何内容</x:String>
   <x:String x:Key="Saved.EmptyDescription">将扫描到的可用网桥或 SNI 主机保存下来，建立你的库。</x:String>
 

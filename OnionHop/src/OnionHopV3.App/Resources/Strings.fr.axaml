@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">etiquette</x:String>
   <x:String x:Key="Saved.Apply">Appliquer</x:String>
   <x:String x:Key="Saved.Delete">Supprimer</x:String>
+  <x:String x:Key="Saved.Copy">Copier</x:String>
   <x:String x:Key="Saved.EmptyTitle">Rien d'enregistre</x:String>
   <x:String x:Key="Saved.EmptyDescription">Enregistrez les ponts ou hotes SNI fonctionnels du scanner pour constituer votre bibliotheque.</x:String>
 

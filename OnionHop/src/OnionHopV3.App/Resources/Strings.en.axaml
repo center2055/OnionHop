@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">label</x:String>
   <x:String x:Key="Saved.Apply">Apply</x:String>
   <x:String x:Key="Saved.Delete">Delete</x:String>
+  <x:String x:Key="Saved.Copy">Copy</x:String>
   <x:String x:Key="Saved.EmptyTitle">Nothing saved yet</x:String>
   <x:String x:Key="Saved.EmptyDescription">Save working bridges or SNI hosts from the scanner to build your library.</x:String>
 

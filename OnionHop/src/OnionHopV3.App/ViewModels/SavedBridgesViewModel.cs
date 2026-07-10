@@ -34,6 +34,13 @@ public sealed partial class SavedBridgesViewModel : ObservableObject
 
     public bool HasItems => Count > 0;
 
+    /// <summary>Whether clipboard auto-clear protection is on, so a row's Copy button can honor it.</summary>
+    public bool ClipboardProtectionEnabled => _state.ClipboardProtectionEnabled;
+
+    /// <summary>Status feedback after a row's Copy button placed its line on the clipboard, so the user
+    /// can paste it straight into the bridge or SNI scanner and rescan it without applying it first.</summary>
+    public void NotifyCopied() => StatusText = "Copied to clipboard.";
+
     public void Refresh()
     {
         Items.Clear();

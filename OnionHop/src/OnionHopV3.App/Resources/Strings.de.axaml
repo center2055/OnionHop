@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">Bezeichnung</x:String>
   <x:String x:Key="Saved.Apply">Anwenden</x:String>
   <x:String x:Key="Saved.Delete">Loeschen</x:String>
+  <x:String x:Key="Saved.Copy">Kopieren</x:String>
   <x:String x:Key="Saved.EmptyTitle">Noch nichts gespeichert</x:String>
   <x:String x:Key="Saved.EmptyDescription">Speichere funktionierende Bridges oder SNI-Hosts aus dem Scanner in deiner Bibliothek.</x:String>
 

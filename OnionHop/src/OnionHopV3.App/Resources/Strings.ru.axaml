@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">метка</x:String>
   <x:String x:Key="Saved.Apply">Применить</x:String>
   <x:String x:Key="Saved.Delete">Удалить</x:String>
+  <x:String x:Key="Saved.Copy">Копировать</x:String>
   <x:String x:Key="Saved.EmptyTitle">Пока ничего не сохранено</x:String>
   <x:String x:Key="Saved.EmptyDescription">Сохраняйте рабочие мосты или SNI-хосты из сканера, чтобы собрать библиотеку.</x:String>
 

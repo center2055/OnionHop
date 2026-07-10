@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">برچسب</x:String>
   <x:String x:Key="Saved.Apply">اعمال ائت</x:String>
   <x:String x:Key="Saved.Delete">سیل</x:String>
+  <x:String x:Key="Saved.Copy">کوپیالا</x:String>
   <x:String x:Key="Saved.EmptyTitle">حله بیرشی ساخلانماییب</x:String>
   <x:String x:Key="Saved.EmptyDescription">تاراییجیدان ایشلَین کؤرپو یا SNI هاستلاری ساخلایین.</x:String>
 

@@ -80,6 +80,7 @@
   <x:String x:Key="Saved.LabelWatermark">برچسب</x:String>
   <x:String x:Key="Saved.Apply">اعمال</x:String>
   <x:String x:Key="Saved.Delete">حذف</x:String>
+  <x:String x:Key="Saved.Copy">کپی</x:String>
   <x:String x:Key="Saved.EmptyTitle">هنوز چیزی ذخیره نشده</x:String>
   <x:String x:Key="Saved.EmptyDescription">پل‌ها یا میزبان‌های SNI کارآمد اسکنر را ذخیره کنید تا کتابخانه بسازید.</x:String>
 
