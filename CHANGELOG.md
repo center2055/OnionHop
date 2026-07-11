@@ -4,6 +4,7 @@
 
 Fixes
 - The bridge scanner now verifies webtunnel bridges with a real handshake (a WebSocket upgrade to the bridge's own endpoint, which must return 101) instead of only checking that its CDN front answered on 443. A dead webtunnel bridge whose front is still up is now correctly reported as unreachable, so scanning a webtunnel list no longer marks bridges as working when Tor cannot actually connect through them (#74).
+- When a bridge transport fails to start, the log now shows why. Tor only reported an opaque "Managed proxy ... terminated with status code 2" when a pluggable transport (lyrebird for obfs4/snowflake, or webtunnel-client) could not run on the system, which hid the real cause. The app now preflights each transport binary and logs the actual reason (a crash, a wrong-architecture binary, a missing execute bit, and so on), so an "obfs4/snowflake connect but immediately fail" problem is diagnosable instead of opaque (#74).
 
 ## v3.7.1 (2026-07-10)
 

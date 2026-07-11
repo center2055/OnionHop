@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -1651,6 +1652,226 @@ internal sealed class TorBridgeManager
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Diagnostic preflight for the pluggable-transport binaries Tor is about to exec. Tor only
+    /// reports an opaque "Managed proxy ... terminated with status code N" when a transport dies at
+    /// launch (e.g. lyrebird exiting 2 on a new macOS), which hides the real cause. We run each binary
+    /// ourselves with a minimal Tor managed-transport environment - the same startup path it fails on
+    /// under Tor - and log the actual result: a clean start, or the exit code plus the first error
+    /// line (a Go panic, a "bad CPU type", a dyld/library failure, a missing exec bit). Best-effort,
+    /// never throws, and only writes to the log; it does not affect the connection.
+    /// </summary>
+    public static async Task PreflightPluggableTransportsAsync(
+        IReadOnlyList<string>? pluginLines, Action<string> log, CancellationToken token)
+    {
+        if (pluginLines == null)
+        {
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in pluginLines)
+        {
+            if (!TryParsePluginLineForPreflight(line, out var transports, out var execPath))
+            {
+                continue;
+            }
+
+            // One preflight per distinct binary (a plugin line may list several transports for one exec).
+            if (!seen.Add(execPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                await PreflightOneAsync(transports, execPath, log, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return;
+            }
+            catch
+            {
+                // A diagnostic must never disrupt the connection.
+            }
+        }
+    }
+
+    /// <summary>Parse a (possibly "ClientTransportPlugin "-prefixed) plugin line into its transport
+    /// list and the exec path (unquoted). Returns false when no <c>exec &lt;path&gt;</c> is present.</summary>
+    internal static bool TryParsePluginLineForPreflight(string? pluginLine, out string transports, out string execPath)
+    {
+        transports = string.Empty;
+        execPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(pluginLine))
+        {
+            return false;
+        }
+
+        var value = pluginLine.Trim();
+        const string prefix = "ClientTransportPlugin ";
+        if (value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            value = value[prefix.Length..].Trim();
+        }
+
+        const string execToken = " exec ";
+        var execIndex = value.IndexOf(execToken, StringComparison.OrdinalIgnoreCase);
+        if (execIndex <= 0)
+        {
+            return false;
+        }
+
+        transports = value[..execIndex].Trim();
+        var rest = value[(execIndex + execToken.Length)..].Trim();
+        if (rest.Length == 0)
+        {
+            return false;
+        }
+
+        // The exec path may be quoted (a spaced path) or a bare token-safe path. Take the quoted span,
+        // otherwise the first whitespace-delimited token (Tor exec paths carry no trailing args here).
+        if (rest[0] == '"')
+        {
+            var end = rest.IndexOf('"', 1);
+            execPath = end > 0 ? rest[1..end] : rest[1..];
+        }
+        else
+        {
+            var space = rest.IndexOf(' ');
+            execPath = space > 0 ? rest[..space] : rest;
+        }
+
+        return execPath.Length > 0;
+    }
+
+    private static async Task PreflightOneAsync(
+        string transports, string execPath, Action<string> log, CancellationToken token)
+    {
+        var name = Path.GetFileName(execPath);
+        Process? process = null;
+        try
+        {
+            var stateDir = Path.Combine(Path.GetTempPath(), "onionhop-pt-preflight");
+            Directory.CreateDirectory(stateDir);
+
+            var psi = new ProcessStartInfo(execPath)
+            {
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            // Minimal Tor pluggable-transport managed environment so the binary runs its real client
+            // startup (where lyrebird exits 2 under Tor), then exits when we close its stdin.
+            psi.Environment["TOR_PT_MANAGED_TRANSPORT_VER"] = "1";
+            psi.Environment["TOR_PT_STATE_LOCATION"] = stateDir;
+            psi.Environment["TOR_PT_EXIT_ON_STDIN_CLOSE"] = "1";
+            psi.Environment["TOR_PT_CLIENT_TRANSPORTS"] =
+                string.IsNullOrWhiteSpace(transports) ? "obfs4" : transports;
+
+            process = Process.Start(psi);
+            if (process == null)
+            {
+                log($"PT preflight: {name} could not be started.");
+                return;
+            }
+
+            process.StandardInput.Close(); // triggers TOR_PT_EXIT_ON_STDIN_CLOSE
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(6));
+
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            var stderrTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
+
+            var exited = true;
+            try
+            {
+                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                exited = false; // timed out: it kept running rather than crashing at startup
+            }
+
+            var stdout = (await SafeReadAsync(stdoutTask).ConfigureAwait(false)).Trim();
+            var stderr = (await SafeReadAsync(stderrTask).ConfigureAwait(false)).Trim();
+
+            if (!exited)
+            {
+                // A healthy managed proxy that did not honor the stdin-close hint would keep running,
+                // so reaching the timeout means it started without crashing.
+                TryKill(process);
+                log($"PT preflight: {name} started and kept running (no startup crash).");
+                return;
+            }
+
+            if (process.ExitCode == 0)
+            {
+                log($"PT preflight: {name} started OK (exit 0).");
+            }
+            else
+            {
+                var reason = FirstNonEmptyLine(stderr) ?? FirstNonEmptyLine(stdout) ?? "(no output)";
+                log($"PT preflight: {name} FAILED to start - exit {process.ExitCode}: {reason}. " +
+                    $"That is why the {name} managed proxy dies (\"terminated with status code {process.ExitCode}\"); " +
+                    "it is a problem running the transport binary on this system, not a bridge or network issue.");
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            log($"PT preflight: {name} could not be launched ({ex.Message}) - the transport binary may not be executable on this OS/CPU.");
+        }
+        finally
+        {
+            try { process?.Dispose(); } catch { /* best effort */ }
+        }
+    }
+
+    private static void TryKill(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch { /* best effort */ }
+    }
+
+    private static async Task<string> SafeReadAsync(Task<string> readTask)
+    {
+        try { return await readTask.ConfigureAwait(false); }
+        catch { return string.Empty; }
+    }
+
+    private static string? FirstNonEmptyLine(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        foreach (var raw in text.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length > 0)
+            {
+                return line;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

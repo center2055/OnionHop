@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Tor;
 
 namespace OnionHopV3.Core.Services;
 
@@ -90,6 +91,14 @@ internal sealed class TorService : IDisposable
 
         var arguments = BuildArguments(config, _dataDirectory);
         _log($"Tor arguments: {FormatArgumentsForLog(arguments)}");
+
+        // If a pluggable transport cannot run on this system (e.g. lyrebird exiting 2 on a new macOS),
+        // Tor only logs an opaque "Managed proxy ... terminated with status code N". Preflight each
+        // transport binary in the background and log the real reason. Fire-and-forget; never blocks.
+        if (config.ClientTransportPlugins is { Count: > 0 })
+        {
+            _ = TorBridgeManager.PreflightPluggableTransportsAsync(config.ClientTransportPlugins, _log, CancellationToken.None);
+        }
         var torDirectory = config.WorkingDirectory
             ?? Path.GetDirectoryName(config.TorPath)
             ?? AppContext.BaseDirectory;

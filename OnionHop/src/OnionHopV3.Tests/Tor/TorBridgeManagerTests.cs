@@ -483,4 +483,28 @@ public sealed class TorBridgeManagerTests
             try { File.Delete(Path.Combine(Path.GetTempPath(), "onionhop-pt", "webtunnel-client")); } catch { }
         }
     }
+
+    [Theory]
+    [InlineData("ClientTransportPlugin obfs4 exec /var/folders/x/T/onionhop-pt/lyrebird", "obfs4", "/var/folders/x/T/onionhop-pt/lyrebird")]
+    [InlineData("obfs4 exec /tmp/onionhop-pt/lyrebird", "obfs4", "/tmp/onionhop-pt/lyrebird")]
+    [InlineData("ClientTransportPlugin obfs4,meek_lite exec /tmp/lyrebird", "obfs4,meek_lite", "/tmp/lyrebird")]
+    [InlineData("ClientTransportPlugin webtunnel exec \"C:\\Program Files\\OnionHop\\webtunnel-client.exe\"", "webtunnel", "C:\\Program Files\\OnionHop\\webtunnel-client.exe")]
+    public void TryParsePluginLineForPreflight_extracts_transports_and_exec(string line, string expectedTransports, string expectedExec)
+    {
+        var ok = TorBridgeManager.TryParsePluginLineForPreflight(line, out var transports, out var execPath);
+
+        Assert.True(ok);
+        Assert.Equal(expectedTransports, transports);
+        Assert.Equal(expectedExec, execPath);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("obfs4 1.2.3.4:443 cert=z")] // a bridge line, not a plugin line - no " exec "
+    [InlineData("ClientTransportPlugin obfs4")]
+    public void TryParsePluginLineForPreflight_rejects_lines_without_exec(string line)
+    {
+        Assert.False(TorBridgeManager.TryParsePluginLineForPreflight(line, out _, out _));
+    }
 }
