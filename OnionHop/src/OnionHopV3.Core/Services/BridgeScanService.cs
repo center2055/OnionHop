@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,9 +23,9 @@ public enum BridgeReachability
 
     /// <summary>
     /// The transport's real endpoint is a URL/broker host, not the bridge-line IP:port (snowflake,
-    /// meek, conjure, dnstt, and webtunnel — whose IP is an RFC 3849 2001:db8:: placeholder). We
-    /// probed that url/front host and it answered — the bridge is usable even though its listed
-    /// IP:port can't be pinged.
+    /// meek, conjure, dnstt). We probed that url/front host and it answered — the bridge is usable
+    /// even though its listed IP:port can't be pinged. (webtunnel is verified more strictly, via a
+    /// real WebSocket-upgrade handshake, so it reports Reachable/Unreachable rather than Fronted.)
     /// </summary>
     Fronted
 }
@@ -70,11 +74,12 @@ public static class BridgeScanService
     };
 
     /// <summary>
-    /// Transports whose real endpoint is a URL/broker host rather than the bridge-line IP:port. This
-    /// covers domain-fronted/broker transports (snowflake, meek, conjure, dnstt) AND webtunnel, which
-    /// always connects to its <c>url=</c> host over HTTPS - its IP:port is a placeholder (typically an
-    /// RFC 3849 2001:db8:: address). For all of these we probe the url/front host, not the placeholder
-    /// IP, otherwise the bridge can never show as reachable even when it is perfectly usable.
+    /// Transports whose real endpoint is a URL/broker host rather than the bridge-line IP:port: the
+    /// domain-fronted/broker transports (snowflake, meek, conjure, dnstt). For these we probe the
+    /// url/front host, not the placeholder IP, otherwise they could never show as reachable. webtunnel
+    /// is listed here too (its IP:port is an RFC 3849 2001:db8:: placeholder, and a no-<c>url=</c> line
+    /// falls back to a front probe), but it is normally intercepted earlier in <see cref="ProbeAsync"/>
+    /// and verified end-to-end with a real WebSocket-upgrade handshake instead of a front probe.
     /// </summary>
     private static readonly HashSet<string> FrontedTransports = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -201,6 +206,15 @@ public static class BridgeScanService
         var transport = ParseTransport(line);
         var hasEndpoint = TryParseEndpoint(line, out _, out var host, out var port);
 
+        // webtunnel has a real end-to-end handshake we can verify - a WebSocket Upgrade to its exact
+        // url= endpoint must return 101 - unlike the broker/domain-fronted transports below. Probe the
+        // actual bridge, not just its CDN front, so a dead webtunnel bridge whose front still serves
+        // TLS is correctly reported unreachable instead of masquerading as "reachable".
+        if (string.Equals(transport, "webtunnel", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ProbeWebtunnelAsync(line, transport, timeout, token).ConfigureAwait(false);
+        }
+
         // Fronted transports (snowflake/meek/conjure) and lines whose only endpoint is a placeholder
         // are not directly pingable — probe the broker/front host on 443 (TLS) instead.
         if (FrontedTransports.Contains(transport) || (hasEndpoint && IsPlaceholderHost(host)))
@@ -254,6 +268,159 @@ public static class BridgeScanService
 
         return new BridgeScanResult(line, transport, frontHost, 443, null,
             BridgeReachability.Unreachable, error ?? "unreachable");
+    }
+
+    /// <summary>
+    /// Real liveness probe for a webtunnel bridge. A webtunnel bridge is reached by a WebSocket
+    /// Upgrade over HTTPS to its exact <c>url=</c> endpoint (front host + secret path); a live bridge
+    /// answers <c>101 Switching Protocols</c>, while a dead bridge - or a bare CDN/front with nothing
+    /// behind that path - answers 4xx/5xx or times out (a live bridge often even answers 502 to a
+    /// plain GET, so only the upgrade handshake is reliable). This is far stronger than a TCP/TLS
+    /// reach to the front host, which every CDN passes even with no bridge behind it - the false
+    /// positive that let dead webtunnel bridges show as "reachable".
+    /// </summary>
+    private static async Task<BridgeScanResult> ProbeWebtunnelAsync(
+        string line, string transport, TimeSpan timeout, CancellationToken token)
+    {
+        var url = ExtractUrl(line);
+        if (string.IsNullOrWhiteSpace(url)
+            || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)
+            || string.IsNullOrWhiteSpace(uri.Host))
+        {
+            // No usable url= to verify - fall back to the front-host reachability probe.
+            return await ProbeFrontedAsync(line, transport, timeout, token).ConfigureAwait(false);
+        }
+
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 443;
+        var pathAndQuery = string.IsNullOrEmpty(uri.PathAndQuery) ? "/" : uri.PathAndQuery;
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeoutCts.CancelAfter(timeout);
+
+        IPAddress? address;
+        try
+        {
+            if (!IPAddress.TryParse(host, out address))
+            {
+                var resolved = await Dns.GetHostAddressesAsync(host, timeoutCts.Token).ConfigureAwait(false);
+                address = resolved.FirstOrDefault(a => !IsDisallowedProbeTarget(a));
+                if (address == null)
+                {
+                    return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "DNS: no public address");
+                }
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "DNS timed out");
+        }
+        catch (SocketException)
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "DNS failed");
+        }
+
+        if (IsDisallowedProbeTarget(address))
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "internal address (skipped)");
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        using var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        try
+        {
+            await socket.ConnectAsync(new IPEndPoint(address, port), timeoutCts.Token).ConfigureAwait(false);
+
+            await using var network = new NetworkStream(socket, ownsSocket: false);
+            // Accept any certificate: this is a reachability probe to a bridge front, not an identity
+            // check. The accept-any callback is set ONLY via the options below - also passing it to the
+            // SslStream constructor makes AuthenticateAsClientAsync throw "already set" and every probe fail.
+            await using var ssl = new SslStream(network, leaveInnerStreamOpen: false);
+            var authOptions = new SslClientAuthenticationOptions
+            {
+                TargetHost = host,
+                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                RemoteCertificateValidationCallback = static (_, _, _, _) => true
+            };
+            await ssl.AuthenticateAsClientAsync(authOptions, timeoutCts.Token).ConfigureAwait(false);
+
+            // Send the WebSocket Upgrade the webtunnel client itself uses, to the exact secret path.
+            var key = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+            var request =
+                $"GET {pathAndQuery} HTTP/1.1\r\n" +
+                $"Host: {host}\r\n" +
+                "User-Agent: Mozilla/5.0\r\n" +
+                "Connection: Upgrade\r\n" +
+                "Upgrade: websocket\r\n" +
+                $"Sec-WebSocket-Key: {key}\r\n" +
+                "Sec-WebSocket-Version: 13\r\n" +
+                "\r\n";
+            await ssl.WriteAsync(Encoding.ASCII.GetBytes(request), timeoutCts.Token).ConfigureAwait(false);
+
+            var buffer = new byte[512];
+            var total = 0;
+            int read;
+            while (total < buffer.Length &&
+                   (read = await ssl.ReadAsync(buffer.AsMemory(total), timeoutCts.Token).ConfigureAwait(false)) > 0)
+            {
+                total += read;
+                if (Encoding.ASCII.GetString(buffer, 0, total).Contains("\r\n", StringComparison.Ordinal))
+                {
+                    break;
+                }
+            }
+            stopwatch.Stop();
+
+            var statusLine = Encoding.ASCII.GetString(buffer, 0, total).Split("\r\n", 2)[0];
+            if (IsSwitchingProtocols(statusLine))
+            {
+                var ms = (int)stopwatch.ElapsedMilliseconds;
+                var reachability = ms < SlowThresholdMs ? BridgeReachability.Reachable : BridgeReachability.Slow;
+                return new BridgeScanResult(line, transport, host, port, ms, reachability, $"{ms} ms");
+            }
+
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "front only, no bridge");
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "timed out");
+        }
+        catch (AuthenticationException)
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, "TLS failed");
+        }
+        catch (SocketException ex)
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, DescribeSocketError(ex));
+        }
+        catch (Exception ex)
+        {
+            return new BridgeScanResult(line, transport, host, port, null, BridgeReachability.Unreachable, ex.Message);
+        }
+    }
+
+    /// <summary>True when an HTTP status line reports <c>101 Switching Protocols</c> - the successful
+    /// webtunnel WebSocket upgrade, i.e. a live bridge is answering at that path.</summary>
+    internal static bool IsSwitchingProtocols(string? statusLine)
+    {
+        if (string.IsNullOrWhiteSpace(statusLine))
+        {
+            return false;
+        }
+
+        var parts = statusLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            && parts[0].StartsWith("HTTP/", StringComparison.OrdinalIgnoreCase)
+            && parts[1] == "101";
     }
 
     /// <summary>
@@ -450,6 +617,9 @@ public static class BridgeScanService
         var front = MatchKeyValue(line, "front");
         return string.IsNullOrWhiteSpace(front) ? null : front;
     }
+
+    /// <summary>Extract the raw <c>url=</c> value (webtunnel's real HTTPS endpoint) from a bridge line.</summary>
+    internal static string? ExtractUrl(string line) => MatchKeyValue(line, "url");
 
     private static string? MatchKeyValue(string line, string key)
     {

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- The bridge scanner now verifies webtunnel bridges with a real handshake (a WebSocket upgrade to the bridge's own endpoint, which must return 101) instead of only checking that its CDN front answered on 443. A dead webtunnel bridge whose front is still up is now correctly reported as unreachable, so scanning a webtunnel list no longer marks bridges as working when Tor cannot actually connect through them (#74).
+
 ## v3.7.1 (2026-07-10)
 
 Additions

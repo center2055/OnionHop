@@ -91,6 +91,33 @@ public sealed class BridgeScanServiceTests
     }
 
     [Theory]
+    // webtunnel is now verified by a real WebSocket upgrade to its url= endpoint, so we must be able
+    // to pull the full url= (host + secret path), not just the host.
+    [InlineData("webtunnel [2001:db8::1]:443 FP url=https://rabbithole2.net/4kHLbQ ver=0.0.1", "https://rabbithole2.net/4kHLbQ")]
+    [InlineData("webtunnel [2001:db8::2]:443 FP url=https://host.example/p?x=1", "https://host.example/p?x=1")]
+    [InlineData("obfs4 1.2.3.4:443 FP cert=z iat-mode=0", null)] // no url= on an obfs4 line
+    public void ExtractUrl_pulls_the_full_url_value(string line, string? expected)
+    {
+        Assert.Equal(expected, BridgeScanService.ExtractUrl(line));
+    }
+
+    [Theory]
+    [InlineData("HTTP/1.1 101 Switching Protocols", true)]
+    [InlineData("HTTP/1.0 101 Switching Protocols", true)]
+    [InlineData("HTTP/1.1 101", true)]
+    [InlineData("HTTP/1.1 200 OK", false)]        // a plain page / decoy front
+    [InlineData("HTTP/1.1 404 Not Found", false)] // secret path gone (dead bridge)
+    [InlineData("HTTP/1.1 502 Bad Gateway", false)]
+    [InlineData("HTTP/1.1 403 Forbidden", false)]
+    [InlineData("", false)]
+    [InlineData("garbage", false)]
+    [InlineData("101 Switching Protocols", false)] // must start with HTTP/
+    public void IsSwitchingProtocols_only_accepts_http_101(string statusLine, bool expected)
+    {
+        Assert.Equal(expected, BridgeScanService.IsSwitchingProtocols(statusLine));
+    }
+
+    [Theory]
     [InlineData("127.0.0.1", true)]
     [InlineData("10.1.2.3", true)]
     [InlineData("192.168.1.5", true)]
