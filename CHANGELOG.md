@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7.3 (2026-07-12)
 
 Fixes
 - When a bridged connect fails after the scan found bridges reachable but the transport could not connect to any of them, the log now points at the likely cause: a firewall or security tool blocking OnionHop's transport helper (lyrebird / webtunnel-client), or bridges that are dead at the protocol layer. Previously this looked like an unexplained wall of "general SOCKS server failure" (#74).
