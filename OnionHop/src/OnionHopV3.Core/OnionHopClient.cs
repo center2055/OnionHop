@@ -122,6 +122,10 @@ public sealed class OnionHopClient : IDisposable
     private CancellationTokenSource? _adminVpnMonitorCts;
     private readonly object _bridgeFailureLock = new();
     private readonly Queue<DateTimeOffset> _recentTorProxyFailures = new();
+    // Totals for the current connect attempt, used to hint (on failure) that the transport could not
+    // reach bridges the pre-connect scan found reachable - typically a firewall blocking the helper.
+    private int _totalTorProxyFailures;
+    private int _lastReachableBridgeCount;
 
     public OnionHopClient(string? baseDirectory = null)
     {
@@ -795,6 +799,11 @@ public sealed class OnionHopClient : IDisposable
 
         _activeOptions = options;
         _snowflakeAmpHintShown = false;
+        _lastReachableBridgeCount = 0;
+        lock (_bridgeFailureLock)
+        {
+            _totalTorProxyFailures = 0;
+        }
         SetStatus(
             isConnecting: true,
             isConnected: false,
@@ -960,6 +969,7 @@ public sealed class OnionHopClient : IDisposable
                 ? "Connection canceled."
                 : "Connection canceled or timed out.";
             RaiseLog(canceledMessage);
+            MaybeLogTransportBlockedHint();
             await DisconnectCoreAsync(disableStatusUpdate: true).ConfigureAwait(false);
             SetStatus(
                 isConnecting: false,
@@ -3559,12 +3569,39 @@ public sealed class OnionHopClient : IDisposable
         lock (_bridgeFailureLock)
         {
             var now = DateTimeOffset.UtcNow;
+            _totalTorProxyFailures++;
             _recentTorProxyFailures.Enqueue(now);
             while (_recentTorProxyFailures.Count > 0 &&
                    now - _recentTorProxyFailures.Peek() > AutomaticBridgeProxyFailureWindow)
             {
                 _recentTorProxyFailures.Dequeue();
             }
+        }
+    }
+
+    // On a bridged connect that fails, hint if the transport could not reach ANY bridge the pre-connect
+    // scan found reachable. Same machine, bridges reachable by a plain TCP probe, yet the transport
+    // (lyrebird / webtunnel-client) fails them all - which usually means a firewall or security tool is
+    // blocking the transport helper process, or the bridges are dead at the protocol layer (#74).
+    private void MaybeLogTransportBlockedHint()
+    {
+        const int minProxyFailures = 5;
+        int failures;
+        lock (_bridgeFailureLock)
+        {
+            failures = _totalTorProxyFailures;
+        }
+
+        if (_activeOptions is { UseTorBridges: true }
+            && _lastReachableBridgeCount > 0
+            && failures >= minProxyFailures)
+        {
+            RaiseLog(
+                $"Note: the reachability scan found {_lastReachableBridgeCount} bridge(s) reachable, but the transport " +
+                $"could not connect to any of them ({failures} \"general SOCKS server failure\" errors). That usually means " +
+                "a firewall or security tool is blocking OnionHop's transport helper (lyrebird / webtunnel-client), or the " +
+                "bridges are unusable at the protocol layer. If you run a firewall or security app, allow those helpers (or " +
+                "quit it) and retry, or try a different transport.");
         }
     }
 
@@ -3776,6 +3813,7 @@ public sealed class OnionHopClient : IDisposable
             }
 
             var unreachableCount = results.Count - working.Count;
+            _lastReachableBridgeCount = working.Count;
             RaiseLog($"Bridge reachability scan: {working.Count} reachable of {results.Count} probed (dropped {unreachableCount} blocked/dead), fastest first.");
             return working;
         }
