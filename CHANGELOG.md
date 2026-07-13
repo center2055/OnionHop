@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7.4 (2026-07-13)
 
 Fixes
 - On macOS and Linux, the bridge transport helpers (lyrebird / webtunnel-client) now run from a stable per-user cache directory (`~/Library/Caches/onionhop-pt` on macOS, `~/.cache/onionhop-pt` on Linux) instead of the system temp directory. Per-app firewalls like Little Snitch identify a process by its executable path, so a helper running from the periodically-purged temp dir never got a durable allow rule and could be silently denied without ever prompting - which made every bridge fail with "general SOCKS server failure" even with an "allow all" rule for OnionHop itself (#74). With a stable path the firewall can prompt once and remember the answer, the same way it does for Tor Browser's bundled lyrebird. The stale-transport cleanup at connect time now also covers helpers running from that directory.
