@@ -1880,8 +1880,9 @@ internal sealed class TorBridgeManager
     /// and ignores quotes, so a path containing a space is truncated at the first space and the
     /// managed proxy fails to launch. On Windows the path is collapsed to its space-free 8.3 short
     /// form; on macOS/Linux (e.g. the "~/Library/Application Support/..." data dir, which has a
-    /// space) we materialize a space-free symlink to the real binary in the temp dir and return
-    /// that. Returns the original path unchanged when it has no space or no space-free form can be
+    /// space) we materialize a space-free symlink to the real binary in a stable per-user cache dir
+    /// (temp as fallback) and return that. Returns the original path unchanged when it has no space
+    /// or no space-free form can be
     /// produced (the caller then quotes it as a last resort).
     /// </summary>
     internal static string MakeExecutablePathTokenSafe(string executablePath)
@@ -1945,10 +1946,75 @@ internal sealed class TorBridgeManager
     }
 
     /// <summary>
-    /// Creates (or refreshes) a space-free symlink to <paramref name="targetPath"/> under the temp
-    /// directory and returns the link path, or null if the temp dir itself has a space or the
-    /// target is missing. Used so Tor can exec a pluggable transport whose real path contains a
-    /// space (Tor's transport-line parser splits on whitespace and ignores quotes).
+    /// Ordered base-directory candidates for the space-free pluggable-transport dir on macOS/Linux.
+    /// A STABLE per-user cache directory comes first: per-app firewalls (e.g. Little Snitch) identify
+    /// a process by its executable path, and a transport helper exec'd from the periodically-purged
+    /// temp dir never gets a durable allow rule - on the reporter's Mac in #74 it was silently denied
+    /// without ever prompting, while Tor Browser (whose lyrebird runs from a stable path inside its
+    /// app bundle) prompts normally. The temp locations remain as fallbacks for exotic setups (e.g.
+    /// a home path that itself contains a space).
+    /// </summary>
+    private static IEnumerable<string?> GetUnixPtBaseCandidates()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(home))
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                yield return Path.Combine(home, "Library", "Caches");
+            }
+            else
+            {
+                var xdgCache = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
+                yield return string.IsNullOrWhiteSpace(xdgCache) ? Path.Combine(home, ".cache") : xdgCache;
+            }
+        }
+
+        yield return Path.GetTempPath();
+        yield return "/tmp";
+        yield return "/var/tmp";
+        yield return "/Users/Shared";
+    }
+
+    /// <summary>Create (or reuse) the space-free "onionhop-pt" dir under the first usable base
+    /// candidate, preferring the stable per-user cache dir. Returns null when no space-free,
+    /// writable base exists.</summary>
+    private static string? TryCreateSpaceFreePtDir()
+    {
+        foreach (var candidate in GetUnixPtBaseCandidates())
+        {
+            if (string.IsNullOrEmpty(candidate) || candidate.IndexOf(' ') >= 0)
+            {
+                continue;
+            }
+
+            var dir = Path.Combine(candidate, "onionhop-pt");
+            if (dir.IndexOf(' ') >= 0)
+            {
+                continue;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(dir);
+                return dir;
+            }
+            catch
+            {
+                // Not writable here; try the next candidate.
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Creates (or refreshes) a space-free symlink to <paramref name="targetPath"/> in the stable
+    /// per-user cache dir (falling back to temp) and returns the link path, or null if no space-free
+    /// base dir exists or the target is missing. Used so Tor can exec a pluggable transport whose
+    /// real path contains a space (Tor's transport-line parser splits on whitespace and ignores
+    /// quotes). A stable link location matters beyond the space: per-app firewalls key rules to the
+    /// executable path, so it must not live in a purged temp dir (#74).
     /// </summary>
     private static string? TryCreateSpaceFreeSymlink(string targetPath)
     {
@@ -1957,14 +2023,11 @@ internal sealed class TorBridgeManager
             return null;
         }
 
-        var tempRoot = Path.GetTempPath();
-        if (string.IsNullOrEmpty(tempRoot) || tempRoot.IndexOf(' ') >= 0)
+        var linkDir = TryCreateSpaceFreePtDir();
+        if (string.IsNullOrEmpty(linkDir))
         {
             return null;
         }
-
-        var linkDir = Path.Combine(tempRoot, "onionhop-pt");
-        Directory.CreateDirectory(linkDir);
 
         var linkPath = Path.Combine(linkDir, Path.GetFileName(targetPath));
         if (linkPath.IndexOf(' ') >= 0)
@@ -2012,34 +2075,12 @@ internal sealed class TorBridgeManager
             return null;
         }
 
-        string? baseDir = null;
-        foreach (var candidate in new[]
-                 {
-                     Path.GetTempPath(),
-                     "/tmp",
-                     "/var/tmp",
-                     "/Users/Shared",
-                 })
-        {
-            if (!string.IsNullOrEmpty(candidate) && candidate!.IndexOf(' ') < 0 && Directory.Exists(candidate))
-            {
-                baseDir = candidate;
-                break;
-            }
-        }
-
-        if (string.IsNullOrEmpty(baseDir))
+        var dir = TryCreateSpaceFreePtDir();
+        if (string.IsNullOrEmpty(dir))
         {
             return null;
         }
 
-        var dir = Path.Combine(baseDir!, "onionhop-pt");
-        if (dir.IndexOf(' ') >= 0)
-        {
-            return null;
-        }
-
-        Directory.CreateDirectory(dir);
         var dest = Path.Combine(dir, Path.GetFileName(targetPath));
         if (dest.IndexOf(' ') >= 0)
         {

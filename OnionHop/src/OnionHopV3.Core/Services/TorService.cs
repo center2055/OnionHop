@@ -510,9 +510,13 @@ internal sealed class TorService : IDisposable
                         continue;
                     }
 
-                    // Only ours: the binary must sit directly inside our pluggable_transports folder.
+                    // Only ours: the binary must sit directly inside our pluggable_transports folder,
+                    // or in the space-free "onionhop-pt" mirror dir the app execs it from on paths
+                    // with spaces (cache/temp copy - a transport-named process there is ours too).
                     var exeDirectory = Path.GetDirectoryName(Path.GetFullPath(exePath!));
-                    if (!string.Equals(exeDirectory, ptDirectory, StringComparison.OrdinalIgnoreCase))
+                    var isOurs = string.Equals(exeDirectory, ptDirectory, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(Path.GetFileName(exeDirectory), "onionhop-pt", StringComparison.OrdinalIgnoreCase);
+                    if (!isOurs)
                     {
                         continue;
                     }
