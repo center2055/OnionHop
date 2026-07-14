@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7.5 (2026-07-14)
 
 Fixes
 - The pre-connect bridge scan now verifies obfs4 bridges with a real obfs4 handshake, not just a TCP connect. obfs4 cannot be probed without doing the handshake, so a TCP-reachable bridge can still be dead or blocked at the obfs4 layer; those used to be handed to Tor and produced a wall of "general SOCKS server failure" warnings and a long pause before connecting. The app now drives the bundled obfs4 client to complete the handshake and drops the ones that fail before Tor sees them, so connecting is faster and the log is far quieter (#74). If the check cannot run or nearly everything fails (e.g. the whole set is blocked from your network), it safely falls back to the previous TCP-reachable set.
