@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- The pre-connect bridge scan now verifies obfs4 bridges with a real obfs4 handshake, not just a TCP connect. obfs4 cannot be probed without doing the handshake, so a TCP-reachable bridge can still be dead or blocked at the obfs4 layer; those used to be handed to Tor and produced a wall of "general SOCKS server failure" warnings and a long pause before connecting. The app now drives the bundled obfs4 client to complete the handshake and drops the ones that fail before Tor sees them, so connecting is faster and the log is far quieter (#74). If the check cannot run or nearly everything fails (e.g. the whole set is blocked from your network), it safely falls back to the previous TCP-reachable set.
+- Fixed "connected but no websites load" (browser shows ERR_PROXY_CONNECTION_FAILED) in TUN/VPN mode on Windows. If an earlier session crashed or was force-closed while the system proxy was applied, Windows kept that proxy enabled, pointing browsers at a port from that session; since ports are picked per session, later sessions had no listener there, and TUN mode never corrected it (Proxy Mode masked it by re-applying live ports). The app now detects a leftover proxy matching its own written shape at connect time and clears it, and in TUN mode it logs a clear note when some other system proxy is enabled (the tunnel needs no proxy at all). Third-party proxy settings are never touched.
+
 ## v3.7.4 (2026-07-13)
 
 Fixes

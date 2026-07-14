@@ -820,6 +820,12 @@ public sealed class OnionHopClient : IDisposable
             var xrayTunCompatibilityProxyApplied = false;
             RaiseLog($"Connecting. Engine={ResolveEffectiveTorEngine(options)}, Mode={options.SelectedConnectionMode}, Hybrid={options.UseHybridRouting}, Exit={options.SelectedLocation}, Bridges={(options.UseTorBridges ? options.SelectedBridgeType : "off")}");
 
+            // A crashed/killed earlier session can leave the OS proxy enabled and pointing at that
+            // session's (now dead, per-session) ports, breaking all browsing - in TUN mode nothing
+            // would ever correct it ("connected but no websites load"). Heal our own leftovers before
+            // this connect; foreign proxies are never touched.
+            _proxyService.ClearStaleTorProxy(RaiseLog);
+
             var resolvedOptions = await StartTorWithBridgeFallbackAsync(options, timeoutCts.Token).ConfigureAwait(false);
             _activeOptions = resolvedOptions;
 
@@ -895,6 +901,17 @@ public sealed class OnionHopClient : IDisposable
                 RaiseLog(_activeHttpPort.HasValue
                     ? "xray compatibility mode: system HTTP/SOCKS proxy fallback enabled to ensure browser traffic uses Tor."
                     : "xray compatibility mode: system SOCKS proxy fallback enabled to ensure browser traffic uses Tor.");
+            }
+
+            if (IsTunMode(resolvedOptions) && !_proxyService.IsApplied &&
+                _proxyService.GetEnabledSystemProxy() is { } foreignProxy)
+            {
+                // Our own stale leftovers were healed at connect start, so this proxy is somebody
+                // else's. The tunnel routes everything by itself; a system proxy pointing at a dead
+                // or wrong endpoint is exactly the "connected but no websites load /
+                // ERR_PROXY_CONNECTION_FAILED" report.
+                RaiseLog($"Note: a system proxy is enabled ({foreignProxy}). TUN/VPN mode routes all traffic by itself and needs no proxy - " +
+                         "if websites do not load, disable that proxy (and any manual proxy in your browser) and retry.");
             }
 
             if (!IsTunMode(resolvedOptions))
@@ -3815,7 +3832,7 @@ public sealed class OnionHopClient : IDisposable
             var unreachableCount = results.Count - working.Count;
             _lastReachableBridgeCount = working.Count;
             RaiseLog($"Bridge reachability scan: {working.Count} reachable of {results.Count} probed (dropped {unreachableCount} blocked/dead), fastest first.");
-            return working;
+            return await VerifyObfs4HandshakesAsync(working, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -3825,6 +3842,68 @@ public sealed class OnionHopClient : IDisposable
         {
             RaiseLog($"Bridge reachability scan failed ({ex.Message}); using bridges without pre-filtering.");
             return bridgeLines;
+        }
+    }
+
+    // The TCP reachability scan cannot tell that an obfs4 bridge is dead or blocked at the obfs4 layer
+    // (a TCP connect still succeeds), so it hands Tor bridges that then fail with "general SOCKS server
+    // failure" - noisy log, long pause. Drive the bundled obfs4 client to complete a real handshake and
+    // drop the ones that do not. Falls back to the TCP-reachable set if the client cannot run or the
+    // check looks degraded, so this never starves Tor of bridges.
+    private async Task<IReadOnlyList<string>> VerifyObfs4HandshakesAsync(IReadOnlyList<string> working, CancellationToken token)
+    {
+        var obfs4Count = working.Count(Obfs4HandshakeVerifier.IsObfs4Line);
+        if (obfs4Count == 0)
+        {
+            return working;
+        }
+
+        var name = PlatformHelper.LyrebirdBinaryName;
+        var lyrebird = new[]
+        {
+            Path.Combine(_baseDir, "tor", "pluggable_transports", name),
+            Path.Combine(AppContext.BaseDirectory, "tor", "pluggable_transports", name)
+        }.FirstOrDefault(File.Exists);
+        if (string.IsNullOrWhiteSpace(lyrebird))
+        {
+            return working;
+        }
+
+        try
+        {
+            var (kept, ran) = await Obfs4HandshakeVerifier.VerifyAsync(
+                working, lyrebird!, workers: 24, maxToVerify: 80,
+                perProbeTimeout: TimeSpan.FromSeconds(5), token).ConfigureAwait(false);
+            if (!ran)
+            {
+                return working;
+            }
+
+            var keptObfs4 = kept.Count(Obfs4HandshakeVerifier.IsObfs4Line);
+            if (keptObfs4 < Math.Max(1, obfs4Count / 5))
+            {
+                // Almost everything failed: likely the whole set is blocked from this network or the
+                // client glitched. Keep the TCP-reachable set rather than handing Tor next to nothing.
+                RaiseLog($"obfs4 handshake check kept only {keptObfs4}/{obfs4Count}; keeping the TCP-reachable set.");
+                return working;
+            }
+
+            var dropped = obfs4Count - keptObfs4;
+            if (dropped > 0)
+            {
+                RaiseLog($"obfs4 handshake check: {keptObfs4}/{obfs4Count} bridges completed the obfs4 handshake; dropped {dropped} reachable-but-dead/blocked at the obfs4 layer.");
+            }
+
+            return kept;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"obfs4 handshake check skipped ({ex.Message}); using the TCP-reachable set.");
+            return working;
         }
     }
 

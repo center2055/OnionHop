@@ -17,6 +17,11 @@ internal sealed class LinuxProxyService : IProxyService
 
     public bool IsApplied => _applied;
 
+    // Stale-leftover healing is Windows-specific for now (WinINET registry persists a crashed
+    // session's proxy); gsettings/kwriteconfig state is restored via SavePreviousProxy instead.
+    public bool ClearStaleTorProxy(Action<string> log) => false;
+    public string? GetEnabledSystemProxy() => null;
+
     public void ApplyTorProxy(int socksPort, int? httpPort, Action<string> log)
     {
         if (!OperatingSystem.IsLinux())
