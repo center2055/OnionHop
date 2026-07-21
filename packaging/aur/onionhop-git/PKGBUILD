@@ -1,0 +1,78 @@
+# Maintainer: ZeroDot1
+# Community AUR packaging template. Builds OnionHop from source (latest master).
+#
+# NOTE (please validate on Arch before publishing): the app expects its bundled native
+# dependencies (tor, pluggable_transports/, vpn/sing-box, snowflake/, artihop/, ...) to sit
+# next to the published binary. download-deps.sh places them in the source tree; this PKGBUILD
+# copies the known dep dirs into the publish output after `dotnet publish`. Confirm the runtime
+# layout matches how the AppImage build lays them out - see .github/workflows/linux-appimage.yml.
+pkgname=onionhop-git
+pkgver=3.7.5.r0.gHEAD
+pkgrel=1
+pkgdesc="Privacy-first desktop app that routes your traffic through Tor (built from source)"
+arch=('x86_64')
+url="https://github.com/center2055/OnionHop"
+license=('GPL3')
+depends=('dotnet-runtime-9.0' 'fontconfig' 'libx11')
+# go + rust are needed by download-deps.sh to build webtunnel/dnstt (Go) and ArtiHop (Rust);
+# without them those transports are silently skipped (obfs4/tor/sing-box/xray still work).
+makedepends=('git' 'dotnet-sdk-9.0' 'go' 'rust' 'curl' 'unzip')
+provides=('onionhop')
+conflicts=('onionhop' 'onionhop-bin')
+source=('git+https://github.com/center2055/OnionHop.git')
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/OnionHop"
+  printf "%s.r%s.g%s" \
+    "$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo 3.7.5)" \
+    "$(git rev-list --count HEAD)" \
+    "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$srcdir/OnionHop"
+  # Fetches/builds the bundled native deps (tor, pluggable transports, sing-box, xray, ...).
+  # Needs network access (AUR build hosts have it; Flathub would not - see the issue thread).
+  chmod +x download-deps.sh
+  ./download-deps.sh
+}
+
+build() {
+  cd "$srcdir/OnionHop"
+  export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+  dotnet publish OnionHop/src/OnionHopV3.App/OnionHopV3.App.csproj \
+    -c Release -r linux-x64 --self-contained false -o build_output
+
+  # Belt-and-suspenders: ensure the bundled native deps are alongside the app.
+  for d in tor vpn snowflake artihop; do
+    [ -d "OnionHop/$d" ] && cp -r "OnionHop/$d" build_output/
+  done
+}
+
+package() {
+  cd "$srcdir/OnionHop"
+  install -d "$pkgdir/usr/lib/onionhop"
+  cp -r build_output/. "$pkgdir/usr/lib/onionhop/"
+
+  # Launcher (AssemblyName is OnionHopV3).
+  install -d "$pkgdir/usr/bin"
+  printf '#!/bin/sh\nexec /usr/lib/onionhop/OnionHopV3 "$@"\n' > "$pkgdir/usr/bin/onionhop"
+  chmod 755 "$pkgdir/usr/bin/onionhop"
+
+  install -Dm644 OnionHop/src/OnionHopV3.App/Assets/logo.png "$pkgdir/usr/share/pixmaps/onionhop.png"
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/onionhop.desktop" <<'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=OnionHop
+Comment=Privacy-first desktop app that routes your traffic through Tor
+Exec=onionhop
+Icon=onionhop
+Terminal=false
+Categories=Network;Security;
+Keywords=tor;proxy;vpn;privacy;anonymous;
+StartupWMClass=OnionHopV3
+EOF
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

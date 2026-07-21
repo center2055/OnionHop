@@ -1,0 +1,47 @@
+# Maintainer: ZeroDot1
+# Community AUR packaging template. Repackages the official OnionHop AppImage release -
+# no build toolchain, no network fetch of native deps (the AppImage already bundles tor,
+# sing-box, the pluggable transports, geoip, etc.). Bump pkgver + sha256sums per release.
+pkgname=onionhop-bin
+pkgver=3.7.5
+pkgrel=1
+pkgdesc="Privacy-first desktop app that routes your traffic through Tor (AppImage repackage)"
+arch=('x86_64')
+url="https://github.com/center2055/OnionHop"
+license=('GPL3')
+depends=('fuse2')
+provides=('onionhop')
+conflicts=('onionhop' 'onionhop-git')
+source=("OnionHop-x86_64.AppImage::https://github.com/center2055/OnionHop/releases/download/v${pkgver}/OnionHop-x86_64.AppImage")
+# From the release's OnionHop-x86_64.AppImage.sha256.txt.
+sha256sums=('6a4c4d4673159b901389b18ae10091141e4a4684d006d13b4b49b00cdd250a0a')
+
+package() {
+  cd "$srcdir"
+  chmod +x OnionHop-x86_64.AppImage
+
+  # Install the AppImage under /opt and a launcher on PATH.
+  install -Dm755 OnionHop-x86_64.AppImage "$pkgdir/opt/onionhop/OnionHop.AppImage"
+  install -d "$pkgdir/usr/bin"
+  printf '#!/bin/sh\nexec /opt/onionhop/OnionHop.AppImage "$@"\n' > "$pkgdir/usr/bin/onionhop"
+  chmod 755 "$pkgdir/usr/bin/onionhop"
+
+  # Reuse the AppImage's own icon when present (--appimage-extract does not need FUSE).
+  ./OnionHop-x86_64.AppImage --appimage-extract >/dev/null 2>&1 || true
+  [ -f squashfs-root/.DirIcon ] && install -Dm644 squashfs-root/.DirIcon "$pkgdir/usr/share/pixmaps/onionhop.png"
+
+  # Desktop entry (generated inline so there is no extra source to checksum).
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/onionhop.desktop" <<'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=OnionHop
+Comment=Privacy-first desktop app that routes your traffic through Tor
+Exec=onionhop
+Icon=onionhop
+Terminal=false
+Categories=Network;Security;
+Keywords=tor;proxy;vpn;privacy;anonymous;
+StartupWMClass=OnionHopV3
+EOF
+}
