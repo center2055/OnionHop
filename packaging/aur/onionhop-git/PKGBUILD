@@ -60,6 +60,10 @@ package() {
   printf '#!/bin/sh\nexec /usr/lib/onionhop/OnionHopV3 "$@"\n' > "$pkgdir/usr/bin/onionhop"
   chmod 755 "$pkgdir/usr/bin/onionhop"
 
+  # Icon: hicolor theme (what modern menus/launchers actually index, via the gtk-update-icon-cache
+  # / hicolor-icon-theme pacman hooks) plus a pixmaps fallback for older setups. The source logo.png
+  # is 1024x1024; desktop environments downscale it fine from the 512x512 slot.
+  install -Dm644 OnionHop/src/OnionHopV3.App/Assets/logo.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/onionhop.png"
   install -Dm644 OnionHop/src/OnionHopV3.App/Assets/logo.png "$pkgdir/usr/share/pixmaps/onionhop.png"
   install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/onionhop.desktop" <<'EOF'
 [Desktop Entry]
@@ -70,7 +74,7 @@ Comment=Privacy-first desktop app that routes your traffic through Tor
 Exec=onionhop
 Icon=onionhop
 Terminal=false
-Categories=Network;Security;
+Categories=Network;WebBrowser;Security;
 Keywords=tor;proxy;vpn;privacy;anonymous;
 StartupWMClass=OnionHopV3
 EOF

@@ -26,9 +26,14 @@ package() {
   printf '#!/bin/sh\nexec /opt/onionhop/OnionHop.AppImage "$@"\n' > "$pkgdir/usr/bin/onionhop"
   chmod 755 "$pkgdir/usr/bin/onionhop"
 
-  # Reuse the AppImage's own icon when present (--appimage-extract does not need FUSE).
+  # Reuse the AppImage's own icon when present (--appimage-extract does not need FUSE). Install to
+  # the hicolor theme (what modern menus index, via the icon-cache pacman hooks) plus a pixmaps
+  # fallback for older setups.
   ./OnionHop-x86_64.AppImage --appimage-extract >/dev/null 2>&1 || true
-  [ -f squashfs-root/.DirIcon ] && install -Dm644 squashfs-root/.DirIcon "$pkgdir/usr/share/pixmaps/onionhop.png"
+  if [ -f squashfs-root/.DirIcon ]; then
+    install -Dm644 squashfs-root/.DirIcon "$pkgdir/usr/share/icons/hicolor/512x512/apps/onionhop.png"
+    install -Dm644 squashfs-root/.DirIcon "$pkgdir/usr/share/pixmaps/onionhop.png"
+  fi
 
   # Desktop entry (generated inline so there is no extra source to checksum).
   install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/onionhop.desktop" <<'EOF'
@@ -40,7 +45,7 @@ Comment=Privacy-first desktop app that routes your traffic through Tor
 Exec=onionhop
 Icon=onionhop
 Terminal=false
-Categories=Network;Security;
+Categories=Network;WebBrowser;Security;
 Keywords=tor;proxy;vpn;privacy;anonymous;
 StartupWMClass=OnionHopV3
 EOF
