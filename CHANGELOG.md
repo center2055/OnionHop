@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- Fixed saved bridges showing the wrong transport in the library. The scanner saved every entry with whatever the transport dropdown was set to, so scanning a pasted custom list (or "All") stored the wrong type - for example vanilla bridges appearing as "obfs4" in Saved bridges & SNI, even though the scan results grid showed them correctly. Each entry now records its own transport, parsed from the bridge line itself.
+
 ## v3.7.5 (2026-07-14)
 
 Fixes

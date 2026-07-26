@@ -23,7 +23,11 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
     private CancellationTokenSource? _scanCts;
     private readonly List<string> _workingLines = new();
     // Ping + reachability per working line, so a saved bridge carries its latency into the library.
-    private readonly Dictionary<string, (int? Ping, string Status)> _workingMeta = new(StringComparer.Ordinal);
+    // Per-bridge scan metadata, keyed by the raw line. Transport is captured PER RESULT (parsed from
+    // the bridge line itself) rather than taken from the transport dropdown: a scan of a pasted custom
+    // list, or of "All", contains lines whose transport differs from the dropdown selection, and using
+    // the dropdown mislabeled every saved entry (e.g. vanilla bridges saved as "obfs4").
+    private readonly Dictionary<string, (int? Ping, string Status, string Transport)> _workingMeta = new(StringComparer.Ordinal);
     private readonly SavedBridgeStore _savedStore = new();
 
     public BridgeScannerPageViewModel(AppStateViewModel state)
@@ -280,7 +284,14 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
             {
                 Line = line,
                 Kind = SavedBridgeKind.Bridge,
-                Transport = SelectedTransport,
+                // The bridge's OWN transport (from the scan result), not the dropdown selection -
+                // see the _workingMeta comment. Falls back to the dropdown only when the line could
+                // not be parsed, and never to the "All" pseudo-transport.
+                Transport = !string.IsNullOrWhiteSpace(meta.Transport)
+                    ? meta.Transport
+                    : string.Equals(SelectedTransport, "All", StringComparison.OrdinalIgnoreCase)
+                        ? string.Empty
+                        : SelectedTransport,
                 Source = "bridge-scan",
                 AddedUtc = DateTime.UtcNow.ToString("o"),
                 LastStatus = string.IsNullOrEmpty(meta.Status) ? "reachable" : meta.Status,
@@ -323,7 +334,10 @@ public sealed partial class BridgeScannerPageViewModel : PageViewModelBase
         if (result.IsWorking)
         {
             _workingLines.Add(result.RawLine);
-            _workingMeta[result.RawLine] = (result.PingMs, result.Reachability == BridgeReachability.Slow ? "slow" : "reachable");
+            _workingMeta[result.RawLine] = (
+                result.PingMs,
+                result.Reachability == BridgeReachability.Slow ? "slow" : "reachable",
+                result.Transport);
             _reachable += result.Reachability == BridgeReachability.Reachable ? 1 : 0;
             _slow += result.Reachability == BridgeReachability.Slow ? 1 : 0;
         }
