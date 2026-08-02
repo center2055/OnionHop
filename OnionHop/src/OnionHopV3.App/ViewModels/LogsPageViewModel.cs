@@ -113,9 +113,23 @@ public sealed partial class LogsPageViewModel : PageViewModelBase
     {
         // The bridges tab renders BridgeRows, so Copy/Export must follow what is actually visible
         // there (a lingering level filter from another tab does not apply to bridges).
-        return SelectedSource == SourceBridges
-            ? string.Join(Environment.NewLine, BridgeRows.Select(row => row.RawLine))
-            : string.Join(Environment.NewLine, VisibleEntries.Select(entry => entry.RawLine));
+        if (SelectedSource == SourceBridges)
+        {
+            return string.Join(Environment.NewLine, BridgeRows.Select(row => row.RawLine));
+        }
+
+        // Re-derive the text from the live source with the current filter instead of joining
+        // VisibleEntries. VisibleEntries is maintained incrementally and deliberately stops updating
+        // while the log is paused (and is rebuilt on trim/reset), so exporting could write a stale
+        // snapshot: a user who exported with "All" selected got only the older entries and had to
+        // switch to the Warning filter and copy the newer lines out by hand. Deriving here always
+        // matches what the current filter selects from the log as it stands right now.
+        return string.Join(
+            Environment.NewLine,
+            GetSourceLines()
+                .Select(line => ParseLine(line, SelectedSource))
+                .Where(FilterEntry)
+                .Select(entry => entry.RawLine));
     }
 
     /// <summary>True while the bridges tab is selected, so the view can switch Copy/Export to the

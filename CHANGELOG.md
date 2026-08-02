@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- Fixed the Logs page exporting (or copying) an incomplete log. The exported text was taken from the list the page maintains as lines stream in, which deliberately stops updating while the log is paused and is rebuilt when the buffer is trimmed, so an export could write an older snapshot: with "All" selected users could get only the earlier entries and had to switch to the Warning filter and copy the newer lines out by hand. Export and Copy now build their text from the log as it stands at that moment, with the current level and search filter applied.
+
 ## v3.7.6 (2026-07-26)
 
 Fixes
