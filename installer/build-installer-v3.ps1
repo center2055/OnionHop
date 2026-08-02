@@ -194,7 +194,7 @@ if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
 }
 
-$version = "3.7.6"
+$version = "3.7.7"
 try {
   $xml = [xml](Get-Content $csproj)
   $pv = $xml.Project.PropertyGroup.Version
