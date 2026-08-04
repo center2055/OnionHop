@@ -903,6 +903,15 @@ public sealed class OnionHopClient : IDisposable
                     : "xray compatibility mode: system SOCKS proxy fallback enabled to ensure browser traffic uses Tor.");
             }
 
+            if (IsLoopbackUpstreamProxyInFullTunnel(resolvedOptions))
+            {
+                RaiseLog(
+                    $"Note: the upstream proxy ({resolvedOptions.UpstreamProxyHost}) runs on this machine, but TUN/VPN mode routes every " +
+                    "other program through the tunnel - including that proxy - so its traffic is sent through Tor, which is itself trying " +
+                    "to get out through the proxy, and the connection stalls. Use Proxy Mode with the upstream proxy, or switch to Hybrid " +
+                    "routing and add the proxy application to the split-tunnelling bypass list.");
+            }
+
             if (IsTunMode(resolvedOptions) && !_proxyService.IsApplied &&
                 _proxyService.GetEnabledSystemProxy() is { } foreignProxy)
             {
@@ -3022,7 +3031,7 @@ public sealed class OnionHopClient : IDisposable
             DohPath = doh.Path,
             TorAppProcessNames = ResolveHybridTorApps(options),
             BypassAppProcessNames = ParseProcessNames(options.HybridBypassApps),
-            BypassRoutingEntries = ParseRoutingRules(options.BypassRoutingRules),
+            BypassRoutingEntries = WithUpstreamProxyBypass(ParseRoutingRules(options.BypassRoutingRules), options),
             BlockRoutingEntries = ParseRoutingRules(options.BlockRoutingRules),
             BypassCountryCodes = ParseRoutingRules(options.BypassCountries),
             BlockCountryCodes = ParseRoutingRules(options.BlockCountries),
@@ -3037,6 +3046,55 @@ public sealed class OnionHopClient : IDisposable
             ManageOnionResolver = ShouldManageOnionDnsInsideMacTun(options),
             OnionDnsNameServer = _activeDnsBindAddress
         };
+    }
+
+    /// <summary>
+    /// Keep the upstream proxy's own endpoint outside the tunnel. Tor dials that proxy to reach the
+    /// network, so if the tunnel captured traffic to it, the proxy's connection would be sent back
+    /// through Tor - which is itself trying to reach the network through that proxy - and the two
+    /// deadlock instead of connecting (#80). A loopback proxy is already covered by the private-IP
+    /// rule; this matters for a proxy on a LAN or public address. The entry is classified downstream,
+    /// so an IP becomes an ip_cidr rule and a hostname becomes a domain rule.
+    /// </summary>
+    internal static IReadOnlyList<string> WithUpstreamProxyBypass(
+        IReadOnlyList<string> entries, OnionHopConnectOptions options)
+    {
+        if (!options.UpstreamProxyEnabled || string.IsNullOrWhiteSpace(options.UpstreamProxyHost))
+        {
+            return entries;
+        }
+
+        var host = options.UpstreamProxyHost!.Trim();
+        if (entries.Any(entry => string.Equals(entry?.Trim(), host, StringComparison.OrdinalIgnoreCase)))
+        {
+            return entries;
+        }
+
+        var combined = new List<string>(entries) { host };
+        return combined;
+    }
+
+    /// <summary>
+    /// True when a full-tunnel (non-hybrid) TUN connection is paired with an upstream proxy running on
+    /// this machine. The tunnel routes every process except Tor's own, so the local proxy application's
+    /// outbound traffic is captured and sent through Tor, which then tries to leave through that same
+    /// proxy. Nothing in the config can exempt it (app bypass is a hybrid/split-tunnelling feature by
+    /// design, so full-tunnel mode stays leak-resistant), so the user needs to know to switch modes.
+    /// </summary>
+    internal static bool IsLoopbackUpstreamProxyInFullTunnel(OnionHopConnectOptions options)
+    {
+        if (!options.UpstreamProxyEnabled
+            || string.IsNullOrWhiteSpace(options.UpstreamProxyHost)
+            || !IsTunMode(options)
+            || options.UseHybridRouting)
+        {
+            return false;
+        }
+
+        var host = options.UpstreamProxyHost!.Trim();
+        return IPAddress.TryParse(host, out var address)
+            ? IPAddress.IsLoopback(address)
+            : host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
     }
 
     // Fire-and-forget refresh of the configured geo rule-sets through the live Tor SOCKS proxy

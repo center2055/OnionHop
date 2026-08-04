@@ -60,11 +60,11 @@
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8">
               <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
-              <NumericUpDown Width="110" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
+              <NumericUpDown MinWidth="120" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8">
               <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
-              <NumericUpDown Width="110" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
+              <NumericUpDown MinWidth="120" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8" VerticalAlignment="Bottom">
               <TextBlock Text="{DynamicResource Scanner.CustomSource}" Classes="SectionCaption" />
@@ -164,15 +164,15 @@
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8">
               <TextBlock Text="{DynamicResource Scanner.Workers}" Classes="SectionCaption" />
-              <NumericUpDown Width="100" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
+              <NumericUpDown MinWidth="120" Minimum="1" Maximum="64" Increment="1" FormatString="0" Value="{Binding Workers}" />
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8">
               <TextBlock Text="{DynamicResource Scanner.Timeout}" Classes="SectionCaption" />
-              <NumericUpDown Width="100" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
+              <NumericUpDown MinWidth="120" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding TimeoutSeconds}" />
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8">
               <TextBlock Text="{DynamicResource Sni.Port}" Classes="SectionCaption" />
-              <NumericUpDown Width="90" Minimum="1" Maximum="65535" Increment="1" FormatString="0" Value="{Binding Port}" />
+              <NumericUpDown MinWidth="140" Minimum="1" Maximum="65535" Increment="1" FormatString="0" Value="{Binding Port}" />
             </StackPanel>
             <StackPanel Spacing="4" Margin="0,0,16,8" IsVisible="{Binding IsDomainMode}">
               <TextBlock Text="{DynamicResource Scanner.CustomSource}" Classes="SectionCaption" />

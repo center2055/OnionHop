@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- Scanner: the Workers, Timeout and Port boxes no longer cut off their values. They used fixed widths, so once the up/down buttons took their share there was too little room left for the number - the Port box in particular could show only a sliver of a value like 443, and larger system font or display scaling made it worse. They now size to fit their contents (#79).
+- Upstream proxy: traffic to the proxy itself is now kept out of the TUN tunnel. A proxy on a LAN or public address would otherwise have its connection routed through Tor, which was in turn trying to reach the network through that same proxy, so the two deadlocked and the connection never came up (#80). The proxy endpoint is now routed directly, the same way Tor's own traffic already was.
+- Upstream proxy: connecting in TUN/VPN mode with a proxy running on your own machine now logs a clear explanation. Full-tunnel mode deliberately routes every program except Tor's own through the tunnel, which includes that local proxy, so its traffic ends up going through Tor while Tor is trying to leave through it. The log now says so and points to Proxy Mode, or Hybrid routing with the proxy application added to the split-tunnelling bypass list (#80).
+
 ## v3.7.7 (2026-08-01)
 
 Fixes
