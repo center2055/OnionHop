@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7.8 (2026-08-05)
 
 Fixes
 - Scanner: the Workers, Timeout and Port boxes no longer cut off their values. They used fixed widths, so once the up/down buttons took their share there was too little room left for the number - the Port box in particular could show only a sliver of a value like 443, and larger system font or display scaling made it worse. They now size to fit their contents (#79).
