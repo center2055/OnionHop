@@ -965,6 +965,12 @@ public sealed class OnionHopClient : IDisposable
             }
 
             _isConnected = true;
+            // Clear the connecting flag here rather than only in the finally below. Everything after
+            // this point (the IP refresh, the geo cache warm-up) runs with the connection already up,
+            // and leaving both flags set meant a runtime that died in that window hit DisconnectAsync's
+            // "busy connecting" guard and was silently ignored, stranding the UI on "Disconnecting..."
+            // until the user clicked Disconnect (#81).
+            _isConnecting = false;
             _connectionStatus = "Connected";
             _connectionProgress = 1;
             _statusMessage = IsTunMode(resolvedOptions)
@@ -1024,9 +1030,18 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
-    public async Task DisconnectAsync()
+    public Task DisconnectAsync() => DisconnectAsync(force: false);
+
+    /// <summary>
+    /// Tears the connection down. The "busy connecting" guard exists so a user clicking Disconnect
+    /// mid-connect cannot interleave with the connect sequence, but it must not apply when a runtime
+    /// has just died underneath us: that call comes from a crash handler, and swallowing it left the
+    /// app stuck showing "... stopped unexpectedly. Disconnecting..." forever (#81). Those callers
+    /// pass <paramref name="force"/>.
+    /// </summary>
+    private async Task DisconnectAsync(bool force)
     {
-        if (_isConnecting)
+        if (!force && _isConnecting)
         {
             return;
         }
@@ -3263,7 +3278,7 @@ public sealed class OnionHopClient : IDisposable
                     _connectionStatus = "VPN stopped";
                     _statusMessage = "VPN tunnel stopped unexpectedly. Disconnecting...";
                     PublishStatus();
-                    await DisconnectAsync().ConfigureAwait(false);
+                    await DisconnectAsync(force: true).ConfigureAwait(false);
                     return;
                 }
                 catch (OperationCanceledException)
@@ -3315,7 +3330,7 @@ public sealed class OnionHopClient : IDisposable
                     _statusMessage = $"Tor stopped unexpectedly (exit code {exitCode}). Disconnecting...";
                     _connectionProgress = 0;
                     PublishStatus();
-                    await DisconnectAsync().ConfigureAwait(false);
+                    await DisconnectAsync(force: true).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -3440,7 +3455,7 @@ public sealed class OnionHopClient : IDisposable
                     _statusMessage = $"Arti stopped unexpectedly (exit code {exitCode}). Disconnecting...";
                     _connectionProgress = 0;
                     PublishStatus();
-                    await DisconnectAsync().ConfigureAwait(false);
+                    await DisconnectAsync(force: true).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -3497,7 +3512,7 @@ public sealed class OnionHopClient : IDisposable
                     _statusMessage = $"ArtiHop stopped unexpectedly (exit code {exitCode}). Disconnecting...";
                     _connectionProgress = 0;
                     PublishStatus();
-                    await DisconnectAsync().ConfigureAwait(false);
+                    await DisconnectAsync(force: true).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -3580,7 +3595,7 @@ public sealed class OnionHopClient : IDisposable
             {
                 try
                 {
-                    await DisconnectAsync().ConfigureAwait(false);
+                    await DisconnectAsync(force: true).ConfigureAwait(false);
                 }
                 catch
                 {

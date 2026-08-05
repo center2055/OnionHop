@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- Fixed the app getting stuck on "... stopped unexpectedly. Disconnecting..." when Tor or the VPN tunnel died on its own, leaving the only way out a manual click on Disconnect (#81). The crash handlers call the same disconnect path the Disconnect button uses, and that path deliberately ignores requests made while a connection is still being established - a guard meant to stop a user interrupting the connect sequence, which also silently swallowed these. The connecting flag is now cleared as soon as the connection is up rather than after the follow-up work, and the crash handlers are no longer subject to that guard.
+
 ## v3.7.8 (2026-08-05)
 
 Fixes
