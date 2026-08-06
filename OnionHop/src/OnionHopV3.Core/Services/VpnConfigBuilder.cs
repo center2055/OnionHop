@@ -25,6 +25,7 @@ internal static class VpnConfigBuilder
         string? tunStack,
         int? tunMtu,
         bool tunStrictRoute,
+        bool tunIncludeIpv6 = true,
         string? interfaceName = null,
         IReadOnlyList<string>? bypassRoutingEntries = null,
         IReadOnlyList<string>? blockRoutingEntries = null,
@@ -135,7 +136,13 @@ internal static class VpnConfigBuilder
             ["interface_name"] = string.IsNullOrWhiteSpace(interfaceName)
                 ? (OperatingSystem.IsMacOS() ? "utun99" : "OnionHop")
                 : interfaceName,
-            ["address"] = new[] { "172.19.0.1/30", "fdfe:dcba:9876::1/126" },
+            // Only claim an IPv6 address when the machine actually has IPv6. Assigning one on a system
+            // where IPv6 is turned off makes sing-box abort the whole tunnel with
+            // "configure tun interface: set ipv6 address: Element not found", so the connection died
+            // right after Tor came up (#81). With IPv6 off there is no IPv6 traffic to carry anyway.
+            ["address"] = tunIncludeIpv6
+                ? new[] { "172.19.0.1/30", "fdfe:dcba:9876::1/126" }
+                : new[] { "172.19.0.1/30" },
             ["auto_route"] = true,
             ["strict_route"] = tunStrictRoute,
             ["stack"] = resolvedTunStack

@@ -606,6 +606,7 @@ internal sealed class VpnService : IDisposable
                 config.TunStack,
                 config.TunMtu,
                 config.TunStrictRoute,
+                HasUsableIpv6(_log),
                 _tunInterfaceName,
                 config.BypassRoutingEntries,
                 config.BlockRoutingEntries,
@@ -1085,6 +1086,32 @@ internal sealed class VpnService : IDisposable
         }
 
         return TryReadIntFromFile(exitCodePath, out exitCode);
+    }
+
+    /// <summary>
+    /// Whether this machine has a usable IPv6 stack. When IPv6 is switched off in Windows, assigning
+    /// an IPv6 address to the TUN adapter fails with "set ipv6 address: Element not found" and
+    /// sing-box aborts the whole tunnel, so the connection dropped seconds after Tor came up (#81).
+    /// In that case the tunnel is built IPv4-only, which loses nothing: with IPv6 disabled there is
+    /// no IPv6 traffic to carry.
+    /// </summary>
+    internal static bool HasUsableIpv6(Action<string>? log = null)
+    {
+        try
+        {
+            if (Socket.OSSupportsIPv6)
+            {
+                return true;
+            }
+
+            log?.Invoke("IPv6 is disabled on this system; building the tunnel without an IPv6 address.");
+            return false;
+        }
+        catch
+        {
+            // If the probe itself fails, keep the previous behaviour rather than silently changing it.
+            return true;
+        }
     }
 
     private static bool TryReadIntFromFile(string path, out int value)

@@ -3,6 +3,7 @@
 ## Unreleased
 
 Fixes
+- Fixed TUN/VPN mode failing to start on systems where IPv6 is turned off (#81). The tunnel adapter was always given an IPv6 address as well as an IPv4 one, and with the IPv6 stack disabled Windows rejects that ("set ipv6 address: Element not found"), which made sing-box abort the whole tunnel a couple of seconds after Tor had already connected. Proxy Mode was unaffected, which is why it appeared to be the only working mode. The tunnel is now built IPv4-only on those systems, which carries no cost: with IPv6 disabled there is no IPv6 traffic to route.
 - Fixed the app getting stuck on "... stopped unexpectedly. Disconnecting..." when Tor or the VPN tunnel died on its own, leaving the only way out a manual click on Disconnect (#81). The crash handlers call the same disconnect path the Disconnect button uses, and that path deliberately ignores requests made while a connection is still being established - a guard meant to stop a user interrupting the connect sequence, which also silently swallowed these. The connecting flag is now cleared as soon as the connection is up rather than after the follow-up work, and the crash handlers are no longer subject to that guard.
 
 ## v3.7.8 (2026-08-05)
