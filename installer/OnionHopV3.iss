@@ -9,7 +9,7 @@
 #define MyAppURL "https://github.com/center2055/OnionHop"
 
 #ifndef MyAppVersion
-  #define MyAppVersion "3.7.8"
+  #define MyAppVersion "3.7.9"
 #endif
 
 #ifndef PubDir

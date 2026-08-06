@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7.9 (2026-08-06)
 
 Fixes
 - Fixed TUN/VPN mode failing to start on systems where IPv6 is turned off (#81). The tunnel adapter was always given an IPv6 address as well as an IPv4 one, and with the IPv6 stack disabled Windows rejects that ("set ipv6 address: Element not found"), which made sing-box abort the whole tunnel a couple of seconds after Tor had already connected. Proxy Mode was unaffected, which is why it appeared to be the only working mode. The tunnel is now built IPv4-only on those systems, which carries no cost: with IPv6 disabled there is no IPv6 traffic to route.
