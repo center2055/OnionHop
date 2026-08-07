@@ -606,7 +606,7 @@ internal sealed class VpnService : IDisposable
                 config.TunStack,
                 config.TunMtu,
                 config.TunStrictRoute,
-                HasUsableIpv6(_log),
+                !config.TunDisableIpv6 && HasUsableIpv6(_log),
                 _tunInterfaceName,
                 config.BypassRoutingEntries,
                 config.BlockRoutingEntries,
@@ -2098,6 +2098,13 @@ internal sealed class VpnLaunchConfig
     public string TunStack { get; init; } = "mixed";
     public int? TunMtu { get; init; }
     public bool TunStrictRoute { get; init; } = true;
+
+    /// <summary>
+    /// Build the tunnel without an IPv6 address. Set after a start attempt failed with
+    /// "set ipv6 address", which some Windows machines return for a freshly created tunnel adapter
+    /// even when IPv6 is enabled on their normal adapters (#81).
+    /// </summary>
+    public bool TunDisableIpv6 { get; init; }
     public IReadOnlyList<string> TorAppProcessNames { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> BypassAppProcessNames { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> BypassRoutingEntries { get; init; } = Array.Empty<string>();

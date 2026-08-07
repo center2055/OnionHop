@@ -126,6 +126,10 @@ public sealed class OnionHopClient : IDisposable
     // reach bridges the pre-connect scan found reachable - typically a firewall blocking the helper.
     private int _totalTorProxyFailures;
     private int _lastReachableBridgeCount;
+    // #81: set when the tunnel failed because Windows would not assign the IPv6 address, and set once
+    // the tunnel has been rebuilt IPv4-only so the fallback is only attempted a single time.
+    private bool _sawTunIpv6AddressFailure;
+    private bool _tunIpv6FallbackApplied;
 
     public OnionHopClient(string? baseDirectory = null)
     {
@@ -800,6 +804,8 @@ public sealed class OnionHopClient : IDisposable
         _activeOptions = options;
         _snowflakeAmpHintShown = false;
         _lastReachableBridgeCount = 0;
+        _sawTunIpv6AddressFailure = false;
+        _tunIpv6FallbackApplied = false;
         lock (_bridgeFailureLock)
         {
             _totalTorProxyFailures = 0;
@@ -3058,6 +3064,7 @@ public sealed class OnionHopClient : IDisposable
             TunStack = NormalizeTunStackModeForSingBox(options.TunStackMode),
             TunMtu = options.TunMtu,
             TunStrictRoute = options.TunStrictRoute,
+            TunDisableIpv6 = _tunIpv6FallbackApplied,
             ManageOnionResolver = ShouldManageOnionDnsInsideMacTun(options),
             OnionDnsNameServer = _activeDnsBindAddress
         };
@@ -3274,6 +3281,15 @@ public sealed class OnionHopClient : IDisposable
                         await _adminHelper.EnableKillSwitchAsync().ConfigureAwait(false);
                     }
 
+                    // The tunnel only died because Windows refused the IPv6 address on the adapter.
+                    // Rebuild it IPv4-only and carry on instead of tearing the connection down (#81):
+                    // Tor is already up at this point, so this recovers the session rather than
+                    // making the user reconnect.
+                    if (await TryRestartTunnelWithoutIpv6Async(options, token).ConfigureAwait(false))
+                    {
+                        continue;
+                    }
+
                     RaiseLog($"VPN helper reports tunnel stopped (exit code {status.VpnExitCode?.ToString() ?? "unknown"}). Disconnecting...");
                     _connectionStatus = "VPN stopped";
                     _statusMessage = "VPN tunnel stopped unexpectedly. Disconnecting...";
@@ -3291,6 +3307,43 @@ public sealed class OnionHopClient : IDisposable
                 }
             }
         }, token);
+    }
+
+    /// <summary>
+    /// Brings the tunnel back up without an IPv6 address after it died because Windows would not
+    /// assign one to the adapter (#81). Some machines refuse this for a freshly created tunnel
+    /// adapter even though IPv6 works fine on their normal adapters, so keying off "is IPv6 enabled"
+    /// is not enough: what matters is that the assignment actually failed. Only ever retried once,
+    /// and an IPv4-only tunnel loses nothing that was working, since the IPv6 half never came up.
+    /// Returns true when the tunnel was restarted and the caller should keep monitoring.
+    /// </summary>
+    private async Task<bool> TryRestartTunnelWithoutIpv6Async(OnionHopConnectOptions options, CancellationToken token)
+    {
+        if (!_sawTunIpv6AddressFailure || _tunIpv6FallbackApplied || _isDisconnecting || !_isConnected)
+        {
+            return false;
+        }
+
+        _tunIpv6FallbackApplied = true;
+        _sawTunIpv6AddressFailure = false;
+        RaiseLog("The tunnel could not be given an IPv6 address on this system, which stopped it. " +
+                 "Rebuilding the tunnel without IPv6 and retrying.");
+
+        try
+        {
+            await StartSingBoxVpnAsync(options, token).ConfigureAwait(false);
+            RaiseLog("Tunnel restarted without IPv6.");
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"Retrying the tunnel without IPv6 failed: {ex.Message}");
+            return false;
+        }
     }
 
     private void OnTorExited(object? sender, EventArgs e)
@@ -3528,12 +3581,28 @@ public sealed class OnionHopClient : IDisposable
 
     private void ProcessSingBoxLogLine(string? data)
     {
+        // Windows can refuse to attach an IPv6 address to a freshly created tunnel adapter even when
+        // IPv6 is enabled on the machine's normal adapters, and the tunnel treats that as fatal (#81).
+        // Remember it so the tunnel can be brought back up IPv4-only instead of just dying.
+        if (!string.IsNullOrEmpty(data) && IsTunIpv6AddressFailure(data))
+        {
+            _sawTunIpv6AddressFailure = true;
+        }
+
         var line = _singBoxLogProcessor.ProcessLine(data);
         if (line != null)
         {
             _singBoxLogProcessor.TrackWebTunnelBridgeHealth(line, GetActiveBridgeTypeForRuntimeHealth, _bridgeManager, RaiseLog);
         }
     }
+
+    /// <summary>
+    /// True for the tunnel's "could not put an IPv6 address on the TUN adapter" startup failure, e.g.
+    /// "configure tun interface: set ipv6 address: Element not found". Matched on the distinctive
+    /// phrase rather than the trailing OS error, which differs between machines and locales.
+    /// </summary>
+    internal static bool IsTunIpv6AddressFailure(string line) =>
+        line.Contains("set ipv6 address", StringComparison.OrdinalIgnoreCase);
 
     private void OnSingBoxExited(object? sender, EventArgs e)
     {
@@ -3587,14 +3656,22 @@ public sealed class OnionHopClient : IDisposable
                 RaiseLog($"VPN last logs before exit:\n{lastLines}");
             }
 
-            _connectionStatus = "VPN stopped";
-            _statusMessage = $"VPN tunnel stopped unexpectedly (exit code {exitCode}). Disconnecting...";
-            PublishStatus();
-
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    // Same IPv6 recovery as the helper-managed path: if the tunnel only died because
+                    // Windows would not assign it an IPv6 address, rebuild it IPv4-only rather than
+                    // dropping a connection whose Tor side is already up (#81).
+                    if (_activeOptions is { } activeOptions
+                        && await TryRestartTunnelWithoutIpv6Async(activeOptions, CancellationToken.None).ConfigureAwait(false))
+                    {
+                        return;
+                    }
+
+                    _connectionStatus = "VPN stopped";
+                    _statusMessage = $"VPN tunnel stopped unexpectedly (exit code {exitCode}). Disconnecting...";
+                    PublishStatus();
                     await DisconnectAsync(force: true).ConfigureAwait(false);
                 }
                 catch

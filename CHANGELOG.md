@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- TUN/VPN mode now recovers when Windows refuses to give the tunnel adapter an IPv6 address, instead of dropping the connection (#81). Some machines reject that assignment for a freshly created tunnel adapter even though IPv6 works normally on their other adapters, so checking whether IPv6 is enabled was not enough: what matters is that the assignment actually failed. When it does, the tunnel is now rebuilt without IPv6 and the session carries on, rather than tearing down a connection whose Tor side is already up. Nothing is lost, since the IPv6 half never came up in the first place.
+
 ## v3.7.9 (2026-08-06)
 
 Fixes
