@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Additions
+- The scanner's text boxes now have a proper right-click menu with Cut, Copy, Paste, **Delete** and Select all, in your own language. The stock menu had no Delete, so clearing a pasted bridge list meant selecting it and reaching for the keyboard; Select all followed by Delete now does it entirely from the menu (tester request). It applies to the bridge list, the SNI domain list, and the SNI host and range boxes.
+
 ## v3.7.10 (2026-08-07)
 
 Fixes

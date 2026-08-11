@@ -81,6 +81,11 @@
   <x:String x:Key="Saved.Apply">اعمال ائت</x:String>
   <x:String x:Key="Saved.Delete">سیل</x:String>
   <x:String x:Key="Saved.Copy">کوپیالا</x:String>
+  <x:String x:Key="Edit.Cut">کس</x:String>
+  <x:String x:Key="Edit.Copy">کوپیالا</x:String>
+  <x:String x:Key="Edit.Paste">یاپیشدیر</x:String>
+  <x:String x:Key="Edit.Delete">سیل</x:String>
+  <x:String x:Key="Edit.SelectAll">هامیسینی سئچ</x:String>
   <x:String x:Key="Saved.EmptyTitle">حله بیرشی ساخلانماییب</x:String>
   <x:String x:Key="Saved.EmptyDescription">تاراییجیدان ایشلَین کؤرپو یا SNI هاستلاری ساخلایین.</x:String>
 

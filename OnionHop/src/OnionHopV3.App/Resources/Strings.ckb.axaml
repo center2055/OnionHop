@@ -81,6 +81,11 @@
   <x:String x:Key="Saved.Apply">جێبەجێکردن</x:String>
   <x:String x:Key="Saved.Delete">سڕینەوە</x:String>
   <x:String x:Key="Saved.Copy">لەبەرگرتنەوە</x:String>
+  <x:String x:Key="Edit.Cut">بڕین</x:String>
+  <x:String x:Key="Edit.Copy">لەبەرگرتنەوە</x:String>
+  <x:String x:Key="Edit.Paste">لکاندن</x:String>
+  <x:String x:Key="Edit.Delete">سڕینەوە</x:String>
+  <x:String x:Key="Edit.SelectAll">هەمووی هەڵبژێرە</x:String>
   <x:String x:Key="Saved.EmptyTitle">هێشتا هیچ پاشەکەوت نەکراوە</x:String>
   <x:String x:Key="Saved.EmptyDescription">پردە یان هۆستە SNI کارکردووەکان لە سکانەرەوە پاشەکەوت بکە بۆ دروستکردنی کتێبخانەکەت.</x:String>
 

@@ -18,6 +18,41 @@ public partial class BridgeScannerPageView : UserControl
 
     private BridgeScannerPageViewModel? ViewModel => DataContext as BridgeScannerPageViewModel;
 
+    // The text box the shared edit flyout was opened on. Captured when the context menu is requested,
+    // because by the time a menu item is clicked the flyout owns the focus and the box does not.
+    private TextBox? _contextTextBox;
+
+    private void OnTextBoxContextRequested(object? sender, ContextRequestedEventArgs e)
+        => _contextTextBox = sender as TextBox;
+
+    private void OnEditCutClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _contextTextBox?.Cut();
+
+    private void OnEditCopyClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _contextTextBox?.Copy();
+
+    private void OnEditPasteClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _contextTextBox?.Paste();
+
+    private void OnEditSelectAllClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _contextTextBox?.SelectAll();
+
+    // Delete removes the selected text, matching the standard Windows edit menu. Combined with
+    // Select All that is how you clear a pasted bridge list without touching the keyboard.
+    private void OnEditDeleteClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var box = _contextTextBox;
+        if (box == null || box.IsReadOnly)
+        {
+            return;
+        }
+
+        if (box.SelectionStart != box.SelectionEnd)
+        {
+            box.SelectedText = string.Empty;
+        }
+    }
+
     // Persist an edited label when the row's label TextBox loses focus (saved-library subtab, v3.6).
     private void OnSavedLabelLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {

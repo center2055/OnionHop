@@ -81,6 +81,11 @@
   <x:String x:Key="Saved.Apply">Apply</x:String>
   <x:String x:Key="Saved.Delete">Delete</x:String>
   <x:String x:Key="Saved.Copy">Copy</x:String>
+  <x:String x:Key="Edit.Cut">Cut</x:String>
+  <x:String x:Key="Edit.Copy">Copy</x:String>
+  <x:String x:Key="Edit.Paste">Paste</x:String>
+  <x:String x:Key="Edit.Delete">Delete</x:String>
+  <x:String x:Key="Edit.SelectAll">Select all</x:String>
   <x:String x:Key="Saved.EmptyTitle">Nothing saved yet</x:String>
   <x:String x:Key="Saved.EmptyDescription">Save working bridges or SNI hosts from the scanner to build your library.</x:String>
 
