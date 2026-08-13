@@ -96,16 +96,23 @@ internal static class VpnConfigBuilder
                 rules.Add(new { process_name = bypassAppProcessNames, outbound = "direct" });
             }
 
-            if (blockUdpTraffic)
+            // Tor cannot carry UDP, so UDP from an app that is meant to go through Tor has to be
+            // blocked or it silently escapes the tunnel. In hybrid mode that is the only traffic worth
+            // blocking: an app the user left direct never touches Tor, so killing its UDP protects
+            // nothing and breaks QUIC, which is what YouTube and other HTTP/3 sites rely on. This used
+            // to be a blanket block that also hit those direct apps, so "route my torrent client
+            // through Tor, keep my browser direct" left the browser unable to load YouTube.
+            if ((blockUdpTraffic || blockQuicForTorApps) && torAppProcessNames.Count > 0)
             {
-                // Tor does not carry UDP. Block it in hybrid mode instead of allowing silent direct bypasses.
-                rules.Add(new { network = "udp", outbound = "block" });
-            }
-            else if (blockQuicForTorApps && torAppProcessNames.Count > 0)
-            {
-                // Prevent QUIC/UDP bypass for apps intended to go over Tor.
-                rules.Add(new { process_name = torAppProcessNames, network = "udp", port = 443, outbound = "block" });
                 rules.Add(new { process_name = torAppProcessNames, network = "udp", outbound = "block" });
+            }
+
+            if (blockUdpTraffic && routeAllWebTrafficThroughTor)
+            {
+                // Web traffic is being forced through Tor below, so QUIC has to go too: otherwise a
+                // browser simply uses HTTP/3 over UDP 443 and routes around it. Apps in the bypass
+                // list matched further up and keep their UDP.
+                rules.Add(new { network = "udp", port = 443, outbound = "block" });
             }
 
             if (torAppProcessNames.Count > 0)

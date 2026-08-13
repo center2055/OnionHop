@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Fixes
+- Hybrid (split tunnelling) mode no longer blocks UDP for apps you kept direct. "Block UDP traffic" exists because Tor cannot carry UDP, so UDP from a Tor-routed app would silently escape the tunnel, but it was applied to everything rather than just those apps. An app you deliberately left direct never touches Tor, so blocking its UDP protected nothing and broke QUIC (HTTP/3), which is what YouTube and similar sites use: routing a torrent client through Tor while keeping the browser direct left the browser unable to load YouTube. The block is now scoped to the apps actually routed through Tor. Full-tunnel mode is unchanged, and when "Route all web traffic through Tor" is on, QUIC is still blocked so browsers cannot use HTTP/3 to route around it.
+
 Additions
 - The scanner's text boxes now have a proper right-click menu with Cut, Copy, Paste, **Delete** and Select all, in your own language. The stock menu had no Delete, so clearing a pasted bridge list meant selecting it and reaching for the keyboard; Select all followed by Delete now does it entirely from the menu (tester request). It applies to the bridge list, the SNI domain list, and the SNI host and range boxes.
 
