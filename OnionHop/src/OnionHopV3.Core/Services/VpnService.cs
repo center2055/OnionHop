@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -121,6 +122,10 @@ internal sealed class VpnService : IDisposable
         // below clears it, but Wintun adapter teardown is asynchronous, so retry a couple of times -
         // re-running the cleanup and waiting longer each round - before giving up.
         const int maxTunStartAttempts = 3;
+        // Some Windows machines refuse to put an IPv6 address on a freshly created tunnel adapter even
+        // though IPv6 works on their normal adapters, and the core treats that as fatal at startup.
+        // One retry with the address stripped gets the tunnel up (#81).
+        var tunIpv6Removed = false;
         for (var attempt = 1; ; attempt++)
         {
             if (OperatingSystem.IsWindows())
@@ -211,6 +216,30 @@ internal sealed class VpnService : IDisposable
                 _process = null;
                 RemoveStaleWindowsTunAdapter();
                 try { await Task.Delay(1500, token).ConfigureAwait(false); } catch { }
+                continue;
+            }
+
+            // Windows would not attach the IPv6 address to the tunnel adapter. That is fatal to the
+            // core but not to us: strip the address and bring the tunnel up IPv4-only. Nothing is lost,
+            // because the IPv6 half is exactly what failed to come up (#81).
+            if (!tunIpv6Removed
+                && crashDetail.Contains("set ipv6 address", StringComparison.OrdinalIgnoreCase)
+                && TryRemoveTunIpv6Address(launch.ConfigPath))
+            {
+                tunIpv6Removed = true;
+                _log($"{launch.VpnCoreLabel} could not be given an IPv6 address on this system; retrying with an IPv4-only tunnel.");
+                try
+                {
+                    _process.OutputDataReceived -= HandleOutput;
+                    _process.ErrorDataReceived -= HandleOutput;
+                    _process.Exited -= HandleExited;
+                    _process.Dispose();
+                }
+                catch
+                {
+                }
+
+                _process = null;
                 continue;
             }
 
@@ -1086,6 +1115,66 @@ internal sealed class VpnService : IDisposable
         }
 
         return TryReadIntFromFile(exitCodePath, out exitCode);
+    }
+
+    /// <summary>
+    /// Strips every IPv6 address from the tunnel inbound of an already-written config, so the tunnel
+    /// can be retried IPv4-only after the core refused to start (#81). Rewriting the file is used
+    /// rather than rebuilding the config so this works the same for whichever core wrote it. Returns
+    /// false when there was no IPv6 address to remove or the file could not be rewritten, in which
+    /// case the caller reports the original failure instead of retrying pointlessly.
+    /// </summary>
+    internal static bool TryRemoveTunIpv6Address(string configPath)
+    {
+        try
+        {
+            var root = JsonNode.Parse(File.ReadAllText(configPath));
+            var inbounds = root?["inbounds"]?.AsArray();
+            if (inbounds == null)
+            {
+                return false;
+            }
+
+            var changed = false;
+            foreach (var inbound in inbounds)
+            {
+                if (inbound?["address"] is not JsonArray addresses)
+                {
+                    continue;
+                }
+
+                // IPv6 literals are the ones carrying a colon; keep everything else untouched.
+                var ipv4Only = addresses
+                    .Select(a => a?.GetValue<string>())
+                    .Where(a => !string.IsNullOrEmpty(a) && !a!.Contains(':', StringComparison.Ordinal))
+                    .ToList();
+                if (ipv4Only.Count == addresses.Count || ipv4Only.Count == 0)
+                {
+                    continue;
+                }
+
+                var replacement = new JsonArray();
+                foreach (var address in ipv4Only)
+                {
+                    replacement.Add(address);
+                }
+
+                inbound["address"] = replacement;
+                changed = true;
+            }
+
+            if (!changed)
+            {
+                return false;
+            }
+
+            File.WriteAllText(configPath, root!.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

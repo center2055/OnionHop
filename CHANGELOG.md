@@ -3,6 +3,7 @@
 ## Unreleased
 
 Fixes
+- The IPv6 tunnel fallback added in 3.7.10 now also covers the case where the tunnel fails immediately at startup (#81). It previously only recovered when the tunnel died after the connection was already up, so machines where the core refuses to start at all ("set ipv6 address: Element not found" within the first second) still saw the connect fail. The tunnel config is now retried once with the IPv6 address stripped, whichever core wrote it.
 - Hybrid (split tunnelling) mode no longer blocks UDP for apps you kept direct. "Block UDP traffic" exists because Tor cannot carry UDP, so UDP from a Tor-routed app would silently escape the tunnel, but it was applied to everything rather than just those apps. An app you deliberately left direct never touches Tor, so blocking its UDP protected nothing and broke QUIC (HTTP/3), which is what YouTube and similar sites use: routing a torrent client through Tor while keeping the browser direct left the browser unable to load YouTube. The block is now scoped to the apps actually routed through Tor. Full-tunnel mode is unchanged, and when "Route all web traffic through Tor" is on, QUIC is still blocked so browsers cannot use HTTP/3 to route around it.
 
 Additions
