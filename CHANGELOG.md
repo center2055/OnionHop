@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.7.11 (2026-08-15)
 
 Fixes
 - The IPv6 tunnel fallback added in 3.7.10 now also covers the case where the tunnel fails immediately at startup (#81). It previously only recovered when the tunnel died after the connection was already up, so machines where the core refuses to start at all ("set ipv6 address: Element not found" within the first second) still saw the connect fail. The tunnel config is now retried once with the IPv6 address stripped, whichever core wrote it.
