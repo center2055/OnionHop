@@ -276,6 +276,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">留空 = 默认（自动）</x:String>
   <x:String x:Key="Settings.TunStrictRoute">严格路由</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">启用后，路由必须保持在 TUN 路径中。仅在排查困难网络问题时禁用。</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6">在隧道中禁用 IPv6</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6Hint">创建不带 IPv6 地址的隧道适配器。如果隧道因 "set ipv6 address" 无法启动，请启用此项。OnionHop 本来就会自动改用无 IPv6 重试；此选项可跳过那次失败的尝试。</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">流量限制</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">手动出口覆盖</x:String>
   <x:String x:Key="Settings.EntryNode">入口节点（可选）</x:String>

@@ -148,6 +148,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         nameof(TunStackMode),
         nameof(TunMtu),
         nameof(TunStrictRoute),
+        nameof(TunDisableIpv6),
         nameof(ConnectionTimeoutSeconds),
         nameof(RestrictedFirewallMode),
         nameof(AllowedPorts),
@@ -436,6 +437,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _tunStackMode = TunStackMixed;
     [ObservableProperty] private string _tunMtu = string.Empty;
     [ObservableProperty] private bool _tunStrictRoute = true;
+    [ObservableProperty] private bool _tunDisableIpv6;
     [ObservableProperty] private string _connectionTimeoutSeconds = string.Empty;
     [ObservableProperty] private bool _restrictedFirewallMode;
     [ObservableProperty] private string _allowedPorts = DefaultAllowedPorts;
@@ -2266,6 +2268,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             TunStackMode = IsMacOS ? TunStackSystem : TunStackMixed;
             TunMtu = string.Empty;
             TunStrictRoute = true;
+            TunDisableIpv6 = false;
             ConnectionTimeoutSeconds = string.Empty;
             RestrictedFirewallMode = false;
             AllowedPorts = DefaultAllowedPorts;
@@ -2513,6 +2516,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             TunStackMode = IsMacOS ? TunStackSystem : TunStackMode,
             TunMtu = ParseTunMtu(TunMtu),
             TunStrictRoute = TunStrictRoute,
+            TunDisableIpv6 = TunDisableIpv6,
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,
@@ -2793,6 +2797,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 ? settings.TunMtu.Value.ToString(CultureInfo.InvariantCulture)
                 : string.Empty;
             TunStrictRoute = settings.TunStrictRoute ?? true;
+            TunDisableIpv6 = settings.TunDisableIpv6 ?? false;
             ConnectionTimeoutSeconds = settings.ConnectionTimeoutSeconds switch
             {
                 null => string.Empty,
@@ -2969,6 +2974,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             TunStackMode = IsMacOS ? TunStackSystem : TunStackMode,
             TunMtu = ParseTunMtu(TunMtu),
             TunStrictRoute = TunStrictRoute,
+            TunDisableIpv6 = TunDisableIpv6,
             ConnectionTimeoutSeconds = ParseConnectionTimeoutSeconds(ConnectionTimeoutSeconds),
             RestrictedFirewallMode = RestrictedFirewallMode,
             AllowedPorts = AllowedPorts,

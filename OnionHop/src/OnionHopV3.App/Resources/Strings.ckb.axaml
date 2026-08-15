@@ -276,6 +276,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">بەتاڵ = پێشوەخت (خۆکار)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">ڕووتی هەرزەکار</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">کاتێک چالاکە، ڕووتەکان پێویستە لە ڕێگای TUN بمێننەوە. تەنها بۆ چارەسەرکردنی تۆڕە سەختەکان ناچالاک بکە.</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6">ناچالاککردنی IPv6 لە تونێلدا</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6Hint">ئەدەپتەری تونێل بەبێ ناونیشانی IPv6 دروست دەکات. ئەگەر تونێل بە هەڵەی "set ipv6 address" دەست پێ ناکات، ئەمە چالاک بکە. OnionHop خۆی بەبێ IPv6 دووبارە هەوڵ دەداتەوە؛ ئەمە هەوڵە سەرنەکەوتووەکە تێدەپەڕێنێت.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">سنوورکاریەکانی ترافیک</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">دەستکاریکردنی دەرچوونی دەستی</x:String>
   <x:String x:Key="Settings.EntryNode">گرێی داخلبوون (ئارەزووی)</x:String>

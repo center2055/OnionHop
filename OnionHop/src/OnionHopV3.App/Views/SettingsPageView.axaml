@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:OnionHopV3.App.Controls"
+             xmlns:behaviors="using:OnionHopV3.App.Behaviors"
              xmlns:vm="using:OnionHopV3.App.ViewModels"
              mc:Ignorable="d"
              d:DesignWidth="1200"
@@ -188,6 +189,7 @@
                        MinHeight="120"
                        TextWrapping="Wrap"
                        VerticalContentAlignment="Top"
+                       behaviors:TextBoxEditMenu.IsEnabled="True"
                        Watermark="{DynamicResource Settings.CustomBridgesWatermark}" />
               <StackPanel Spacing="6">
                 <TextBlock Text="{DynamicResource Settings.CustomSni}"
@@ -412,6 +414,9 @@
               <controls:ToggleRow Title="{DynamicResource Settings.TunStrictRoute}"
                                   Description="{DynamicResource Settings.TunStrictRouteHint}"
                                   IsChecked="{Binding State.TunStrictRoute}" />
+              <controls:ToggleRow Title="{DynamicResource Settings.TunDisableIpv6}"
+                                  Description="{DynamicResource Settings.TunDisableIpv6Hint}"
+                                  IsChecked="{Binding State.TunDisableIpv6}" />
               <controls:ToggleRow Title="{DynamicResource Settings.SplitTunnelingTitle}"
                                   Description="{DynamicResource Settings.SplitTunnelingToggleHint}"
                                   IsChecked="{Binding State.UseHybridRouting}"
@@ -453,6 +458,7 @@
                          TextWrapping="Wrap"
                          Height="96"
                          Text="{Binding State.BypassRoutingRules}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True"
                          Watermark="{DynamicResource Settings.RoutingRulesWatermark}" />
                 <TextBlock Text="{DynamicResource Settings.RoutingBypassHint}"
                            Classes="SectionCaption"
@@ -464,6 +470,7 @@
                          TextWrapping="Wrap"
                          Height="96"
                          Text="{Binding State.BlockRoutingRules}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True"
                          Watermark="{DynamicResource Settings.RoutingRulesWatermark}" />
                 <TextBlock Text="{DynamicResource Settings.RoutingBlockHint}"
                            Classes="SectionCaption"
@@ -485,6 +492,7 @@
                          TextWrapping="Wrap"
                          Height="64"
                          Text="{Binding State.BypassCountries}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True"
                          Watermark="{DynamicResource Settings.CountryRoutingWatermark}" />
                 <TextBlock Text="{DynamicResource Settings.CountryBypassHint}"
                            Classes="SectionCaption"
@@ -496,6 +504,7 @@
                          TextWrapping="Wrap"
                          Height="64"
                          Text="{Binding State.BlockCountries}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True"
                          Watermark="{DynamicResource Settings.CountryRoutingWatermark}" />
                 <TextBlock Text="{DynamicResource Settings.CountryBlockHint}"
                            Classes="SectionCaption"
@@ -517,6 +526,7 @@
                          TextWrapping="Wrap"
                          Height="64"
                          Text="{Binding State.BypassSiteCategories}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True"
                          Watermark="{DynamicResource Settings.SiteRoutingWatermark}" />
                 <TextBlock Text="{DynamicResource Settings.SiteBypassHint}"
                            Classes="SectionCaption"
@@ -528,6 +538,7 @@
                          TextWrapping="Wrap"
                          Height="64"
                          Text="{Binding State.BlockSiteCategories}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True"
                          Watermark="{DynamicResource Settings.SiteRoutingWatermark}" />
                 <TextBlock Text="{DynamicResource Settings.SiteBlockHint}"
                            Classes="SectionCaption"

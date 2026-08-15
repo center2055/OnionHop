@@ -276,6 +276,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">خالی = پیش‌فرض (خودکار)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">مسیر سخت‌گیر</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">وقتی فعال است، مسیرها باید در مسیر TUN باقی بمانند. فقط برای عیب‌یابی شبکه‌های دشوار غیرفعال کنید.</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6">غیرفعال کردن IPv6 در تونل</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6Hint">آداپتور تونل را بدون آدرس IPv6 می‌سازد. اگر تونل با خطای "set ipv6 address" اجرا نمی‌شود، این را روشن کنید. OnionHop خودش بدون IPv6 دوباره تلاش می‌کند؛ این گزینه تلاش ناموفق را حذف می‌کند.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">محدودیت‌های ترافیک</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">لغو خروجی دستی</x:String>
   <x:String x:Key="Settings.EntryNode">گره ورودی (اختیاری)</x:String>

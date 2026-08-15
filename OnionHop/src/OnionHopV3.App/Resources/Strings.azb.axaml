@@ -276,6 +276,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">بوش = ده‌فالت (اوتو)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">قاتی مسیر</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">آچیق اولاندا مسیرلر TUN یولوندا قالمالیدیر. یالنیز چتین شبکه‌لرده سورون‌گیدرمه اوچون دئاکتیو ائدین.</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6">تونلده IPv6 نی سؤندور</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6Hint">تونل آداپتورونو IPv6 آدرسی اولمادان یارادیر. اگر تونل "set ipv6 address" خطاسی ایله باشلامیرسا، بونو آچین. OnionHop اؤزو ده IPv6 اولمادان یئنیدن جهد ائدیر؛ بو سئچیم اوغورسوز جهدی آتلاییر.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">ترافیک محدودیت‌لری</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">اللی چیخیش اوزه لاشدیرماسی</x:String>
   <x:String x:Key="Settings.EntryNode">گیریش نودو (ایختیاری)</x:String>

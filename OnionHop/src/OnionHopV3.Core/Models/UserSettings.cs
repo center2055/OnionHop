@@ -57,6 +57,7 @@ public sealed class UserSettings
     public string? TunStackMode { get; set; }
     public int? TunMtu { get; set; }
     public bool? TunStrictRoute { get; set; }
+    public bool? TunDisableIpv6 { get; set; }
     public int? ConnectionTimeoutSeconds { get; set; }
     public bool RestrictedFirewallMode { get; set; }
     public string? AllowedPorts { get; set; }

@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using OnionHopV3.Core;
 using OnionHopV3.Core.Platform;
 using OnionHopV3.Core.Platform.MacOS;
+using OnionHopV3.Core.Platform.Windows;
 
 namespace OnionHopV3.Core.Services;
 
@@ -223,9 +224,24 @@ internal sealed class VpnService : IDisposable
             // core but not to us: strip the address and bring the tunnel up IPv4-only. Nothing is lost,
             // because the IPv6 half is exactly what failed to come up (#81).
             if (!tunIpv6Removed
-                && crashDetail.Contains("set ipv6 address", StringComparison.OrdinalIgnoreCase)
-                && TryRemoveTunIpv6Address(launch.ConfigPath))
+                && crashDetail.Contains("set ipv6 address", StringComparison.OrdinalIgnoreCase))
             {
+                // Point at the usual Windows culprit first, so the user learns the real fix even
+                // though the IPv4-only retry below gets them connected either way (#81).
+                var ipv6Hint = WindowsIpv6Diagnostics.DescribeSuspectIpv6Configuration();
+                if (ipv6Hint != null)
+                {
+                    _log(ipv6Hint);
+                }
+
+                if (!TryRemoveTunIpv6Address(launch.ConfigPath))
+                {
+                    // Nothing to strip, so a retry would fail identically: report the real failure.
+                    _log($"{launch.VpnCoreLabel} crash output:\n{crashDetail}");
+                    throw new InvalidOperationException(
+                        $"{launch.VpnCoreLabel} exited unexpectedly during startup (exit code {exitCode}).\n{crashDetail}");
+                }
+
                 tunIpv6Removed = true;
                 _log($"{launch.VpnCoreLabel} could not be given an IPv6 address on this system; retrying with an IPv4-only tunnel.");
                 try

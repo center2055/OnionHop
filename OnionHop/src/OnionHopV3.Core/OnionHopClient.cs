@@ -3064,7 +3064,9 @@ public sealed class OnionHopClient : IDisposable
             TunStack = NormalizeTunStackModeForSingBox(options.TunStackMode),
             TunMtu = options.TunMtu,
             TunStrictRoute = options.TunStrictRoute,
-            TunDisableIpv6 = _tunIpv6FallbackApplied,
+            // Either the user asked for an IPv4-only tunnel, or a previous attempt was refused the
+            // IPv6 address and we already fell back (#81).
+            TunDisableIpv6 = options.TunDisableIpv6 || _tunIpv6FallbackApplied,
             ManageOnionResolver = ShouldManageOnionDnsInsideMacTun(options),
             OnionDnsNameServer = _activeDnsBindAddress
         };

@@ -276,6 +276,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">Leer = Standard (automatisch)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">Strikte Route</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">Wenn aktiviert, bleibt Routing strikt im TUN-Pfad. Nur zur Fehlersuche in schwierigen Netzwerken deaktivieren.</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6">IPv6 im Tunnel deaktivieren</x:String>
+  <x:String x:Key="Settings.TunDisableIpv6Hint">Erstellt den Tunnel-Adapter ohne IPv6-Adresse. Aktiviere dies, wenn der Tunnel mit "set ipv6 address" nicht startet. OnionHop versucht es von selbst ohne IPv6 erneut; dies ueberspringt den fehlgeschlagenen Versuch.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">Verkehrsbeschr&#228;nkungen</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">Manuelle Exit-&#220;berschreibung</x:String>
   <x:String x:Key="Settings.EntryNode">Einstiegsknoten (optional)</x:String>

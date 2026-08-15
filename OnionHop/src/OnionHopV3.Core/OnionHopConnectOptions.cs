@@ -100,6 +100,10 @@ public sealed record OnionHopConnectOptions
     public string TunStackMode { get; init; } = TunStackMixed;
     public int? TunMtu { get; init; }
     public bool TunStrictRoute { get; init; } = true;
+    // Build the TUN adapter without an IPv6 address. Some Windows machines refuse to attach one even
+    // though IPv6 looks enabled, and the core treats that as fatal; OnionHop retries automatically,
+    // but this makes it deterministic for anyone who hits it every time (#81).
+    public bool TunDisableIpv6 { get; init; }
     public int? ConnectionTimeoutSeconds { get; init; }
     // Smart Connect sets this to fail a single strategy fast and move to the next one (a vetted,
     // reachable bridge bootstraps in well under this). It overrides the longer automatic default but
