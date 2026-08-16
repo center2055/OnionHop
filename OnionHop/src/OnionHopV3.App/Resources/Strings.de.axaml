@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">Port</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">Benutzername (optional)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">Passwort (optional)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">Onion-Dienste</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">Veroeffentliche etwas auf diesem Rechner oder in deinem Netzwerk unter einer .onion-Adresse: eine Kamera, ein NAS, eine Web-App. Keine Portfreigabe, keine feste IP und kein DynDNS, und nichts liegt offen im Internet. Adressen werden beim Verbinden vergeben und bleiben danach gleich.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">Wer die Adresse hat, erreicht das Geraet. Geschuetzt wird es dann nur noch durch sein eigenes Passwort. Vergib ein starkes und behandle die Adresse wie ein Geheimnis.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">Name (z. B. Kamera)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">Onion-Port</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">Weiterleiten an Host</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">Port</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">Hinzufuegen</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">An/Aus</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Erreicht den Snowflake-Broker über Googles AMP-Cache statt ihn direkt zu kontaktieren. Aktivieren Sie dies, wenn „Snowflake-Broker nicht erreichbar" erscheint — es hilft in Netzwerken, die den Broker blockieren. Betrifft nur den Bridge-Typ Snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Laufende Apps ausw&#228;hlen…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Split-Tunneling: Apps ausw&#228;hlen</x:String>

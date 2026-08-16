@@ -276,6 +276,122 @@ internal sealed class TorService : IDisposable
     }
 
     /// <summary>
+    /// Publish an onion service through the control port, forwarding <paramref name="onionPort"/> on
+    /// the resulting `.onion` address to <paramref name="targetHost"/>:<paramref name="targetPort"/>.
+    ///
+    /// Pass the saved key to keep a stable address; pass null the first time to have Tor generate one,
+    /// and store the key that comes back. Flags=Detach is what makes the service outlive the control
+    /// connection we open here, which we close again immediately (#77).
+    /// </summary>
+    public async Task<OnionServicePublishResult?> PublishOnionServiceAsync(
+        string? privateKey,
+        int onionPort,
+        string targetHost,
+        int targetPort,
+        CancellationToken token)
+    {
+        var port = await GetControlPortAsync(token);
+        if (!port.HasValue)
+        {
+            _log("Onion service: Tor control port not available.");
+            return null;
+        }
+
+        var cookie = await GetControlCookieHexAsync(token);
+        if (string.IsNullOrWhiteSpace(cookie))
+        {
+            _log("Onion service: Tor control cookie not available.");
+            return null;
+        }
+
+        using var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, port.Value, token);
+
+        await using var stream = client.GetStream();
+        using var reader = new StreamReader(stream, Encoding.ASCII);
+        using var writer = new StreamWriter(stream, Encoding.ASCII)
+        {
+            NewLine = "\r\n",
+            AutoFlush = true
+        };
+
+        await writer.WriteLineAsync($"AUTHENTICATE {cookie}");
+        var authResponse = await ReadControlResponseAsync(reader);
+        if (!authResponse.StartsWith("250", StringComparison.Ordinal))
+        {
+            _log($"Onion service: Tor control auth failed: {authResponse}");
+            return null;
+        }
+
+        await writer.WriteLineAsync(BuildAddOnionCommand(privateKey, onionPort, targetHost, targetPort));
+        var response = await ReadControlResponseAsync(reader);
+        await writer.WriteLineAsync("QUIT");
+
+        if (!response.StartsWith("250", StringComparison.Ordinal))
+        {
+            _log($"Onion service: publishing failed: {response}");
+            return null;
+        }
+
+        var parsed = ParseAddOnionResponse(response);
+        if (string.IsNullOrWhiteSpace(parsed.ServiceId))
+        {
+            _log("Onion service: Tor accepted the request but returned no address.");
+            return null;
+        }
+
+        // Re-publishing a saved key returns no PrivateKey line, so keep the one we already had.
+        return new OnionServicePublishResult(parsed.ServiceId!, parsed.PrivateKey ?? privateKey);
+    }
+
+    internal static string BuildAddOnionCommand(string? privateKey, int onionPort, string targetHost, int targetPort)
+    {
+        var keyPart = string.IsNullOrWhiteSpace(privateKey) ? "NEW:ED25519-V3" : privateKey!.Trim();
+        var target = string.IsNullOrWhiteSpace(targetHost) ? "127.0.0.1" : targetHost.Trim();
+        return $"ADD_ONION {keyPart} Flags=Detach Port={onionPort},{target}:{targetPort}";
+    }
+
+    /// <summary>
+    /// Pull ServiceID and PrivateKey out of an ADD_ONION reply, which arrives as continuation lines
+    /// ("250-Key=Value") followed by a bare "250 OK".
+    /// </summary>
+    internal static (string? ServiceId, string? PrivateKey) ParseAddOnionResponse(string response)
+    {
+        string? serviceId = null;
+        string? privateKey = null;
+
+        foreach (var rawLine in response.Split('\n'))
+        {
+            var line = rawLine.Trim();
+            if (!line.StartsWith("250", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var payload = line.Substring(3).TrimStart('-', ' ');
+            var eq = payload.IndexOf('=');
+            if (eq <= 0 || eq + 1 >= payload.Length)
+            {
+                continue;
+            }
+
+            var key = payload[..eq].Trim();
+            var value = payload[(eq + 1)..].Trim();
+
+            if (string.Equals(key, "ServiceID", StringComparison.OrdinalIgnoreCase))
+            {
+                serviceId = value;
+            }
+            else if (string.Equals(key, "PrivateKey", StringComparison.OrdinalIgnoreCase))
+            {
+                privateKey = value;
+            }
+        }
+
+        return (serviceId, privateKey);
+    }
+
+    /// <summary>
     /// Fingerprints of the relays tor currently holds an established OR connection to
     /// (GETINFO orconn-status). With bridges configured, the connected entry is the bridge itself,
     /// so matching these against the configured bridge lines tells which bridge is in use (#69).
@@ -1155,3 +1271,10 @@ internal sealed class TorLaunchConfig
     public string? WorkingDirectory { get; init; }
     public Action<Process>? ProcessStarted { get; init; }
 }
+
+/// <summary>
+/// What Tor returned for a published onion service: the address (without the ".onion" suffix) and the
+/// key that reproduces it next time. Re-publishing a saved key returns no key, so the caller keeps the
+/// one it already had (#77).
+/// </summary>
+public sealed record OnionServicePublishResult(string ServiceId, string? PrivateKey);

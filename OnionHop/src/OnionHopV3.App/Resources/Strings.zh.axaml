@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">端口</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">用户名（可选）</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">密码（可选）</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">洋葱服务</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">把本机或内网中的设备以 .onion 地址发布出去：摄像头、NAS、网页应用都可以。无需端口转发、固定 IP 或 DynDNS，也不会暴露在公网上。地址在连接时分配，之后保持不变。</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">拿到地址的人就能访问该设备，此后只剩设备自身的密码在保护它。请设置一个强密码，并把地址当作机密看待。</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">名称（如 摄像头）</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">洋葱端口</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">转发到主机</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">端口</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">添加</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">开/关</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">通过 Google 的 AMP 缓存而非直接连接来访问 Snowflake broker。如果看到“Snowflake broker 无法连接”，请开启此项——它对屏蔽 broker 的网络有帮助。仅影响 snowflake 网桥类型。</x:String>
   <x:String x:Key="Settings.AppPickerButton">选择正在运行的应用…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">分流：选择应用</x:String>

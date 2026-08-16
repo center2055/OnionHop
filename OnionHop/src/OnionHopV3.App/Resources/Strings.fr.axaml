@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">Port</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">Nom d'utilisateur (facultatif)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">Mot de passe (facultatif)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">Services onion</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">Publiez quelque chose sur cette machine ou votre reseau sous une adresse .onion : une camera, un NAS, une application web. Pas de redirection de port, pas d'IP fixe ni de DynDNS, et rien n'est expose sur l'internet ouvert. Les adresses sont attribuees a la connexion puis restent identiques.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">Quiconque possede l'adresse peut atteindre l'appareil : seul son propre mot de passe le protege alors. Choisissez-en un solide et traitez l'adresse comme un secret.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">Nom (ex. Camera)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">Port onion</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">Rediriger vers l'hote</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">Port</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">Ajouter</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">Actif/Inactif</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Atteint le broker Snowflake via le cache AMP de Google au lieu de le contacter directement. Activez ceci si vous voyez « Broker Snowflake injoignable » — utile sur les réseaux qui bloquent le broker. N'affecte que le type de pont snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choisir les applis ouvertes…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Tunnel partagé : choisir les applis</x:String>

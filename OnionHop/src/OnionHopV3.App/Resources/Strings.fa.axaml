@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">پورت</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">نام کاربری (اختیاری)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">رمز عبور (اختیاری)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">سرویس‌های پیازی</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">چیزی را روی این دستگاه یا شبکه‌تان با یک نشانی ‎.onion منتشر کنید: دوربین، NAS یا یک وب‌اپ. بدون فوروارد پورت، بدون IP ثابت و بدون DynDNS، و چیزی در اینترنت باز نمایان نمی‌شود. نشانی هنگام اتصال ساخته می‌شود و پس از آن ثابت می‌ماند.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">هر کسی که نشانی را داشته باشد به آن دستگاه می‌رسد و از آن پس تنها رمز خود دستگاه از آن محافظت می‌کند. رمزی قوی بگذارید و نشانی را مثل یک راز نگه دارید.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">نام (مثلاً دوربین)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">پورت پیازی</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">ارسال به میزبان</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">پورت</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">افزودن</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">روشن/خاموش</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">به جای تماس مستقیم، به broker Snowflake از طریق حافظه پنهان AMP Google دسترسی پیدا می‌کند. اگر خطای "broker Snowflake قابل دسترس نیست" می‌بینید آن را روشن کنید — در شبکه‌هایی که broker را مسدود می‌کنند کمک می‌کند. فقط نوع پل Snowflake را تحت تأثیر قرار می‌دهد.</x:String>
   <x:String x:Key="Settings.AppPickerButton">انتخاب برنامه‌های در حال اجرا...</x:String>
   <x:String x:Key="Settings.AppPickerTitle">تونل‌زنی تقسیمی: انتخاب برنامه‌ها</x:String>

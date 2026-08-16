@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">Порт</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">Имя пользователя (необязательно)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">Пароль (необязательно)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">Onion-сервисы</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">Опубликуйте что-нибудь с этого компьютера или из своей сети по адресу .onion: камеру, NAS, веб-приложение. Без проброса портов, без статического IP и без DynDNS, и ничто не выставлено в открытый интернет. Адрес выдаётся при подключении и потом не меняется.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">Любой, у кого есть адрес, доберётся до устройства: дальше его защищает только собственный пароль. Задайте надёжный и относитесь к адресу как к секрету.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">Имя (например, Камера)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">Onion-порт</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">Переслать на хост</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">Порт</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">Добавить</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">Вкл/Выкл</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Подключается к брокеру Snowflake через AMP-кэш Google вместо прямого обращения. Включите, если видите «Брокер Snowflake недоступен» — помогает в сетях, где брокер заблокирован. Влияет только на тип моста snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Выбрать запущенные приложения…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Раздельное туннелирование: выбор приложений</x:String>

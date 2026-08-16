@@ -235,6 +235,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">Port</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">Username (optional)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">Password (optional)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">Onion services</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">Publish something on this machine or your network under a .onion address: a camera, a NAS, a web app. No port forwarding, no static IP and no DynDNS, and it is not exposed to the open internet. Addresses are assigned on connect and stay the same afterwards.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">Anyone who has the address can reach that device, so the device's own password is what protects it. Give it a strong one and treat the address as a secret.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">Name (e.g. Camera)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">Onion port</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">Forward to host</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">Port</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">Add</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">On/Off</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Reach the Snowflake broker through Google's AMP cache instead of contacting it directly. Turn this on if you see "Snowflake broker unreachable" — it helps in networks that block the broker. Only affects the snowflake bridge type.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choose running apps…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">Split tunneling: choose apps</x:String>

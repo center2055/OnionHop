@@ -315,6 +315,89 @@
               </Grid>
             </StackPanel>
           </Border>
+
+          <!-- Onion services: publish something on this machine or LAN under a .onion address (#77). -->
+          <Border Classes="SectionCard">
+            <StackPanel Spacing="16">
+              <TextBlock Text="{DynamicResource Settings.OnionServicesTitle}"
+                         Classes="SectionTitle" />
+              <TextBlock Text="{DynamicResource Settings.OnionServicesHint}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+
+              <!-- DataContext is the services VM itself, so a row's buttons can reach its commands
+                   through $parent[ItemsControl] without casting the page VM. -->
+              <ItemsControl DataContext="{Binding OnionServices}"
+                            ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:OnionServiceRow">
+                    <Border Classes="InsetPanel"
+                            Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="*,Auto"
+                            ColumnSpacing="12">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                          <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
+                          <SelectableTextBlock Text="{Binding AddressText}"
+                                               FontFamily="Consolas"
+                                               TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding ForwardText}"
+                                     Classes="SectionCaption" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="6"
+                                    VerticalAlignment="Center">
+                          <Button Content="{DynamicResource Saved.Copy}"
+                                  IsEnabled="{Binding IsPublished}"
+                                  Click="OnCopyOnionAddressClick"
+                                  Tag="{Binding}" />
+                          <Button Content="{DynamicResource Settings.OnionServiceToggle}"
+                                  Command="{Binding $parent[ItemsControl].((vm:OnionServicesViewModel)DataContext).ToggleEnabledCommand}"
+                                  CommandParameter="{Binding}" />
+                          <Button Content="{DynamicResource Saved.Delete}"
+                                  Command="{Binding $parent[ItemsControl].((vm:OnionServicesViewModel)DataContext).RemoveCommand}"
+                                  CommandParameter="{Binding}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                    ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Watermark="{DynamicResource Settings.OnionServiceLabelWatermark}"
+                         Text="{Binding OnionServices.NewLabel}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True" />
+                <TextBox Grid.Column="1"
+                         Width="90"
+                         Watermark="{DynamicResource Settings.OnionServiceOnionPort}"
+                         Text="{Binding OnionServices.NewOnionPort}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True" />
+                <TextBox Grid.Column="2"
+                         Width="150"
+                         Watermark="{DynamicResource Settings.OnionServiceTargetHost}"
+                         Text="{Binding OnionServices.NewTargetHost}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True" />
+                <TextBox Grid.Column="3"
+                         Width="90"
+                         Watermark="{DynamicResource Settings.OnionServiceTargetPort}"
+                         Text="{Binding OnionServices.NewTargetPort}"
+                         behaviors:TextBoxEditMenu.IsEnabled="True" />
+                <Button Grid.Column="4"
+                        Content="{DynamicResource Settings.OnionServiceAdd}"
+                        Command="{Binding OnionServices.AddCommand}" />
+              </Grid>
+
+              <TextBlock Text="{Binding OnionServices.StatusText}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+              <TextBlock Text="{DynamicResource Settings.OnionServicesWarning}"
+                         Classes="SectionCaption"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
         </StackPanel>
       </ScrollViewer>
     </TabItem>

@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">پورت</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">ایستیفاده‌چی آدی (ایختیاری)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">پاسوورد (ایختیاری)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">اونیون خیدمتلری</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">بو کامپیوتردا یا شبکه‌نیزده بیر شئیی ‎.onion آدرسی ایله یایینلایین: کامرا، NAS یا وب اپلیکاسیون. پورت یؤنلندیرمه‌سی، ثابت IP و DynDNS لازیم دئییل، و هئچ‌نه آچیق اینترنتده گؤرونمور. آدرس باغلانتی زامانی وئریلیر و سونرا دَییشمیر.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">آدرسی اولان هر کس او جیهازا چاتا بیلر؛ اوندان سونرا فقط جیهازین اؤز پاسووردو اونو قورویور. گوجلو بیر پاسوورد قویون و آدرسی سیرر کیمی ساخلایین.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">آد (مثلاً کامرا)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">اونیون پورتو</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">هاستا یؤنلت</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">پورت</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">آرتیر</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">آچیق/باغلی</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Snowflake بروکئرینه بیرباشا باغلانماق یئرینه Google-ون AMP کشینی اوستوندن اولاشیر. بروکئره چاتیلمیر خطاسی گؤرونده بونو آچین — بروکئری بلوکلایان شبکه‌لرده کؤمک ائدیر. یالنیز snowflake بریج نوعونه تاثیر ائدیر.</x:String>
   <x:String x:Key="Settings.AppPickerButton">ایشله‌یه‌ن آپپ سئچ…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">بؤلونموش تونل: آپپ سئچ</x:String>

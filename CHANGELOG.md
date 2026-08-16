@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.7.12 (2026-08-15)
+
+Additions
+- **Onion services: publish your own `.onion` address** (Settings, Network tab). Point it at something on this machine or your local network, a camera, a NAS, a web app, and it becomes reachable over Tor from anywhere. No port forwarding, no static IP, no DynDNS, it works behind CGNAT, and the device is never exposed to the open internet where scanners find it. The address is assigned on the first connect and stays the same from then on, because OnionHop keeps the key that produces it (encrypted at rest, DPAPI on Windows). Requested in #77 for reaching IP cameras remotely.
+  - Note the trade-off before you publish something: the address is unguessable, but anyone who has it reaches the device directly, so from that point the device's own password is the only thing protecting it. Give it a strong one and treat the address as a secret. This matters most for IP cameras, which are the most common category of device found running default credentials.
+  - Requires the classic Tor engine, which is the default. Arti and ArtiHop do not expose the control port this uses.
+
 ## v3.7.11 (2026-08-15)
 
 Fixes

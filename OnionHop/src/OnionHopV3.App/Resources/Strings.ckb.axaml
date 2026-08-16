@@ -232,6 +232,15 @@
   <x:String x:Key="Settings.UpstreamProxyPort">پۆرت</x:String>
   <x:String x:Key="Settings.UpstreamProxyUsername">ناوی بەکارهێنەر (ئارەزووی)</x:String>
   <x:String x:Key="Settings.UpstreamProxyPassword">وشەی نهێنی (ئارەزووی)</x:String>
+  <x:String x:Key="Settings.OnionServicesTitle">خزمەتگوزارییەکانی ئۆنیۆن</x:String>
+  <x:String x:Key="Settings.OnionServicesHint">شتێک لەم کۆمپیوتەرە یان لە تۆڕەکەت بە ناونیشانی ‎.onion بڵاو بکەرەوە: کامێرا، NAS یان وێب ئەپ. پێویست بە ئاراستەکردنی پۆرت، IP جێگیر یان DynDNS ناکات، و هیچ شتێک لە ئینتەرنێتی کراوەدا دەرناکەوێت. ناونیشان لە کاتی پەیوەندیدا دیاری دەکرێت و پاشان هەمان دەمێنێتەوە.</x:String>
+  <x:String x:Key="Settings.OnionServicesWarning">هەر کەسێک ناونیشانەکەی هەبێت دەگاتە ئەو ئامێرە، و لەوێدا تەنها وشەی نهێنی خودی ئامێرەکە دەیپارێزێت. یەکێکی بەهێز دابنێ و ناونیشانەکە وەک نهێنییەک هەڵبگرە.</x:String>
+  <x:String x:Key="Settings.OnionServiceLabelWatermark">ناو (وەک کامێرا)</x:String>
+  <x:String x:Key="Settings.OnionServiceOnionPort">پۆرتی ئۆنیۆن</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetHost">ئاراستەکردن بۆ هۆست</x:String>
+  <x:String x:Key="Settings.OnionServiceTargetPort">پۆرت</x:String>
+  <x:String x:Key="Settings.OnionServiceAdd">زیادکردن</x:String>
+  <x:String x:Key="Settings.OnionServiceToggle">کار/ڕاگرتن</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">بروکەری Snowflake لە ڕێگەی cache-ی AMP-ی Google دەگاتێت بەجیاتی پەیوەندی ڕاستەوخۆ. ئەمە چالاک بکە ئەگەر "بروکەری Snowflake نادەگات" بینیت — یارمەتی دەدات لە تۆڕەکانێک کە بروکەر دەیبڕن. تەنها کاریگەر بەسەر جۆری بریجی Snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">بەرنامەکانی کارکردن هەڵبژێرە…</x:String>
   <x:String x:Key="Settings.AppPickerTitle">split tunneling: هەڵبژاردنی بەرنامەکان</x:String>

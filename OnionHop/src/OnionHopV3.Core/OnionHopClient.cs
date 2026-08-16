@@ -80,6 +80,7 @@ public sealed class OnionHopClient : IDisposable
     private readonly SingBoxLogProcessor _singBoxLogProcessor = new();
 
     private readonly TorService _torService;
+    private readonly OnionServiceStore _onionServiceStore = new();
     private readonly ArtiService _artiService;
     private readonly ArtiHopService _artiHopService;
     private readonly SnowflakeProxyService _snowflakeProxyService;
@@ -475,6 +476,75 @@ public sealed class OnionHopClient : IDisposable
             return Array.Empty<string>();
         }
     }
+
+    /// <summary>
+    /// Publish every enabled onion service through Tor's control port. Each one keeps the key it was
+    /// first created with, so its `.onion` address survives reconnects and app restarts; a service
+    /// published for the first time gets its key and address written back to the store (#77).
+    ///
+    /// Only the classic Tor engine exposes a control port, so this is a no-op on Arti/ArtiHop. A
+    /// failure here never fails the connection: the tunnel is up and useful either way.
+    /// </summary>
+    private async Task PublishOnionServicesAsync()
+    {
+        if (!_torService.IsRunning || string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        List<OnionService> services;
+        try
+        {
+            services = _onionServiceStore.Load().Where(s => s.Enabled).ToList();
+        }
+        catch (Exception ex)
+        {
+            RaiseLog($"Onion services: could not read the service list ({ex.Message}).");
+            return;
+        }
+
+        if (services.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var service in services)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                var result = await _torService.PublishOnionServiceAsync(
+                    service.PrivateKey,
+                    service.OnionPort,
+                    service.TargetHost,
+                    service.TargetPort,
+                    cts.Token).ConfigureAwait(false);
+
+                if (result == null)
+                {
+                    RaiseLog($"Onion service \"{DescribeService(service)}\" could not be published.");
+                    continue;
+                }
+
+                var isNew = string.IsNullOrWhiteSpace(service.PrivateKey);
+                service.Address = result.ServiceId;
+                service.PrivateKey = result.PrivateKey;
+                _onionServiceStore.Update(service);
+
+                RaiseLog(
+                    $"Onion service \"{DescribeService(service)}\" published at {service.Hostname}:{service.OnionPort} " +
+                    $"-> {service.TargetHost}:{service.TargetPort}." +
+                    (isNew ? " Keep this address private: anyone who has it can reach that device." : string.Empty));
+            }
+            catch (Exception ex)
+            {
+                RaiseLog($"Onion service \"{DescribeService(service)}\" could not be published: {ex.Message}");
+            }
+        }
+    }
+
+    private static string DescribeService(OnionService service) =>
+        string.IsNullOrWhiteSpace(service.Label) ? $"{service.TargetHost}:{service.TargetPort}" : service.Label;
 
     public Task<bool> EnsureDependenciesAsync(CancellationToken token = default)
         => EnsureDependenciesAsync(requireVpnDependencies: true, token);
@@ -999,6 +1069,11 @@ public sealed class OnionHopClient : IDisposable
             // the .srs lists over the circuit we now have. The next TUN start then references them
             // as local files with no GitHub dependency.
             StartGeoRuleSetBackgroundRefresh(resolvedOptions);
+
+            // Publish the user's onion services now that Tor has a circuit. Tor holds these only for
+            // the lifetime of the process, so this runs on every connect, re-using each saved key so
+            // the address someone was already given keeps working (#77).
+            await PublishOnionServicesAsync().ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

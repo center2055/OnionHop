@@ -17,6 +17,28 @@ public partial class SettingsPageView : UserControl
         InitializeComponent();
     }
 
+    /// <summary>
+    /// Copy a published onion address. Handing the address to someone is the whole point of the
+    /// feature, and it is 56 random characters, so retyping it is not realistic (#77).
+    /// </summary>
+    private async void OnCopyOnionAddressClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: OnionServiceRow row } control || !row.IsPublished)
+        {
+            return;
+        }
+
+        try
+        {
+            await ClipboardHelper.SetTextAsync(control, row.AddressText);
+            (DataContext as SettingsPageViewModel)?.OnionServices.NotifyCopied();
+        }
+        catch
+        {
+            // A clipboard failure must never take down the Settings page.
+        }
+    }
+
     private async void OnPickAppsClick(object? sender, RoutedEventArgs e)
     {
         var state = (DataContext as PageViewModelBase)?.State;
