@@ -114,13 +114,36 @@ public sealed class OnionServiceStoreTests : IDisposable
     }
 
     [Fact]
-    public void Does_not_write_the_key_to_disk_in_cleartext()
+    public void Encrypts_the_key_at_rest_where_a_backend_exists()
     {
+        // SecretProtector only has a DPAPI backend, so Windows is the only platform where the key is
+        // actually encrypted on disk. Asserting that everywhere would be asserting a guarantee the
+        // app does not make; the Unix side is covered by the file-mode test below instead.
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         _store.Add(new OnionService { Label = "Camera", PrivateKey = "ED25519-V3:TOPSECRET" });
 
-        var raw = File.ReadAllText(_store.StorePath);
+        Assert.DoesNotContain("TOPSECRET", File.ReadAllText(_store.StorePath));
+    }
 
-        Assert.DoesNotContain("TOPSECRET", raw);
+    [Fact]
+    public void Keeps_the_file_readable_by_its_owner_only_on_unix()
+    {
+        // Where the key is stored in plaintext, the file mode is the only thing protecting it from
+        // other local accounts.
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        _store.Add(new OnionService { Label = "Camera", PrivateKey = "ED25519-V3:TOPSECRET" });
+
+        var mode = File.GetUnixFileMode(_store.StorePath);
+
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, mode);
     }
 
     [Fact]

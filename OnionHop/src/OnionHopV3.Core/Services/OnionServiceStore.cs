@@ -84,6 +84,10 @@ public sealed class OnionServiceStore
         try
         {
             File.WriteAllText(tempPath, json);
+            // Tighten permissions before the file is in place, so there is no window in which key
+            // material sits at the default mode. On Windows DPAPI already scopes it to this user;
+            // elsewhere SecretProtector stores plaintext, which makes the mode the only protection.
+            RestrictToOwner(tempPath);
             File.Move(tempPath, _path, overwrite: true);
         }
         catch (Exception ex)
@@ -92,6 +96,7 @@ public sealed class OnionServiceStore
             try
             {
                 File.WriteAllText(_path, json);
+                RestrictToOwner(_path);
             }
             catch (Exception inner)
             {
@@ -161,6 +166,28 @@ public sealed class OnionServiceStore
 
     internal static string NewId() =>
         Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant();
+
+    /// <summary>
+    /// Make the file readable and writable by its owner only. This matters most on Linux and macOS,
+    /// where <see cref="OnionHopV3.Core.Security.SecretProtector"/> has no backend and the keys are
+    /// stored in plaintext, so the file mode is what stops another local account reading them.
+    /// </summary>
+    internal static void RestrictToOwner(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+        catch (Exception ex)
+        {
+            StartupLogger.Write("OnionServiceStore: could not restrict file permissions.", ex);
+        }
+    }
 
     private void TryQuarantineCorruptFile()
     {
