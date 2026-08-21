@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">Anwenden</x:String>
   <x:String x:Key="Saved.Delete">Loeschen</x:String>
   <x:String x:Key="Saved.Copy">Kopieren</x:String>
+  <x:String x:Key="Saved.CopyAll">Alle kopieren</x:String>
   <x:String x:Key="Edit.Cut">Ausschneiden</x:String>
   <x:String x:Key="Edit.Copy">Kopieren</x:String>
   <x:String x:Key="Edit.Paste">Einfuegen</x:String>

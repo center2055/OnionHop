@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">اعمال</x:String>
   <x:String x:Key="Saved.Delete">حذف</x:String>
   <x:String x:Key="Saved.Copy">کپی</x:String>
+  <x:String x:Key="Saved.CopyAll">کپی همه</x:String>
   <x:String x:Key="Edit.Cut">برش</x:String>
   <x:String x:Key="Edit.Copy">کپی</x:String>
   <x:String x:Key="Edit.Paste">چسباندن</x:String>

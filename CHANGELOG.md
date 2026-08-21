@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Additions
+- **"Copy all" on the saved bridges and SNI page.** The per-row Copy button is fine for one entry and useless for a library of fifty, which is exactly when you want the whole set on the clipboard to paste somewhere else. It sits next to "Clear all", copies every saved line in the order shown, one per line, and honours the clipboard auto-clear setting the same way the per-row button does (tester request).
+
 ## v3.8 (2026-08-16)
 
 Fixes

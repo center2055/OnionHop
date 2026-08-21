@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">应用</x:String>
   <x:String x:Key="Saved.Delete">删除</x:String>
   <x:String x:Key="Saved.Copy">复制</x:String>
+  <x:String x:Key="Saved.CopyAll">全部复制</x:String>
   <x:String x:Key="Edit.Cut">剪切</x:String>
   <x:String x:Key="Edit.Copy">复制</x:String>
   <x:String x:Key="Edit.Paste">粘贴</x:String>

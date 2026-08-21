@@ -41,6 +41,16 @@ public sealed partial class SavedBridgesViewModel : ObservableObject
     /// can paste it straight into the bridge or SNI scanner and rescan it without applying it first.</summary>
     public void NotifyCopied() => StatusText = "Copied to clipboard.";
 
+    /// <summary>Feedback after Copy all, naming the count so it is obvious the whole library went.</summary>
+    public void NotifyCopiedAll() => StatusText = $"Copied {Count} saved {(Count == 1 ? "entry" : "entries")} to clipboard.";
+
+    /// <summary>
+    /// Every saved line, one per line, in the order shown. Used by Copy all so the result can be
+    /// pasted straight back into the scanner or a bridge box.
+    /// </summary>
+    public string GetAllLinesText() =>
+        string.Join(Environment.NewLine, Items.Select(i => i.Line).Where(l => !string.IsNullOrWhiteSpace(l)));
+
     public void Refresh()
     {
         Items.Clear();

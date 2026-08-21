@@ -284,8 +284,14 @@
               <TextBlock Text="{DynamicResource Saved.Title}" Classes="SectionTitle" />
               <TextBlock Text="{DynamicResource Saved.Subtitle}" Classes="SectionCaption" TextWrapping="Wrap" />
             </StackPanel>
-            <Button Grid.Column="1" Classes="ActionDanger" Height="36" MinWidth="120" VerticalAlignment="Top"
-                    Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}" Content="{DynamicResource Saved.Clear}" />
+            <!-- Copy all: the per-row Copy is unusable once the library holds dozens of bridges,
+                 which is exactly when someone wants to paste the whole set somewhere (tester request). -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <Button Height="36" MinWidth="120"
+                      Click="OnCopyAllSavedClick" IsEnabled="{Binding HasItems}" Content="{DynamicResource Saved.CopyAll}" />
+              <Button Classes="ActionDanger" Height="36" MinWidth="120"
+                      Command="{Binding ClearCommand}" IsEnabled="{Binding HasItems}" Content="{DynamicResource Saved.Clear}" />
+            </StackPanel>
           </Grid>
           <TextBlock Text="{Binding StatusText}" Classes="SectionCaption" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>

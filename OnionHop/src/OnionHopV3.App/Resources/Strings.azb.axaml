@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">اعمال ائت</x:String>
   <x:String x:Key="Saved.Delete">سیل</x:String>
   <x:String x:Key="Saved.Copy">کوپیالا</x:String>
+  <x:String x:Key="Saved.CopyAll">هامیسینی کوپیالا</x:String>
   <x:String x:Key="Edit.Cut">کس</x:String>
   <x:String x:Key="Edit.Copy">کوپیالا</x:String>
   <x:String x:Key="Edit.Paste">یاپیشدیر</x:String>

@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">جێبەجێکردن</x:String>
   <x:String x:Key="Saved.Delete">سڕینەوە</x:String>
   <x:String x:Key="Saved.Copy">لەبەرگرتنەوە</x:String>
+  <x:String x:Key="Saved.CopyAll">لەبەرگرتنەوەی هەموو</x:String>
   <x:String x:Key="Edit.Cut">بڕین</x:String>
   <x:String x:Key="Edit.Copy">لەبەرگرتنەوە</x:String>
   <x:String x:Key="Edit.Paste">لکاندن</x:String>

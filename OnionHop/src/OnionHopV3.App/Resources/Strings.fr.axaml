@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">Appliquer</x:String>
   <x:String x:Key="Saved.Delete">Supprimer</x:String>
   <x:String x:Key="Saved.Copy">Copier</x:String>
+  <x:String x:Key="Saved.CopyAll">Tout copier</x:String>
   <x:String x:Key="Edit.Cut">Couper</x:String>
   <x:String x:Key="Edit.Copy">Copier</x:String>
   <x:String x:Key="Edit.Paste">Coller</x:String>

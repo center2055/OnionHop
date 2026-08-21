@@ -81,6 +81,7 @@
   <x:String x:Key="Saved.Apply">Применить</x:String>
   <x:String x:Key="Saved.Delete">Удалить</x:String>
   <x:String x:Key="Saved.Copy">Копировать</x:String>
+  <x:String x:Key="Saved.CopyAll">Копировать все</x:String>
   <x:String x:Key="Edit.Cut">Вырезать</x:String>
   <x:String x:Key="Edit.Copy">Копировать</x:String>
   <x:String x:Key="Edit.Paste">Вставить</x:String>

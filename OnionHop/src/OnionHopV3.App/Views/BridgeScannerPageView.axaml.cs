@@ -40,6 +40,27 @@ public partial class BridgeScannerPageView : UserControl
         ViewModel.Saved.NotifyCopied();
     }
 
+    /// <summary>
+    /// Copy every saved line at once. Copying a library of dozens of bridges one row at a time is
+    /// the case the per-row button handles badly, and it is the case people actually hit.
+    /// </summary>
+    private async void OnCopyAllSavedClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel == null)
+        {
+            return;
+        }
+
+        var text = ViewModel.Saved.GetAllLinesText();
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        await ClipboardHelper.SetTextAsync(this, text, ViewModel.Saved.ClipboardProtectionEnabled);
+        ViewModel.Saved.NotifyCopiedAll();
+    }
+
     // Import bridge lines from a file into the bridge scanner's input (BridgeHop parity).
     private async void OnImportBridgeFileClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
