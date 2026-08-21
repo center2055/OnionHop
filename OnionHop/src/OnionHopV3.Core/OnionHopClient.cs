@@ -999,6 +999,21 @@ public sealed class OnionHopClient : IDisposable
                          "if websites do not load, disable that proxy (and any manual proxy in your browser) and retry.");
             }
 
+            // Hybrid routing is a deliberate privacy trade-off, and until now nothing said so on
+            // connect: a user would run a leak test, see their real IP and their own country's
+            // resolver, and reasonably conclude the app was broken. Proxy Mode has had a notice like
+            // this for a while; hybrid needs one just as much.
+            if (IsTunMode(resolvedOptions) && resolvedOptions.UseHybridRouting)
+            {
+                RaiseLog(
+                    "Privacy notice (Hybrid routing): only the apps you listed go through Tor. Everything else connects " +
+                    "directly with your real IP, so an IP or DNS leak test run in a browser you did not add will correctly " +
+                    "show your real address and your own ISP or resolver. That is split tunnelling working as configured, " +
+                    "not a fault. Lookups now follow the traffic: apps routed through Tor resolve over Tor, and apps left " +
+                    "direct resolve directly. For a single result with no direct traffic at all, turn Split Tunneling off " +
+                    "and use full-tunnel TUN/VPN mode.");
+            }
+
             if (!IsTunMode(resolvedOptions))
             {
                 if (UsesSystemProxyScope(resolvedOptions))

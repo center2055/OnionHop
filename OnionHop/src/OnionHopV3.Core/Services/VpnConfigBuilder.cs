@@ -225,6 +225,75 @@ internal static class VpnConfigBuilder
 
         dnsServers.Add(remoteDnsServer);
 
+        // Hybrid mode used to resolve EVERY process through the direct resolver above, because the
+        // dns block had no rules at all. That leaked the browsing domains of the very apps the user
+        // had chosen to route through Tor: the connection took Tor, but the lookup that preceded it
+        // went straight to the direct resolver, so the ISP and that resolver saw every domain. DNS
+        // now follows the traffic instead (reported after 3.7.12).
+        var dnsRules = new List<object>();
+        if (hybridRouting && (torAppProcessNames.Count > 0 || routeAllWebTrafficThroughTor))
+        {
+            // Resolving the DoH hostname must itself go through Tor, otherwise the lookup for
+            // cloudflare-dns.com is the thing that leaks.
+            var needsTorBootstrap = secureDns && !dohIsIp;
+            if (needsTorBootstrap)
+            {
+                dnsServers.Add(new Dictionary<string, object?>
+                {
+                    ["tag"] = "bootstrap-tor",
+                    ["type"] = "tcp",
+                    ["server"] = "1.1.1.1",
+                    ["server_port"] = 53,
+                    ["detour"] = "tor"
+                });
+            }
+
+            var torDnsServer = new Dictionary<string, object?>
+            {
+                ["tag"] = "remote-tor"
+            };
+            if (secureDns)
+            {
+                torDnsServer["type"] = "https";
+                torDnsServer["server"] = resolvedDohServer;
+                torDnsServer["server_port"] = resolvedDohPort;
+                torDnsServer["path"] = resolvedDohPath;
+                torDnsServer["detour"] = "tor";
+                if (needsTorBootstrap)
+                {
+                    torDnsServer["domain_resolver"] = "bootstrap-tor";
+                }
+            }
+            else
+            {
+                // Tor carries TCP, not UDP, so plain DNS over Tor has to be TCP. An IP literal needs
+                // no domain resolver, which keeps this path free of a bootstrap lookup entirely.
+                torDnsServer["type"] = "tcp";
+                torDnsServer["server"] = "1.1.1.1";
+                torDnsServer["server_port"] = 53;
+                torDnsServer["detour"] = "tor";
+            }
+
+            dnsServers.Add(torDnsServer);
+
+            // Apps the user explicitly bypassed are matched first: they never touch Tor, so sending
+            // their lookups through it would only make them slow, and it would contradict the choice
+            // the user made in the bypass list.
+            if (bypassAppProcessNames.Count > 0)
+            {
+                dnsRules.Add(new { process_name = bypassAppProcessNames, server = "remote" });
+            }
+
+            if (torAppProcessNames.Count > 0)
+            {
+                dnsRules.Add(new { process_name = torAppProcessNames, server = "remote-tor" });
+            }
+        }
+
+        // With "route all web traffic through Tor" on, everything not explicitly bypassed leaves via
+        // Tor, so its DNS has to as well or the domains leak ahead of the connections.
+        var dnsFinal = hybridRouting && routeAllWebTrafficThroughTor ? "remote-tor" : "remote";
+
         var route = new Dictionary<string, object?>
         {
             ["auto_detect_interface"] = true,
@@ -247,7 +316,8 @@ internal static class VpnConfigBuilder
             dns = new
             {
                 servers = dnsServers,
-                final = "remote"
+                rules = dnsRules,
+                final = dnsFinal
             },
             inbounds = new object[]
             {

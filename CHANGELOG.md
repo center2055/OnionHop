@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.8 (2026-08-16)
+
+Fixes
+- **Hybrid (split tunnelling) mode no longer leaks the DNS of the apps you route through Tor.** The tunnel's DNS section carried no rules at all, so every process resolved through the direct resolver: an app you had put on the Tor list took Tor for its traffic, but the lookup that preceded it went straight out, handing your ISP and that resolver the domain of everything that app visited. Lookups now follow the traffic. Apps routed through Tor resolve over Tor (DNS-over-HTTPS through the circuit, with its own bootstrap lookup also sent through Tor so that cannot leak either), and apps you deliberately left direct keep the fast direct resolver. With "Route all web traffic through Tor" on, everything not explicitly bypassed resolves over Tor too. Full-tunnel mode already sent every lookup through Tor and is unchanged.
+- Reported after 3.7.12 as an IP and DNS leak. To be clear about what did and did not change: this was **not** a 3.7.12 regression, the behaviour dates back much further, but it was a real weakness and the report was right to flag it.
+
+Additions
+- **Hybrid routing now says what it does when you connect.** Proxy Mode has carried a privacy notice for a while; hybrid had none, so running a leak test in a browser you had not added to the Tor list showed your real IP and your own resolver with nothing to explain why. The log now states plainly that only listed apps use Tor, that everything else connects directly with your real IP, and that full-tunnel mode is the option if you want a single result with no direct traffic at all.
+
 ## v3.7.12 (2026-08-15)
 
 Additions
