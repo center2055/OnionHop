@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.8.2 (2026-08-21)
+
+Fixes
+- **Disconnecting no longer freezes the window.** Tearing a session down blocks for a while: it kills the tunnel core and waits on it, removes routes, proxy settings and DNS rules by spawning helper processes, then stops Tor and waits on that too. All of that ran before the first await, so it executed on whichever thread called Disconnect, which was the UI thread, and the window locked up for seconds every time. None of it needs the UI thread, so it now runs on the thread pool and the window stays responsive while stopping (tester report).
+
+Additions
+- **Accent colour can now follow Windows.** New "Follow Windows" option under Accent color: OnionHop drops its own accent override and uses the accent you picked in Windows Settings, including when you change it while the app is running. The four built-in accents are unchanged (feature request).
+
 ## v3.8.1 (2026-08-21)
 
 Additions

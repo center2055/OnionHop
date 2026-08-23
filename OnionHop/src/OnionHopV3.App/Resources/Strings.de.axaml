@@ -404,6 +404,7 @@
   <x:String x:Key="Accent.Indigo">Indigo</x:String>
   <x:String x:Key="Accent.Cyan">Cyan</x:String>
   <x:String x:Key="Accent.Rose">Rose</x:String>
+  <x:String x:Key="Accent.System">Windows folgen</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">Verbindungsübersicht</x:String>

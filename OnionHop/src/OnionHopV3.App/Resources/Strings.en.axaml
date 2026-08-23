@@ -433,6 +433,7 @@
   <x:String x:Key="Accent.Indigo">Indigo</x:String>
   <x:String x:Key="Accent.Cyan">Cyan</x:String>
   <x:String x:Key="Accent.Rose">Rose</x:String>
+  <x:String x:Key="Accent.System">Follow Windows</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">Connection overview</x:String>

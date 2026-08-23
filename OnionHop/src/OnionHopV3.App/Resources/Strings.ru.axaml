@@ -404,6 +404,7 @@
   <x:String x:Key="Accent.Indigo">Индиго</x:String>
   <x:String x:Key="Accent.Cyan">Голубой</x:String>
   <x:String x:Key="Accent.Rose">Розовый</x:String>
+  <x:String x:Key="Accent.System">Как в Windows</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">Обзор подключения</x:String>

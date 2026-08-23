@@ -404,6 +404,7 @@
   <x:String x:Key="Accent.Indigo">نیلی</x:String>
   <x:String x:Key="Accent.Cyan">فیروزه‌ای</x:String>
   <x:String x:Key="Accent.Rose">گلی</x:String>
+  <x:String x:Key="Accent.System">مطابق ویندوز</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">نمای کلی اتصال</x:String>

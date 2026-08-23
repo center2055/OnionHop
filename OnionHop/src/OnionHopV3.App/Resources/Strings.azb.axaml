@@ -404,6 +404,7 @@
   <x:String x:Key="Accent.Indigo">لاجوردی</x:String>
   <x:String x:Key="Accent.Cyan">فیروزه‌ئی</x:String>
   <x:String x:Key="Accent.Rose">گوللو</x:String>
+  <x:String x:Key="Accent.System">ویندوزا اویغون</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">باغلانتی گئنل باخیشی</x:String>

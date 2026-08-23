@@ -2148,43 +2148,54 @@ public sealed class OnionHopClient : IDisposable
     {
         try
         {
-            _httpProxyBridgeService.Stop();
-            StopSingBoxProcess();
-
-            if (_killSwitchService.IsEmergencyBlockActive())
+            // Tearing the session down blocks for a while: it kills the tunnel core and waits on it,
+            // removes routes, proxy settings and DNS rules by spawning helper processes, then stops
+            // Tor and waits on that too. All of it used to run synchronously before the first await,
+            // which meant it ran on whichever thread called Disconnect - the UI thread - so the window
+            // locked up for seconds every time someone disconnected (tester report). None of it needs
+            // the UI thread, so it goes to the thread pool; the crash handlers already reached this
+            // same code from background threads, so running it off the UI thread is nothing new.
+            await Task.Run(() =>
             {
-                if (PlatformHelper.IsAdministrator())
-                {
-                    _killSwitchService.DisableEmergencyBlock(RaiseLog);
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    _killSwitchService.DisableEmergencyBlock(RaiseLog);
-                }
-                else if (OperatingSystem.IsWindows())
-                {
-                    _ = Task.Run(async () => await _adminHelper.DisableKillSwitchIfAvailableAsync().ConfigureAwait(false));
-                }
-            }
+                _httpProxyBridgeService.Stop();
+                StopSingBoxProcess();
 
-            if (_proxyService.IsApplied)
-            {
-                _proxyService.RestorePreviousProxy(RaiseLog);
-            }
-
-            if (_activeOptions?.OnionDnsProxyEnabled == true)
-            {
-                if (OperatingSystem.IsWindows() && !WindowsAdmin.IsAdministrator())
+                if (_killSwitchService.IsEmergencyBlockActive())
                 {
-                    _ = Task.Run(async () => await _adminHelper.DisableOnionDnsProxyIfAvailableAsync().ConfigureAwait(false));
+                    if (PlatformHelper.IsAdministrator())
+                    {
+                        _killSwitchService.DisableEmergencyBlock(RaiseLog);
+                    }
+                    else if (OperatingSystem.IsMacOS())
+                    {
+                        _killSwitchService.DisableEmergencyBlock(RaiseLog);
+                    }
+                    else if (OperatingSystem.IsWindows())
+                    {
+                        _ = Task.Run(async () => await _adminHelper.DisableKillSwitchIfAvailableAsync().ConfigureAwait(false));
+                    }
                 }
-                else
-                {
-                    _onionDnsProxyService.Disable(RaiseLog);
-                }
-            }
 
-            StopTorProcess();
+                if (_proxyService.IsApplied)
+                {
+                    _proxyService.RestorePreviousProxy(RaiseLog);
+                }
+
+                if (_activeOptions?.OnionDnsProxyEnabled == true)
+                {
+                    if (OperatingSystem.IsWindows() && !WindowsAdmin.IsAdministrator())
+                    {
+                        _ = Task.Run(async () => await _adminHelper.DisableOnionDnsProxyIfAvailableAsync().ConfigureAwait(false));
+                    }
+                    else
+                    {
+                        _onionDnsProxyService.Disable(RaiseLog);
+                    }
+                }
+
+                StopTorProcess();
+            }).ConfigureAwait(false);
+
             await Task.Delay(250).ConfigureAwait(false);
 
             // When disconnecting as root, fix ownership so the next non-root session

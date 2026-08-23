@@ -20,6 +20,8 @@ public sealed partial class AppStateViewModel
     public const string AccentIndigo = "indigo";
     public const string AccentCyan = "cyan";
     public const string AccentRose = "rose";
+    /// <summary>Follow the accent colour the user picked in Windows, instead of one of ours.</summary>
+    public const string AccentSystem = "system";
 
     public const string TorEngineAutomatic = "automatic";
     public const string TorEngineClassic = "classic";
@@ -508,6 +510,7 @@ public sealed partial class AppStateViewModel
         AccentColorOptions.Add(new LocalizedOption(AccentIndigo, LocalizationService.Get("Accent.Indigo")));
         AccentColorOptions.Add(new LocalizedOption(AccentCyan, LocalizationService.Get("Accent.Cyan")));
         AccentColorOptions.Add(new LocalizedOption(AccentRose, LocalizationService.Get("Accent.Rose")));
+        AccentColorOptions.Add(new LocalizedOption(AccentSystem, LocalizationService.Get("Accent.System")));
         SelectedAccentColorOption = AccentColorOptions
             .FirstOrDefault(option => string.Equals(option.Value, SelectedAccentColor, StringComparison.Ordinal))
             ?? AccentColorOptions.FirstOrDefault();
@@ -553,6 +556,34 @@ public sealed partial class AppStateViewModel
             return;
         }
 
+        var fluent = Application.Current.Styles
+            .OfType<FluentAvalonia.Styling.FluentAvaloniaTheme>()
+            .FirstOrDefault();
+
+        // "Follow Windows" is the absence of an override rather than a colour of its own: every accent
+        // brush in V3Theme.axaml already binds to SystemAccentColor, and FluentAvaloniaTheme is
+        // created with PreferUserAccentColor="True". Dropping our resource overrides and clearing
+        // CustomAccentColor lets both fall back to whatever the user picked in Windows Settings,
+        // including when they change it while OnionHop is running (feature request).
+        if (string.Equals(SelectedAccentColor, AccentSystem, StringComparison.Ordinal))
+        {
+            foreach (var key in new[]
+                     {
+                         "AccentPrimaryBrush", "AccentSecondaryBrush", "AccentSoftBrush",
+                         "AccentOutlineBrush", "AccentHeroBrush"
+                     })
+            {
+                Application.Current.Resources.Remove(key);
+            }
+
+            if (fluent != null)
+            {
+                fluent.CustomAccentColor = null;
+            }
+
+            return;
+        }
+
         var (primary, secondary, soft, outline, heroStart, heroEnd) = SelectedAccentColor switch
         {
             AccentIndigo => ("#8A74FF", "#4F7CFF", "#248A74FF", "#4A8A74FF", "#7B5CFF", "#4167F5"),
@@ -568,12 +599,9 @@ public sealed partial class AppStateViewModel
 
         // Drive FluentAvalonia's accent so the chosen color flows through every native control
         // (accent buttons, NavigationView selection, toggles, etc.), not just OnionHop's tokens.
-        var fluentTheme = Application.Current.Styles
-            .OfType<FluentAvalonia.Styling.FluentAvaloniaTheme>()
-            .FirstOrDefault();
-        if (fluentTheme != null)
+        if (fluent != null)
         {
-            fluentTheme.CustomAccentColor = Color.Parse(primary);
+            fluent.CustomAccentColor = Color.Parse(primary);
         }
         Application.Current.Resources["AccentHeroBrush"] = new LinearGradientBrush
         {
@@ -594,6 +622,7 @@ public sealed partial class AppStateViewModel
             AccentIndigo => AccentIndigo,
             AccentCyan => AccentCyan,
             AccentRose => AccentRose,
+            AccentSystem => AccentSystem,
             _ => AccentViolet
         };
     }

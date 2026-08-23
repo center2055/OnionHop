@@ -404,6 +404,7 @@
   <x:String x:Key="Accent.Indigo">靛蓝色</x:String>
   <x:String x:Key="Accent.Cyan">青色</x:String>
   <x:String x:Key="Accent.Rose">玫红色</x:String>
+  <x:String x:Key="Accent.System">跟随 Windows</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">连接概览</x:String>

@@ -404,6 +404,7 @@
   <x:String x:Key="Accent.Indigo">نیلی</x:String>
   <x:String x:Key="Accent.Cyan">شینی شیری</x:String>
   <x:String x:Key="Accent.Rose">گوڵناری</x:String>
+  <x:String x:Key="Accent.System">بەدوای ویندۆز</x:String>
 
   <!-- V3 Home -->
   <x:String x:Key="Home.V3HeroTitle">پوختەی پەیوەندی</x:String>
