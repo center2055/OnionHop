@@ -12,6 +12,8 @@ internal sealed class WindowsProxyService : IProxyService
     private string? _previousProxy;
     private int? _previousProxyEnabled;
     private bool _applied;
+    // Last foreign proxy we warned about, so the periodic check does not repeat itself every tick.
+    private string? _foreignProxyWarned;
 
     public bool IsApplied => _applied;
 
@@ -35,9 +37,7 @@ internal sealed class WindowsProxyService : IProxyService
             _previousProxyEnabled = enabledValue;
         }
 
-        var httpValue = httpPort.HasValue
-            ? $"http=127.0.0.1:{httpPort.Value};https=127.0.0.1:{httpPort.Value};socks=127.0.0.1:{socksPort}"
-            : $"socks=127.0.0.1:{socksPort}";
+        var httpValue = BuildProxyValue(socksPort, httpPort);
 
         key.SetValue("ProxyServer", httpValue, RegistryValueKind.String);
         key.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
@@ -113,6 +113,72 @@ internal sealed class WindowsProxyService : IProxyService
         }
 
         return null;
+    }
+
+    /// <summary>The exact ProxyServer string this session writes, and therefore the only value that
+    /// counts as "still ours" when checking whether the proxy survived.</summary>
+    internal static string BuildProxyValue(int socksPort, int? httpPort) =>
+        httpPort.HasValue
+            ? $"http=127.0.0.1:{httpPort.Value};https=127.0.0.1:{httpPort.Value};socks=127.0.0.1:{socksPort}"
+            : $"socks=127.0.0.1:{socksPort}";
+
+    public bool ReapplyIfLost(int socksPort, int? httpPort, Action<string> log)
+    {
+        if (!OperatingSystem.IsWindows() || !_applied)
+        {
+            // Not applied by us means there is nothing of ours to lose.
+            return false;
+        }
+
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", writable: true);
+            if (key == null)
+            {
+                return false;
+            }
+
+            var expected = BuildProxyValue(socksPort, httpPort);
+            var enabled = key.GetValue("ProxyEnable") is int flag && flag != 0;
+            var server = key.GetValue("ProxyServer") as string;
+
+            if (enabled && string.Equals(server, expected, StringComparison.OrdinalIgnoreCase))
+            {
+                _foreignProxyWarned = null;
+                return false;
+            }
+
+            if (enabled && !IsOnionHopProxyValue(server))
+            {
+                // Another program now owns the system proxy. Overwriting it would be us fighting a
+                // setting the user may have made on purpose, so say what happened instead: their
+                // traffic is no longer going through Tor and only they can decide which wins.
+                if (!string.Equals(_foreignProxyWarned, server, StringComparison.OrdinalIgnoreCase))
+                {
+                    _foreignProxyWarned = server;
+                    log($"System proxy is no longer OnionHop's: it now points at {server}. Traffic is NOT going through Tor. " +
+                        "Another program changed it, so OnionHop will not overwrite it. Disconnect and reconnect once that program is closed.");
+                }
+
+                return false;
+            }
+
+            // Either it was switched off under us, or it is our own shape with a previous session's
+            // ports. Both mean traffic is leaving direct right now, so put it back.
+            key.SetValue("ProxyServer", expected, RegistryValueKind.String);
+            key.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
+            InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
+            InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
+            _foreignProxyWarned = null;
+            log("System proxy had been reset while connected; OnionHop put it back. " +
+                "Traffic was going out directly until now, so re-check anything sensitive you did in the meantime.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log($"System proxy re-check failed: {ex.Message}");
+            return false;
+        }
     }
 
     public bool ClearStaleTorProxy(Action<string> log)

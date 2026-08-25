@@ -16,6 +16,12 @@ internal sealed class MacProxyService : IProxyService
 
     // Stale-leftover healing is Windows-specific for now: the WinINET registry persists a crashed
     // session's proxy across reboots, while networksetup state is restored per service snapshot.
+    /// <summary>
+    /// Not implemented here: the Windows registry case is the one that silently reverts. If this
+    /// platform ever gains the same failure mode, mirror the Windows implementation.
+    /// </summary>
+    public bool ReapplyIfLost(int socksPort, int? httpPort, Action<string> log) => false;
+
     public bool ClearStaleTorProxy(Action<string> log) => false;
     public string? GetEnabledSystemProxy() => null;
 

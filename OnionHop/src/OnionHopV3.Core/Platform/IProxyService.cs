@@ -20,4 +20,15 @@ internal interface IProxyService
     /// <summary>The currently enabled system proxy value, or null when none is enabled (or the
     /// platform does not expose one). Used to hint when a foreign proxy may break TUN-mode browsing.</summary>
     string? GetEnabledSystemProxy();
+
+    /// <summary>
+    /// Re-applies the system proxy if something reset it while this session had it applied. Proxy
+    /// Mode only protects traffic for as long as the OS proxy actually points at Tor, but Windows
+    /// itself, another VPN, a cleanup tool or a browser can clear those settings underneath us. The
+    /// applied flag is our own in-memory state, so nothing noticed: the toggle still read ON while
+    /// traffic went out direct with the user's real IP, and the only known fix was turning the toggle
+    /// off and on again (tester report). Returns true when it had been lost and was restored. A proxy
+    /// belonging to some other program is never overwritten.
+    /// </summary>
+    bool ReapplyIfLost(int socksPort, int? httpPort, Action<string> log);
 }

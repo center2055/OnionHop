@@ -19,6 +19,12 @@ internal sealed class LinuxProxyService : IProxyService
 
     // Stale-leftover healing is Windows-specific for now (WinINET registry persists a crashed
     // session's proxy); gsettings/kwriteconfig state is restored via SavePreviousProxy instead.
+    /// <summary>
+    /// Not implemented here: the Windows registry case is the one that silently reverts. If this
+    /// platform ever gains the same failure mode, mirror the Windows implementation.
+    /// </summary>
+    public bool ReapplyIfLost(int socksPort, int? httpPort, Action<string> log) => false;
+
     public bool ClearStaleTorProxy(Action<string> log) => false;
     public string? GetEnabledSystemProxy() => null;
 

@@ -2898,6 +2898,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 return;
             }
 
+            // Off the UI thread: this touches the registry and the WinINET refresh call, and the
+            // timer fires on the UI thread.
+            _ = Task.Run(() => _client.VerifySystemProxyStillApplied());
+
             try
             {
                 await _client.RefreshIpAsync(updateStatusMessage: false, CancellationToken.None).ConfigureAwait(false);

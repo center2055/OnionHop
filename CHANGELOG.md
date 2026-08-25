@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- **Proxy Mode now notices when something resets the system proxy, and puts it back.** Proxy Mode protects traffic only while the Windows proxy setting actually points at Tor, but "applied" was tracked as an in-memory flag and never re-checked. So when Windows, another VPN, a cleanup tool or a browser reset that setting mid-session, nothing noticed: the System proxy toggle still read ON, the app still showed a Tor IP, and traffic was going out directly with your real IP. The only fix people found was turning the toggle off and on again. It is now re-checked every 15 seconds while connected and restored if it was switched off or left pointing at a previous session's ports, with a log line saying it happened so you know traffic was exposed in the meantime. A proxy belonging to another program is never overwritten; that case is reported instead, because only you can decide which one should win (tester report).
+
 ## v3.8.2 (2026-08-21)
 
 Fixes

@@ -1165,6 +1165,37 @@ public sealed class OnionHopClient : IDisposable
     public bool IsSystemProxyEnabled => _proxyService.IsApplied;
 
     /// <summary>
+    /// Proxy Mode protects traffic only while the OS proxy actually points at Tor, and that setting
+    /// can be reset underneath us by Windows, another VPN, a cleanup tool or a browser. Nothing
+    /// noticed, because "applied" was only ever our own in-memory flag: the toggle still read ON
+    /// while traffic left directly with the user's real IP, and the workaround people found was
+    /// turning the toggle off and on again (tester report). Called periodically while connected.
+    /// </summary>
+    public void VerifySystemProxyStillApplied()
+    {
+        if (!_isConnected || _isConnecting || _isDisconnecting)
+        {
+            return;
+        }
+
+        var options = _activeOptions;
+        if (options == null || IsTunMode(options) || !UsesSystemProxyScope(options) || !_proxyService.IsApplied)
+        {
+            return;
+        }
+
+        try
+        {
+            var httpPort = UsesSocksOnlySystemProxyScope(options) ? null : _activeHttpPort;
+            _proxyService.ReapplyIfLost(_activeSocksPort, httpPort, RaiseLog);
+        }
+        catch
+        {
+            // A watchdog must never be the thing that breaks a working session.
+        }
+    }
+
+    /// <summary>
     /// True when the system proxy can be toggled independently of the Tor connection,
     /// i.e. we are connected in a Proxy-Mode system scope (not TUN, not local-only).
     /// </summary>
