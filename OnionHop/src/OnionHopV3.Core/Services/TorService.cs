@@ -1004,6 +1004,15 @@ internal sealed class TorService : IDisposable
         }
 
         var parts = bridgeLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        // A vanilla bridge has no transport name: it is "IP:port FINGERPRINT". The old two-token rule
+        // assumed "transport endpoint" and so printed vanilla bridges in full, fingerprint included,
+        // into logs that people paste into public issues (#81 did). Censors scrape those.
+        if (LooksLikeEndpoint(parts[0]))
+        {
+            return QuoteForLog(parts.Length > 1 ? $"{parts[0]} ***" : parts[0]);
+        }
+
         var kept = parts.Length switch
         {
             >= 3 => $"{parts[0]} {parts[1]} ***",
@@ -1011,6 +1020,19 @@ internal sealed class TorService : IDisposable
             _ => $"{parts[0]} ***"
         };
         return QuoteForLog(kept);
+    }
+
+    /// <summary>"1.2.3.4:443" or "[2001:db8::1]:443": the first token of a vanilla bridge line.</summary>
+    private static bool LooksLikeEndpoint(string token)
+    {
+        var colon = token.LastIndexOf(':');
+        if (colon <= 0 || !int.TryParse(token[(colon + 1)..], out var port) || port is < 1 or > 65535)
+        {
+            return false;
+        }
+
+        var host = token[..colon].Trim('[', ']');
+        return System.Net.IPAddress.TryParse(host, out _);
     }
 
     private static string QuoteForLog(string value)

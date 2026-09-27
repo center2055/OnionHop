@@ -1626,6 +1626,47 @@ public sealed class OnionHopClient : IDisposable
     /// write their real address into them in full. Keep enough to tell networks apart when debugging
     /// ("91.236.x.x"), drop the part that identifies the connection.
     /// </summary>
+    private static readonly string? UserProfileDirectory = GetUserProfileDirectory();
+
+    private static string? GetUserProfileDirectory()
+    {
+        try
+        {
+            var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return string.IsNullOrWhiteSpace(profile) ? null : profile.TrimEnd('\\', '/');
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Replace the user's profile directory in a log line with a placeholder. Nearly every path OnionHop
+    /// logs lives under it (data directory, Tor, transports), and on most machines that directory is
+    /// named after the person: "C:\Users\Jane Doe\...". Those logs get pasted into public issues.
+    /// Paths are logged plain, JSON-escaped and with forward slashes, so all three spellings are covered.
+    /// </summary>
+    internal static string ScrubPersonalPaths(string message, string? profileDirectory)
+    {
+        if (string.IsNullOrEmpty(message) || string.IsNullOrEmpty(profileDirectory) || profileDirectory.Length < 4)
+        {
+            return message;
+        }
+
+        var placeholder = profileDirectory.Contains('\\') ? "%USERPROFILE%" : "~";
+        var escaped = profileDirectory.Replace("\\", "\\\\", StringComparison.Ordinal);
+        var forward = profileDirectory.Replace('\\', '/');
+
+        // Longest first, so the escaped spelling is not half-replaced by the plain one.
+        foreach (var spelling in new[] { escaped, profileDirectory, forward }.Distinct().OrderByDescending(s => s.Length))
+        {
+            message = message.Replace(spelling, placeholder, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return message;
+    }
+
     internal static string MaskIpForLog(string? ip)
     {
         if (string.IsNullOrWhiteSpace(ip) || !IPAddress.TryParse(ip.Trim(), out var address))
@@ -2596,17 +2637,17 @@ public sealed class OnionHopClient : IDisposable
 
     private void RaiseLog(string message)
     {
-        Log?.Invoke(this, message);
+        Log?.Invoke(this, ScrubPersonalPaths(message, UserProfileDirectory));
     }
 
     private void RaiseDnsLog(string message)
     {
-        DnsLog?.Invoke(this, message);
+        DnsLog?.Invoke(this, ScrubPersonalPaths(message, UserProfileDirectory));
     }
 
     private void RaiseVpnLog(string message)
     {
-        VpnLog?.Invoke(this, message);
+        VpnLog?.Invoke(this, ScrubPersonalPaths(message, UserProfileDirectory));
     }
 
     private async Task<OnionHopConnectOptions> StartTorWithBridgeFallbackAsync(OnionHopConnectOptions options, CancellationToken token)
