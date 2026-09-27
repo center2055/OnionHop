@@ -28,4 +28,8 @@ internal sealed class GitHubAsset
 
     [JsonPropertyName("browser_download_url")]
     public string? BrowserDownloadUrl { get; set; }
+
+    /// <summary>GitHub's own checksum for the asset, "sha256:&lt;hex&gt;". Used to verify downloads.</summary>
+    [JsonPropertyName("digest")]
+    public string? Digest { get; set; }
 }

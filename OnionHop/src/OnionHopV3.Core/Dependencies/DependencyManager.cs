@@ -24,6 +24,10 @@ internal sealed class DependencyManager
     private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest";
     private const string XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/latest";
     private const string WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip";
+    // The URL above is a fixed version, so its checksum can be fixed too (as published on wintun.net).
+    // Wintun is a kernel driver loaded by a core running as administrator: it is the last file that
+    // should be trusted on TLS alone.
+    private const string WintunSha256 = "07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51";
 
     public sealed record DependencyUpdate(bool InProgress, string Status, double Progress);
 
@@ -455,6 +459,7 @@ internal sealed class DependencyManager
 
         var archivePath = Path.Combine(tempRoot, asset.Name);
         await DownloadToFileAsync(client, asset.BrowserDownloadUrl, archivePath, token).ConfigureAwait(false);
+        await VerifyGitHubAssetAsync(archivePath, asset, token).ConfigureAwait(false);
         await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.SingBoxBinaryName, singBoxPath).ConfigureAwait(false);
     }
 
@@ -480,6 +485,7 @@ internal sealed class DependencyManager
 
         var archivePath = Path.Combine(tempRoot, asset.Name!);
         await DownloadToFileAsync(client, asset.BrowserDownloadUrl!, archivePath, token).ConfigureAwait(false);
+        await VerifyGitHubAssetAsync(archivePath, asset, token).ConfigureAwait(false);
         await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.XrayBinaryName, xrayPath).ConfigureAwait(false);
     }
 
@@ -487,6 +493,7 @@ internal sealed class DependencyManager
     {
         var zipPath = Path.Combine(tempRoot, "wintun.zip");
         await DownloadToFileAsync(client, WintunUrl, zipPath, token).ConfigureAwait(false);
+        await VerifySha256Async(zipPath, WintunSha256, "wintun", token).ConfigureAwait(false);
 
         await Task.Run(() =>
         {
@@ -544,6 +551,52 @@ internal sealed class DependencyManager
             PlatformHelper.RemoveQuarantineOnMacOS(destinationPath);
             AdHocCodesignOnMacOS(destinationPath);
         }).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The tunnel cores are executed with administrator rights, and used to be run straight from
+    /// whatever the download returned. GitHub publishes a SHA-256 for every release asset, so check
+    /// against it before extracting anything. An asset without a digest (GitHub only started
+    /// publishing them in 2025) is let through rather than breaking installs outright.
+    /// </summary>
+    private static Task VerifyGitHubAssetAsync(string archivePath, GitHubAsset asset, CancellationToken token)
+    {
+        var expected = ParseGitHubDigest(asset.Digest);
+        return expected == null
+            ? Task.CompletedTask
+            : VerifySha256Async(archivePath, expected, asset.Name ?? Path.GetFileName(archivePath), token);
+    }
+
+    /// <summary>"sha256:ABC..." to "abc...", or null for anything that is not a SHA-256 digest.</summary>
+    internal static string? ParseGitHubDigest(string? digest)
+    {
+        const string prefix = "sha256:";
+        if (string.IsNullOrWhiteSpace(digest) || !digest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var hex = digest[prefix.Length..].Trim();
+        return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
+    }
+
+    /// <summary>Throw, and delete the file, if its SHA-256 is not the expected one.</summary>
+    internal static async Task VerifySha256Async(string path, string expectedHex, string what, CancellationToken token)
+    {
+        string actual;
+        await using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true))
+        {
+            actual = Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(stream, token).ConfigureAwait(false))
+                .ToLowerInvariant();
+        }
+
+        if (!string.Equals(actual, expectedHex.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            try { File.Delete(path); } catch { }
+            throw new InvalidOperationException(
+                $"The downloaded {what} failed its integrity check (expected SHA-256 {expectedHex}, got {actual}). " +
+                "It was deleted and not used. This can be a broken download or a tampered file; try again later.");
+        }
     }
 
     private static async Task DownloadToFileAsync(HttpClient client, string url, string targetPath, CancellationToken token)
