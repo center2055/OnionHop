@@ -184,6 +184,16 @@
                                     Description="{DynamicResource Settings.BridgeSourceHint}"
                                     ItemsSource="{Binding State.BridgeSourceModeOptions}"
                                     SelectedItem="{Binding State.SelectedBridgeSourceModeOption}" />
+              <!-- Moved here from Home (#73): a maintenance action, not something to see every day. -->
+              <controls:SettingRow Title="{DynamicResource Home.UpdateBridges}"
+                                   Description="{Binding State.BridgeDataLastUpdateText}">
+                <controls:SettingRow.RowContent>
+                  <Button Command="{Binding State.RefreshBridgeDataCommand}"
+                          IsEnabled="{Binding !State.IsBridgeDataUpdateInProgress}"
+                          Content="{DynamicResource Home.UpdateBridges}"
+                          ToolTip.Tip="{DynamicResource Home.UpdateBridgesTooltip}" />
+                </controls:SettingRow.RowContent>
+              </controls:SettingRow>
               <TextBox Text="{Binding State.CustomBridges}"
                        AcceptsReturn="True"
                        MinHeight="120"

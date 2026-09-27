@@ -526,6 +526,8 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _sidebarStatusMessage = string.Empty;
     [ObservableProperty] private string _connectionStatus = string.Empty;
+    // Whether full-tunnel TUN mode is really carrying this computer's traffic (#83). Runtime only.
+    [ObservableProperty] private OnionHopClient.TunnelCheckState _tunnelCheck = OnionHopClient.TunnelCheckState.NotApplicable;
     [ObservableProperty] private string _currentIp = "--.--.--.--";
     [ObservableProperty] private string _socksProxyPort = OnionHopClient.DefaultSocksPort.ToString();
     [ObservableProperty] private string _httpProxyPort = "--";
@@ -615,7 +617,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return string.Format(
                 CultureInfo.CurrentCulture,
                 LocalizationService.Get("Home.BridgeDataLastUpdateValue"),
-                localTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture));
+                // Invariant, not current: this is a fixed ISO pattern, and under a culture whose
+                // default calendar is not Gregorian (fa-IR) "yyyy" printed the Solar Hijri year, so an
+                // English UI showed "1405-04-19".
+                localTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         }
     }
 
@@ -2564,6 +2569,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         StatusMessage = LocalizeRuntimeText(update.StatusMessage);
         ConnectionProgress = update.ConnectionProgress;
         CurrentIp = update.CurrentIp;
+        TunnelCheck = update.TunnelCheck;
         SocksProxyPort = update.SocksPort.ToString();
         HttpProxyPort = update.HttpPort.HasValue ? update.HttpPort.Value.ToString() : "--";
         // While connected, mirror the live OS proxy state. While disconnected, keep the user's

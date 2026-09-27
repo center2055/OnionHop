@@ -25,10 +25,10 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
         State = new AppStateViewModel();
 
         var settingsPage = new SettingsPageViewModel(State);
-        var homePage = new HomePageViewModel(State, () => ActivePage = settingsPage);
+        var logsPage = new LogsPageViewModel(State);
+        var homePage = new HomePageViewModel(State, () => ActivePage = settingsPage, () => ActivePage = logsPage);
         var relaysPage = new RelaysPageViewModel(State);
         var scannerPage = new BridgeScannerPageViewModel(State);
-        var logsPage = new LogsPageViewModel(State);
         var aboutPage = new AboutPageViewModel(State);
 
         Pages =

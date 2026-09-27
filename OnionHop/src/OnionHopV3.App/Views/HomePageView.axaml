@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:OnionHopV3.App.Controls"
-             xmlns:converters="using:OnionHopV3.App.Converters"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:mi="clr-namespace:Material.Icons;assembly=Material.Icons"
              xmlns:vm="using:OnionHopV3.App.ViewModels"
@@ -12,6 +11,9 @@
              d:DesignHeight="900"
              x:Class="OnionHopV3.App.Views.HomePageView"
              x:DataType="vm:HomePageViewModel">
+  <!-- Home (#73): status first, one short answer to "am I protected", then the few controls people
+       actually change, then this session's numbers. Advanced options (Tor engine, bridge source,
+       bridge updates) live in Settings, reachable from the Connection card. -->
   <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto"
                 Margin="0,0,-32,0"
@@ -22,240 +24,287 @@
 
       <TextBlock Classes="PageTitle" Text="{DynamicResource Nav.Home}" />
 
-      <!-- ===== Connection hero ===== -->
-      <Border Classes="Card">
-        <Grid ColumnDefinitions="*,300" ColumnSpacing="20">
-          <StackPanel Grid.Column="0" Spacing="12">
-            <controls:StatusBadge Text="{Binding State.ConnectionStatus}"
-                                  Tone="{Binding State.ConnectionTone}"
-                                  HorizontalAlignment="Left" />
+      <!-- ===== Status ===== -->
+      <Border Classes="Card" Padding="24">
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
+            <controls:StatusOrb Size="72"
+                                Tone="{Binding HeroTone}"
+                                Kind="{Binding HeroIcon}"
+                                VerticalAlignment="Top" />
 
-            <TextBlock Text="{Binding State.StatusMessage}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       MaxLines="3"
-                       TextTrimming="CharacterEllipsis"
-                       TextWrapping="Wrap" />
-            <TextBlock Text="{Binding State.ProtectionStatusDetail}"
-                       Classes="Caption"
-                       MaxLines="2"
-                       TextTrimming="CharacterEllipsis"
-                       TextWrapping="Wrap" />
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+              <TextBlock Text="{Binding HeroTitle}"
+                         FontSize="28"
+                         FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding HeroDetail}"
+                         Classes="Muted"
+                         FontSize="14"
+                         MaxLines="3"
+                         TextTrimming="CharacterEllipsis"
+                         TextWrapping="Wrap" />
 
-            <!-- All connection actions, one aligned wrapping row -->
-            <WrapPanel Orientation="Horizontal" Margin="0,6,0,0">
+              <!-- At-a-glance facts. Wraps instead of squeezing on a narrow window. -->
+              <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,0,22,6"
+                            ToolTip.Tip="{DynamicResource Home.IpGeoCaveat}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.IpNetworkOutline}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{DynamicResource Home.CurrentIp}" Classes="Caption" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding State.CurrentIp}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <Button Classes="IconButton"
+                          Width="26" Height="26"
+                          Padding="0"
+                          IsVisible="{Binding HasRealIp}"
+                          Click="OnCopyIpClick"
+                          ToolTip.Tip="{DynamicResource Home.CopyIp}">
+                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}" Width="13" Height="13" />
+                  </Button>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,0,22,6"
+                            IsVisible="{Binding State.IsConnected}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.MapMarkerOutline}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{DynamicResource Home.MetaExit}" Classes="Caption" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding SelectedExitLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,0,22,6"
+                            IsVisible="{Binding State.ShowConnectionElapsed}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.TimerOutline}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{DynamicResource Home.SessionUptime}" Classes="Caption" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding State.ConnectionElapsed}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,0,22,6"
+                            IsVisible="{Binding ShowTunnelVerified}"
+                            ToolTip.Tip="{DynamicResource Home.TunnelVerifiedHint}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.CheckDecagram}"
+                                      FlowDirection="LeftToRight"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource SuccessBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{DynamicResource Home.TunnelVerified}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+              </WrapPanel>
+
+              <TextBlock Text="{Binding State.AdvancedConnectionSummary}"
+                         Classes="Caption"
+                         MaxLines="1"
+                         TextTrimming="CharacterEllipsis"
+                         IsVisible="{Binding State.ShowAdvancedHomeConnectionDetails}" />
+            </StackPanel>
+
+            <!-- Actions: the one that matters is first and filled; the rest match its width. -->
+            <StackPanel Grid.Column="2" Spacing="8" Width="176" VerticalAlignment="Center">
               <Button Classes="ActionPrimary"
-                      Height="40"
-                      MinWidth="150"
-                      Margin="0,0,8,8"
+                      Height="42"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
                       Command="{Binding State.ConnectCommand}"
                       IsVisible="{Binding State.ShowConnectButton}"
                       Content="{DynamicResource Home.Connect}" />
               <Button Classes="ActionDanger"
-                      Height="40"
-                      MinWidth="140"
-                      Margin="0,0,8,8"
+                      Height="42"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
                       Command="{Binding State.DisconnectCommand}"
                       IsVisible="{Binding State.ShowDisconnectButton}"
                       Content="{DynamicResource Home.Disconnect}" />
-              <Button Height="40"
-                      MinWidth="110"
-                      Margin="0,0,8,8"
+              <Button Height="42"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
                       Command="{Binding State.CancelConnectCommand}"
                       IsVisible="{Binding State.ShowCancelButton}"
                       Content="{DynamicResource Home.Cancel}" />
-              <Button Height="40"
-                      Margin="0,0,8,8"
+              <Button Height="36"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      Command="{Binding State.ChangeIdentityCommand}"
+                      IsEnabled="{Binding CanChangeIdentity}"
+                      Content="{DynamicResource Home.NewIdentity}" />
+              <Button Height="36"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
                       Command="{Binding State.RefreshIpCommand}"
                       Content="{DynamicResource Home.RefreshIp}" />
-              <Button Height="40"
-                      Margin="0,0,8,8"
-                      Command="{Binding State.ChangeIdentityCommand}"
-                      Content="{DynamicResource Home.NewIdentity}" />
-              <Button Height="40"
-                      Margin="0,0,8,8"
-                      Command="{Binding State.RefreshBridgeDataCommand}"
-                      IsVisible="{Binding State.UseTorBridges}"
-                      IsEnabled="{Binding !State.IsBridgeDataUpdateInProgress}"
-                      Content="{DynamicResource Home.UpdateBridges}"
-                      ToolTip.Tip="{DynamicResource Home.UpdateBridgesTooltip}" />
-              <Button Height="40"
-                      Margin="0,0,0,8"
-                      Command="{Binding State.ToggleSystemProxyCommand}"
-                      IsVisible="{Binding State.ShowSystemProxyButton}"
-                      IsEnabled="{Binding State.CanToggleSystemProxy}"
-                      Content="{Binding State.SystemProxyButtonText}"
-                      ToolTip.Tip="{DynamicResource Home.SystemProxyTooltip}" />
-            </WrapPanel>
+            </StackPanel>
+          </Grid>
 
-            <!-- Last successful bridge-data update, shown right under the Update bridges button
-                 (only when bridges are enabled). Mirrors v2's behavior. -->
-            <TextBlock Text="{Binding State.BridgeDataLastUpdateText}"
-                       Classes="Caption"
-                       Margin="0,-2,0,0"
-                       IsVisible="{Binding State.UseTorBridges}" />
+          <ProgressBar Minimum="0"
+                       Maximum="1"
+                       Value="{Binding State.ConnectionProgress}"
+                       IsVisible="{Binding State.IsBusy}" />
 
-            <ProgressBar Minimum="0"
-                         Maximum="1"
-                         Value="{Binding State.ConnectionProgress}"
-                         IsVisible="{Binding State.IsBusy}" />
-          </StackPanel>
-
-          <!-- Right rail: IP + engine -->
-          <StackPanel Grid.Column="1" Spacing="12">
-            <Border Classes="CardSecondary"
-                    ToolTip.Tip="{DynamicResource Home.IpGeoCaveat}">
-              <StackPanel Spacing="6">
-                <TextBlock Text="{DynamicResource Home.CurrentIp}" Classes="Caption" />
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <TextBlock Text="{Binding State.CurrentIp}"
-                             FontSize="20"
-                             FontWeight="SemiBold"
-                             TextTrimming="CharacterEllipsis"
-                             VerticalAlignment="Center" />
-                  <Button Grid.Column="1"
-                          Classes="IconButton"
-                          Width="34"
-                          Height="34"
-                          Click="OnCopyIpClick"
-                          ToolTip.Tip="{DynamicResource Home.CopyIp}">
-                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}"
-                                        Width="16"
-                                        Height="16" />
-                  </Button>
-                </Grid>
-                <TextBlock Text="{Binding State.ConnectionElapsed}"
-                           Classes="Muted"
-                           IsVisible="{Binding State.ShowConnectionElapsed}" />
-                <TextBlock Text="{Binding State.AdvancedConnectionSummary}"
-                           Classes="Caption"
-                           MaxLines="1"
-                           TextTrimming="CharacterEllipsis"
-                           IsVisible="{Binding State.ShowAdvancedHomeConnectionDetails}" />
+          <!-- The tunnel check found traffic leaving outside Tor (#83). This must never be quiet. -->
+          <Border IsVisible="{Binding ShowTunnelWarning}"
+                  Background="{DynamicResource DangerSoftBrush}"
+                  BorderBrush="{DynamicResource DangerBrush}"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  Padding="14,12">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+              <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ShieldAlert}"
+                                  Width="22" Height="22"
+                                  Foreground="{DynamicResource DangerBrush}"
+                                  VerticalAlignment="Top" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="{DynamicResource Home.TunnelLeakTitle}" FontWeight="SemiBold" />
+                <TextBlock Text="{DynamicResource Home.TunnelLeakBody}" TextWrapping="Wrap" />
               </StackPanel>
-            </Border>
+            </Grid>
+          </Border>
+        </StackPanel>
+      </Border>
 
-            <Border Classes="CardSecondary">
-              <StackPanel Spacing="6">
-                <TextBlock Text="{DynamicResource Home.EngineMode}" Classes="Caption" />
-                <ComboBox HorizontalAlignment="Stretch"
-                          ItemsSource="{Binding State.TorEngineOptions}"
-                          SelectedItem="{Binding State.SelectedTorEngineOption}" />
-                <TextBlock Text="{Binding State.TorEngineSelectionHint}"
-                           Classes="Caption"
-                           MaxLines="2"
-                           TextTrimming="CharacterEllipsis"
-                           TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-          </StackPanel>
+      <!-- ===== Latest activity: what is happening, without a trip to the Logs page ===== -->
+      <Border Classes="CardSecondary"
+              Padding="16,8,8,8"
+              IsVisible="{Binding HasLatestEvent}">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="12">
+          <TextBlock Text="{DynamicResource Home.LatestActivity}"
+                     Classes="Caption"
+                     VerticalAlignment="Center" />
+          <controls:ToneDot Grid.Column="1"
+                            Tone="{Binding LatestEvent.Tone, FallbackValue=neutral}"
+                            VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2"
+                     Text="{Binding LatestEvent.Time, FallbackValue=''}"
+                     Classes="Caption"
+                     FontFamily="Consolas, Cascadia Mono, monospace"
+                     VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3"
+                     Text="{Binding LatestEvent.Message, FallbackValue=''}"
+                     MaxLines="1"
+                     TextTrimming="CharacterEllipsis"
+                     VerticalAlignment="Center"
+                     ToolTip.Tip="{Binding LatestEvent.Message, FallbackValue=''}" />
+          <Button Grid.Column="4"
+                  Classes="ActionGhost"
+                  Command="{Binding OpenLogsCommand}"
+                  Padding="10,4">
+            <StackPanel Orientation="Horizontal" Spacing="2">
+              <TextBlock Text="{DynamicResource Home.ViewLogs}" VerticalAlignment="Center" />
+              <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ChevronRight}" Width="16" Height="16" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
         </Grid>
       </Border>
 
-      <!-- ===== Routing ===== -->
-      <TextBlock Classes="GroupHeader" Text="{DynamicResource Home.RoutingPreferences}" />
+      <!-- ===== Connection: the few settings people change often ===== -->
       <Border Classes="Card">
-        <StackPanel Spacing="14">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <StackPanel Spacing="2">
-              <TextBlock Text="{DynamicResource Home.SmartConnect}" FontWeight="SemiBold" />
-              <TextBlock Text="{DynamicResource Home.SmartConnectHint}"
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{DynamicResource Home.ConnectionSection}"
+                       Classes="SectionTitle"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Classes="ActionGhost"
+                    Command="{Binding OpenSettingsCommand}"
+                    Padding="10,4">
+              <StackPanel Orientation="Horizontal" Spacing="2">
+                <TextBlock Text="{DynamicResource Home.MoreSettings}" VerticalAlignment="Center" />
+                <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ChevronRight}" Width="16" Height="16" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <StackPanel Spacing="6">
+              <TextBlock Text="{DynamicResource Home.Mode}" Classes="Caption" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding State.ConnectionModeOptions}"
+                        SelectedItem="{Binding State.SelectedConnectionModeOption}"
+                        IsEnabled="{Binding CanChangeMode}" />
+              <TextBlock Text="{Binding ModeHint}"
                          Classes="Caption"
                          TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Text="{DynamicResource Home.ExitLocation}" Classes="Caption" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding State.LocationOptions}"
+                        SelectedItem="{Binding State.SelectedLocationOption}" />
+              <TextBlock Text="{DynamicResource Home.ExitCountryHint}"
+                         Classes="Caption"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+
+          <Border Height="1" Background="{DynamicResource CardStrokeColorDefaultBrush}" />
+
+          <!-- System proxy sits with the mode it belongs to, and only appears where it does anything.
+               Its caption and switch both read the live state, so they cannot disagree. -->
+          <Grid ColumnDefinitions="*,Auto"
+                ColumnSpacing="16"
+                IsVisible="{Binding State.ShowSystemProxyButton}">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{DynamicResource Home.SystemProxy}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding SystemProxyHint}" Classes="Caption" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleButton Grid.Column="1"
+                          Classes="V3Switch"
+                          IsChecked="{Binding State.SystemProxyEnabled, Mode=OneWay}"
+                          Command="{Binding State.ToggleSystemProxyCommand}"
+                          IsEnabled="{Binding State.CanToggleSystemProxy}"
+                          ToolTip.Tip="{DynamicResource Home.SystemProxyTooltip}"
+                          VerticalAlignment="Center" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{DynamicResource Home.SmartConnect}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Home.SmartConnectHint}" Classes="Caption" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleButton Grid.Column="1"
                           Classes="V3Switch"
                           IsChecked="{Binding State.SmartConnectEnabled, Mode=TwoWay}"
                           VerticalAlignment="Center" />
           </Grid>
-
-          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
-            <StackPanel Grid.Column="0" Spacing="4">
-              <TextBlock Text="{DynamicResource Home.Mode}" Classes="Caption" />
-              <ComboBox HorizontalAlignment="Stretch"
-                        ItemsSource="{Binding State.ConnectionModeOptions}"
-                        SelectedItem="{Binding State.SelectedConnectionModeOption}" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock Text="{DynamicResource Home.ExitLocation}" Classes="Caption" />
-              <ComboBox HorizontalAlignment="Stretch"
-                        ItemsSource="{Binding State.LocationOptions}"
-                        SelectedItem="{Binding State.SelectedLocationOption}" />
-            </StackPanel>
-            <StackPanel Grid.Column="2" Spacing="4">
-              <TextBlock Text="{DynamicResource Settings.BridgeSource}" Classes="Caption" />
-              <ComboBox HorizontalAlignment="Stretch"
-                        ItemsSource="{Binding State.BridgeSourceModeOptions}"
-                        SelectedItem="{Binding State.SelectedBridgeSourceModeOption}" />
-            </StackPanel>
-          </Grid>
         </StackPanel>
       </Border>
 
-      <!-- ===== Activity + session ===== -->
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-        <Border Classes="Card" MinHeight="220">
-          <StackPanel Spacing="18" VerticalAlignment="Center">
-            <TextBlock Text="{DynamicResource Home.NetworkOverview}" Classes="SectionTitle" />
-
-            <StackPanel Spacing="6">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{DynamicResource Home.Download}"
-                           Classes="Caption"
-                           VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding State.DownloadSpeed}"
-                           FontSize="18"
-                           FontWeight="SemiBold" />
-              </Grid>
-              <ProgressBar Minimum="0" Maximum="1" Value="{Binding State.DownloadSpeedGauge}" />
-            </StackPanel>
-
-            <StackPanel Spacing="6">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{DynamicResource Home.Upload}"
-                           Classes="Caption"
-                           VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding State.UploadSpeed}"
-                           FontSize="18"
-                           FontWeight="SemiBold" />
-              </Grid>
-              <ProgressBar Minimum="0" Maximum="1" Value="{Binding State.UploadSpeedGauge}" />
-            </StackPanel>
-
-            <TextBlock Text="{Binding State.BridgeDataLastUpdateText}"
-                       Classes="Caption"
-                       MaxLines="1"
-                       TextTrimming="CharacterEllipsis" />
-          </StackPanel>
-        </Border>
-
-        <Border Grid.Column="1" Classes="Card" MinHeight="220">
-            <Grid ColumnDefinitions="*,*"
-                  RowDefinitions="*,*"
-                  ColumnSpacing="10"
-                  RowSpacing="10"
-                  VerticalAlignment="Center">
-              <controls:MetricCard Grid.Column="0" Grid.Row="0"
-                                   Title="{DynamicResource Home.SessionTransfer}"
-                                   Value="{Binding State.TotalTransferredText}"
-                                   Caption="{DynamicResource Home.SessionTransferHint}" />
-              <controls:MetricCard Grid.Column="1" Grid.Row="0"
-                                   Title="{DynamicResource Home.SessionCircuits}"
-                                   Value="{Binding State.SessionCircuitCountText}"
-                                   Caption="{DynamicResource Home.SessionCircuitsHint}" />
-              <controls:MetricCard Grid.Column="0" Grid.Row="1"
-                                   Title="{DynamicResource Home.SessionIdentityChanges}"
-                                   Value="{Binding State.SessionIdentityChangesText}"
-                                   Caption="{DynamicResource Home.SessionIdentityChangesHint}" />
-              <controls:MetricCard Grid.Column="1" Grid.Row="1"
-                                   Title="{DynamicResource Home.SessionUptime}"
-                                   Value="{Binding State.SessionUptimeText}"
-                                   Caption="{DynamicResource Home.SessionUptimeHint}" />
-            </Grid>
-        </Border>
-      </Grid>
+      <!-- ===== This session: four compact figures instead of two oversized bars ===== -->
+      <Border Classes="Card">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{DynamicResource Home.SessionSection}" Classes="SectionTitle" />
+          <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+            <controls:MetricCard Grid.Column="0"
+                                 Title="{DynamicResource Home.Downloaded}"
+                                 Value="{Binding State.DownloadedText}"
+                                 Caption="{Binding DownloadRateText}" />
+            <controls:MetricCard Grid.Column="1"
+                                 Title="{DynamicResource Home.Uploaded}"
+                                 Value="{Binding State.UploadedText}"
+                                 Caption="{Binding UploadRateText}" />
+            <controls:MetricCard Grid.Column="2"
+                                 Title="{DynamicResource Home.SessionCircuits}"
+                                 Value="{Binding State.SessionCircuitCountText}"
+                                 Caption="{DynamicResource Home.CircuitsCaption}" />
+            <controls:MetricCard Grid.Column="3"
+                                 Title="{DynamicResource Home.SessionIdentityChanges}"
+                                 Value="{Binding State.SessionIdentityChangesText}"
+                                 Caption="{DynamicResource Home.IdentityChangesCaption}" />
+          </Grid>
+        </StackPanel>
+      </Border>
 
       <!-- ===== Dependency download ===== -->
       <Border Classes="Card"

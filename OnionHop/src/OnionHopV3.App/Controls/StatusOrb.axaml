@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="OnionHopV3.App.Controls.StatusOrb"
+             x:Name="Root">
+  <!-- The coloured disc at the head of the Home status card (#73). Tone carries the state at a
+       glance; the icon spells it out for anyone who does not read colour. -->
+  <!-- LeftToRight on purpose: a check mark or an exclamation mark is not directional, and mirroring
+       it in right-to-left languages turns the tick into a backwards one. -->
+  <Border x:Name="Disc"
+          FlowDirection="LeftToRight"
+          Width="{Binding Size, ElementName=Root}"
+          Height="{Binding Size, ElementName=Root}"
+          CornerRadius="999">
+    <icons:MaterialIcon x:Name="Glyph"
+                        Kind="{Binding Kind, ElementName=Root}"
+                        Width="{Binding GlyphSize, ElementName=Root}"
+                        Height="{Binding GlyphSize, ElementName=Root}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+  </Border>
+</UserControl>

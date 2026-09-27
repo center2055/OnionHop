@@ -104,6 +104,8 @@ public sealed partial class AppStateViewModel
     }
 
     public string TotalTransferredText => FormatDataSize(SessionBytesReceived + SessionBytesSent);
+    public string DownloadedText => FormatDataSize(SessionBytesReceived);
+    public string UploadedText => FormatDataSize(SessionBytesSent);
     public string SessionCircuitCountText => SessionCircuitCount.ToString(CultureInfo.CurrentCulture);
     public string SessionIdentityChangesText => SessionIdentityChanges.ToString(CultureInfo.CurrentCulture);
     public string SessionUptimeText => ShowConnectionElapsed && !string.IsNullOrWhiteSpace(ConnectionElapsed)
@@ -239,8 +241,17 @@ public sealed partial class AppStateViewModel
         }
     }
 
-    partial void OnSessionBytesReceivedChanged(long value) => OnPropertyChanged(nameof(TotalTransferredText));
-    partial void OnSessionBytesSentChanged(long value) => OnPropertyChanged(nameof(TotalTransferredText));
+    partial void OnSessionBytesReceivedChanged(long value)
+    {
+        OnPropertyChanged(nameof(TotalTransferredText));
+        OnPropertyChanged(nameof(DownloadedText));
+    }
+
+    partial void OnSessionBytesSentChanged(long value)
+    {
+        OnPropertyChanged(nameof(TotalTransferredText));
+        OnPropertyChanged(nameof(UploadedText));
+    }
     partial void OnSessionCircuitCountChanged(int value) => OnPropertyChanged(nameof(SessionCircuitCountText));
     partial void OnSessionIdentityChangesChanged(int value) => OnPropertyChanged(nameof(SessionIdentityChangesText));
     partial void OnConnectionElapsedChanged(string value) => OnPropertyChanged(nameof(SessionUptimeText));
