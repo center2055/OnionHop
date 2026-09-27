@@ -53,6 +53,35 @@ internal static class IpLookupService
         }
     }
 
+    /// <summary>
+    /// This machine's public IP as seen over a brand-new connection, which is how any other program
+    /// would reach the internet right now. The shared client cannot be used for this: a connection it
+    /// pooled before the tunnel came up stays bound to the physical interface and keeps leaving with
+    /// the real IP, so reusing it would report a leak that is only an old socket. A new socket is
+    /// routed the way a browser's next connection would be (#83).
+    /// </summary>
+    public static async Task<string?> TryFetchIpOverFreshConnectionAsync(Action<string> log, CancellationToken token)
+    {
+        try
+        {
+            var handler = new SocketsHttpHandler
+            {
+                UseProxy = false,
+                PooledConnectionLifetime = TimeSpan.Zero,
+                ConnectTimeout = TimeSpan.FromSeconds(10),
+                AutomaticDecompression = DecompressionMethods.All
+            };
+            using var client = new HttpClient(handler, disposeHandler: true) { Timeout = TimeSpan.FromSeconds(15) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("OnionHop");
+            return await TryFetchIpFromAnyAsync(client, DirectIpEndpoints, token).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log($"Tunnel check lookup failed: {ex.Message}");
+            return null;
+        }
+    }
+
     private static async Task<string?> TryFetchIpFromAnyAsync(HttpClient client, IReadOnlyList<Uri> endpoints, CancellationToken token)
     {
         foreach (var endpoint in endpoints)

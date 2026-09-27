@@ -49,7 +49,29 @@ public sealed class OnionHopClient : IDisposable
         double ConnectionProgress,
         string CurrentIp,
         int SocksPort,
-        int? HttpPort);
+        int? HttpPort,
+        TunnelCheckState TunnelCheck = TunnelCheckState.NotApplicable);
+
+    /// <summary>
+    /// Whether the tunnel is actually carrying this computer's traffic. The displayed IP cannot tell:
+    /// it is fetched through Tor's SOCKS port, so it is a Tor exit whenever Tor runs, even if the
+    /// tunnel is capturing nothing at all. That is how a user could see "all traffic via Tor" next to
+    /// a Tor IP while their browser reported their real one (#83).
+    /// </summary>
+    public enum TunnelCheckState
+    {
+        /// <summary>Not in full-tunnel TUN mode, or not connected: nothing to check.</summary>
+        NotApplicable,
+
+        /// <summary>A new connection from this computer left through Tor.</summary>
+        Verified,
+
+        /// <summary>A new connection left with the IP this computer had before connecting.</summary>
+        Leaking,
+
+        /// <summary>No verdict: the lookup failed, or there is no pre-connect IP to compare with.</summary>
+        Unverifiable
+    }
 
     public readonly record struct DependencyUpdate(bool InProgress, string Status, double Progress);
     public readonly record struct BridgeDataRefreshStatus(
@@ -81,6 +103,14 @@ public sealed class OnionHopClient : IDisposable
 
     private readonly TorService _torService;
     private readonly OnionServiceStore _onionServiceStore = new();
+
+    // Tunnel check (#83). The last public IP seen while NOT connected is the baseline: if a fresh
+    // connection made after the tunnel is up still leaves with it, the tunnel is not carrying traffic.
+    private static readonly TimeSpan TunnelRecheckInterval = TimeSpan.FromSeconds(60);
+    private string? _lastKnownDirectIp;
+    private TunnelCheckState _tunnelCheck = TunnelCheckState.NotApplicable;
+    private DateTime _lastTunnelCheckUtc = DateTime.MinValue;
+    private int _tunnelCheckRunning;
     private readonly ArtiService _artiService;
     private readonly ArtiHopService _artiHopService;
     private readonly SnowflakeProxyService _snowflakeProxyService;
@@ -1013,6 +1043,18 @@ public sealed class OnionHopClient : IDisposable
                     "direct resolve directly. For a single result with no direct traffic at all, turn Split Tunneling off " +
                     "and use full-tunnel TUN/VPN mode.");
             }
+            else if (IsTunMode(resolvedOptions) && OperatingSystem.IsWindows())
+            {
+                // The most likely explanation for #83: on Windows a connection keeps using the network
+                // interface that owns its source address, so anything a program opened BEFORE the tunnel
+                // came up stays outside it until it reconnects. Browsers keep connections to sites open
+                // for minutes, so reloading an IP-check page can show the real address while the tunnel
+                // is working perfectly for everything new.
+                RaiseLog(
+                    "Note: programs that were already online before the tunnel started can keep those existing connections " +
+                    "outside Tor until they reconnect. Browsers hold connections open for minutes, so restart your browser " +
+                    "after connecting to be sure every page goes through Tor.");
+            }
 
             if (!IsTunMode(resolvedOptions))
             {
@@ -1487,6 +1529,120 @@ public sealed class OnionHopClient : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Full-tunnel TUN mode promises that everything leaves through Tor, but the IP shown on Home is
+    /// fetched through Tor's SOCKS port and so is a Tor exit no matter what the tunnel is doing. This
+    /// asks the question the user actually cares about: does a new connection from this computer,
+    /// made the way any browser would make one, come out through Tor? If it still comes out with the
+    /// address the machine had before connecting, the tunnel is not carrying traffic (#83).
+    ///
+    /// Windows only for now: that is where the capture behaviour is understood well enough to be sure
+    /// the app's own sockets are routed like every other program's (OnionHopV3.exe is deliberately
+    /// not in the tunnel's direct list), which is what makes a "leaking" verdict trustworthy.
+    /// </summary>
+    private async Task VerifyTunnelCarriesTrafficAsync(bool force)
+    {
+        var options = _activeOptions;
+        if (!OperatingSystem.IsWindows() || !_isConnected || options == null || !IsTunMode(options) || options.UseHybridRouting)
+        {
+            return;
+        }
+
+        if (!force && DateTime.UtcNow - _lastTunnelCheckUtc < TunnelRecheckInterval)
+        {
+            return;
+        }
+
+        if (Interlocked.Exchange(ref _tunnelCheckRunning, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            _lastTunnelCheckUtc = DateTime.UtcNow;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            var seen = await IpLookupService.TryFetchIpOverFreshConnectionAsync(RaiseLog, cts.Token).ConfigureAwait(false);
+            if (!_isConnected || _isDisconnecting)
+            {
+                return;
+            }
+
+            var verdict = TunnelCheckVerdict(_lastKnownDirectIp, seen);
+            var changed = verdict != _tunnelCheck;
+            _tunnelCheck = verdict;
+
+            if (changed)
+            {
+                RaiseLog(verdict switch
+                {
+                    TunnelCheckState.Verified =>
+                        $"Tunnel check passed: a new connection from this computer left through Tor ({seen}).",
+                    TunnelCheckState.Leaking =>
+                        "WARNING: tunnel check FAILED. A new connection from this computer left with your real IP instead of " +
+                        "going through Tor, so your traffic is NOT protected even though Tor is running. Check the Engine log " +
+                        "for routing errors. Do not rely on this connection for anything sensitive until this passes.",
+                    _ => _lastKnownDirectIp == null
+                        ? "Tunnel check skipped: OnionHop had not seen this computer's own IP before connecting, so there is nothing to compare against."
+                        : "Tunnel check could not complete (the lookup failed). It will retry."
+                });
+                PublishStatus();
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            RaiseLog($"Tunnel check failed to run: {ex.Message}");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _tunnelCheckRunning, 0);
+        }
+    }
+
+    /// <summary>
+    /// The verdict only claims "leaking" when a fresh connection came out with exactly the address
+    /// seen before connecting, which cannot happen if the tunnel carried it. Anything it cannot
+    /// compare fairly - no baseline, a failed lookup, or an IPv4 baseline against an IPv6 answer - is
+    /// reported as unverifiable rather than guessed, so the warning never fires on a technicality.
+    /// </summary>
+    internal static TunnelCheckState TunnelCheckVerdict(string? baselineIp, string? seenIp)
+    {
+        if (!IPAddress.TryParse(baselineIp?.Trim(), out var baseline)
+            || !IPAddress.TryParse(seenIp?.Trim(), out var seen))
+        {
+            return TunnelCheckState.Unverifiable;
+        }
+
+        if (baseline.AddressFamily != seen.AddressFamily)
+        {
+            return TunnelCheckState.Unverifiable;
+        }
+
+        return baseline.Equals(seen) ? TunnelCheckState.Leaking : TunnelCheckState.Verified;
+    }
+
+    /// <summary>
+    /// Users are asked to paste their logs into public GitHub issues, and the direct IP check used to
+    /// write their real address into them in full. Keep enough to tell networks apart when debugging
+    /// ("91.236.x.x"), drop the part that identifies the connection.
+    /// </summary>
+    internal static string MaskIpForLog(string? ip)
+    {
+        if (string.IsNullOrWhiteSpace(ip) || !IPAddress.TryParse(ip.Trim(), out var address))
+        {
+            return ip ?? string.Empty;
+        }
+
+        if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            var octets = address.ToString().Split('.');
+            return $"{octets[0]}.{octets[1]}.x.x";
+        }
+
+        var groups = address.ToString().Split(':');
+        return groups.Length >= 2 ? $"{groups[0]}:{groups[1]}:x:x" : "x:x";
+    }
+
     public async Task RefreshIpAsync(bool updateStatusMessage, CancellationToken token)
     {
         var torFirst = _isConnected && IsTorRuntimeRunning;
@@ -1500,6 +1656,10 @@ public sealed class OnionHopClient : IDisposable
 
             if (torFirst)
             {
+                // The SOCKS lookup below only proves Tor works. Whether the rest of the machine goes
+                // through it is a separate question, re-asked here on its own schedule (#83).
+                _ = VerifyTunnelCarriesTrafficAsync(force: updateStatusMessage);
+
                 ip = await IpLookupService.TryFetchTorExitIpAsync(_activeSocksPort, RaiseLog, cts.Token).ConfigureAwait(false);
                 RaiseLog($"IP check via SOCKS: result='{ip}'");
                 if (!string.IsNullOrWhiteSpace(ip))
@@ -1526,9 +1686,16 @@ public sealed class OnionHopClient : IDisposable
             }
 
             ip = await IpLookupService.TryFetchDirectIpAsync(RaiseLog, cts.Token).ConfigureAwait(false);
-            RaiseLog($"IP check via DIRECT (not through Tor): result='{ip}'");
+            RaiseLog($"IP check via DIRECT (not through Tor): result='{MaskIpForLog(ip)}'");
             if (!string.IsNullOrWhiteSpace(ip))
             {
+                if (!_isConnected)
+                {
+                    // Only a lookup made while disconnected tells us the machine's own address, which
+                    // is what the tunnel check compares against.
+                    _lastKnownDirectIp = ip;
+                }
+
                 _currentIp = ip;
                 if (updateStatusMessage)
                 {
@@ -2238,6 +2405,9 @@ public sealed class OnionHopClient : IDisposable
             _activeOptions = null;
             _isConnected = false;
             _isDisconnecting = false;
+            // A new session gets a fresh verdict, checked as soon as it is up.
+            _tunnelCheck = TunnelCheckState.NotApplicable;
+            _lastTunnelCheckUtc = DateTime.MinValue;
             _connectionStatus = "Disconnected";
             _connectionProgress = 0;
             _activeSocksPort = DefaultSocksPort;
@@ -2285,7 +2455,8 @@ public sealed class OnionHopClient : IDisposable
             ConnectionProgress: _connectionProgress,
             CurrentIp: _currentIp,
             SocksPort: _activeSocksPort,
-            HttpPort: _activeHttpPort));
+            HttpPort: _activeHttpPort,
+            TunnelCheck: _tunnelCheck));
     }
 
     private void PublishDependency()
