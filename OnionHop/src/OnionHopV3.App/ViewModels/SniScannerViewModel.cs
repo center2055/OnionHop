@@ -108,7 +108,6 @@ public sealed partial class SniScannerViewModel : ObservableObject
         var started = false;
         try
         {
-            IReadOnlyList<SniScanResult> _;
             var progress = new Progress<SniScanResult>(OnResult);
 
             if (IsRangeMode)

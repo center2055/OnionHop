@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 
 namespace OnionHopV3.App.Services;
 
@@ -142,7 +143,7 @@ public static class ClipboardHelper
                 return;
             }
 
-            var current = await topLevel.Clipboard.GetTextAsync();
+            var current = await topLevel.Clipboard.TryGetTextAsync();
             if (string.Equals(current, originalText, StringComparison.Ordinal))
             {
                 await topLevel.Clipboard.SetTextAsync(string.Empty);
