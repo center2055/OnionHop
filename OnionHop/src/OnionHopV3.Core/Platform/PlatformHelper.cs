@@ -141,25 +141,23 @@ public static class PlatformHelper
         }
     }
 
-    public static string[] XrayAssetNameHints
+    /// <summary>The exact Xray release asset for this platform, e.g. "Xray-windows-64.zip".</summary>
+    public static string XrayAssetName
     {
         get
         {
             if (IsWin)
             {
-                return ["windows", "64", ".zip"];
+                return "Xray-windows-64.zip";
             }
 
-            var archHint = RuntimeInformation.OSArchitecture == Architecture.Arm64
-                ? "arm64"
-                : "64";
-
+            var arm64 = RuntimeInformation.OSArchitecture == Architecture.Arm64;
             if (IsMac)
             {
-                return ["macos", archHint, ".zip"];
+                return arm64 ? "Xray-macos-arm64-v8a.zip" : "Xray-macos-64.zip";
             }
 
-            return ["linux", archHint, ".zip"];
+            return arm64 ? "Xray-linux-arm64-v8a.zip" : "Xray-linux-64.zip";
         }
     }
 

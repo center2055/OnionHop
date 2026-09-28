@@ -21,8 +21,34 @@ internal sealed class DependencyManager
     private const string TorFallbackVersion = "15.0.7";
     private const string TorBaseUrl = "https://dist.torproject.org/torbrowser";
     private const string TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser";
-    private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest";
-    private const string XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/latest";
+    private const string TorChecksumFileName = "sha256sums-signed-build.txt";
+
+    // The tunnel cores are pinned to the versions bundled with the app. These downloads only happen
+    // when the bundled copy is missing, so "latest" never kept anyone up to date; it only meant a
+    // fresh install could get a core the generated configs had never been tested against, and
+    // sing-box has broken existing configs between minor releases before. When bumping the bundled
+    // cores, update the versions and the hashes below together.
+    private const string SingBoxVersion = "1.13.13";
+    private const string XrayVersion = "26.3.27";
+    private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/tags/v" + SingBoxVersion;
+    private const string XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v" + XrayVersion;
+
+    // SHA-256 of every asset above that OnionHop may download, as published on GitHub for those tags.
+    // Pinned here so the check does not depend on the same API that hands out the download link.
+    private static readonly IReadOnlyDictionary<string, string> PinnedCoreSha256 = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["sing-box-1.13.13-windows-amd64.zip"] = "aea1fa983134a2e2d0600581d1178e98bd6bb93ae12ad8c333eaacae68a1694c",
+        ["sing-box-1.13.13-darwin-amd64.tar.gz"] = "477afd64ad7751214f01338ba244265ecc223966ddb58214963f526dca7f424e",
+        ["sing-box-1.13.13-darwin-arm64.tar.gz"] = "4ac414d4ede9ec21bc79d8ccf40b4679429203b9e06ad96d2d8d34c0fe940558",
+        ["sing-box-1.13.13-linux-amd64.tar.gz"] = "bb99cabf47694625db421ee17898f36cdc1f9c2cb5decf65b12bac8d8437e842",
+        ["sing-box-1.13.13-linux-arm64.tar.gz"] = "d7fab87b921933eb281d8ee7bd5377cdd8228089f1f7c807c9363a6a2329286c",
+        ["Xray-windows-64.zip"] = "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad",
+        ["Xray-macos-64.zip"] = "f5b0471d3459eff1b82e48af0aeac186abcc3298210070afbbbd8437a4e8b203",
+        ["Xray-macos-arm64-v8a.zip"] = "2e93a67e8aa1936ecefb307e120830fcbd4c643ab9b1c46a2d0838d5f8409eaf",
+        ["Xray-linux-64.zip"] = "23cd9af937744d97776ee35ecad4972cf4b2109d1e0fe6be9930467608f7c8ae",
+        ["Xray-linux-arm64-v8a.zip"] = "4d30283ae614e3057f730f67cd088a42be6fdf91f8639d82cb69e48cde80413c",
+    };
+
     private const string WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip";
     // The URL above is a fixed version, so its checksum can be fixed too (as published on wintun.net).
     // Wintun is a kernel driver loaded by a core running as administrator: it is the last file that
@@ -331,7 +357,8 @@ internal sealed class DependencyManager
             {
                 var candidates = await ResolveTorDownloadCandidatesAsync(client, version, suffixCandidates, token).ConfigureAwait(false);
                 log($"Tor download: trying version {version} with {candidates.Count} candidate URL(s).");
-                await DownloadWithFallbackAsync(client, candidates, torArchivePath, token).ConfigureAwait(false);
+                var downloadedFrom = await DownloadWithFallbackAsync(client, candidates, torArchivePath, token).ConfigureAwait(false);
+                await VerifyTorBundleAsync(client, downloadedFrom, torArchivePath, token).ConfigureAwait(false);
                 resolvedVersion = version;
                 break;
             }
@@ -450,16 +477,16 @@ internal sealed class DependencyManager
 
         var json = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
         var release = JsonSerializer.Deserialize<GitHubRelease>(json);
-        var asset = release?.Assets?.FirstOrDefault(a => a.Name != null
-            && a.Name.Contains(PlatformHelper.SingBoxPlatformAssetFilter, StringComparison.OrdinalIgnoreCase));
+        var assetName = $"sing-box-{SingBoxVersion}-{PlatformHelper.SingBoxPlatformAssetFilter}";
+        var asset = release?.Assets?.FirstOrDefault(a => string.Equals(a.Name, assetName, StringComparison.Ordinal));
         if (string.IsNullOrWhiteSpace(asset?.BrowserDownloadUrl) || string.IsNullOrWhiteSpace(asset.Name))
         {
-            throw new InvalidOperationException($"No sing-box asset found for {PlatformHelper.SingBoxPlatformAssetFilter}.");
+            throw new InvalidOperationException($"No sing-box asset named {assetName} in release v{SingBoxVersion}.");
         }
 
         var archivePath = Path.Combine(tempRoot, asset.Name);
         await DownloadToFileAsync(client, asset.BrowserDownloadUrl, archivePath, token).ConfigureAwait(false);
-        await VerifyGitHubAssetAsync(archivePath, asset, token).ConfigureAwait(false);
+        await VerifyCoreAssetAsync(archivePath, asset, token).ConfigureAwait(false);
         await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.SingBoxBinaryName, singBoxPath).ConfigureAwait(false);
     }
 
@@ -473,19 +500,21 @@ internal sealed class DependencyManager
 
         var json = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
         var release = JsonSerializer.Deserialize<GitHubRelease>(json);
-        var hints = PlatformHelper.XrayAssetNameHints;
-        var asset = release?.Assets?
-            .Where(a => !string.IsNullOrWhiteSpace(a.Name) && !string.IsNullOrWhiteSpace(a.BrowserDownloadUrl))
-            .FirstOrDefault(a => hints.All(hint => a.Name!.Contains(hint, StringComparison.OrdinalIgnoreCase)));
+        // Exact name, not keyword hints: "windows" + "64" + ".zip" also matched the .dgst checksum
+        // file and the ARM64 build, and only the order GitHub happened to list assets in picked the
+        // right one.
+        var assetName = PlatformHelper.XrayAssetName;
+        var asset = release?.Assets?.FirstOrDefault(a =>
+            string.Equals(a.Name, assetName, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(a.BrowserDownloadUrl));
 
         if (asset == null)
         {
-            throw new InvalidOperationException($"No xray asset found for {string.Join(", ", hints)}.");
+            throw new InvalidOperationException($"No xray asset named {assetName} in release v{XrayVersion}.");
         }
 
         var archivePath = Path.Combine(tempRoot, asset.Name!);
         await DownloadToFileAsync(client, asset.BrowserDownloadUrl!, archivePath, token).ConfigureAwait(false);
-        await VerifyGitHubAssetAsync(archivePath, asset, token).ConfigureAwait(false);
+        await VerifyCoreAssetAsync(archivePath, asset, token).ConfigureAwait(false);
         await ExtractAndCopyBinaryAsync(tempRoot, archivePath, PlatformHelper.XrayBinaryName, xrayPath).ConfigureAwait(false);
     }
 
@@ -555,16 +584,64 @@ internal sealed class DependencyManager
 
     /// <summary>
     /// The tunnel cores are executed with administrator rights, and used to be run straight from
-    /// whatever the download returned. GitHub publishes a SHA-256 for every release asset, so check
-    /// against it before extracting anything. An asset without a digest (GitHub only started
-    /// publishing them in 2025) is let through rather than breaking installs outright.
+    /// whatever the download returned. Check the archive before extracting anything: against the hash
+    /// pinned in this file, or failing that the SHA-256 GitHub publishes for the asset. With neither,
+    /// nothing vouches for the file, so it is not used.
     /// </summary>
-    private static Task VerifyGitHubAssetAsync(string archivePath, GitHubAsset asset, CancellationToken token)
+    private static Task VerifyCoreAssetAsync(string archivePath, GitHubAsset asset, CancellationToken token)
     {
-        var expected = ParseGitHubDigest(asset.Digest);
-        return expected == null
-            ? Task.CompletedTask
-            : VerifySha256Async(archivePath, expected, asset.Name ?? Path.GetFileName(archivePath), token);
+        var name = asset.Name ?? Path.GetFileName(archivePath);
+        var expected = ExpectedCoreSha256(name, asset.Digest)
+            ?? throw new InvalidOperationException($"No checksum is known for {name}, so it was not used.");
+        return VerifySha256Async(archivePath, expected, name, token);
+    }
+
+    /// <summary>The pinned hash for a core asset, else GitHub's published digest, else null.</summary>
+    internal static string? ExpectedCoreSha256(string assetName, string? gitHubDigest) =>
+        PinnedCoreSha256.TryGetValue(assetName, out var pinned) ? pinned : ParseGitHubDigest(gitHubDigest);
+
+    /// <summary>
+    /// The Tor Project publishes a SHA-256 for every expert bundle in a sums file beside it. The bundle
+    /// is checked against it before anything is extracted. The sums file comes from the same Tor
+    /// Project server over HTTPS, so this catches a broken or altered download, not a compromise of
+    /// torproject.org itself; that would take checking the OpenPGP signature published next to it.
+    /// </summary>
+    private static async Task VerifyTorBundleAsync(HttpClient client, string bundleUrl, string archivePath, CancellationToken token)
+    {
+        var fileName = Path.GetFileName(new Uri(bundleUrl).AbsolutePath);
+        var sumsUrl = bundleUrl[..(bundleUrl.LastIndexOf('/') + 1)] + TorChecksumFileName;
+        var sums = await client.GetStringAsync(sumsUrl, token).ConfigureAwait(false);
+        var expected = FindSha256InSumsFile(sums, fileName)
+            ?? throw new InvalidOperationException($"{TorChecksumFileName} lists no checksum for {fileName}, so it was not used.");
+        await VerifySha256Async(archivePath, expected, fileName, token).ConfigureAwait(false);
+    }
+
+    /// <summary>The SHA-256 listed for <paramref name="fileName"/> in a sha256sum-style file, or null.</summary>
+    internal static string? FindSha256InSumsFile(string? sums, string fileName)
+    {
+        if (string.IsNullOrEmpty(sums) || string.IsNullOrEmpty(fileName))
+        {
+            return null;
+        }
+
+        foreach (var rawLine in sums.Split('\n'))
+        {
+            // "<64 hex>  <name>", or "<64 hex> *<name>" when written in binary mode.
+            var line = rawLine.Trim();
+            if (line.Length < 66 || line[64] != ' ')
+            {
+                continue;
+            }
+
+            var hex = line[..64];
+            var name = line[65..].TrimStart(' ', '*');
+            if (string.Equals(name, fileName, StringComparison.Ordinal) && hex.All(Uri.IsHexDigit))
+            {
+                return hex.ToLowerInvariant();
+            }
+        }
+
+        return null;
     }
 
     /// <summary>"sha256:ABC..." to "abc...", or null for anything that is not a SHA-256 digest.</summary>
@@ -609,7 +686,8 @@ internal sealed class DependencyManager
         await stream.CopyToAsync(file, token).ConfigureAwait(false);
     }
 
-    private static async Task DownloadWithFallbackAsync(HttpClient client, IEnumerable<string> urls, string targetPath, CancellationToken token)
+    /// <summary>Downloads from the first URL that works and returns that URL.</summary>
+    private static async Task<string> DownloadWithFallbackAsync(HttpClient client, IEnumerable<string> urls, string targetPath, CancellationToken token)
     {
         Exception? lastError = null;
         string? lastUrl = null;
@@ -620,7 +698,7 @@ internal sealed class DependencyManager
             try
             {
                 await DownloadToFileAsync(client, url, targetPath, token).ConfigureAwait(false);
-                return;
+                return url;
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {

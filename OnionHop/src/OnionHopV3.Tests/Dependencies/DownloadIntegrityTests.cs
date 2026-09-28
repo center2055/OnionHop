@@ -71,4 +71,78 @@ public sealed class DownloadIntegrityTests
         Assert.Contains("integrity", error.Message);
         Assert.False(File.Exists(path));
     }
+
+    [Fact]
+    public void The_pinned_hash_wins_over_whatever_the_api_reports()
+    {
+        // The pinned value must not be replaceable by the same API that serves the download link.
+        Assert.Equal(
+            "aea1fa983134a2e2d0600581d1178e98bd6bb93ae12ad8c333eaacae68a1694c",
+            DependencyManager.ExpectedCoreSha256("sing-box-1.13.13-windows-amd64.zip", "sha256:" + Hex));
+    }
+
+    [Theory]
+    [InlineData("sing-box-1.13.13-windows-amd64.zip")]
+    [InlineData("sing-box-1.13.13-darwin-amd64.tar.gz")]
+    [InlineData("sing-box-1.13.13-darwin-arm64.tar.gz")]
+    [InlineData("sing-box-1.13.13-linux-amd64.tar.gz")]
+    [InlineData("sing-box-1.13.13-linux-arm64.tar.gz")]
+    [InlineData("Xray-windows-64.zip")]
+    [InlineData("Xray-macos-64.zip")]
+    [InlineData("Xray-macos-arm64-v8a.zip")]
+    [InlineData("Xray-linux-64.zip")]
+    [InlineData("Xray-linux-arm64-v8a.zip")]
+    public void Every_platform_asset_has_a_pinned_hash(string assetName)
+    {
+        // With no API digest at all, each asset the app can pick still has a hash to check against.
+        var hash = DependencyManager.ExpectedCoreSha256(assetName, null);
+        Assert.NotNull(hash);
+        Assert.Equal(64, hash!.Length);
+    }
+
+    [Fact]
+    public void An_unpinned_asset_falls_back_to_the_api_digest_or_nothing()
+    {
+        Assert.Equal(Hex, DependencyManager.ExpectedCoreSha256("sing-box-9.9.9-windows-amd64.zip", "sha256:" + Hex));
+        Assert.Null(DependencyManager.ExpectedCoreSha256("sing-box-9.9.9-windows-amd64.zip", null));
+    }
+
+    private const string TorSums =
+        "ed4bc23065ee10f68efcdae63ea318ffa4b02b04ba00f13a3f59f8e3832fdfad  tor-expert-bundle-android-aarch64-15.0.23.tar.gz\n" +
+        "08d49de27f542b8f73e2014e064d8320562b5d20019c03d4725c5a5249d97985  tor-expert-bundle-linux-x86_64-15.0.23.tar.gz\n" +
+        "1e4de9a4f1d99b8f40b5e0c75f3dcc3ea51b0aeab040d48fd23881e9fa94979a  tor-expert-bundle-windows-i686-15.0.23.tar.gz\r\n" +
+        "231DAD6B9CB401A54C260DB7046965EF04E4F72FF071B140D423FB5DA281AB1E *tor-expert-bundle-windows-x86_64-15.0.23.tar.gz\n";
+
+    [Fact]
+    public void Finds_the_tor_bundle_hash_by_exact_file_name()
+    {
+        Assert.Equal(
+            "08d49de27f542b8f73e2014e064d8320562b5d20019c03d4725c5a5249d97985",
+            DependencyManager.FindSha256InSumsFile(TorSums, "tor-expert-bundle-linux-x86_64-15.0.23.tar.gz"));
+    }
+
+    [Fact]
+    public void Reads_binary_mode_entries_and_normalises_case()
+    {
+        Assert.Equal(
+            "231dad6b9cb401a54c260db7046965ef04e4f72ff071b140d423fb5da281ab1e",
+            DependencyManager.FindSha256InSumsFile(TorSums, "tor-expert-bundle-windows-x86_64-15.0.23.tar.gz"));
+    }
+
+    [Theory]
+    [InlineData("tor-expert-bundle-windows-x86_64-15.0.22.tar.gz")]
+    [InlineData("tor-expert-bundle-windows-x86_64")]
+    [InlineData("")]
+    public void A_file_the_sums_do_not_list_gets_no_hash(string fileName)
+    {
+        // No entry means nothing vouches for the download, so the caller refuses it.
+        Assert.Null(DependencyManager.FindSha256InSumsFile(TorSums, fileName));
+    }
+
+    [Fact]
+    public void A_missing_sums_file_gives_no_hash()
+    {
+        Assert.Null(DependencyManager.FindSha256InSumsFile(null, "tor-expert-bundle-linux-x86_64-15.0.23.tar.gz"));
+        Assert.Null(DependencyManager.FindSha256InSumsFile("<html>404</html>", "tor-expert-bundle-linux-x86_64-15.0.23.tar.gz"));
+    }
 }
