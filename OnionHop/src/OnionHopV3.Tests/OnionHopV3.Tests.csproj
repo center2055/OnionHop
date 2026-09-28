@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- Referencing the app would otherwise copy its bundled Tor, tunnel cores and transports
+         (~230 MB) into the test output. No test runs them. -->
+    <_GetChildProjectCopyToOutputDirectoryItems>false</_GetChildProjectCopyToOutputDirectoryItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +18,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OnionHopV3.Core\OnionHopV3.Core.csproj" />
+    <!-- For the UI logic that has no UI in it (Home status, onion port parsing). Nothing here starts
+         Avalonia: only static, pure members of the app are called. -->
+    <ProjectReference Include="..\OnionHopV3.App\OnionHopV3.App.csproj" />
   </ItemGroup>
 
 </Project>

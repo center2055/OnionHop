@@ -289,6 +289,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">Empty = default (auto)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">Strict route</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">When enabled, routes must stay in the TUN path. Disable only for troubleshooting difficult networks.</x:String>
+  <x:String x:Key="Settings.KillSwitch">Kill switch</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">If the connection drops unexpectedly, all internet traffic is blocked until you restore it on the Home page or connect again, so nothing goes out on your real connection. Full-tunnel TUN mode only, not with split tunneling.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">Disable IPv6 in the tunnel</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">Builds the tunnel adapter without an IPv6 address. Turn this on if the tunnel fails to start with "set ipv6 address". OnionHop already retries without IPv6 on its own; this skips the failed attempt.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">Traffic restrictions</x:String>
@@ -481,6 +483,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">A new connection from this computer was tested and left through Tor.</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">Your traffic is not going through Tor</x:String>
   <x:String x:Key="Home.TunnelLeakBody">A test connection from this computer came out with your real IP address, so the tunnel is not carrying your traffic. Don't rely on this connection for anything sensitive. Disconnect, then check the Sing-box or Xray tab under Logs for routing errors.</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">Blocked by kill switch</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">The connection dropped unexpectedly, so all internet traffic is blocked to keep it from leaving without Tor. Restore internet to use your normal connection, or connect again.</x:String>
+  <x:String x:Key="Home.RestoreInternet">Restore internet</x:String>
   <x:String x:Key="Home.LatestActivity">Latest</x:String>
   <x:String x:Key="Home.ViewLogs">View logs</x:String>
   <x:String x:Key="Home.ConnectionSection">Connection</x:String>

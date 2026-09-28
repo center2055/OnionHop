@@ -20,7 +20,7 @@ public sealed class LocalizationIntegrityTests
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly Regex Placeholder = new(@"\{\d+\}", RegexOptions.Compiled);
 
-    private static string ResourcesDirectory()
+    internal static string ResourcesDirectory()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null)

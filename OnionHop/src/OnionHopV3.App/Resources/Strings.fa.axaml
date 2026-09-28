@@ -286,6 +286,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">خالی = پیش‌فرض (خودکار)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">مسیر سخت‌گیر</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">وقتی فعال است، مسیرها باید در مسیر TUN باقی بمانند. فقط برای عیب‌یابی شبکه‌های دشوار غیرفعال کنید.</x:String>
+  <x:String x:Key="Settings.KillSwitch">کلید قطع</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">اگر اتصال به‌طور غیرمنتظره قطع شود، همهٔ ترافیک اینترنت مسدود می‌شود تا وقتی که آن را در صفحهٔ خانه بازگردانید یا دوباره وصل شوید، تا چیزی از اتصال واقعی شما خارج نشود. فقط در حالت تونل کامل TUN، نه با تونل‌زنی تقسیمی.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">غیرفعال کردن IPv6 در تونل</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">آداپتور تونل را بدون آدرس IPv6 می‌سازد. اگر تونل با خطای "set ipv6 address" اجرا نمی‌شود، این را روشن کنید. OnionHop خودش بدون IPv6 دوباره تلاش می‌کند؛ این گزینه تلاش ناموفق را حذف می‌کند.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">محدودیت‌های ترافیک</x:String>
@@ -452,6 +454,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">یک اتصال جدید از این رایانه آزمایش شد و از Tor عبور کرد.</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">ترافیک شما از Tor عبور نمی‌کند</x:String>
   <x:String x:Key="Home.TunnelLeakBody">یک اتصال آزمایشی از این رایانه با آدرس IP واقعی شما خارج شد، پس تونل ترافیک شما را منتقل نمی‌کند. برای کارهای حساس به این اتصال اعتماد نکنید. اتصال را قطع کنید و سپس زبانه Sing-box یا Xray را در بخش گزارش‌ها برای خطاهای مسیریابی بررسی کنید.</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">مسدود با کلید قطع</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">اتصال به‌طور غیرمنتظره قطع شد، پس همهٔ ترافیک اینترنت مسدود شده تا بدون Tor خارج نشود. برای استفاده از اتصال عادی خود اینترنت را بازگردانید، یا دوباره وصل شوید.</x:String>
+  <x:String x:Key="Home.RestoreInternet">بازگرداندن اینترنت</x:String>
   <x:String x:Key="Home.LatestActivity">آخرین</x:String>
   <x:String x:Key="Home.ViewLogs">مشاهده گزارش‌ها</x:String>
   <x:String x:Key="Home.ConnectionSection">اتصال</x:String>

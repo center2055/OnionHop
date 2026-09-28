@@ -41,7 +41,7 @@
               <TextBlock Text="{Binding HeroDetail}"
                          Classes="Muted"
                          FontSize="14"
-                         MaxLines="3"
+                         MaxLines="4"
                          TextTrimming="CharacterEllipsis"
                          TextWrapping="Wrap" />
 
@@ -121,6 +121,12 @@
                       Command="{Binding State.ConnectCommand}"
                       IsVisible="{Binding State.ShowConnectButton}"
                       Content="{DynamicResource Home.Connect}" />
+              <Button Height="42"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      Command="{Binding State.ReleaseKillSwitchCommand}"
+                      IsVisible="{Binding ShowKillSwitchHold}"
+                      Content="{DynamicResource Home.RestoreInternet}" />
               <Button Classes="ActionDanger"
                       Height="42"
                       HorizontalAlignment="Stretch"

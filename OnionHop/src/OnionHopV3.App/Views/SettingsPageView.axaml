@@ -510,6 +510,12 @@
               <controls:ToggleRow Title="{DynamicResource Settings.TunDisableIpv6}"
                                   Description="{DynamicResource Settings.TunDisableIpv6Hint}"
                                   IsChecked="{Binding State.TunDisableIpv6}" />
+              <!-- Lived on the V2 Home page and was lost in the V3 redesign, while the setting kept
+                   working: anyone who had it on kept it, invisibly, and nobody else could turn it on. -->
+              <controls:ToggleRow Title="{DynamicResource Settings.KillSwitch}"
+                                  Description="{DynamicResource Settings.KillSwitchHint}"
+                                  IsChecked="{Binding State.KillSwitchEnabled}"
+                                  IsEnabled="{Binding State.CanUseKillSwitch}" />
               <controls:ToggleRow Title="{DynamicResource Settings.SplitTunnelingTitle}"
                                   Description="{DynamicResource Settings.SplitTunnelingToggleHint}"
                                   IsChecked="{Binding State.UseHybridRouting}"

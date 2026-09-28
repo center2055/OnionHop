@@ -69,6 +69,10 @@
     <ProjectReference Include="..\OnionHopV3.Core\OnionHopV3.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="OnionHopV3.Tests" />
+  </ItemGroup>
+
   <!-- macOS: remove quarantine extended attributes from build output so Gatekeeper
        does not block the app on first launch. Runs automatically after every build. -->
   <Target Name="RemoveMacOSQuarantine" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">

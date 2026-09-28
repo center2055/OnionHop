@@ -286,6 +286,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">بەتاڵ = پێشوەخت (خۆکار)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">ڕووتی هەرزەکار</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">کاتێک چالاکە، ڕووتەکان پێویستە لە ڕێگای TUN بمێننەوە. تەنها بۆ چارەسەرکردنی تۆڕە سەختەکان ناچالاک بکە.</x:String>
+  <x:String x:Key="Settings.KillSwitch">Kill switch</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">ئەگەر پەیوەندییەکە بە شێوەیەکی چاوەڕواننەکراو پچڕا، هەموو ترافیکی ئینتەرنێت بلۆک دەکرێت تا لە سەرەتا دەیگەڕێنیتەوە یان دووبارە پەیوەندی دەکەیتەوە، بۆ ئەوەی هیچ شتێک بە پەیوەندیی ڕاستەقینەتدا دەرنەچێت. تەنها لە دۆخی تونێلی تەواوی TUN، نەک لەگەڵ Split Tunneling.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">ناچالاککردنی IPv6 لە تونێلدا</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">ئەدەپتەری تونێل بەبێ ناونیشانی IPv6 دروست دەکات. ئەگەر تونێل بە هەڵەی "set ipv6 address" دەست پێ ناکات، ئەمە چالاک بکە. OnionHop خۆی بەبێ IPv6 دووبارە هەوڵ دەداتەوە؛ ئەمە هەوڵە سەرنەکەوتووەکە تێدەپەڕێنێت.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">سنوورکاریەکانی ترافیک</x:String>
@@ -452,6 +454,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">پەیوەندییەکی نوێ لەم کۆمپیوتەرەوە تاقیکرایەوە و بە Tor دا تێپەڕی.</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">ترافیکەکەت بە Tor دا تێناپەڕێت</x:String>
   <x:String x:Key="Home.TunnelLeakBody">پەیوەندییەکی تاقیکاری لەم کۆمپیوتەرەوە بە ناونیشانی IP ڕاستەقینەکەت دەرچوو، کەواتە تونێلەکە ترافیکەکەت ناگوازێتەوە. بۆ هیچ کارێکی هەستیار پشت بەم پەیوەندییە مەبەستە. پەیوەندییەکە بپچڕێنە، پاشان لە تۆمارەکاندا تابی Sing-box یان Xray بۆ هەڵەکانی ڕێڕەوکردن بپشکنە.</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">بلۆککراوە بە kill switch</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">پەیوەندییەکە بە شێوەیەکی چاوەڕواننەکراو پچڕا، بۆیە هەموو ترافیکی ئینتەرنێت بلۆککراوە تا بەبێ Tor دەرنەچێت. ئینتەرنێت بگەڕێنەرەوە بۆ بەکارهێنانی پەیوەندیی ئاساییت، یان دووبارە پەیوەندی بکەرەوە.</x:String>
+  <x:String x:Key="Home.RestoreInternet">گەڕاندنەوەی ئینتەرنێت</x:String>
   <x:String x:Key="Home.LatestActivity">دوایین</x:String>
   <x:String x:Key="Home.ViewLogs">پیشاندانی تۆمارەکان</x:String>
   <x:String x:Key="Home.ConnectionSection">پەیوەندی</x:String>

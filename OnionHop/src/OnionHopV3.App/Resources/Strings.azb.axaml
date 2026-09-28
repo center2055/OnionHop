@@ -286,6 +286,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">بوش = ده‌فالت (اوتو)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">قاتی مسیر</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">آچیق اولاندا مسیرلر TUN یولوندا قالمالیدیر. یالنیز چتین شبکه‌لرده سورون‌گیدرمه اوچون دئاکتیو ائدین.</x:String>
+  <x:String x:Key="Settings.KillSwitch">کیل سویچ</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">باغلانتی گؤزلنیلمه‌دن کسیلسه، آنا صفحه‌ده قایتارانا یا یئنیدن باغلانانا جان بوتون اینترنت ترافیکی بلوکلانیر، بئله‌لیکله گرچک باغلانتینیزدان هئچ نه چیخمیر. یالنیز تام تونل TUN مودوندا، بؤلونموش تونل‌له یوخ.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">تونلده IPv6 نی سؤندور</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">تونل آداپتورونو IPv6 آدرسی اولمادان یارادیر. اگر تونل "set ipv6 address" خطاسی ایله باشلامیرسا، بونو آچین. OnionHop اؤزو ده IPv6 اولمادان یئنیدن جهد ائدیر؛ بو سئچیم اوغورسوز جهدی آتلاییر.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">ترافیک محدودیت‌لری</x:String>
@@ -452,6 +454,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">بو کامپیوتردن یئنی بیر باغلانتی یوخلاندی و Tor اوستوندن کئچدی.</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">ترافیکینیز Tor اوستوندن کئچمیر</x:String>
   <x:String x:Key="Home.TunnelLeakBody">بو کامپیوتردن بیر تست باغلانتیسی گئرچک IP آدرسینیز ایله چیخدی، دئمک تونل ترافیکینیزی داشیمیر. حساس ایشلر اوچون بو باغلانتییا گووَنمه‌یین. باغلانتینی کسین، سونرا لاقلار بؤلومونده Sing-box یا Xray سکمه‌سینی مارشروت خطالاری اوچون یوخلایین.</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">کیل سویچ بلوکلاییب</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">باغلانتی گؤزلنیلمه‌دن کسیلدی، بونا گؤره Tor-سوز چیخماسین دئیه بوتون اینترنت ترافیکی بلوکلانیب. عادی باغلانتینیزی ایشلتمک اوچون اینترنتی قایتارین، یا یئنیدن باغلانین.</x:String>
+  <x:String x:Key="Home.RestoreInternet">اینترنتی قایتار</x:String>
   <x:String x:Key="Home.LatestActivity">سون</x:String>
   <x:String x:Key="Home.ViewLogs">لاقلاری گؤستر</x:String>
   <x:String x:Key="Home.ConnectionSection">باغلانتی</x:String>

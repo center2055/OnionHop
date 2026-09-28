@@ -290,6 +290,8 @@
   <x:String x:Key="Settings.TunDisableIpv6Hint">Cree l'adaptateur du tunnel sans adresse IPv6. Activez ceci si le tunnel ne demarre pas avec "set ipv6 address". OnionHop reessaie deja sans IPv6 de lui-meme ; ceci evite la tentative echouee.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">Restrictions de trafic</x:String>
   <x:String x:Key="Settings.AdvancedManualExitSection">Forçage de sortie manuelle</x:String>
+  <x:String x:Key="Settings.KillSwitch">Kill switch</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">Si la connexion tombe de façon inattendue, tout le trafic internet est bloqué jusqu'à ce que vous le rétablissiez depuis l'Accueil ou que vous vous reconnectiez : rien ne sort par votre connexion réelle. Mode TUN en tunnel complet uniquement, pas avec la tunnellisation partagée.</x:String>
   <x:String x:Key="Settings.EntryNode">Nœud d'entrée (facultatif)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">Les nœuds d'entrée ne peuvent pas être utilisés avec des ponts.</x:String>
   <x:String x:Key="Settings.IPv6Support">Prise en charge d'IPv6</x:String>
@@ -452,6 +454,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">Une nouvelle connexion de cet ordinateur a été testée et est passée par Tor.</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">Votre trafic ne passe pas par Tor</x:String>
   <x:String x:Key="Home.TunnelLeakBody">Une connexion de test depuis cet ordinateur est sortie avec votre véritable adresse IP : le tunnel ne transporte donc pas votre trafic. Ne vous fiez pas à cette connexion pour quoi que ce soit de sensible. Déconnectez-vous, puis consultez l'onglet Sing-box ou Xray dans Journaux pour repérer des erreurs de routage.</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">Bloqué par le kill switch</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">La connexion est tombée de façon inattendue : tout le trafic internet est bloqué pour qu'il ne sorte pas sans Tor. Rétablissez internet pour utiliser votre connexion normale, ou reconnectez-vous.</x:String>
+  <x:String x:Key="Home.RestoreInternet">Rétablir internet</x:String>
   <x:String x:Key="Home.LatestActivity">Dernier</x:String>
   <x:String x:Key="Home.ViewLogs">Voir les journaux</x:String>
   <x:String x:Key="Home.ConnectionSection">Connexion</x:String>

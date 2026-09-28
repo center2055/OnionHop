@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.Input;
 using Material.Icons;
 using OnionHopV3.App.Services;
@@ -21,6 +22,8 @@ public sealed class HomePageViewModel : PageViewModelBase
 {
     private const int MaxLatestMessageLength = 140;
 
+    private static readonly Regex ConnectedWord = new(@"\bconnected\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     // State changes that can alter anything the status card, the connection card or the session
     // figures show. One set, so nothing is forgotten when a new input is added.
     private static readonly HashSet<string> StatusInputs = new(StringComparer.Ordinal)
@@ -32,6 +35,7 @@ public sealed class HomePageViewModel : PageViewModelBase
         nameof(AppStateViewModel.IsBusy),
         nameof(AppStateViewModel.StatusMessage),
         nameof(AppStateViewModel.TunnelCheck),
+        nameof(AppStateViewModel.KillSwitchHolding),
         nameof(AppStateViewModel.SelectedConnectionMode),
         nameof(AppStateViewModel.UseHybridRouting),
         nameof(AppStateViewModel.SystemProxyEnabled),
@@ -53,6 +57,7 @@ public sealed class HomePageViewModel : PageViewModelBase
         nameof(HeroIcon),
         nameof(ShowTunnelWarning),
         nameof(ShowTunnelVerified),
+        nameof(ShowKillSwitchHold),
         nameof(ModeHint),
         nameof(CanChangeMode),
         nameof(SystemProxyHint),
@@ -86,16 +91,48 @@ public sealed class HomePageViewModel : PageViewModelBase
 
     // ----- Status card -------------------------------------------------------------------------
 
-    private bool IsStarting => State.IsConnecting || State.IsPreparingConnection;
+    /// <summary>
+    /// What the status card is showing. Title, detail, tone and icon all derive from this one value,
+    /// so they cannot disagree with each other.
+    /// </summary>
+    internal enum HeroState
+    {
+        Disconnected,
+        Connecting,
+        Connected,
+        /// <summary>Connected, but the tunnel check saw traffic leave with the real IP (#83).</summary>
+        NotProtected,
+        Disconnecting,
+        /// <summary>The kill switch fired and holds all traffic back until the user lifts it.</summary>
+        KillSwitch
+    }
 
-    private bool IsLeaking => State.IsConnected && State.TunnelCheck == OnionHopClient.TunnelCheckState.Leaking;
+    internal static HeroState DeriveHeroState(bool isConnected, bool isStarting, bool isDisconnecting, bool leaking, bool killSwitchHolding) =>
+        isDisconnecting ? HeroState.Disconnecting
+        : isStarting ? HeroState.Connecting
+        : isConnected ? (leaking ? HeroState.NotProtected : HeroState.Connected)
+        : killSwitchHolding ? HeroState.KillSwitch
+        : HeroState.Disconnected;
+
+    private HeroState Hero => DeriveHeroState(
+        State.IsConnected,
+        State.IsConnecting || State.IsPreparingConnection,
+        State.IsDisconnecting,
+        State.TunnelCheck == OnionHopClient.TunnelCheckState.Leaking,
+        State.KillSwitchHolding);
 
     /// <summary>One word or two: the answer to "am I protected right now".</summary>
-    public string HeroTitle => State.IsDisconnecting ? L("Home.StatusDisconnecting")
-        : IsStarting ? L("Home.StatusConnecting")
-        : IsLeaking ? L("Home.StatusNotProtected")
-        : State.IsConnected ? L("Home.StatusConnected")
-        : L("Home.StatusDisconnected");
+    public string HeroTitle => L(HeroTitleKey(Hero));
+
+    internal static string HeroTitleKey(HeroState state) => state switch
+    {
+        HeroState.Disconnecting => "Home.StatusDisconnecting",
+        HeroState.Connecting => "Home.StatusConnecting",
+        HeroState.NotProtected => "Home.StatusNotProtected",
+        HeroState.Connected => "Home.StatusConnected",
+        HeroState.KillSwitch => "Home.StatusKillSwitch",
+        _ => "Home.StatusDisconnected"
+    };
 
     /// <summary>
     /// One plain sentence on what is actually going through Tor. While connecting it is the live
@@ -105,58 +142,61 @@ public sealed class HomePageViewModel : PageViewModelBase
     {
         get
         {
-            if (State.IsDisconnecting)
+            var hero = Hero;
+            if (hero == HeroState.Connecting && !string.IsNullOrWhiteSpace(State.StatusMessage))
             {
-                return L("Home.DetailDisconnecting");
+                return State.StatusMessage;
             }
 
-            if (IsStarting)
-            {
-                return string.IsNullOrWhiteSpace(State.StatusMessage) ? L("Home.DetailConnecting") : State.StatusMessage;
-            }
-
-            if (!State.IsConnected)
-            {
-                return L("Home.DetailDisconnected");
-            }
-
-            if (IsLeaking)
-            {
-                return L("Home.DetailLeaking");
-            }
-
-            if (State.IsTunMode)
-            {
-                return State.UseHybridRouting ? L("Home.DetailTunHybrid") : L("Home.DetailTunFull");
-            }
-
-            if (!State.IsSystemProxyScope)
-            {
-                return L("Home.DetailLocalOnly");
-            }
-
-            // Read live, not from the connect-time message: this is the line that used to contradict
-            // the System Proxy button after a mid-session toggle.
-            return State.SystemProxyEnabled ? L("Home.DetailProxyOn") : L("Home.DetailProxyOff");
+            return L(HeroDetailKey(hero, State.IsTunMode, State.UseHybridRouting, State.IsSystemProxyScope, State.SystemProxyEnabled));
         }
     }
 
-    public string HeroTone => IsLeaking ? "danger"
-        : State.IsConnected ? "success"
-        : IsStarting ? "info"
-        : State.IsDisconnecting ? "warning"
-        : "neutral";
+    /// <summary>
+    /// The system proxy line is read live, not from the connect-time message: that is the line that
+    /// used to contradict the System Proxy button after a mid-session toggle.
+    /// </summary>
+    internal static string HeroDetailKey(HeroState state, bool tunMode, bool hybridRouting, bool systemProxyScope, bool systemProxyOn) => state switch
+    {
+        HeroState.Disconnecting => "Home.DetailDisconnecting",
+        HeroState.Connecting => "Home.DetailConnecting",
+        HeroState.Disconnected => "Home.DetailDisconnected",
+        HeroState.KillSwitch => "Home.DetailKillSwitch",
+        HeroState.NotProtected => "Home.DetailLeaking",
+        _ => tunMode ? (hybridRouting ? "Home.DetailTunHybrid" : "Home.DetailTunFull")
+            : !systemProxyScope ? "Home.DetailLocalOnly"
+            : systemProxyOn ? "Home.DetailProxyOn"
+            : "Home.DetailProxyOff"
+    };
 
-    public MaterialIconKind HeroIcon => IsLeaking ? MaterialIconKind.ShieldAlert
-        : State.IsConnected ? MaterialIconKind.ShieldCheck
-        : IsStarting || State.IsDisconnecting ? MaterialIconKind.ShieldSync
-        : MaterialIconKind.ShieldOffOutline;
+    public string HeroTone => HeroToneFor(Hero);
+
+    internal static string HeroToneFor(HeroState state) => state switch
+    {
+        HeroState.NotProtected => "danger",
+        HeroState.Connected => "success",
+        HeroState.Connecting => "info",
+        HeroState.Disconnecting or HeroState.KillSwitch => "warning",
+        _ => "neutral"
+    };
+
+    public MaterialIconKind HeroIcon => Hero switch
+    {
+        HeroState.NotProtected => MaterialIconKind.ShieldAlert,
+        HeroState.Connected => MaterialIconKind.ShieldCheck,
+        HeroState.Connecting or HeroState.Disconnecting => MaterialIconKind.ShieldSync,
+        HeroState.KillSwitch => MaterialIconKind.ShieldLock,
+        _ => MaterialIconKind.ShieldOffOutline
+    };
 
     /// <summary>The tunnel check found a fresh connection leaving with the real IP (#83).</summary>
-    public bool ShowTunnelWarning => IsLeaking;
+    public bool ShowTunnelWarning => Hero == HeroState.NotProtected;
+
+    /// <summary>Offers "Restore internet" while the kill switch holds.</summary>
+    public bool ShowKillSwitchHold => Hero == HeroState.KillSwitch;
 
     public bool ShowTunnelVerified =>
-        State.IsConnected && State.TunnelCheck == OnionHopClient.TunnelCheckState.Verified;
+        Hero == HeroState.Connected && State.TunnelCheck == OnionHopClient.TunnelCheckState.Verified;
 
     public string SelectedExitLabel => State.IsManualExitNodeFingerprintSet
         ? State.ManualExitFingerprintSummary
@@ -273,8 +313,10 @@ public sealed class HomePageViewModel : PageViewModelBase
             ? "danger"
             : message.Contains("warn", StringComparison.OrdinalIgnoreCase)
               || message.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
+              || message.StartsWith("Kill switch engaged", StringComparison.OrdinalIgnoreCase)
                 ? "warning"
-                : message.Contains("connected", StringComparison.OrdinalIgnoreCase)
+                // Whole word: "Disconnected" contains "connected" and used to get the green dot.
+                : ConnectedWord.IsMatch(message)
                   || message.Contains("passed", StringComparison.OrdinalIgnoreCase)
                     ? "success"
                     : "neutral";

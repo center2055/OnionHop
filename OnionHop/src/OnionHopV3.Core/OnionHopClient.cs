@@ -50,7 +50,8 @@ public sealed class OnionHopClient : IDisposable
         string CurrentIp,
         int SocksPort,
         int? HttpPort,
-        TunnelCheckState TunnelCheck = TunnelCheckState.NotApplicable);
+        TunnelCheckState TunnelCheck = TunnelCheckState.NotApplicable,
+        bool KillSwitchHolding = false);
 
     /// <summary>
     /// Whether the tunnel is actually carrying this computer's traffic. The displayed IP cannot tell:
@@ -111,6 +112,12 @@ public sealed class OnionHopClient : IDisposable
     private TunnelCheckState _tunnelCheck = TunnelCheckState.NotApplicable;
     private DateTime _lastTunnelCheckUtc = DateTime.MinValue;
     private int _tunnelCheckRunning;
+
+    // Set once the kill switch has fired: the connection died under a full-tunnel session and all
+    // outbound traffic is blocked. The block then stays up through the automatic teardown that
+    // follows, until the user restores internet or connects again. That teardown used to lift it a
+    // few seconds after it went up, which put traffic straight back on the real connection.
+    private volatile bool _killSwitchHolding;
     private readonly ArtiService _artiService;
     private readonly ArtiHopService _artiHopService;
     private readonly SnowflakeProxyService _snowflakeProxyService;
@@ -745,6 +752,21 @@ public sealed class OnionHopClient : IDisposable
             statusMessage: "Checking internet connectivity and preparing Tor...",
             progress: 0.02);
 
+        // A kill switch block stops everything, including the connectivity check below and Tor
+        // itself. Connecting again is the user's decision to end it, so lift it first.
+        if ((_killSwitchHolding || await Task.Run(() => _killSwitchService.IsEmergencyBlockActive()).ConfigureAwait(false))
+            && !await ReleaseKillSwitchAsync().ConfigureAwait(false))
+        {
+            SetStatus(
+                isConnecting: false,
+                isConnected: false,
+                isDisconnecting: false,
+                connectionStatus: "Disconnected",
+                statusMessage: "The kill switch is still blocking all traffic and could not be lifted, so OnionHop cannot connect.",
+                progress: 0);
+            return;
+        }
+
         StartupLogger.Write("OnionHopClient.ConnectAsync: Checking internet connectivity...");
         var connectivity = await InternetConnectivityProbe.CheckAsync(token).ConfigureAwait(false);
         if (connectivity.State == InternetConnectivityState.Offline)
@@ -1199,6 +1221,151 @@ public sealed class OnionHopClient : IDisposable
             progress: 0.2);
 
         await DisconnectCoreAsync(disableStatusUpdate: false).ConfigureAwait(false);
+    }
+
+    /// <summary>True while a kill switch block is up and waiting for the user to lift it.</summary>
+    public bool IsKillSwitchHolding => _killSwitchHolding;
+
+    /// <summary>
+    /// Called when something the session depends on (the tunnel core, Tor, Arti) died underneath it,
+    /// before the automatic teardown. With the kill switch on in full-tunnel mode this blocks all
+    /// outbound traffic and keeps it blocked, since once the tunnel is gone everything would
+    /// otherwise go straight out on the real connection. Does nothing when the kill switch does not
+    /// apply or has already fired.
+    /// </summary>
+    private async Task TripKillSwitchIfEnabledAsync(string reason)
+    {
+        if (_killSwitchHolding || _isDisconnecting || !_isConnected || _activeOptions is not { } options
+            || !IsTunMode(options) || !options.KillSwitchEnabled || options.UseHybridRouting)
+        {
+            return;
+        }
+
+        // Set first, so a teardown racing this call cannot lift the block it is about to raise.
+        _killSwitchHolding = true;
+        try
+        {
+            if (PlatformHelper.IsAdministrator() || OperatingSystem.IsMacOS())
+            {
+                _killSwitchService.EnableEmergencyBlock(RaiseLog);
+            }
+            else if (OperatingSystem.IsWindows())
+            {
+                if (!await _adminHelper.EnsureConnectedAsync().ConfigureAwait(false)
+                    || !await _adminHelper.EnableKillSwitchAsync().ConfigureAwait(false))
+                {
+                    _killSwitchHolding = false;
+                    RaiseLog("Kill switch could not be enabled (admin helper unavailable).");
+                    return;
+                }
+            }
+            else
+            {
+                _killSwitchHolding = false;
+                RaiseLog("Kill switch could not be enabled: elevated privileges are required.");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _killSwitchHolding = false;
+            RaiseLog($"Kill switch could not be enabled: {ex.Message}");
+            return;
+        }
+
+        // Both ways of raising the block swallow their own errors, so confirm it is really there
+        // before Home claims traffic is blocked. macOS is skipped: reading pf rules needs root.
+        if (!OperatingSystem.IsMacOS() && !_killSwitchService.IsEmergencyBlockActive())
+        {
+            _killSwitchHolding = false;
+            RaiseLog($"Kill switch could not be enabled after {reason}: the firewall rule did not take. " +
+                     "Traffic is not blocked.");
+            return;
+        }
+
+        RaiseLog($"Kill switch engaged because {reason}. All internet traffic stays blocked until you " +
+                 "restore it on the Home page or connect again.");
+        PublishStatus();
+    }
+
+    /// <summary>
+    /// Lifts the kill switch block. Only the user decides this, by pressing "Restore internet" or by
+    /// connecting again; nothing automatic calls it. Returns false when the block is still up.
+    /// </summary>
+    public Task<bool> ReleaseKillSwitchAsync() =>
+        LiftKillSwitchAsync("Kill switch lifted.", "Kill switch lifted. Traffic is back to your normal connection.");
+
+    /// <summary>The tunnel came back by itself (the IPv6 retry), so its traffic is covered again.</summary>
+    private Task LiftKillSwitchAfterRecoveryAsync() => _killSwitchHolding
+        ? LiftKillSwitchAsync("The tunnel is back, so the kill switch block was lifted.", statusMessage: null)
+        : Task.CompletedTask;
+
+    private async Task<bool> LiftKillSwitchAsync(string logLine, string? statusMessage)
+    {
+        var holding = _killSwitchHolding;
+        var released = await Task.Run(async () =>
+        {
+            // A block this session raised is always taken down: detecting it needs root on macOS
+            // (pfctl), so "not detected" is only trusted for blocks nobody here knows about.
+            if (!holding && !_killSwitchService.IsEmergencyBlockActive())
+            {
+                return true;
+            }
+
+            if (PlatformHelper.IsAdministrator() || !OperatingSystem.IsWindows())
+            {
+                _killSwitchService.DisableEmergencyBlock(RaiseLog);
+            }
+            else
+            {
+                // The user asked for this, so starting the admin helper (a UAC prompt) is fine here.
+                await _adminHelper.DisableKillSwitchAsync().ConfigureAwait(false);
+            }
+
+            return !_killSwitchService.IsEmergencyBlockActive();
+        }).ConfigureAwait(false);
+
+        if (released)
+        {
+            _killSwitchHolding = false;
+            if (holding)
+            {
+                if (statusMessage != null)
+                {
+                    _statusMessage = statusMessage;
+                }
+
+                RaiseLog(logLine);
+            }
+        }
+        else
+        {
+            RaiseLog("The kill switch block could not be removed. Try again, or restart the computer: the block " +
+                     "is also cleared at the next system start.");
+        }
+
+        PublishStatus();
+        return released;
+    }
+
+    /// <summary>
+    /// A kill switch block outlives the app on purpose, so a restart can find one still up. Report it
+    /// as holding, so the Home page offers to restore internet instead of connecting just failing.
+    /// </summary>
+    public async Task DetectKillSwitchLeftOnAsync()
+    {
+        if (_killSwitchHolding || _isConnected || _isConnecting)
+        {
+            return;
+        }
+
+        var active = await Task.Run(() => _killSwitchService.IsEmergencyBlockActive()).ConfigureAwait(false);
+        if (active && !_killSwitchHolding && !_isConnected && !_isConnecting)
+        {
+            _killSwitchHolding = true;
+            RaiseLog("The kill switch from an earlier session is still blocking all internet traffic.");
+            PublishStatus();
+        }
     }
 
     /// <summary>
@@ -1706,6 +1873,12 @@ public sealed class OnionHopClient : IDisposable
 
     public async Task RefreshIpAsync(bool updateStatusMessage, CancellationToken token)
     {
+        if (_killSwitchHolding && !_isConnected)
+        {
+            // Nothing gets out while the kill switch holds, so a lookup could only fail and log it.
+            return;
+        }
+
         var torFirst = _isConnected && IsTorRuntimeRunning;
         RaiseLog($"IP check: torFirst={torFirst}, isConnected={_isConnected}, runtime={_activeTorEngine}, runtimeRunning={IsTorRuntimeRunning}, socksPort={_activeSocksPort}");
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -2419,7 +2592,9 @@ public sealed class OnionHopClient : IDisposable
                 _httpProxyBridgeService.Stop();
                 StopSingBoxProcess();
 
-                if (_killSwitchService.IsEmergencyBlockActive())
+                // A kill switch that has fired outlives this teardown on purpose (see
+                // _killSwitchHolding). Otherwise clear any block left over from an earlier session.
+                if (!_killSwitchHolding && _killSwitchService.IsEmergencyBlockActive())
                 {
                     if (PlatformHelper.IsAdministrator())
                     {
@@ -2483,13 +2658,16 @@ public sealed class OnionHopClient : IDisposable
 
             if (!disableStatusUpdate)
             {
-                _statusMessage = "Tor stopped. Traffic is back to normal.";
-                _currentIp = "Resolving...";
+                _statusMessage = _killSwitchHolding
+                    ? "The kill switch is blocking all internet traffic. Restore it on the Home page or connect again."
+                    : "Tor stopped. Traffic is back to normal.";
+                _currentIp = _killSwitchHolding ? "--.--.--.--" : "Resolving...";
             }
 
             PublishStatus();
 
-            if (!disableStatusUpdate)
+            // Nothing gets out while the kill switch holds, so an IP lookup could only fail.
+            if (!disableStatusUpdate && !_killSwitchHolding)
             {
                 _ = Task.Run(async () =>
                 {
@@ -2517,7 +2695,8 @@ public sealed class OnionHopClient : IDisposable
             CurrentIp: _currentIp,
             SocksPort: _activeSocksPort,
             HttpPort: _activeHttpPort,
-            TunnelCheck: _tunnelCheck));
+            TunnelCheck: _tunnelCheck,
+            KillSwitchHolding: _killSwitchHolding));
     }
 
     private void PublishDependency()
@@ -3642,10 +3821,7 @@ public sealed class OnionHopClient : IDisposable
                         return;
                     }
 
-                    if (options.KillSwitchEnabled && !options.UseHybridRouting)
-                    {
-                        await _adminHelper.EnableKillSwitchAsync().ConfigureAwait(false);
-                    }
+                    await TripKillSwitchIfEnabledAsync("the tunnel stopped unexpectedly").ConfigureAwait(false);
 
                     // The tunnel only died because Windows refused the IPv6 address on the adapter.
                     // Rebuild it IPv4-only and carry on instead of tearing the connection down (#81):
@@ -3653,6 +3829,7 @@ public sealed class OnionHopClient : IDisposable
                     // making the user reconnect.
                     if (await TryRestartTunnelWithoutIpv6Async(options, token).ConfigureAwait(false))
                     {
+                        await LiftKillSwitchAfterRecoveryAsync().ConfigureAwait(false);
                         continue;
                     }
 
@@ -3745,6 +3922,7 @@ public sealed class OnionHopClient : IDisposable
             {
                 try
                 {
+                    await TripKillSwitchIfEnabledAsync("Tor stopped unexpectedly").ConfigureAwait(false);
                     _connectionStatus = "Tor stopped";
                     _statusMessage = $"Tor stopped unexpectedly (exit code {exitCode}). Disconnecting...";
                     _connectionProgress = 0;
@@ -3870,6 +4048,7 @@ public sealed class OnionHopClient : IDisposable
             {
                 try
                 {
+                    await TripKillSwitchIfEnabledAsync("Arti stopped unexpectedly").ConfigureAwait(false);
                     _connectionStatus = "Tor stopped";
                     _statusMessage = $"Arti stopped unexpectedly (exit code {exitCode}). Disconnecting...";
                     _connectionProgress = 0;
@@ -3927,6 +4106,7 @@ public sealed class OnionHopClient : IDisposable
             {
                 try
                 {
+                    await TripKillSwitchIfEnabledAsync("ArtiHop stopped unexpectedly").ConfigureAwait(false);
                     _connectionStatus = "Tor stopped";
                     _statusMessage = $"ArtiHop stopped unexpectedly (exit code {exitCode}). Disconnecting...";
                     _connectionProgress = 0;
@@ -3984,38 +4164,13 @@ public sealed class OnionHopClient : IDisposable
 
         RaiseLog($"{_activeVpnCoreMode} exited with code {exitCode}.");
 
-        if (_isConnected && _activeOptions is { } options && IsTunMode(options) && options.KillSwitchEnabled && !options.UseHybridRouting && !_isDisconnecting)
-        {
-            if (PlatformHelper.IsAdministrator())
-            {
-                _killSwitchService.EnableEmergencyBlock(RaiseLog);
-            }
-            else if (OperatingSystem.IsWindows())
-            {
-                _ = Task.Run(async () =>
-                {
-                    if (await _adminHelper.EnsureConnectedAsync().ConfigureAwait(false))
-                    {
-                        await _adminHelper.EnableKillSwitchAsync().ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        RaiseLog("Kill switch could not be enabled (admin helper unavailable).");
-                    }
-                });
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                _killSwitchService.EnableEmergencyBlock(RaiseLog);
-            }
-            else
-            {
-                RaiseLog("Kill switch could not be enabled: elevated privileges are required.");
-            }
-        }
-
         if (_isConnected && !_isDisconnecting)
         {
+            // Started here rather than inside the task below: with administrator rights the block
+            // goes up synchronously, before this handler returns, which keeps the gap in which
+            // traffic can leave unprotected as short as possible.
+            var killSwitch = TripKillSwitchIfEnabledAsync("the tunnel stopped unexpectedly");
+
             var lastLines = string.Join("\n", _singBoxLogProcessor.GetRecentLines());
             if (!string.IsNullOrWhiteSpace(lastLines))
             {
@@ -4026,12 +4181,17 @@ public sealed class OnionHopClient : IDisposable
             {
                 try
                 {
+                    // Let the block finish going up (or fail) first, so the teardown below knows
+                    // whether there is a block to keep.
+                    await killSwitch.ConfigureAwait(false);
+
                     // Same IPv6 recovery as the helper-managed path: if the tunnel only died because
                     // Windows would not assign it an IPv6 address, rebuild it IPv4-only rather than
                     // dropping a connection whose Tor side is already up (#81).
                     if (_activeOptions is { } activeOptions
                         && await TryRestartTunnelWithoutIpv6Async(activeOptions, CancellationToken.None).ConfigureAwait(false))
                     {
+                        await LiftKillSwitchAfterRecoveryAsync().ConfigureAwait(false);
                         return;
                     }
 

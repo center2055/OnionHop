@@ -286,6 +286,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">Пусто = по умолчанию (авто)</x:String>
   <x:String x:Key="Settings.TunStrictRoute">Строгая маршрутизация</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">При включении маршруты должны оставаться в пути TUN. Отключайте только для устранения неполадок в сложных сетях.</x:String>
+  <x:String x:Key="Settings.KillSwitch">Аварийное отключение</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">Если соединение неожиданно прервётся, весь интернет-трафик блокируется, пока вы не восстановите его на Главной или не подключитесь снова, чтобы ничего не ушло через ваше настоящее подключение. Только в режиме полного туннеля TUN, не при раздельном туннелировании.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">Отключить IPv6 в туннеле</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">Создаёт адаптер туннеля без адреса IPv6. Включите, если туннель не запускается с ошибкой "set ipv6 address". OnionHop и так повторяет попытку без IPv6; эта настройка пропускает неудачную попытку.</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">Ограничения трафика</x:String>
@@ -452,6 +454,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">Новое соединение с этого компьютера было проверено и прошло через Tor.</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">Ваш трафик не идёт через Tor</x:String>
   <x:String x:Key="Home.TunnelLeakBody">Тестовое соединение с этого компьютера вышло с вашим настоящим IP-адресом, значит, туннель не передаёт ваш трафик. Не полагайтесь на это соединение ни в чём важном. Отключитесь, затем проверьте вкладку Sing-box или Xray в разделе «Журналы» на ошибки маршрутизации.</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">Интернет заблокирован</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">Сработало аварийное отключение: соединение неожиданно прервалось, и весь трафик заблокирован, чтобы он не ушёл в обход Tor. Восстановите интернет, чтобы пользоваться обычным подключением, или подключитесь снова.</x:String>
+  <x:String x:Key="Home.RestoreInternet">Восстановить интернет</x:String>
   <x:String x:Key="Home.LatestActivity">Последнее</x:String>
   <x:String x:Key="Home.ViewLogs">Открыть журналы</x:String>
   <x:String x:Key="Home.ConnectionSection">Подключение</x:String>

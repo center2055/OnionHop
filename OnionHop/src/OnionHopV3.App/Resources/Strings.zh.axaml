@@ -286,6 +286,8 @@
   <x:String x:Key="Settings.TunMtuWatermark">留空 = 默认（自动）</x:String>
   <x:String x:Key="Settings.TunStrictRoute">严格路由</x:String>
   <x:String x:Key="Settings.TunStrictRouteHint">启用后，路由必须保持在 TUN 路径中。仅在排查困难网络问题时禁用。</x:String>
+  <x:String x:Key="Settings.KillSwitch">断网保护</x:String>
+  <x:String x:Key="Settings.KillSwitchHint">如果连接意外中断，所有网络流量都会被拦截，直到你在主页恢复网络或重新连接，确保不会有流量经由你的真实连接发出。仅适用于全隧道 TUN 模式，分流隧道下不可用。</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">在隧道中禁用 IPv6</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">创建不带 IPv6 地址的隧道适配器。如果隧道因 "set ipv6 address" 无法启动，请启用此项。OnionHop 本来就会自动改用无 IPv6 重试；此选项可跳过那次失败的尝试。</x:String>
   <x:String x:Key="Settings.AdvancedTrafficRulesSection">流量限制</x:String>
@@ -452,6 +454,9 @@
   <x:String x:Key="Home.TunnelVerifiedHint">已测试这台电脑的一个新连接，它经过了 Tor。</x:String>
   <x:String x:Key="Home.TunnelLeakTitle">你的流量没有经过 Tor</x:String>
   <x:String x:Key="Home.TunnelLeakBody">这台电脑的一个测试连接以你的真实 IP 地址发出，说明隧道没有承载你的流量。不要在任何敏感事务上依赖此连接。请断开连接，然后在“日志”的 Sing-box 或 Xray 标签页中查看路由错误。</x:String>
+  <x:String x:Key="Home.StatusKillSwitch">已被断网保护拦截</x:String>
+  <x:String x:Key="Home.DetailKillSwitch">连接意外中断，因此所有网络流量已被拦截，以免在不经过 Tor 的情况下发出。恢复网络即可使用常规连接，也可以重新连接。</x:String>
+  <x:String x:Key="Home.RestoreInternet">恢复网络</x:String>
   <x:String x:Key="Home.LatestActivity">最新</x:String>
   <x:String x:Key="Home.ViewLogs">查看日志</x:String>
   <x:String x:Key="Home.ConnectionSection">连接</x:String>
