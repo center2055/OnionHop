@@ -1536,14 +1536,14 @@ public sealed class OnionHopClient : IDisposable
     /// made the way any browser would make one, come out through Tor? If it still comes out with the
     /// address the machine had before connecting, the tunnel is not carrying traffic (#83).
     ///
-    /// Windows only for now: that is where the capture behaviour is understood well enough to be sure
-    /// the app's own sockets are routed like every other program's (OnionHopV3.exe is deliberately
-    /// not in the tunnel's direct list), which is what makes a "leaking" verdict trustworthy.
+    /// The app's own sockets are routed like every other program's on every platform (OnionHop is
+    /// deliberately not in the tunnel's direct list, and nothing excludes it by user id), which is
+    /// what makes a "leaking" verdict trustworthy.
     /// </summary>
     private async Task VerifyTunnelCarriesTrafficAsync(bool force)
     {
         var options = _activeOptions;
-        if (!OperatingSystem.IsWindows() || !_isConnected || options == null || !IsTunMode(options) || options.UseHybridRouting)
+        if (!_isConnected || options == null || !IsTunMode(options) || options.UseHybridRouting)
         {
             return;
         }
@@ -1569,6 +1569,17 @@ public sealed class OnionHopClient : IDisposable
             }
 
             var verdict = TunnelCheckVerdict(_lastKnownDirectIp, seen);
+
+            // A bypass rule (site, IP range, country or category) sends some destinations direct on
+            // purpose, and the lookup service can be one of them: a country rule for the US covers
+            // most of these services. Coming back with the real IP is then expected, not a leak, so
+            // it must not raise the red "not protected" banner.
+            var explainedByRules = verdict == TunnelCheckState.Leaking && HasDirectRoutingRules(options);
+            if (explainedByRules)
+            {
+                verdict = TunnelCheckState.Unverifiable;
+            }
+
             var changed = verdict != _tunnelCheck;
             _tunnelCheck = verdict;
 
@@ -1580,8 +1591,11 @@ public sealed class OnionHopClient : IDisposable
                         $"Tunnel check passed: a new connection from this computer left through Tor ({seen}).",
                     TunnelCheckState.Leaking =>
                         "WARNING: tunnel check FAILED. A new connection from this computer left with your real IP instead of " +
-                        "going through Tor, so your traffic is NOT protected even though Tor is running. Check the Engine log " +
-                        "for routing errors. Do not rely on this connection for anything sensitive until this passes.",
+                        "going through Tor, so your traffic is NOT protected even though Tor is running. Check the Sing-box or " +
+                        "Xray tab under Logs for routing errors. Do not rely on this connection for anything sensitive until this passes.",
+                    _ when explainedByRules =>
+                        "Tunnel check inconclusive: the test connection went out directly, but your routing rules send some " +
+                        "destinations direct on purpose and the test service may be one of them.",
                     _ => _lastKnownDirectIp == null
                         ? "Tunnel check skipped: OnionHop had not seen this computer's own IP before connecting, so there is nothing to compare against."
                         : "Tunnel check could not complete (the lookup failed). It will retry."
@@ -1621,11 +1635,12 @@ public sealed class OnionHopClient : IDisposable
         return baseline.Equals(seen) ? TunnelCheckState.Leaking : TunnelCheckState.Verified;
     }
 
-    /// <summary>
-    /// Users are asked to paste their logs into public GitHub issues, and the direct IP check used to
-    /// write their real address into them in full. Keep enough to tell networks apart when debugging
-    /// ("91.236.x.x"), drop the part that identifies the connection.
-    /// </summary>
+    /// <summary>True when the user has rules that send some traffic around Tor even in full tunnel.</summary>
+    internal static bool HasDirectRoutingRules(OnionHopConnectOptions options) =>
+        !string.IsNullOrWhiteSpace(options.BypassRoutingRules)
+        || !string.IsNullOrWhiteSpace(options.BypassCountries)
+        || !string.IsNullOrWhiteSpace(options.BypassSiteCategories);
+
     private static readonly string? UserProfileDirectory = GetUserProfileDirectory();
 
     private static string? GetUserProfileDirectory()
@@ -1667,6 +1682,11 @@ public sealed class OnionHopClient : IDisposable
         return message;
     }
 
+    /// <summary>
+    /// Users are asked to paste their logs into public GitHub issues, and the direct IP check used to
+    /// write their real address into them in full. Keep enough to tell networks apart when debugging
+    /// ("91.236.x.x"), drop the part that identifies the connection.
+    /// </summary>
     internal static string MaskIpForLog(string? ip)
     {
         if (string.IsNullOrWhiteSpace(ip) || !IPAddress.TryParse(ip.Trim(), out var address))

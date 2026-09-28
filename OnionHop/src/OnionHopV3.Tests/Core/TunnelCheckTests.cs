@@ -57,6 +57,36 @@ public sealed class TunnelCheckTests
         Assert.Equal(TunnelCheckState.Leaking,
             TunnelCheckVerdict("2a02:8108:0:0:0:0:0:1", "2a02:8108::1"));
     }
+
+    [Fact]
+    public void No_bypass_rules_means_a_direct_answer_cannot_be_explained_away()
+    {
+        Assert.False(HasDirectRoutingRules(new OnionHopConnectOptions()));
+        Assert.False(HasDirectRoutingRules(new OnionHopConnectOptions { BypassCountries = "  ", BypassRoutingRules = "" }));
+    }
+
+    [Theory]
+    [InlineData("example.com", null, null)]
+    [InlineData(null, "us", null)]
+    [InlineData(null, null, "banking")]
+    public void Any_bypass_rule_can_explain_a_direct_answer(string? sites, string? countries, string? categories)
+    {
+        // A country rule for the US alone covers most IP lookup services, so a "real IP" answer is
+        // expected there and must not raise the red "not protected" banner.
+        Assert.True(HasDirectRoutingRules(new OnionHopConnectOptions
+        {
+            BypassRoutingRules = sites,
+            BypassCountries = countries,
+            BypassSiteCategories = categories
+        }));
+    }
+
+    [Fact]
+    public void Block_rules_do_not_count_as_bypass()
+    {
+        // Blocking sends nothing direct, so it cannot explain the real IP coming back.
+        Assert.False(HasDirectRoutingRules(new OnionHopConnectOptions { BlockRoutingRules = "example.com" }));
+    }
 }
 
 /// <summary>
