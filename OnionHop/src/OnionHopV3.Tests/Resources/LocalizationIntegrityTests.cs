@@ -124,4 +124,30 @@ public sealed class LocalizationIntegrityTests
         Assert.True(mismatched.Count == 0,
             $"{fileName} changes the {{n}} placeholders of these strings, which makes string.Format throw when shown: {string.Join(", ", mismatched)}");
     }
+
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void Letters_come_from_the_script_the_language_is_written_in(string fileName)
+    {
+        // A Devanagari letter once sat in the middle of a Kurdish word, where it renders as a stray
+        // glyph and nothing else catches it. Latin is allowed everywhere: product names, Tor, URLs.
+        var language = fileName["Strings.".Length..^".axaml".Length];
+        Func<char, bool> native = language switch
+        {
+            "ru" => c => c is >= 'Ѐ' and <= 'ӿ',
+            "zh" => c => c is >= '　' and <= '〿' or >= '㐀' and <= '䶿' or >= '一' and <= '鿿' or >= '＀' and <= '￯',
+            "fa" or "azb" or "ckb" => c => c is >= '؀' and <= 'ۿ' or >= 'ݐ' and <= 'ݿ' or >= 'ﭐ' and <= '﷿' or >= 'ﹰ' and <= '﻿',
+            _ => _ => false
+        };
+
+        var offenders = Entries(fileName)
+            .Where(entry => entry.Value.Any(c => char.IsLetter(c) && !IsLatin(c) && !native(c)))
+            .Select(entry => entry.Key)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"{fileName} has letters from another script in: {string.Join(", ", offenders)}");
+    }
+
+    private static bool IsLatin(char c) => c <= 'ɏ' || c is >= 'Ḁ' and <= 'ỿ';
 }

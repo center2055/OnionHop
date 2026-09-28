@@ -253,6 +253,12 @@
     <Setter Property="Fill" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
   </Style>
 
+  <!-- Without this a disabled switch looked exactly like a working one: in full-tunnel mode the
+       split-tunneling switches read "on" and simply ignored every click. -->
+  <Style Selector="ToggleButton.V3Switch:disabled">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+
   <!-- ===== Chips (Logs/Scanner filters) ===== -->
   <Style Selector="RadioButton.TabChip, RadioButton.FilterChip">
     <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />

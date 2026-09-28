@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OnionHopV3.App.Services;
 using OnionHopV3.Core.Models;
 using OnionHopV3.Core.Services;
 
@@ -56,20 +57,27 @@ public sealed partial class OnionServicesViewModel : ObservableObject
         Count = Items.Count;
     }
 
-    public void NotifyCopied() => StatusText = "Address copied to clipboard.";
+    public void NotifyCopied() => StatusText = L("Settings.OnionServiceCopied", "Address copied to clipboard.");
+
+    /// <summary>The localized string, or the English text when no UI resources are loaded.</summary>
+    internal static string L(string key, string fallback)
+    {
+        var value = LocalizationService.Get(key);
+        return string.IsNullOrEmpty(value) || value == key ? fallback : value;
+    }
 
     [RelayCommand]
     private void Add()
     {
         if (!TryParsePort(NewOnionPort, out var onionPort))
         {
-            StatusText = "The onion port must be a number between 1 and 65535.";
+            StatusText = L("Settings.OnionServiceBadOnionPort", "The onion port must be a number between 1 and 65535.");
             return;
         }
 
         if (!TryParsePort(NewTargetPort, out var targetPort))
         {
-            StatusText = "The target port must be a number between 1 and 65535.";
+            StatusText = L("Settings.OnionServiceBadTargetPort", "The target port must be a number between 1 and 65535.");
             return;
         }
 
@@ -90,7 +98,7 @@ public sealed partial class OnionServicesViewModel : ObservableObject
         _state.AppendLog(
             $"Onion service added: {(service.Label.Length > 0 ? service.Label : host)} " +
             $"(port {onionPort} -> {host}:{targetPort}). It gets its address on the next connect.");
-        StatusText = "Added. Connect to publish it and get the address.";
+        StatusText = L("Settings.OnionServiceAdded", "Added. Connect to publish it and get the address.");
 
         NewLabel = string.Empty;
         NewOnionPort = "80";
@@ -109,7 +117,7 @@ public sealed partial class OnionServicesViewModel : ObservableObject
         _store.Remove(row.Id);
         Refresh();
         _state.AppendLog($"Onion service removed: {row.Display}. Its address is gone for good.");
-        StatusText = "Removed.";
+        StatusText = L("Settings.OnionServiceRemoved", "Removed.");
     }
 
     [RelayCommand]
@@ -130,8 +138,8 @@ public sealed partial class OnionServicesViewModel : ObservableObject
         _store.Update(entry);
         Refresh();
         StatusText = entry.Enabled
-            ? "Enabled. It publishes on the next connect."
-            : "Disabled. It will not be published.";
+            ? L("Settings.OnionServiceEnabled", "Enabled. It publishes on the next connect.")
+            : L("Settings.OnionServiceDisabled", "Disabled. It will not be published.");
     }
 
     internal static bool TryParsePort(string? raw, out int port)
@@ -174,7 +182,7 @@ public sealed partial class OnionServiceRow : ObservableObject
     /// <summary>What callers connect to, or a placeholder before the first publish.</summary>
     public string AddressText => IsPublished
         ? (OnionPort == 80 ? Hostname : $"{Hostname}:{OnionPort}")
-        : "Not published yet. Connect to get the address.";
+        : OnionServicesViewModel.L("Settings.OnionServiceNotPublished", "Not published yet. Connect to get the address.");
 
     public string ForwardText => $"{TargetHost}:{TargetPort}";
 }

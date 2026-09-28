@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!-- Common -->
-  <x:String x:Key="Common.Search">جستجو</x:String>
 
   <!-- Navigation -->
   <x:String x:Key="Nav.Home">خانه</x:String>
@@ -91,11 +90,7 @@
   <x:String x:Key="Saved.EmptyDescription">پل‌ها یا میزبان‌های SNI کارآمد اسکنر را ذخیره کنید تا کتابخانه بسازید.</x:String>
 
   <!-- Home -->
-  <x:String x:Key="Home.Title">اتصال</x:String>
   <x:String x:Key="Home.CurrentIp">IP فعلی</x:String>
-  <x:String x:Key="Home.SocksPort">پورت SOCKS</x:String>
-  <x:String x:Key="Home.HttpPort">پورت HTTP</x:String>
-  <x:String x:Key="Home.ManualExitFingerprint">اثر انگشت خروجی دستی</x:String>
   <x:String x:Key="Home.Connect">اتصال</x:String>
   <x:String x:Key="Home.Disconnect">قطع اتصال</x:String>
   <x:String x:Key="Home.Cancel">لغو</x:String>
@@ -106,10 +101,8 @@
   <x:String x:Key="Home.SystemProxyOn">پروکسی سیستم: روشن</x:String>
   <x:String x:Key="Home.SystemProxyOff">پروکسی سیستم: خاموش</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">تعیین می‌کند که آیا ترافیک سیستم در حالت Proxy از Tor عبور کند. قبل از اتصال تغییر دهید تا رفتار را از قبل تنظیم کنید، یا در حین اتصال برای تغییر زنده بدون قطع Tor. وقتی خاموش است، ترافیک سیستم مستقیم می‌رود (مثلاً VPN جداگانه)؛ برنامه‌هایی که به پورت SOCKS اشاره دارند همچنان از Tor استفاده می‌کنند.</x:String>
-  <x:String x:Key="Home.BridgeDataAutoUpdates">بروزرسانی خودکار داده‌های پل</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">آخرین بروزرسانی داده‌های پل: هنوز بروزرسانی نشده.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">آخرین بروزرسانی داده‌های پل: {0}</x:String>
-  <x:String x:Key="Home.Routing">مسیریابی</x:String>
   <x:String x:Key="Home.SmartConnect">اتصال هوشمند (توصیه‌شده)</x:String>
   <x:String x:Key="Home.SmartConnectHint">به‌طور خودکار بهترین استراتژی اتصال Tor را برای شبکه و پروفایل کشور شما انتخاب می‌کند. وقتی فعال است، تنظیمات پل/سانسور ممکن است نادیده گرفته شوند.</x:String>
   <x:String x:Key="Home.Mode">حالت</x:String>
@@ -117,19 +110,9 @@
   <x:String x:Key="Home.ModeTun">حالت TUN/VPN</x:String>
   <x:String x:Key="Home.Automatic">خودکار</x:String>
   <x:String x:Key="Home.ExitLocation">مکان خروجی</x:String>
-  <x:String x:Key="Home.ExitLocationManualHint">اثر انگشت خروجی دستی تنظیم شده است. مکان خروجی غیرفعال است.</x:String>
-  <x:String x:Key="Home.TorNetwork">شبکه Tor</x:String>
-  <x:String x:Key="Home.TorNetworkHint">ترافیک خود Tor را نشان می‌دهد (از پورت کنترل).</x:String>
-  <x:String x:Key="Home.TunOptions">گزینه‌های TUN/VPN</x:String>
-  <x:String x:Key="Home.HybridRouting">مسیریابی ترکیبی (تونل‌زنی تقسیمی)</x:String>
-  <x:String x:Key="Home.KillSwitch">کلید قطع (فقط TUN سخت‌گیر)</x:String>
-  <x:String x:Key="Home.KillSwitchHint">کلید قطع به مدیریت سیستم نیاز دارد و در حالت ترکیبی غیرفعال است.</x:String>
-  <x:String x:Key="Home.ConnectionElapsed">متصل از</x:String>
   <x:String x:Key="Home.DownloadingComponents">در حال دانلود اجزا...</x:String>
-  <x:String x:Key="Home.QuickActions">اقدامات سریع</x:String>
 
   <!-- Logs -->
-  <x:String x:Key="Logs.Title">گزارش‌ها</x:String>
   <x:String x:Key="Logs.TabApp">برنامه</x:String>
   <x:String x:Key="Logs.TabDns">DNS</x:String>
   <x:String x:Key="Logs.TabXray">Xray</x:String>
@@ -141,7 +124,6 @@
   <x:String x:Key="Logs.TipLocalOnly">گزارش‌ها فقط محلی هستند.</x:String>
 
   <!-- About -->
-  <x:String x:Key="About.Title">درباره</x:String>
   <x:String x:Key="About.Links">پیوندها</x:String>
   <x:String x:Key="About.GitHubIssues">مشکلات GitHub</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
@@ -158,7 +140,6 @@
   <x:String x:Key="About.SniSources">فهرست‌های نامزد SNI / میزبان فرانت، که «درخواست SNI» اسکنر SNI از آن استفاده می‌کند:</x:String>
   <x:String x:Key="About.Changelog">تاریخچه OnionHop</x:String>
   <x:String x:Key="About.Refresh">بروزرسانی</x:String>
-  <x:String x:Key="About.ChangelogDetails">جزئیات</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">جزئیات +</x:String>
   <x:String x:Key="About.ChangelogViewOnline">مشاهده در گیت‌هاب</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">جزئیات -</x:String>
@@ -173,16 +154,8 @@
   <x:String x:Key="About.ChangelogTypeBeta">بتا / پیش‌انتشار</x:String>
   <x:String x:Key="About.ChangelogDateUnknown">تاریخ نامعلوم</x:String>
   <x:String x:Key="About.ChangelogNotesMissing">هیچ یادداشت تغییراتی برای این انتشار ارائه نشده است.</x:String>
-  <x:String x:Key="About.Subtitle">تاریخچه OnionHop، پیوندهای پروژه، و یادداشت‌های انتشار.</x:String>
   <x:String x:Key="About.ProductName">OnionHop V3</x:String>
   <x:String x:Key="About.Tagline">یک رابط کنترل دسکتاپ سبک برای مسیریابی Tor، تغییر هویت، و انتخاب اتصال با آگاهی از پل.</x:String>
-  <x:String x:Key="About.BuildRuntime">ساخت &amp; محیط اجرا</x:String>
-  <x:String x:Key="About.Version">نسخه</x:String>
-  <x:String x:Key="About.Engine">موتور Tor</x:String>
-  <x:String x:Key="About.UpdateState">وضعیت بروزرسانی</x:String>
-  <x:String x:Key="About.LocalOnly">تشخیصات محلی</x:String>
-  <x:String x:Key="About.LocalOnlyHint">گزارش‌ها و فعالیت‌های جلسه روی این دستگاه باقی می‌مانند مگر اینکه صراحتاً آن‌ها را صادر کنید.</x:String>
-  <x:String x:Key="About.LinksHint">پیوندهای پروژه در مرورگر پیش‌فرض شما باز می‌شوند.</x:String>
   <x:String x:Key="About.ShowHistory">نمایش تاریخچه</x:String>
   <x:String x:Key="About.HideHistory">پنهان کردن تاریخچه</x:String>
 
@@ -203,12 +176,10 @@
   <x:String x:Key="Settings.AppearanceSystemDefault">پیش‌فرض سیستم</x:String>
   <x:String x:Key="Settings.AppearanceDark">تاریک</x:String>
   <x:String x:Key="Settings.AppearanceLight">روشن</x:String>
-  <x:String x:Key="Settings.DarkMode">حالت تاریک</x:String>
   <x:String x:Key="Settings.NativeChrome">استفاده از کروم پنجره بومی (نوار عنوان/دکمه‌ها)</x:String>
   <x:String x:Key="Settings.Language">زبان</x:String>
   <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">نمایش جزئیات پیشرفته اتصال در صفحه خانه</x:String>
   <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">پورت‌های فعال SOCKS/HTTP و وضعیت اثر انگشت خروجی دستی را در کارت خانه نشان می‌دهد.</x:String>
-  <x:String x:Key="Settings.Maintenance">نگهداری</x:String>
   <x:String x:Key="Settings.ResetHint">تمام تنظیمات OnionHop V3 را به پیش‌فرض بازنشانی می‌کند.</x:String>
   <x:String x:Key="Settings.RestoreDefaults">بازگردانی تنظیمات پیش‌فرض</x:String>
 
@@ -217,8 +188,6 @@
   <x:String x:Key="Settings.BridgeType">نوع پل</x:String>
   <x:String x:Key="Settings.BridgeSource">منبع پل</x:String>
   <x:String x:Key="Settings.BridgeSourceHint">حالت خودکار ابتدا collector OnionHop و سرویس پل Tor را امتحان می‌کند، سپس به لیست‌های آفلاین محلی برمی‌گردد. "فقط collector OnionHop" پل‌های از پیش آزمایش‌شده را از collector دریافت می‌کند (obfs4، webtunnel، vanilla).</x:String>
-  <x:String x:Key="Settings.BridgeSourceCredits">داده‌های پل آفلاین: Tor-Bridges-Namer توسط Chara-Freedom و مشارکت‌کنندگان.</x:String>
-  <x:String x:Key="Settings.CustomBridges">پل‌های سفارشی (اختیاری، جایگزین پل‌های داخلی)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">خطوط پل از bridges.torproject.org را اینجا وارد کنید...</x:String>
   <x:String x:Key="Settings.CustomSni">میزبان‌های SNI/front سفارشی (اختیاری)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
@@ -237,10 +206,19 @@
   <x:String x:Key="Settings.OnionServicesHint">چیزی را روی این دستگاه یا شبکه‌تان با یک نشانی ‎.onion منتشر کنید: دوربین، NAS یا یک وب‌اپ. بدون فوروارد پورت، بدون IP ثابت و بدون DynDNS، و چیزی در اینترنت باز نمایان نمی‌شود. نشانی هنگام اتصال ساخته می‌شود و پس از آن ثابت می‌ماند.</x:String>
   <x:String x:Key="Settings.OnionServicesWarning">هر کسی که نشانی را داشته باشد به آن دستگاه می‌رسد و از آن پس تنها رمز خود دستگاه از آن محافظت می‌کند. رمزی قوی بگذارید و نشانی را مثل یک راز نگه دارید.</x:String>
   <x:String x:Key="Settings.OnionServiceLabelWatermark">نام (مثلاً دوربین)</x:String>
+  <x:String x:Key="Settings.OnionServiceName">نام</x:String>
   <x:String x:Key="Settings.OnionServiceOnionPort">پورت پیازی</x:String>
   <x:String x:Key="Settings.OnionServiceTargetHost">ارسال به میزبان</x:String>
   <x:String x:Key="Settings.OnionServiceTargetPort">پورت</x:String>
   <x:String x:Key="Settings.OnionServiceAdd">افزودن</x:String>
+  <x:String x:Key="Settings.OnionServiceNotPublished">هنوز منتشر نشده است. برای دریافت نشانی وصل شوید.</x:String>
+  <x:String x:Key="Settings.OnionServiceCopied">نشانی در کلیپ‌بورد کپی شد.</x:String>
+  <x:String x:Key="Settings.OnionServiceBadOnionPort">پورت پیازی باید عددی بین 1 و 65535 باشد.</x:String>
+  <x:String x:Key="Settings.OnionServiceBadTargetPort">پورت مقصد باید عددی بین 1 و 65535 باشد.</x:String>
+  <x:String x:Key="Settings.OnionServiceAdded">افزوده شد. برای انتشار آن و دریافت نشانی وصل شوید.</x:String>
+  <x:String x:Key="Settings.OnionServiceRemoved">حذف شد.</x:String>
+  <x:String x:Key="Settings.OnionServiceEnabled">فعال شد. در اتصال بعدی منتشر می‌شود.</x:String>
+  <x:String x:Key="Settings.OnionServiceDisabled">غیرفعال شد. منتشر نخواهد شد.</x:String>
   <x:String x:Key="Settings.OnionServiceToggle">روشن/خاموش</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">به جای تماس مستقیم، به broker Snowflake از طریق حافظه پنهان AMP Google دسترسی پیدا می‌کند. اگر خطای "broker Snowflake قابل دسترس نیست" می‌بینید آن را روشن کنید — در شبکه‌هایی که broker را مسدود می‌کنند کمک می‌کند. فقط نوع پل Snowflake را تحت تأثیر قرار می‌دهد.</x:String>
   <x:String x:Key="Settings.AppPickerButton">انتخاب برنامه‌های در حال اجرا...</x:String>
@@ -255,15 +233,11 @@
   <x:String x:Key="Common.Apply">اعمال</x:String>
   <x:String x:Key="Common.Cancel">لغو</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: استفاده از حافظه پنهان AMP (برای شبکه‌های مسدودشده)</x:String>
-  <x:String x:Key="Settings.AmpCacheUrl">URL حافظه پنهان AMP (اختیاری)</x:String>
-  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">حالت Proxy</x:String>
   <x:String x:Key="Settings.ProxyScope">رفتار پروکسی</x:String>
   <x:String x:Key="Settings.ProxyScopeHint">پروکسی سیستم (همه برنامه‌ها) HTTP/HTTPS + SOCKS را تنظیم می‌کند. حالت SOCKS مرورگر/.onion فقط SOCKS را برای سازگاری بهتر .onion در مرورگرها تنظیم می‌کند. فقط محلی تنظیمات پروکسی سیستم را دست‌نخورده برای تنظیم دستی برنامه نگه می‌دارد.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">پورت SOCKS ترجیحی</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">پورت تونل HTTP ترجیحی</x:String>
-  <x:String x:Key="Settings.AllowLanProxyAccess">اجازه دسترسی پروکسی LAN</x:String>
-  <x:String x:Key="Settings.AllowLanProxyAccessHint">پورت‌های پروکسی Tor را روی رابط‌های شبکه محلی باز می‌کند تا سایر دستگاه‌ها بتوانند متصل شوند. فقط در صورت اعتماد به LAN خود فعال کنید.</x:String>
 
   <x:String x:Key="Settings.SecureDns">DNS امن (DoH) در حالت VPN</x:String>
   <x:String x:Key="Settings.DnsProvider">ارائه‌دهنده DNS</x:String>
@@ -272,12 +246,8 @@
   <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com یا https://dns.example:443</x:String>
   <x:String x:Key="Settings.CustomDohPath">مسیر سفارشی DoH</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
-  <x:String x:Key="Settings.OnionDnsProxy">پروکسی DNS .onion از طریق Tor (مدیر)</x:String>
-  <x:String x:Key="Settings.OnionDnsProxyHint">وقتی فعال است و با امتیازات بالا اجرا می‌شود، درخواست‌های DNS .onion از طریق Tor هدایت می‌شوند.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor پیشرفته</x:String>
-  <x:String x:Key="Settings.TorAdvancedHint">کنترل‌های گروه‌بندی‌شده این بخش را خوانا نگه می‌دارند. فقط آنچه نیاز دارید را باز کنید.</x:String>
-  <x:String x:Key="Settings.AdvancedPerformanceSection">عملکرد &amp; سازگاری</x:String>
   <x:String x:Key="Settings.AdvancedTunSection">موتور TUN</x:String>
   <x:String x:Key="Settings.AdvancedTunSectionHint">فقط در حالت TUN/VPN اعمال می‌شود. از پیش‌فرض‌ها استفاده کنید مگر اینکه به تنظیم سازگاری نیاز داشته باشید.</x:String>
   <x:String x:Key="Settings.TunCore">هسته TUN</x:String>
@@ -288,27 +258,18 @@
   <x:String x:Key="Settings.TunStrictRouteHint">وقتی فعال است، مسیرها باید در مسیر TUN باقی بمانند. فقط برای عیب‌یابی شبکه‌های دشوار غیرفعال کنید.</x:String>
   <x:String x:Key="Settings.KillSwitch">کلید قطع</x:String>
   <x:String x:Key="Settings.KillSwitchHint">اگر اتصال به‌طور غیرمنتظره قطع شود، همهٔ ترافیک اینترنت مسدود می‌شود تا وقتی که آن را در صفحهٔ خانه بازگردانید یا دوباره وصل شوید، تا چیزی از اتصال واقعی شما خارج نشود. فقط در حالت تونل کامل TUN، نه با تونل‌زنی تقسیمی.</x:String>
+  <x:String x:Key="Settings.TunStackHint">روشی که تونل ترافیک را پردازش می‌کند. Mixed برای بیشتر سیستم‌ها مناسب است؛ فقط اگر اتصال‌ها ناپایدارند System یا gVisor را امتحان کنید.</x:String>
+  <x:String x:Key="Settings.RouteAllWebTrafficHint">در حالت ترکیبی، ترافیک وب (پورت‌های 80 و 443) همه برنامه‌ها را هم از Tor عبور بده، نه فقط برنامه‌های انتخاب‌شده. برنامه‌های فهرست دور زدن مستقیم می‌مانند.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">غیرفعال کردن IPv6 در تونل</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">آداپتور تونل را بدون آدرس IPv6 می‌سازد. اگر تونل با خطای "set ipv6 address" اجرا نمی‌شود، این را روشن کنید. OnionHop خودش بدون IPv6 دوباره تلاش می‌کند؛ این گزینه تلاش ناموفق را حذف می‌کند.</x:String>
-  <x:String x:Key="Settings.AdvancedTrafficRulesSection">محدودیت‌های ترافیک</x:String>
-  <x:String x:Key="Settings.AdvancedManualExitSection">لغو خروجی دستی</x:String>
   <x:String x:Key="Settings.EntryNode">گره ورودی (اختیاری)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">گره‌های ورودی نمی‌توانند همراه با پل‌ها استفاده شوند.</x:String>
-  <x:String x:Key="Settings.IPv6Support">پشتیبانی IPv6</x:String>
-  <x:String x:Key="Settings.HardwareAccel">شتاب سخت‌افزاری</x:String>
-  <x:String x:Key="Settings.ConnectionPadding">padding اتصال</x:String>
   <x:String x:Key="Settings.OptionDefault">پیش‌فرض</x:String>
   <x:String x:Key="Settings.OptionEnabled">فعال</x:String>
   <x:String x:Key="Settings.OptionDisabled">غیرفعال</x:String>
   <x:String x:Key="Settings.ConnectionPaddingAuto">خودکار (توصیه‌شده)</x:String>
-  <x:String x:Key="Settings.MaxCircuitInactivity">حداکثر بی‌فعالی مدار (دقیقه)</x:String>
   <x:String x:Key="Settings.ConnectionTimeoutSeconds">وقفه اتصال (ثانیه)</x:String>
-  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">خالی = خودکار، 0 = غیرفعال</x:String>
   <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">برای استفاده از پیش‌فرض‌های OnionHop خالی بگذارید، برای غیرفعال کردن وقفه 0 وارد کنید، یا برای وقفه ثابت عددی بین 1 تا 3600 وارد کنید.</x:String>
-  <x:String x:Key="Settings.RestrictedFirewallMode">حالت فایروال محدودشده</x:String>
-  <x:String x:Key="Settings.AllowedPorts">پورت‌های مجاز</x:String>
-  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
-  <x:String x:Key="Settings.EntryExitTip">نکته: محدود کردن گره‌های ورودی/خروجی می‌تواند قابلیت اطمینان و سرعت را کاهش دهد.</x:String>
   <x:String x:Key="Settings.ManualExitFingerprint">اثر انگشت گره خروجی دستی</x:String>
   <x:String x:Key="Settings.ManualExitFingerprintWatermark">اختیاری (مثال: $FINGERPRINT)</x:String>
   <x:String x:Key="Settings.ManualEntryFingerprint">اثر انگشت گره Guard دستی</x:String>
@@ -327,11 +288,6 @@
   <x:String x:Key="Settings.RouteAllWebTraffic">هدایت تمام ترافیک وب (پورت‌های 80/443) از طریق Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">مسدود کردن QUIC/UDP برای برنامه‌های Tor (جلوگیری از نشت دور زدن)</x:String>
   <x:String x:Key="Settings.BlockUdp">مسدود کردن ترافیک UDP</x:String>
-  <x:String x:Key="Settings.TorApps">برنامه‌های هدایت‌شده از طریق Tor (حالت ترکیبی)</x:String>
-  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
-  <x:String x:Key="Settings.BypassApps">برنامه‌های دور زننده Tor (اختیاری)</x:String>
-  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
-  <x:String x:Key="Settings.SplitTunnelingEnableHint">برای استفاده از تونل‌زنی تقسیمی، TUN/VPN + مسیریابی ترکیبی را در صفحه خانه فعال کنید.</x:String>
 
   <x:String x:Key="Settings.AutomationTitle">اتوماسیون</x:String>
   <x:String x:Key="Settings.OpenConnectedPage">باز کردن صفحه هنگام اتصال</x:String>
@@ -365,12 +321,8 @@
   <x:String x:Key="TunCore.Xray">xray (آزمایشی)</x:String>
 
   <!-- Language names -->
-  <x:String x:Key="Language.English">انگلیسی</x:String>
-  <x:String x:Key="Language.German">آلمانی</x:String>
 
   <!-- Window controls -->
-  <x:String x:Key="Window.Minimize">کوچک کردن</x:String>
-  <x:String x:Key="Window.MaximizeRestore">بزرگ کردن / بازگردانی</x:String>
   <x:String x:Key="Window.Close">بستن</x:String>
 
   <!-- Runtime status -->
@@ -396,7 +348,6 @@
 
   <!-- V3 Navigation -->
   <x:String x:Key="Nav.Relays">Relay‌ها</x:String>
-  <x:String x:Key="Nav.Navigation">ناوبری</x:String>
 
   <!-- Common -->
   <x:String x:Key="Common.Idle">بی‌کار</x:String>
@@ -409,31 +360,7 @@
   <x:String x:Key="Accent.System">مطابق ویندوز</x:String>
 
   <!-- V3 Home -->
-  <x:String x:Key="Home.V3HeroTitle">نمای کلی اتصال</x:String>
-  <x:String x:Key="Home.V3HeroSubtitle">وضعیت زنده مسیر Tor، پل، و هویت.</x:String>
-  <x:String x:Key="Home.EngineMode">موتور Tor</x:String>
   <x:String x:Key="Home.CopyIp">کپی IP</x:String>
-  <x:String x:Key="Home.NetworkOverview">نمای کلی شبکه</x:String>
-  <x:String x:Key="Home.Download">دانلود</x:String>
-  <x:String x:Key="Home.Upload">آپلود</x:String>
-  <x:String x:Key="Home.CircuitYou">شما</x:String>
-  <x:String x:Key="Home.CircuitGuard">Guard</x:String>
-  <x:String x:Key="Home.CircuitMiddle">میانی</x:String>
-  <x:String x:Key="Home.CircuitExit">خروجی</x:String>
-  <x:String x:Key="Home.CircuitInternet">اینترنت</x:String>
-  <x:String x:Key="Home.CircuitBridge">پل / ورودی</x:String>
-  <x:String x:Key="Home.CircuitMiddleActive">شبکه relay</x:String>
-  <x:String x:Key="Home.CircuitMiddleIdle">در انتظار مدار</x:String>
-  <x:String x:Key="Home.CircuitInternetIdle">هنوز هدایت نشده</x:String>
-  <x:String x:Key="Home.CircuitGuardHint">ترجیح ورودی انتخاب‌شده یا مسیر با آگاهی از پل.</x:String>
-  <x:String x:Key="Home.CircuitExitHint">ترجیح خروجی فعلی یا اثر انگشت دستی.</x:String>
-  <x:String x:Key="Home.RoutingPreferences">مسیریابی &amp; ترجیحات</x:String>
-  <x:String x:Key="Home.ModeHint">جابجایی بین مسیریابی proxy سبک و حالت VPN سراسری.</x:String>
-  <x:String x:Key="Home.ExitLocationHint">انتخاب خروجی دستی پیشرفته است و می‌تواند بر ناشناسی و دسترس‌پذیری تأثیر بگذارد.</x:String>
-  <x:String x:Key="Home.AdvancedPreferences">باز کردن تنظیمات پیشرفته</x:String>
-  <x:String x:Key="Home.RecentActivity">فعالیت اخیر جلسه</x:String>
-  <x:String x:Key="Home.NoRecentEvents">هنوز هیچ رویداد اخیری وجود ندارد</x:String>
-  <x:String x:Key="Home.NoRecentEventsHint">اقدامات اتصال، پل، و شبکه در طول این جلسه اینجا ظاهر می‌شوند.</x:String>
   <!-- Home redesign (#73) -->
   <x:String x:Key="Home.StatusConnected">متصل</x:String>
   <x:String x:Key="Home.StatusConnecting">در حال اتصال…</x:String>
@@ -473,16 +400,9 @@
   <x:String x:Key="Home.Uploaded">ارسال‌شده</x:String>
   <x:String x:Key="Home.CircuitsCaption">ساخته‌شده در این جلسه</x:String>
   <x:String x:Key="Home.IdentityChangesCaption">هویت‌های جدید درخواست‌شده</x:String>
-  <x:String x:Key="Home.SessionTransfer">داده‌های منتقل‌شده</x:String>
-  <x:String x:Key="Home.SessionTransferHint">مجموع ترافیک دیده‌شده در جلسه Tor فعلی.</x:String>
   <x:String x:Key="Home.SessionCircuits">مدارهای ساخته‌شده</x:String>
-  <x:String x:Key="Home.SessionCircuitsHint">شمارنده مدار سطح جلسه از اتصال‌ها و تغییرات هویت.</x:String>
   <x:String x:Key="Home.SessionIdentityChanges">تغییرات هویت</x:String>
-  <x:String x:Key="Home.SessionIdentityChangesHint">درخواست‌های هویت جدید در طول این جلسه برنامه.</x:String>
   <x:String x:Key="Home.SessionUptime">مدت اجرا</x:String>
-  <x:String x:Key="Home.SessionUptimeHint">مدت زمان اتصال فعلی برای این جلسه.</x:String>
-  <x:String x:Key="Home.PortHint">نقطه پایانی SOCKS برای کلاینت‌های سازگار با Tor.</x:String>
-  <x:String x:Key="Home.HttpPortHint">پورت پل HTTP هنگامی که تونل‌زنی HTTP محلی فعال است.</x:String>
 
   <!-- V3 Settings -->
   <x:String x:Key="Settings.AutoConnectHint">برنامه را آماده اتصال بدون کلیک اضافی راه‌اندازی می‌کند.</x:String>
@@ -490,7 +410,7 @@
   <x:String x:Key="Settings.MinimizeToTrayHint">بستن پنجره OnionHop را در سینی/نوار منو زنده نگه می‌دارد.</x:String>
   <x:String x:Key="Settings.AutoUpdateHint">ابرداده‌های انتشار GitHub را بررسی می‌کند و ساخت‌های جدیدتر را نشان می‌دهد.</x:String>
   <x:String x:Key="Settings.DiscordStatusHint">حضور غنی اختیاری. هیچ ترافیک یا محتوای مرور اشتراک‌گذاری نمی‌شود.</x:String>
-  <x:String x:Key="Settings.AppearanceModeHint">برای حالت روشن آینده آماده شده بدون تغییر رفتار پشتیبان.</x:String>
+  <x:String x:Key="Settings.AppearanceModeHint">از تنظیم سیستم پیروی کن، یا همیشه روشن یا تیره باشد.</x:String>
   <x:String x:Key="Settings.AccentColor">رنگ تاکیدی</x:String>
   <x:String x:Key="Settings.AccentColorHint">رنگ تاکیدی رابط کاربری را بدون تغییر رفتار مسیریابی تعویض می‌کند.</x:String>
   <x:String x:Key="Settings.LanguageHint">فقط بومی‌سازی رابط کاربری. رفتار اتصال تغییر نمی‌کند.</x:String>
@@ -521,7 +441,7 @@
   <x:String x:Key="Snowflake.SectionTitle">پل Snowflake (داوطلبانه)</x:String>
   <x:String x:Key="Snowflake.SectionHint">یک proxy Snowflake اجرا کنید تا به کاربران سانسورشده کمک کنید به Tor دسترسی داشته باشند. این ترافیک افراد دیگر را از طریق WebRTC منتقل می‌کند و مستقل از اتصال خودتان است — ترافیک شما از طریق آن هدایت نمی‌شود. بهترین عملکرد روی NAT بدون محدودیت/مخروط کامل است.</x:String>
   <x:String x:Key="Snowflake.Enable">اجرا به عنوان proxy Snowflake</x:String>
-  <x:String x:Key="Snowflake.EnableHint">شروع/توقف داوطلبی الان. نیاز به باینری snowflake-proxy دارد (ساخته‌شده با download-deps.ps1 با Go، یا ONIONHOP_SNOWFLAKE_PROXY_PATH را تنظیم کنید).</x:String>
+  <x:String x:Key="Snowflake.EnableHint">همین حالا داوطلبی را شروع یا متوقف کنید.</x:String>
   <x:String x:Key="Snowflake.AutoStart">شروع proxy Snowflake هنگام راه‌اندازی OnionHop</x:String>
   <x:String x:Key="Snowflake.AutoStartHint">هر بار که برنامه شروع می‌شود به‌طور خودکار داوطلبی را شروع کن.</x:String>
   <x:String x:Key="Snowflake.Capacity">حداکثر کلاینت‌های همزمان</x:String>
@@ -529,14 +449,14 @@
   <x:String x:Key="Snowflake.Status">وضعیت</x:String>
   <x:String x:Key="Snowflake.StatusStopped">در حال اجرا نیست.</x:String>
   <x:String x:Key="Snowflake.StatusRunning">در حال اجرا — نوع NAT: {0}، {1} اتصال(ها) در این جلسه خدمت‌دهی شده.</x:String>
-  <x:String x:Key="Snowflake.StatusUnavailable">باینری proxy Snowflake یافت نشد. آن را با download-deps.ps1 بسازید (نیاز به Go دارد) یا ONIONHOP_SNOWFLAKE_PROXY_PATH را تنظیم کنید.</x:String>
+  <x:String x:Key="Snowflake.StatusUnavailable">proxy Snowflake در این نصب وجود ندارد. برای بازگرداندن آن، OnionHop را دوباره نصب کنید.</x:String>
   <x:String x:Key="Settings.RelayRefreshInterval">فاصله بروزرسانی داده‌های relay</x:String>
-  <x:String x:Key="Settings.RelayRefreshIntervalHint">کنترل می‌کند که ابرداده‌های relay در تکرارهای آینده چند وقت یک‌بار بروزرسانی شود.</x:String>
+  <x:String x:Key="Settings.RelayRefreshIntervalHint">هر چند وقت یک‌بار OnionHop فهرست پل‌های Tor را در پس‌زمینه به‌روز می‌کند.</x:String>
   <x:String x:Key="Settings.RelayRefreshSixHours">هر 6 ساعت</x:String>
   <x:String x:Key="Settings.RelayRefreshTwelveHours">هر 12 ساعت</x:String>
   <x:String x:Key="Settings.RelayRefreshTwentyFourHours">هر 24 ساعت</x:String>
   <x:String x:Key="Settings.UpdateChannel">کانال بروزرسانی</x:String>
-  <x:String x:Key="Settings.UpdateChannelHint">Stable از انتشارهای منتشرشده استفاده می‌کند. Preview فضایی برای سطوح بتا در آینده نگه می‌دارد.</x:String>
+  <x:String x:Key="Settings.UpdateChannelHint">Stable فقط نسخه‌های نهایی را پیشنهاد می‌دهد. Preview در صورت وجود، نسخه‌های پیش‌انتشار را هم پیشنهاد می‌دهد.</x:String>
   <x:String x:Key="Settings.UpdateChannelStable">Stable</x:String>
   <x:String x:Key="Settings.UpdateChannelPreview">Preview</x:String>
   <x:String x:Key="Settings.UseBridgesHint">پل‌ها برای مقاومت در برابر سانسور هستند، نه برای تغییر معمولی مکان.</x:String>
@@ -546,12 +466,11 @@
   <x:String x:Key="Settings.ExitLocation">مکان خروجی</x:String>
   <x:String x:Key="Settings.ExitLocationAdvancedHint">شکل‌دهی دستی خروجی پیشرفته است و می‌تواند ناشناسی یا قابلیت اطمینان را کاهش دهد.</x:String>
   <x:String x:Key="Settings.BlockQuicHint">جلوگیری از دور زدن ترافیک مرورگر مسیریابی‌شده توسط Tor توسط QUIC در حالت ترکیبی.</x:String>
-  <x:String x:Key="Settings.BlockUdpHint">UDP را در حالت TUN به‌طور پیش‌فرض مسدود می‌کند زیرا Tor از UDP پشتیبانی نمی‌کند.</x:String>
+  <x:String x:Key="Settings.BlockUdpHint">فقط با تونل‌زنی تقسیمی اعمال می‌شود. Tor نمی‌تواند UDP را منتقل کند، پس در حالت تونل کامل هیچ UDPای جز DNS، که از Tor عبور می‌کند، از این رایانه خارج نمی‌شود. با تونل‌زنی تقسیمی، این گزینه نمی‌گذارد UDP برنامه‌هایی که از Tor عبور می‌کنند مستقیم خارج شود.</x:String>
   <x:String x:Key="Settings.OpenConnectedPageHint">هدف اختیاری پس از اتصال موفق.</x:String>
   <x:String x:Key="Settings.OpenDisconnectedPageHint">صفحه اختیاری برای باز کردن مجدد هنگام توقف تونل.</x:String>
 
   <!-- V3 Logs -->
-  <x:String x:Key="Logs.Subtitle">تشخیصات فقط محلی با فیلتر منبع و شدت.</x:String>
   <x:String x:Key="Logs.Search">جستجو در گزارش‌ها</x:String>
   <x:String x:Key="Logs.FilterAll">همه</x:String>
   <x:String x:Key="Logs.LevelInfo">اطلاعات</x:String>
@@ -571,14 +490,10 @@
   <x:String x:Key="Logs.Summary">خلاصه</x:String>
   <x:String x:Key="Logs.TotalEntries">مجموع رکوردها</x:String>
   <x:String x:Key="Logs.ActiveSources">منابع فعال</x:String>
-  <x:String x:Key="Logs.LocalOnly">فقط محلی</x:String>
   <x:String x:Key="Logs.Pause">مکث</x:String>
   <x:String x:Key="Logs.AutoScroll">اسکرول خودکار</x:String>
-  <x:String x:Key="Logs.FooterHint">مکث فقط نمای فیلترشده را از بروزرسانی متوقف می‌کند؛ گزارش‌های محیط اجرای زیرین به صورت محلی بافر می‌شوند.</x:String>
 
   <!-- V3 Relays -->
-  <x:String x:Key="Relays.Title">مرورگر Relay</x:String>
-  <x:String x:Key="Relays.Subtitle">بررسی فهرست زنده Tor بدون نمایش relay‌ها مانند مکان‌های VPN معمولی.</x:String>
   <x:String x:Key="Relays.Refresh">بروزرسانی</x:String>
   <x:String x:Key="Relays.Search">جستجوی نام مستعار، اثر انگشت، کشور، یا IP</x:String>
   <x:String x:Key="Relays.AllCountries">همه کشورها</x:String>
@@ -608,16 +523,11 @@
   <x:String x:Key="Relays.FieldFlags">پرچم‌ها</x:String>
   <x:String x:Key="Relays.UseAsPreferredExit">استفاده به عنوان خروجی ترجیحی (آزمایشی)</x:String>
   <x:String x:Key="Relays.SelectExitRelayFirst">ابتدا یک relay خروجی انتخاب کنید</x:String>
-  <x:String x:Key="Relays.UseAsPreferredExitHint">این relay را به عنوان خروجی دستی سخت‌گیر ثابت می‌کند. این می‌تواند ناشناسی و دسترس‌پذیری را کاهش دهد.</x:String>
   <x:String x:Key="Relays.UseAsPreferredGuard">استفاده به عنوان guard ترجیحی (آزمایشی)</x:String>
   <x:String x:Key="Relays.SelectGuardRelayFirst">ابتدا یک relay guard انتخاب کنید</x:String>
-  <x:String x:Key="Relays.UseAsPreferredGuardHint">این relay را به عنوان guard دستی سخت‌گیر ثابت می‌کند. این می‌تواند ناشناسی و دسترس‌پذیری را کاهش دهد.</x:String>
   <x:String x:Key="Relays.UseAsPreferredMiddle">استفاده به عنوان میانی ترجیحی (آزمایشی)</x:String>
   <x:String x:Key="Relays.SelectMiddleRelayFirst">ابتدا یک relay میانی انتخاب کنید</x:String>
-  <x:String x:Key="Relays.UseAsPreferredMiddleHint">این relay را به عنوان میانی دستی سخت‌گیر ثابت می‌کند. این می‌تواند ناشناسی و دسترس‌پذیری را کاهش دهد.</x:String>
   <x:String x:Key="Relays.PreferenceSaved">ترجیح {0} برای {1} ذخیره شد.</x:String>
-  <x:String x:Key="Relays.MapPlaceholderTitle">جغرافیای شبکه</x:String>
-  <x:String x:Key="Relays.MapPlaceholderHint">رزرو شده برای نمای مدار مبتنی بر نقشه در آینده. پوسته فعلی به جای جعل جغرافیا فضا را صادقانه نگه می‌دارد.</x:String>
   <x:String x:Key="Relays.Bandwidth1Mb">حداقل 1 MB/s</x:String>
   <x:String x:Key="Relays.Bandwidth10Mb">حداقل 10 MB/s</x:String>
   <x:String x:Key="Relays.Bandwidth50Mb">حداقل 50 MB/s</x:String>
@@ -626,10 +536,6 @@
   <x:String x:Key="Relays.RoleExit">خروجی</x:String>
 
   <!-- V3 Status -->
-  <x:String x:Key="Status.Connection">اتصال</x:String>
-  <x:String x:Key="Status.Protection">حفاظت</x:String>
-  <x:String x:Key="Status.Engine">موتور</x:String>
-  <x:String x:Key="Status.Update">بروزرسانی</x:String>
   <x:String x:Key="Status.ProtectionSystem">مسیریابی سراسری سیستم فعال</x:String>
   <x:String x:Key="Status.ProtectionProxy">مسیریابی Proxy فعال</x:String>
   <x:String x:Key="Status.ProtectionOff">حفاظت غیرفعال</x:String>
@@ -641,4 +547,27 @@
   <x:String x:Key="Status.UpdateUnknown">وضعیت بروزرسانی در دسترس نیست</x:String>
   <x:String x:Key="Status.UpdateAvailable">بروزرسانی در دسترس است: {0}</x:String>
   <x:String x:Key="Status.UpdateCurrent">به‌روز است</x:String>
+  <!-- Routing rules and other strings that were English-only in every translation -->
+  <x:String x:Key="Home.IpGeoCaveat">کشور نمایش داده شده از روی این IP تخمین زده می‌شود و ممکن است با خروجی انتخابی شما فرق کند. Tor همچنان از کشور خروجی‌ای که انتخاب کرده‌اید عبور می‌کند.</x:String>
+  <x:String x:Key="Logs.TabBridges">پل فعلی</x:String>
+  <x:String x:Key="Settings.EntryNodeBridgesNote">وقتی پل‌ها روشن هستند انتخاب گره ورودی در دسترس نیست: پل همان ورودی شما به Tor است.</x:String>
+  <x:String x:Key="Settings.SplitTunnelingToggleHint">برنامه‌های انتخاب‌شده را از Tor عبور دهید و بقیه مستقیم وصل شوند. به حالت TUN/VPN نیاز دارد؛ این را روشن کنید تا از انتخابگر برنامه و گزینه‌های زیر استفاده کنید. تغییرات مسیریابی از اتصال بعدی اعمال می‌شوند. (کلید قطع فقط در حالت تونل کامل کار می‌کند، پس تا وقتی این روشن است در دسترس نیست.)</x:String>
+  <x:String x:Key="Settings.RoutingRulesTitle">قوانین مسیریابی (حالت TUN/VPN)</x:String>
+  <x:String x:Key="Settings.RoutingRulesHint">دامنه‌ها یا بازه‌های IP مشخص را مستقیم (بدون Tor) بفرستید یا مسدود کنید. فقط در حالت TUN/VPN اعمال می‌شود. در هر خط یک مورد؛ خط‌هایی که با # شروع شوند نادیده گرفته می‌شوند. دامنه‌ها شامل همه زیردامنه‌ها می‌شوند؛ بازه‌های IP با نشانه‌گذاری CIDR (مثلاً 10.0.0.0/8).</x:String>
+  <x:String x:Key="Settings.RoutingBypass">دور زدن Tor (مستقیم)</x:String>
+  <x:String x:Key="Settings.RoutingBypassHint">این مقصدها با IP واقعی شما خارج می‌شوند، نه از Tor. برای سایت‌های محلی یا داخلی که روی Tor کار نمی‌کنند مفید است.</x:String>
+  <x:String x:Key="Settings.RoutingBlock">مسدود کردن</x:String>
+  <x:String x:Key="Settings.RoutingBlockHint">این مقصدها کاملاً مسدود می‌شوند. برای دامنه‌های تبلیغاتی یا ردیاب مفید است.</x:String>
+  <x:String x:Key="Settings.CountryRoutingTitle">مسیریابی بر اساس کشور (حالت TUN/VPN)</x:String>
+  <x:String x:Key="Settings.CountryRoutingHint">کل کشورها را بر اساس IP و با فهرست‌های geoip که خودکار به‌روز می‌شوند، مستقیم بفرستید یا مسدود کنید. فقط در حالت TUN/VPN اعمال می‌شود. از کدهای کشور ISO استفاده کنید (مثلاً ir، ru، de)، در هر خط یکی یا جدا شده با ویرگول. فهرست‌ها در پس‌زمینه خودکار دانلود و به‌روز می‌شوند.</x:String>
+  <x:String x:Key="Settings.CountryBypass">این کشورها مستقیم (دور زدن Tor)</x:String>
+  <x:String x:Key="Settings.CountryBypassHint">ترافیک به IPهای این کشورها با IP واقعی شما خارج می‌شود، نه از Tor. برای سایت‌های داخلی که روی Tor کار نمی‌کنند مفید است.</x:String>
+  <x:String x:Key="Settings.CountryBlock">مسدود کردن این کشورها</x:String>
+  <x:String x:Key="Settings.CountryBlockHint">ترافیک به IPهای این کشورها کاملاً مسدود می‌شود.</x:String>
+  <x:String x:Key="Settings.SiteRoutingTitle">مسیریابی بر اساس دسته دامنه (حالت TUN/VPN)</x:String>
+  <x:String x:Key="Settings.SiteRoutingHint">کل دسته‌های دامنه را با فهرست‌های geosite که خودکار به‌روز می‌شوند، مستقیم بفرستید یا مسدود کنید (مثلاً category-ads-all برای مسدود کردن تبلیغات و ردیاب‌ها، یا دسته کشوری مثل ir برای مستقیم نگه‌داشتن سایت‌های آن). فقط در حالت TUN/VPN اعمال می‌شود. در هر خط یک دسته یا جدا شده با ویرگول. فهرست‌ها در پس‌زمینه خودکار دانلود و به‌روز می‌شوند.</x:String>
+  <x:String x:Key="Settings.SiteBypass">این دسته‌ها مستقیم (دور زدن Tor)</x:String>
+  <x:String x:Key="Settings.SiteBypassHint">دامنه‌های این دسته‌ها با IP واقعی شما خارج می‌شوند، نه از Tor. برای سایت‌های داخلی که روی Tor کار نمی‌کنند مفید است.</x:String>
+  <x:String x:Key="Settings.SiteBlock">مسدود کردن این دسته‌ها</x:String>
+  <x:String x:Key="Settings.SiteBlockHint">دامنه‌های این دسته‌ها کاملاً مسدود می‌شوند. category-ads-all برای مسدود کردن تبلیغات و ردیاب‌ها انتخاب خوبی است.</x:String>
 </ResourceDictionary>

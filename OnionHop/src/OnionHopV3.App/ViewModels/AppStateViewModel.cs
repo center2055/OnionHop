@@ -305,9 +305,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             BridgeSourceCustom
         ];
 
-        RefreshLanguageOptions();
-        RefreshLocalizedOptions();
-
+        // Bridge types first: RefreshLocalizedOptions builds the Bridge type dropdown from this list, so
+        // filling it afterwards left that dropdown empty until a later startup step rebuilt it (and
+        // empty for good if that step never ran).
         BridgeTypes.Add(BridgeTypeAutomatic);
         BridgeTypes.Add(BridgeTypeVanilla);
         BridgeTypes.Add("obfs4");
@@ -317,6 +317,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         BridgeTypes.Add("webtunnel");
         BridgeTypes.Add("dnstt");
         BridgeTypes.Add("custom");
+
+        RefreshLanguageOptions();
+        RefreshLocalizedOptions();
 
         _settingsService = new SettingsService(Program.OverrideBaseDirectory);
         _client = new OnionHopClient(Program.OverrideBaseDirectory);

@@ -361,9 +361,14 @@
                                   IsEnabled="{Binding IsPublished}"
                                   Click="OnCopyOnionAddressClick"
                                   Tag="{Binding}" />
-                          <Button Content="{DynamicResource Settings.OnionServiceToggle}"
-                                  Command="{Binding $parent[ItemsControl].((vm:OnionServicesViewModel)DataContext).ToggleEnabledCommand}"
-                                  CommandParameter="{Binding}" />
+                          <!-- A switch, not an "On/Off" button: the button never showed which state a
+                               service was in. -->
+                          <ToggleButton Classes="V3Switch"
+                                        IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                        Command="{Binding $parent[ItemsControl].((vm:OnionServicesViewModel)DataContext).ToggleEnabledCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{DynamicResource Settings.OnionServiceToggle}"
+                                        VerticalAlignment="Center" />
                           <Button Content="{DynamicResource Saved.Delete}"
                                   Command="{Binding $parent[ItemsControl].((vm:OnionServicesViewModel)DataContext).RemoveCommand}"
                                   CommandParameter="{Binding}" />
@@ -374,35 +379,47 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
+              <!-- Captions above the fields, not watermarks: three of the four fields start with a
+                   value (80, 127.0.0.1, 80), and a watermark disappears as soon as there is one, so the
+                   row read "80 | 127.0.0.1 | 80" with nothing saying which port was which. -->
               <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
-                    ColumnSpacing="8">
-                <TextBox Grid.Column="0"
+                    RowDefinitions="Auto,Auto"
+                    ColumnSpacing="8"
+                    RowSpacing="4">
+                <TextBlock Grid.Column="0" Text="{DynamicResource Settings.OnionServiceName}" Classes="Caption" />
+                <TextBlock Grid.Column="1" Text="{DynamicResource Settings.OnionServiceOnionPort}" Classes="Caption" />
+                <TextBlock Grid.Column="2" Text="{DynamicResource Settings.OnionServiceTargetHost}" Classes="Caption" />
+                <TextBlock Grid.Column="3" Text="{DynamicResource Settings.OnionServiceTargetPort}" Classes="Caption" />
+                <TextBox Grid.Row="1"
+                         Grid.Column="0"
                          Watermark="{DynamicResource Settings.OnionServiceLabelWatermark}"
                          Text="{Binding OnionServices.NewLabel}"
                          behaviors:TextBoxEditMenu.IsEnabled="True" />
-                <TextBox Grid.Column="1"
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
                          Width="90"
-                         Watermark="{DynamicResource Settings.OnionServiceOnionPort}"
                          Text="{Binding OnionServices.NewOnionPort}"
                          behaviors:TextBoxEditMenu.IsEnabled="True" />
-                <TextBox Grid.Column="2"
+                <TextBox Grid.Row="1"
+                         Grid.Column="2"
                          Width="150"
-                         Watermark="{DynamicResource Settings.OnionServiceTargetHost}"
                          Text="{Binding OnionServices.NewTargetHost}"
                          behaviors:TextBoxEditMenu.IsEnabled="True" />
-                <TextBox Grid.Column="3"
+                <TextBox Grid.Row="1"
+                         Grid.Column="3"
                          Width="90"
-                         Watermark="{DynamicResource Settings.OnionServiceTargetPort}"
                          Text="{Binding OnionServices.NewTargetPort}"
                          behaviors:TextBoxEditMenu.IsEnabled="True" />
-                <Button Grid.Column="4"
+                <Button Grid.Row="1"
+                        Grid.Column="4"
                         Content="{DynamicResource Settings.OnionServiceAdd}"
                         Command="{Binding OnionServices.AddCommand}" />
               </Grid>
 
               <TextBlock Text="{Binding OnionServices.StatusText}"
                          Classes="SectionCaption"
-                         TextWrapping="Wrap" />
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding OnionServices.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               <TextBlock Text="{DynamicResource Settings.OnionServicesWarning}"
                          Classes="SectionCaption"
                          TextWrapping="Wrap" />
@@ -487,7 +504,7 @@
                                     ItemsSource="{Binding State.TunCoreModeOptions}"
                                     SelectedItem="{Binding State.SelectedTunCoreModeOption}" />
               <controls:DropdownRow Title="{DynamicResource Settings.TunStack}"
-                                    Description="{DynamicResource Settings.TunStrictRouteHint}"
+                                    Description="{DynamicResource Settings.TunStackHint}"
                                     ItemsSource="{Binding State.TunStackModeOptions}"
                                     SelectedItem="{Binding State.SelectedTunStackModeOption}" />
               <controls:SettingRow Title="{DynamicResource Settings.TunMtu}">
@@ -497,11 +514,13 @@
                            Watermark="{DynamicResource Settings.TunMtuWatermark}" />
                 </controls:SettingRow.RowContent>
               </controls:SettingRow>
-              <controls:SettingRow Title="{DynamicResource Settings.ConnectionTimeoutSeconds}">
+              <!-- The explanation used to be the watermark of a 160px box, cut off after a few words. -->
+              <controls:SettingRow Title="{DynamicResource Settings.ConnectionTimeoutSeconds}"
+                                   Description="{DynamicResource Settings.ConnectionTimeoutSecondsHint}">
                 <controls:SettingRow.RowContent>
                   <TextBox Width="160"
                            Text="{Binding State.ConnectionTimeoutSeconds}"
-                           Watermark="{DynamicResource Settings.ConnectionTimeoutSecondsHint}" />
+                           Watermark="{DynamicResource Settings.OptionDefault}" />
                 </controls:SettingRow.RowContent>
               </controls:SettingRow>
               <controls:ToggleRow Title="{DynamicResource Settings.TunStrictRoute}"
@@ -521,11 +540,15 @@
                                   IsChecked="{Binding State.UseHybridRouting}"
                                   IsEnabled="{Binding State.IsTunMode}" />
               <controls:ToggleRow Title="{DynamicResource Settings.RouteAllWebTraffic}"
-                                  Description="{DynamicResource Settings.SplitTunnelingHint}"
+                                  Description="{DynamicResource Settings.RouteAllWebTrafficHint}"
                                   IsChecked="{Binding State.HybridRouteAllWebTraffic}"
                                   IsEnabled="{Binding State.CanConfigureSplitTunneling}" />
               <StackPanel Spacing="6"
                           IsEnabled="{Binding State.CanConfigureSplitTunneling}">
+                <!-- This text describes the picker; it used to sit on the "Route all web traffic" toggle. -->
+                <TextBlock Text="{DynamicResource Settings.SplitTunnelingHint}"
+                           Classes="Caption"
+                           TextWrapping="Wrap" />
                 <Button Content="{DynamicResource Settings.AppPickerButton}"
                         Click="OnPickAppsClick"
                         HorizontalAlignment="Left" />
@@ -538,9 +561,11 @@
                                   Description="{DynamicResource Settings.BlockQuicHint}"
                                   IsChecked="{Binding State.HybridBlockQuicForTorApps}"
                                   IsEnabled="{Binding State.CanConfigureSplitTunneling}" />
+              <!-- Full tunnel never lets UDP out, whatever this says, so it only matters with split tunneling. -->
               <controls:ToggleRow Title="{DynamicResource Settings.BlockUdp}"
                                   Description="{DynamicResource Settings.BlockUdpHint}"
-                                  IsChecked="{Binding State.BlockUdpTraffic}" />
+                                  IsChecked="{Binding State.BlockUdpTraffic}"
+                                  IsEnabled="{Binding State.CanConfigureSplitTunneling}" />
             </StackPanel>
           </Border>
 

@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!-- Common -->
-  <x:String x:Key="Common.Search">گەڕان</x:String>
 
   <!-- Navigation -->
   <x:String x:Key="Nav.Home">سەرەتا</x:String>
@@ -91,11 +90,7 @@
   <x:String x:Key="Saved.EmptyDescription">پردە یان هۆستە SNI کارکردووەکان لە سکانەرەوە پاشەکەوت بکە بۆ دروستکردنی کتێبخانەکەت.</x:String>
 
   <!-- Home -->
-  <x:String x:Key="Home.Title">پەیوەندی</x:String>
   <x:String x:Key="Home.CurrentIp">IP-ی ئێستا</x:String>
-  <x:String x:Key="Home.SocksPort">پۆرتی SOCKS</x:String>
-  <x:String x:Key="Home.HttpPort">پۆرتی HTTP</x:String>
-  <x:String x:Key="Home.ManualExitFingerprint">فینگەرپرینتی دەرچوونی دەستی</x:String>
   <x:String x:Key="Home.Connect">پەیوەندی کردن</x:String>
   <x:String x:Key="Home.Disconnect">قەتاندنەوە</x:String>
   <x:String x:Key="Home.Cancel">هەڵوەشاندنەوە</x:String>
@@ -106,10 +101,8 @@
   <x:String x:Key="Home.SystemProxyOn">پرۆکسی سیستەم: چالاک</x:String>
   <x:String x:Key="Home.SystemProxyOff">پرۆکسی سیستەم: ناچالاک</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">دیاریدەکات کە ئایا ترافیکی سیستەم لە دۆخی پرۆکسیدا لە ڕێگەی Tor دەچێت. پێش پەیوەندیکردن بگۆڕە بۆ دانانی ڕەفتار، یان لە کاتی پەیوەندیدا بگۆڕە بەبێ قەتاندنی Tor. کاتێک ناچالاکە، ترافیکی سیستەم ڕاستەوخۆ دەچێت (بۆ نموونە VPN-ی جیا)؛ بەرنامەکانی بە پۆرتی SOCKS ئاراستەکراون هێشتا Tor بەکاردەهێنن.</x:String>
-  <x:String x:Key="Home.BridgeDataAutoUpdates">داتای بریج بە خۆکارانە نوێدەکرێتەوە</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">داتای بریج کۆتا جار نوێکراوەتەوە: هێشتا نوێنەکراوەتەوە.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">داتای بریج کۆتا جار نوێکراوەتەوە: {0}</x:String>
-  <x:String x:Key="Home.Routing">ڕووتینگ</x:String>
   <x:String x:Key="Home.SmartConnect">پەیوەندی زیرەک (پێشنیازکراو)</x:String>
   <x:String x:Key="Home.SmartConnectHint">بە خۆکارانە باشترین ستراتیژی پەیوەندی بۆ Tor بۆ تۆڕ و پرۆفایلی وڵاتەکەت دیاریدەکات. کاتێک چالاکە، ڕێکخستنەکانی بریج/سانسور لەوانەیە بگۆڕدرێن.</x:String>
   <x:String x:Key="Home.Mode">دۆخ</x:String>
@@ -117,19 +110,9 @@
   <x:String x:Key="Home.ModeTun">دۆخی TUN/VPN</x:String>
   <x:String x:Key="Home.Automatic">بە خۆکارانە</x:String>
   <x:String x:Key="Home.ExitLocation">شوێنی دەرچوون</x:String>
-  <x:String x:Key="Home.ExitLocationManualHint">فینگەرپرینتی دەرچوونی دەستی دانراوە. شوێنی دەرچوون ناچالاکە.</x:String>
-  <x:String x:Key="Home.TorNetwork">تۆڕی Tor</x:String>
-  <x:String x:Key="Home.TorNetworkHint">ترافیکی خودی Tor نیشان دەدات (لە کۆنترۆل پۆرتەوە).</x:String>
-  <x:String x:Key="Home.TunOptions">بژاردەکانی TUN/VPN</x:String>
-  <x:String x:Key="Home.HybridRouting">ڕووتینگی هیبرید (split tunneling)</x:String>
-  <x:String x:Key="Home.KillSwitch">kill switch (تەنها TUN-ی هەرزەکار)</x:String>
-  <x:String x:Key="Home.KillSwitchHint">kill switch پێویستی بە مۆڵەتی بەڕێوەبەر هەیە و لە دۆخی هیبریددا ناچالاکە.</x:String>
-  <x:String x:Key="Home.ConnectionElapsed">کاتی پەیوەندی</x:String>
   <x:String x:Key="Home.DownloadingComponents">دابەزاندنی پێکهاتەکان...</x:String>
-  <x:String x:Key="Home.QuickActions">کردارە خێراکان</x:String>
 
   <!-- Logs -->
-  <x:String x:Key="Logs.Title">تۆمارەکان</x:String>
   <x:String x:Key="Logs.TabApp">بەرنامە</x:String>
   <x:String x:Key="Logs.TabDns">DNS</x:String>
   <x:String x:Key="Logs.TabXray">Xray</x:String>
@@ -141,7 +124,6 @@
   <x:String x:Key="Logs.TipLocalOnly">تۆمارەکان تەنها شوێنیان.</x:String>
 
   <!-- About -->
-  <x:String x:Key="About.Title">دەربارە</x:String>
   <x:String x:Key="About.Links">بەستەرەکان</x:String>
   <x:String x:Key="About.GitHubIssues">کێشەکانی GitHub</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
@@ -158,7 +140,6 @@
   <x:String x:Key="About.SniSources">لیستی بەربژێری SNI / هۆستی فڕۆنت، کە «داواکردنی SNI»ی سکانەری SNI بەکاریدەهێنێت:</x:String>
   <x:String x:Key="About.Changelog">مێژووی OnionHop</x:String>
   <x:String x:Key="About.Refresh">نوێکردنەوە</x:String>
-  <x:String x:Key="About.ChangelogDetails">وردەکاری</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">وردەکاری +</x:String>
   <x:String x:Key="About.ChangelogViewOnline">لە گیتهەب ببینە</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">وردەکاری -</x:String>
@@ -173,16 +154,8 @@
   <x:String x:Key="About.ChangelogTypeBeta">بێتا / پێش-بەرهەمهێنان</x:String>
   <x:String x:Key="About.ChangelogDateUnknown">بەرواری نەزانراو</x:String>
   <x:String x:Key="About.ChangelogNotesMissing">هیچ تێبینییەکی گۆڕانکارییەک بۆ ئەم بەرهەمهێنانە نەدراوە.</x:String>
-  <x:String x:Key="About.Subtitle">مێژووی OnionHop، بەستەرەکانی پرۆژە، و تێبینییەکانی بەرهەمهێنان.</x:String>
   <x:String x:Key="About.ProductName">OnionHop V3</x:String>
   <x:String x:Key="About.Tagline">ڕووکاری سبکی کۆمپیوتەری مێزێک بۆ ڕووتینگی Tor، گۆڕینی ناسنامە، و هەڵبژاردنی پەیوەندی بە بریج.</x:String>
-  <x:String x:Key="About.BuildRuntime">بیلد &amp; ڕانتایم</x:String>
-  <x:String x:Key="About.Version">وەشان</x:String>
-  <x:String x:Key="About.Engine">ئەنجینی Tor</x:String>
-  <x:String x:Key="About.UpdateState">دۆخی نوێکردنەوە</x:String>
-  <x:String x:Key="About.LocalOnly">تشخیصی شوێنی</x:String>
-  <x:String x:Key="About.LocalOnlyHint">تۆمارەکان و چالاکییەکانی دانیشتن لەسەر ئەم ئامێرەدا دەمێننەوە مەگەر بە ڕوونی هەڵیانبگریت.</x:String>
-  <x:String x:Key="About.LinksHint">بەستەرەکانی پرۆژە لە وێبگەڕی پێشوازیکراو دەکرێنەوە.</x:String>
   <x:String x:Key="About.ShowHistory">نیشاندانی مێژوو</x:String>
   <x:String x:Key="About.HideHistory">شاردنەوەی مێژوو</x:String>
 
@@ -203,12 +176,10 @@
   <x:String x:Key="Settings.AppearanceSystemDefault">پێشوەخت سیستەم</x:String>
   <x:String x:Key="Settings.AppearanceDark">تاریک</x:String>
   <x:String x:Key="Settings.AppearanceLight">روناک</x:String>
-  <x:String x:Key="Settings.DarkMode">دۆخی تاریک</x:String>
   <x:String x:Key="Settings.NativeChrome">بەکارهێنانی فرامی نەیتیڤی پەنجەرە (ناوبەری/دووگمەکان)</x:String>
   <x:String x:Key="Settings.Language">زمان</x:String>
   <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">نیشاندانی وردەکارییەکانی پەیوەندی پێشکەوتوو لە سەرەتا</x:String>
   <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">پۆرتەکانی SOCKS/HTTP-ی چالاک و دۆخی فینگەرپرینتی دەرچوونی دەستی لەسەر کارتی سەرەتا نیشاندەدات.</x:String>
-  <x:String x:Key="Settings.Maintenance">چاکسازی</x:String>
   <x:String x:Key="Settings.ResetHint">هەموو ڕێکخستنەکانی OnionHop V3 دەگەڕێنێتەوە بۆ پێشوەخت.</x:String>
   <x:String x:Key="Settings.RestoreDefaults">گەڕاندنەوەی ڕێکخستنە پێشوەختەکان</x:String>
 
@@ -217,8 +188,6 @@
   <x:String x:Key="Settings.BridgeType">جۆری بریج</x:String>
   <x:String x:Key="Settings.BridgeSource">سەرچاوەی بریج</x:String>
   <x:String x:Key="Settings.BridgeSourceHint">خۆکار کۆلێکتەری OnionHop و خزمەتگوزاری بریجی Tor هەوڵ دەدات، پاشان لیستە ئۆفلاینەکانی شوێنی بەکاردەهێنێت. "تەنها کۆلێکتەری OnionHop" بریجە پێش تاقیکراوەکان لە کۆلێکتەر دەکێشێت (obfs4، webtunnel، vanilla).</x:String>
-  <x:String x:Key="Settings.BridgeSourceCredits">داتای فاڵبەکی بریجی ئۆفلاین: Tor-Bridges-Namer لە لایەن Chara-Freedom و بەژداریکارەکان.</x:String>
-  <x:String x:Key="Settings.CustomBridges">بریجی تایبەت (ئارەزووی، بریجە چەسپێنراوەکان دەگۆڕێت)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">ڕیزەکانی بریج لە bridges.torproject.org پەیست بکە...</x:String>
   <x:String x:Key="Settings.CustomSni">هۆستەکانی SNI/front-ی تایبەت (ئارەزووی)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
@@ -237,10 +206,19 @@
   <x:String x:Key="Settings.OnionServicesHint">شتێک لەم کۆمپیوتەرە یان لە تۆڕەکەت بە ناونیشانی ‎.onion بڵاو بکەرەوە: کامێرا، NAS یان وێب ئەپ. پێویست بە ئاراستەکردنی پۆرت، IP جێگیر یان DynDNS ناکات، و هیچ شتێک لە ئینتەرنێتی کراوەدا دەرناکەوێت. ناونیشان لە کاتی پەیوەندیدا دیاری دەکرێت و پاشان هەمان دەمێنێتەوە.</x:String>
   <x:String x:Key="Settings.OnionServicesWarning">هەر کەسێک ناونیشانەکەی هەبێت دەگاتە ئەو ئامێرە، و لەوێدا تەنها وشەی نهێنی خودی ئامێرەکە دەیپارێزێت. یەکێکی بەهێز دابنێ و ناونیشانەکە وەک نهێنییەک هەڵبگرە.</x:String>
   <x:String x:Key="Settings.OnionServiceLabelWatermark">ناو (وەک کامێرا)</x:String>
+  <x:String x:Key="Settings.OnionServiceName">ناو</x:String>
   <x:String x:Key="Settings.OnionServiceOnionPort">پۆرتی ئۆنیۆن</x:String>
   <x:String x:Key="Settings.OnionServiceTargetHost">ئاراستەکردن بۆ هۆست</x:String>
   <x:String x:Key="Settings.OnionServiceTargetPort">پۆرت</x:String>
   <x:String x:Key="Settings.OnionServiceAdd">زیادکردن</x:String>
+  <x:String x:Key="Settings.OnionServiceNotPublished">هێشتا بڵاونەکراوەتەوە. بۆ وەرگرتنی ناونیشانەکە پەیوەندی بکە.</x:String>
+  <x:String x:Key="Settings.OnionServiceCopied">ناونیشانەکە بۆ کلیپبۆرد کۆپی کرا.</x:String>
+  <x:String x:Key="Settings.OnionServiceBadOnionPort">پۆرتی ئۆنیۆن دەبێت ژمارەیەک بێت لە نێوان 1 و 65535.</x:String>
+  <x:String x:Key="Settings.OnionServiceBadTargetPort">پۆرتی مەبەست دەبێت ژمارەیەک بێت لە نێوان 1 و 65535.</x:String>
+  <x:String x:Key="Settings.OnionServiceAdded">زیادکرا. بۆ بڵاوکردنەوەی و وەرگرتنی ناونیشانەکە پەیوەندی بکە.</x:String>
+  <x:String x:Key="Settings.OnionServiceRemoved">سڕایەوە.</x:String>
+  <x:String x:Key="Settings.OnionServiceEnabled">چالاککرا. لە پەیوەندیی داهاتوودا بڵاودەکرێتەوە.</x:String>
+  <x:String x:Key="Settings.OnionServiceDisabled">ناچالاککرا. بڵاوناکرێتەوە.</x:String>
   <x:String x:Key="Settings.OnionServiceToggle">کار/ڕاگرتن</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">بروکەری Snowflake لە ڕێگەی cache-ی AMP-ی Google دەگاتێت بەجیاتی پەیوەندی ڕاستەوخۆ. ئەمە چالاک بکە ئەگەر "بروکەری Snowflake نادەگات" بینیت — یارمەتی دەدات لە تۆڕەکانێک کە بروکەر دەیبڕن. تەنها کاریگەر بەسەر جۆری بریجی Snowflake.</x:String>
   <x:String x:Key="Settings.AppPickerButton">بەرنامەکانی کارکردن هەڵبژێرە…</x:String>
@@ -255,15 +233,11 @@
   <x:String x:Key="Common.Apply">جێبەجێکردن</x:String>
   <x:String x:Key="Common.Cancel">هەڵوەشاندنەوە</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: بەکارهێنانی cache-ی AMP (بۆ تۆڕە گیراوەکان)</x:String>
-  <x:String x:Key="Settings.AmpCacheUrl">URL-ی cache-ی AMP (ئارەزووی)</x:String>
-  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">دۆخی پرۆکسی</x:String>
   <x:String x:Key="Settings.ProxyScope">ڕەفتاری پرۆکسی</x:String>
   <x:String x:Key="Settings.ProxyScopeHint">پرۆکسی سیستەم (هەموو بەرنامەکان) HTTP/HTTPS + SOCKS دادەنێت. دۆخی SOCKS بۆ وێبگەڕ/.onion تەنها SOCKS دادەنێت بۆ گونجانی باشتر لە وێبگەڕدا. تەنها شوێنی ڕێکخستنی پرۆکسی سیستەم بەو شێوەیەی هەیە ئەوە دەهێڵێتەوە بۆ دانانی دەستی بەرنامە.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">پۆرتی SOCKS-ی پێشواز</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">پۆرتی تونێلی HTTP-ی پێشواز</x:String>
-  <x:String x:Key="Settings.AllowLanProxyAccess">ڕێگەپێدان بە دەستڕاگەیشتنی پرۆکسی LAN</x:String>
-  <x:String x:Key="Settings.AllowLanProxyAccessHint">پۆرتەکانی پرۆکسی Tor لەسەر ئینتەرفەیسەکانی تۆڕی شوێنی ئاشکرادەکات تا ئامێرەکانی دیکە پەیوەند ببن. ناچالاک بهێڵەوە مەگەر LAN-ەکەت بپارێزیت.</x:String>
 
   <x:String x:Key="Settings.SecureDns">DNS-ی پارێزراو (DoH) لە دۆخی VPN</x:String>
   <x:String x:Key="Settings.DnsProvider">دابینکەری DNS</x:String>
@@ -272,12 +246,8 @@
   <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com یان https://dns.example:443</x:String>
   <x:String x:Key="Settings.CustomDohPath">ڕێگای DoH-ی تایبەت</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
-  <x:String x:Key="Settings.OnionDnsProxy">پرۆکسیکردنی DNS-ی .onion لە ڕێگەی Tor (بەڕێوەبەر)</x:String>
-  <x:String x:Key="Settings.OnionDnsProxyHint">کاتێک چالاکە و لەگەڵ مۆڵەتی بەرزدا کاردەکات، داواکارییەکانی DNS-ی .onion لە ڕێگەی Tor دەچن.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor پێشکەوتوو</x:String>
-  <x:String x:Key="Settings.TorAdvancedHint">کۆنترۆلە کۆکراوەکان ئەم بەشە خوێندنپێزان دەهێڵن. تەنها ئەوچەندەی پێویستتە بکرێتەوە.</x:String>
-  <x:String x:Key="Settings.AdvancedPerformanceSection">کارایی &amp; گونجانی</x:String>
   <x:String x:Key="Settings.AdvancedTunSection">ئەنجینی TUN</x:String>
   <x:String x:Key="Settings.AdvancedTunSectionHint">تەنها لە دۆخی TUN/VPN کاریگەرە. پێشوەختەکان بەکاربهێنە مەگەر پێویستت بە هەڵسەنگاندنی گونجانی هەبێت.</x:String>
   <x:String x:Key="Settings.TunCore">نووکلێوسی TUN</x:String>
@@ -288,27 +258,18 @@
   <x:String x:Key="Settings.TunStrictRouteHint">کاتێک چالاکە، ڕووتەکان پێویستە لە ڕێگای TUN بمێننەوە. تەنها بۆ چارەسەرکردنی تۆڕە سەختەکان ناچالاک بکە.</x:String>
   <x:String x:Key="Settings.KillSwitch">Kill switch</x:String>
   <x:String x:Key="Settings.KillSwitchHint">ئەگەر پەیوەندییەکە بە شێوەیەکی چاوەڕواننەکراو پچڕا، هەموو ترافیکی ئینتەرنێت بلۆک دەکرێت تا لە سەرەتا دەیگەڕێنیتەوە یان دووبارە پەیوەندی دەکەیتەوە، بۆ ئەوەی هیچ شتێک بە پەیوەندیی ڕاستەقینەتدا دەرنەچێت. تەنها لە دۆخی تونێلی تەواوی TUN، نەک لەگەڵ Split Tunneling.</x:String>
+  <x:String x:Key="Settings.TunStackHint">شێوازی مامەڵەکردنی تونێل لەگەڵ ترافیک. Mixed بۆ زۆربەی سیستەمەکان گونجاوە؛ تەنها ئەگەر پەیوەندییەکان ناجێگیر بوون System یان gVisor تاقی بکەرەوە.</x:String>
+  <x:String x:Key="Settings.RouteAllWebTrafficHint">لە دۆخی هیبریددا، ترافیکی وێبی (پۆرتی 80 و 443) هەموو ئەپەکان بە Tor دا بنێرە، نەک تەنها ئەپە هەڵبژێردراوەکان. ئەپەکانی لیستی تێپەڕاندن ڕاستەوخۆ دەمێننەوە.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">ناچالاککردنی IPv6 لە تونێلدا</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">ئەدەپتەری تونێل بەبێ ناونیشانی IPv6 دروست دەکات. ئەگەر تونێل بە هەڵەی "set ipv6 address" دەست پێ ناکات، ئەمە چالاک بکە. OnionHop خۆی بەبێ IPv6 دووبارە هەوڵ دەداتەوە؛ ئەمە هەوڵە سەرنەکەوتووەکە تێدەپەڕێنێت.</x:String>
-  <x:String x:Key="Settings.AdvancedTrafficRulesSection">سنوورکاریەکانی ترافیک</x:String>
-  <x:String x:Key="Settings.AdvancedManualExitSection">دەستکاریکردنی دەرچوونی دەستی</x:String>
   <x:String x:Key="Settings.EntryNode">گرێی داخلبوون (ئارەزووی)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">گرێکانی داخلبوون نانوێنن لەگەڵ بریجەکان بەهاوکات بەکاربهێنرێن.</x:String>
-  <x:String x:Key="Settings.IPv6Support">پشتگیری IPv6</x:String>
-  <x:String x:Key="Settings.HardwareAccel">بڕیاربەخشی سەخت‌ئامێز</x:String>
-  <x:String x:Key="Settings.ConnectionPadding">پاددینگی پەیوەندی</x:String>
   <x:String x:Key="Settings.OptionDefault">پێشوەخت</x:String>
   <x:String x:Key="Settings.OptionEnabled">چالاک</x:String>
   <x:String x:Key="Settings.OptionDisabled">ناچالاک</x:String>
   <x:String x:Key="Settings.ConnectionPaddingAuto">خۆکار (پێشنیازکراو)</x:String>
-  <x:String x:Key="Settings.MaxCircuitInactivity">زۆرترین ناچالاکایتی circuit (خولەک)</x:String>
   <x:String x:Key="Settings.ConnectionTimeoutSeconds">ماوەی چاوەڕێی پەیوەندی (چرکە)</x:String>
-  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">بەتاڵ = خۆکار، 0 = ناچالاک</x:String>
-  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">بەتاڵ بهێڵەوە بۆ بەکارهێنانی پێشوەختەکانی OnionHop، 0 دابنێ بۆ ناچالاककردن، یان 1-3600 بۆ ماوەی چاوەڕێی دیاریکراو.</x:String>
-  <x:String x:Key="Settings.RestrictedFirewallMode">دۆخی فایەروالی سنووردار</x:String>
-  <x:String x:Key="Settings.AllowedPorts">پۆرتە ڕێپێدراوەکان</x:String>
-  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
-  <x:String x:Key="Settings.EntryExitTip">ئامۆژگاری: سنووردارکردنی گرێکانی داخلبوون/دەرچوون دەتوانێت پشتیوانی و خێرایی کەم بکات.</x:String>
+  <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">بەتاڵ بهێڵەوە بۆ بەکارهێنانی پێشوەختەکانی OnionHop، 0 دابنێ بۆ ناچالاککردن، یان 1-3600 بۆ ماوەی چاوەڕێی دیاریکراو.</x:String>
   <x:String x:Key="Settings.ManualExitFingerprint">فینگەرپرینتی گرێی دەرچوونی دەستی</x:String>
   <x:String x:Key="Settings.ManualExitFingerprintWatermark">ئارەزووی (بۆ نموونە $FINGERPRINT)</x:String>
   <x:String x:Key="Settings.ManualEntryFingerprint">فینگەرپرینتی گرێی پاراستنی دەستی</x:String>
@@ -327,11 +288,6 @@
   <x:String x:Key="Settings.RouteAllWebTraffic">هەموو ترافیکی وێب (پۆرتی 80/443) لە ڕێگەی Tor بههێنە</x:String>
   <x:String x:Key="Settings.BlockQuic">بلۆکاردنی QUIC/UDP بۆ بەرنامەکانی Tor (پێشگیری لە لیکی تەوارکردن)</x:String>
   <x:String x:Key="Settings.BlockUdp">بلۆکاردنی ترافیکی UDP</x:String>
-  <x:String x:Key="Settings.TorApps">بەرنامەکانی لە ڕێگەی Tor (دۆخی هیبرید)</x:String>
-  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
-  <x:String x:Key="Settings.BypassApps">بەرنامەکانی Tor دەتەوارن (ئارەزووی)</x:String>
-  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
-  <x:String x:Key="Settings.SplitTunnelingEnableHint">دۆخی TUN/VPN + ڕووتینگی هیبرید لەسەر پەڕەی سەرەتا چالاک بکە بۆ بەکارهێنانی split tunneling.</x:String>
 
   <x:String x:Key="Settings.AutomationTitle">خۆکارانە</x:String>
   <x:String x:Key="Settings.OpenConnectedPage">کراوەکردنی پەڕە کاتی پەیوەندیکردن</x:String>
@@ -365,12 +321,8 @@
   <x:String x:Key="TunCore.Xray">xray (تاقیکاری)</x:String>
 
   <!-- Language names -->
-  <x:String x:Key="Language.English">ئینگلیزی</x:String>
-  <x:String x:Key="Language.German">ئەڵمانی</x:String>
 
   <!-- Window controls -->
-  <x:String x:Key="Window.Minimize">بکووچکرێتەوە</x:String>
-  <x:String x:Key="Window.MaximizeRestore">گەورەکردن / گەڕاندنەوە</x:String>
   <x:String x:Key="Window.Close">داخستن</x:String>
 
   <!-- Runtime status -->
@@ -396,7 +348,6 @@
 
   <!-- V3 Navigation -->
   <x:String x:Key="Nav.Relays">ریلەیەکان</x:String>
-  <x:String x:Key="Nav.Navigation">ناڤبەری</x:String>
 
   <!-- Common -->
   <x:String x:Key="Common.Idle">ئارام</x:String>
@@ -409,31 +360,7 @@
   <x:String x:Key="Accent.System">بەدوای ویندۆز</x:String>
 
   <!-- V3 Home -->
-  <x:String x:Key="Home.V3HeroTitle">پوختەی پەیوەندی</x:String>
-  <x:String x:Key="Home.V3HeroSubtitle">ڕووتی Tor-ی زیندوو، دۆخی بریج و ناسنامە.</x:String>
-  <x:String x:Key="Home.EngineMode">ئەنجینی Tor</x:String>
   <x:String x:Key="Home.CopyIp">کۆپیکردنی IP</x:String>
-  <x:String x:Key="Home.NetworkOverview">پوختەی تۆڕ</x:String>
-  <x:String x:Key="Home.Download">دابەزاندن</x:String>
-  <x:String x:Key="Home.Upload">بارکردن</x:String>
-  <x:String x:Key="Home.CircuitYou">تۆ</x:String>
-  <x:String x:Key="Home.CircuitGuard">پاراستن</x:String>
-  <x:String x:Key="Home.CircuitMiddle">ناوەڕاست</x:String>
-  <x:String x:Key="Home.CircuitExit">دەرچوون</x:String>
-  <x:String x:Key="Home.CircuitInternet">ئینتەرنێت</x:String>
-  <x:String x:Key="Home.CircuitBridge">بریج / داخلبوون</x:String>
-  <x:String x:Key="Home.CircuitMiddleActive">تۆڕی ریلەی</x:String>
-  <x:String x:Key="Home.CircuitMiddleIdle">چاوەڕێی circuit</x:String>
-  <x:String x:Key="Home.CircuitInternetIdle">هێشتا ڕووت نەکراوە</x:String>
-  <x:String x:Key="Home.CircuitGuardHint">ئامادەکاری داخلبوونی هەڵبژێردراو یان ڕێگای بریج-ئاگادار.</x:String>
-  <x:String x:Key="Home.CircuitExitHint">ئامادەکاری دەرچوونی ئێستا یان فینگەرپرینتی دەستی.</x:String>
-  <x:String x:Key="Home.RoutingPreferences">ڕووتینگ &amp; ئامادەکارییەکان</x:String>
-  <x:String x:Key="Home.ModeHint">گۆڕینەوە لەنێوان ڕووتینگی پرۆکسی سبک و دۆخی VPN-ی سراسەری سیستەم.</x:String>
-  <x:String x:Key="Home.ExitLocationHint">هەڵبژاردنی دەرچوونی دەستی پێشکەوتووە و دەتوانێت کاریگەری ناساناسی و بەردەستی هەبێت.</x:String>
-  <x:String x:Key="Home.AdvancedPreferences">کراوەکردنی ئامادەکارییەکانی پێشکەوتوو</x:String>
-  <x:String x:Key="Home.RecentActivity">چالاکییەکانی دانیشتنی نوێ</x:String>
-  <x:String x:Key="Home.NoRecentEvents">هێشتا هیچ ڕووداوی نوێیەک نییە</x:String>
-  <x:String x:Key="Home.NoRecentEventsHint">کردارەکانی پەیوەندی، بریج، و تۆڕ لەم دانیشتندا لێرە دەکەونەوە.</x:String>
   <!-- Home redesign (#73) -->
   <x:String x:Key="Home.StatusConnected">پەیوەندی هەیە</x:String>
   <x:String x:Key="Home.StatusConnecting">پەیوەندی دەکرێت…</x:String>
@@ -473,16 +400,9 @@
   <x:String x:Key="Home.Uploaded">بارکراو</x:String>
   <x:String x:Key="Home.CircuitsCaption">لەم دانیشتنەدا بنیاتنراو</x:String>
   <x:String x:Key="Home.IdentityChangesCaption">ناسنامە نوێیە داواکراوەکان</x:String>
-  <x:String x:Key="Home.SessionTransfer">داتای گواستراوە</x:String>
-  <x:String x:Key="Home.SessionTransferHint">هەموو ترافیکی دیتراو لە دانیشتنی Tor-ی ئێستادا.</x:String>
   <x:String x:Key="Home.SessionCircuits">circuit-ی بنیاتنراو</x:String>
-  <x:String x:Key="Home.SessionCircuitsHint">ژمێرەری circuit-ی ئاستی دانیشتن لە پەیوەندییەکان و گۆڕینی ناسنامەکانەوە.</x:String>
   <x:String x:Key="Home.SessionIdentityChanges">گۆڕینی ناسنامە</x:String>
-  <x:String x:Key="Home.SessionIdentityChangesHint">داواکارییەکانی ناسنامەی نوێ لەم دانیشتنی بەرنامەدا.</x:String>
   <x:String x:Key="Home.SessionUptime">ماوەی کارکردن</x:String>
-  <x:String x:Key="Home.SessionUptimeHint">ماوەی کارکردنی پەیوەندی ئێستا بۆ ئەم دانیشتنە.</x:String>
-  <x:String x:Key="Home.PortHint">ئەندازەی SOCKS بۆ کلاینتەکانی Tor-ئاگادار.</x:String>
-  <x:String x:Key="Home.HttpPortHint">پۆرتی بریجی HTTP کاتێک تونێلی HTTP-ی شوێنی چالاکە.</x:String>
 
   <!-- V3 Settings -->
   <x:String x:Key="Settings.AutoConnectHint">بەرنامە دەستپێدەکات و ئامادەی پەیوەندیە بەبێ کرتەی زیادە.</x:String>
@@ -490,7 +410,7 @@
   <x:String x:Key="Settings.MinimizeToTrayHint">داخستنی پەنجەرە OnionHop-ی لە تری/باری مێنو زیندوو دەهێڵێت.</x:String>
   <x:String x:Key="Settings.AutoUpdateHint">مێتاداتای بەرهەمهێنانی GitHub بپشکنێت و بیلدە نوێتر دەرخات.</x:String>
   <x:String x:Key="Settings.DiscordStatusHint">حوزووری بەرنامەی ئارەزووی. هیچ ترافیک یان ناوەڕۆکی گەشتی هاوبەش نییە.</x:String>
-  <x:String x:Key="Settings.AppearanceModeHint">بۆ دۆخی روناکی داهاتوو ئامادەکراوە بەبێ گۆڕینی ڕەفتاری باکەند.</x:String>
+  <x:String x:Key="Settings.AppearanceModeHint">شوێن ڕێکخستنی سیستەم بکەوە، یان هەمیشە ڕووناک یان تاریک بەکاربهێنە.</x:String>
   <x:String x:Key="Settings.AccentColor">ڕەنگی دیارکار</x:String>
   <x:String x:Key="Settings.AccentColorHint">دیارکارەکەی UI-ی بگۆڕە بەبێ گۆڕینی ڕەفتاری ڕووتینگ.</x:String>
   <x:String x:Key="Settings.LanguageHint">تەنها شوێنیکردنی UI. ڕەفتاری پەیوەندی ناگۆڕێت.</x:String>
@@ -521,7 +441,7 @@
   <x:String x:Key="Snowflake.SectionTitle">بریجی Snowflake (خۆبەخشی)</x:String>
   <x:String x:Key="Snowflake.SectionHint">پرۆکسی Snowflake بکارخە بۆ یارمەتی بەکارهێنەرانی سانسورکراو بۆ گەیشتن بە Tor. ئەمە ترافیکی کەسانی دیکە لە ڕێگەی WebRTC دەگوازێتەوە و سەربەخۆی لە پەیوەندی خودت — ترافیکەکەت لەسەرناچێت. باشترین کارکردن لەسەر NAT-ی بەئازادی/full-cone.</x:String>
   <x:String x:Key="Snowflake.Enable">وەک پرۆکسی Snowflake کارخستن</x:String>
-  <x:String x:Key="Snowflake.EnableHint">خۆبەخشی ئێستا دەستپێ بکە/وەستێنە. پێویستی بە دووسگای snowflake-proxy هەیە (لە download-deps.ps1 لەگەڵ Go دروستکراو، یان ONIONHOP_SNOWFLAKE_PROXY_PATH دابنێ).</x:String>
+  <x:String x:Key="Snowflake.EnableHint">خۆبەخشی ئێستا دەستپێبکە یان بیوەستێنە.</x:String>
   <x:String x:Key="Snowflake.AutoStart">دەستپێکردنی پرۆکسی Snowflake کاتی دەستپێکردنی OnionHop</x:String>
   <x:String x:Key="Snowflake.AutoStartHint">هەموو جار کە بەرنامە دەستپێدەکات بە خۆکارانە خۆبەخشی دەستپێ بکە.</x:String>
   <x:String x:Key="Snowflake.Capacity">زۆرترین کلاینتی هاوکات</x:String>
@@ -529,14 +449,14 @@
   <x:String x:Key="Snowflake.Status">دۆخ</x:String>
   <x:String x:Key="Snowflake.StatusStopped">ناکارکراو.</x:String>
   <x:String x:Key="Snowflake.StatusRunning">کارکردن — جۆری NAT: {0}، {1} پەیوەندی خزمەتکراوە لەم دانیشتندا.</x:String>
-  <x:String x:Key="Snowflake.StatusUnavailable">دووسگای پرۆکسی Snowflake نەدۆزرایەوە. لەگەڵ download-deps.ps1 بیبنێ (پێویستی بە Go هەیە) یان ONIONHOP_SNOWFLAKE_PROXY_PATH دابنێ.</x:String>
+  <x:String x:Key="Snowflake.StatusUnavailable">پرۆکسی Snowflake لەم دامەزراندنەدا نییە. OnionHop دووبارە دابمەزرێنەوە بۆ گەڕاندنەوەی.</x:String>
   <x:String x:Key="Settings.RelayRefreshInterval">مامناوەی نوێکردنەوەی داتای ریلەی</x:String>
-  <x:String x:Key="Settings.RelayRefreshIntervalHint">کۆنترۆل دەکات چەند جار مێتاداتای ریلەی لە داهاتوودا نوێدەکرێتەوە.</x:String>
+  <x:String x:Key="Settings.RelayRefreshIntervalHint">OnionHop هەر چەند جار جارێک لیستی بریجەکانی Tor لە پاشبنەمادا نوێ دەکاتەوە.</x:String>
   <x:String x:Key="Settings.RelayRefreshSixHours">هەر 6 کاتژمێر</x:String>
   <x:String x:Key="Settings.RelayRefreshTwelveHours">هەر 12 کاتژمێر</x:String>
   <x:String x:Key="Settings.RelayRefreshTwentyFourHours">هەر 24 کاتژمێر</x:String>
   <x:String x:Key="Settings.UpdateChannel">ناوەندی نوێکردنەوە</x:String>
-  <x:String x:Key="Settings.UpdateChannelHint">Stable بەرهەمهێنانە بڵاوکراوەکان بەکاردەهێنێت. Preview شوێن بۆ ڕووکارەکانی بێتا دادەنێت.</x:String>
+  <x:String x:Key="Settings.UpdateChannelHint">Stable تەنها وەشانە کۆتاییەکان پێشکەش دەکات. Preview ئەگەر هەبن، وەشانە پێشوەختەکانیش پێشکەش دەکات.</x:String>
   <x:String x:Key="Settings.UpdateChannelStable">Stable</x:String>
   <x:String x:Key="Settings.UpdateChannelPreview">Preview</x:String>
   <x:String x:Key="Settings.UseBridgesHint">بریجەکان بۆ بەرگریکردن لە سانسورن، نە بۆ گۆڕینی ئاساسی شوێن.</x:String>
@@ -546,12 +466,11 @@
   <x:String x:Key="Settings.ExitLocation">شوێنی دەرچوون</x:String>
   <x:String x:Key="Settings.ExitLocationAdvancedHint">شێوازدانی دەرچوونی دەستی پێشکەوتووە و دەتوانێت ناساناسی یان پشتیوانی کەم بکات.</x:String>
   <x:String x:Key="Settings.BlockQuicHint">پێشگیری دەکات QUIC لە تەوارکردنی ڕێگای Tor لە دۆخی هیبریددا.</x:String>
-  <x:String x:Key="Settings.BlockUdpHint">UDP لە دۆخی TUN بە پێشوەخت دەبڕێت چونکە Tor UDP نابەرێت.</x:String>
+  <x:String x:Key="Settings.BlockUdpHint">تەنها لەگەڵ Split Tunneling کاردەکات. Tor ناتوانێت UDP بگوازێتەوە، بۆیە لە دۆخی تونێلی تەواودا هیچ UDPێک جگە لە DNS، کە بە Tor دا دەڕوات، لەم کۆمپیوتەرە دەرناچێت. لەگەڵ Split Tunneling، ئەمە ڕێگری دەکات لەوەی UDPی ئەو ئەپانەی بە Tor دا دەنێردرێن ڕاستەوخۆ دەربچێت.</x:String>
   <x:String x:Key="Settings.OpenConnectedPageHint">ئامانجی ئارەزووی دوای پەیوەندیکردنی سەرکەوتوو.</x:String>
   <x:String x:Key="Settings.OpenDisconnectedPageHint">پەڕەی ئارەزووی کاتی وەستانی تونێل.</x:String>
 
   <!-- V3 Logs -->
-  <x:String x:Key="Logs.Subtitle">تشخیصی تەنها شوێنی لەگەڵ فلتەرکردن بە سەرچاوە و ئاستی گرنگی.</x:String>
   <x:String x:Key="Logs.Search">گەڕانی تۆمارەکان</x:String>
   <x:String x:Key="Logs.FilterAll">هەموو</x:String>
   <x:String x:Key="Logs.LevelInfo">زانیاری</x:String>
@@ -571,14 +490,10 @@
   <x:String x:Key="Logs.Summary">پوختە</x:String>
   <x:String x:Key="Logs.TotalEntries">هەموو نووسینەکان</x:String>
   <x:String x:Key="Logs.ActiveSources">سەرچاوەکانی چالاک</x:String>
-  <x:String x:Key="Logs.LocalOnly">تەنها شوێنی</x:String>
   <x:String x:Key="Logs.Pause">وەستاندن</x:String>
   <x:String x:Key="Logs.AutoScroll">ئۆتۆسکرۆل</x:String>
-  <x:String x:Key="Logs.FooterHint">وەستاندن تەنها نوێکردنەوەی دیمەنی فلتەرکراو دواخستن دەکات؛ تۆمارەکانی ڕانتایمی بنچینەیی بەردەوام شوێنی بافەر دەکرێن.</x:String>
 
   <!-- V3 Relays -->
-  <x:String x:Key="Relays.Title">گەڕانی ریلەی</x:String>
-  <x:String x:Key="Relays.Subtitle">دایرێکتۆری زیندووی Tor بپشکنە بەبێ نیشاندانی ریلەیەکان وەک شوێنەکانی VPN-ی ئاساسی.</x:String>
   <x:String x:Key="Relays.Refresh">نوێکردنەوە</x:String>
   <x:String x:Key="Relays.Search">گەڕانی nickname، fingerprint، وڵات، یان IP</x:String>
   <x:String x:Key="Relays.AllCountries">هەموو وڵاتەکان</x:String>
@@ -608,16 +523,11 @@
   <x:String x:Key="Relays.FieldFlags">ئاڵاکان</x:String>
   <x:String x:Key="Relays.UseAsPreferredExit">وەک دەرچوونی پێشواز بەکاربهێنە (تاقیکاری)</x:String>
   <x:String x:Key="Relays.SelectExitRelayFirst">یەکەم ریلەی دەرچوون هەڵبژێرە</x:String>
-  <x:String x:Key="Relays.UseAsPreferredExitHint">ئەم ریلەیە وەک دەرچوونی دەستی هەرزەکار دادەنێت. ئەمە دەتوانێت ناساناسی و بەردەستی کەم بکات.</x:String>
   <x:String x:Key="Relays.UseAsPreferredGuard">وەک پاراستنی پێشواز بەکاربهێنە (تاقیکاری)</x:String>
   <x:String x:Key="Relays.SelectGuardRelayFirst">یەکەم ریلەی پاراستن هەڵبژێرە</x:String>
-  <x:String x:Key="Relays.UseAsPreferredGuardHint">ئەم ریلەیە وەک پاراستنی دەستی هەرزەکار دادەنێت. ئەمە دەتوانێت ناساناسی و بەردەستی کەم بکات.</x:String>
   <x:String x:Key="Relays.UseAsPreferredMiddle">وەک ناوەڕاستی پێشواز بەکاربهێنە (تاقیکاری)</x:String>
   <x:String x:Key="Relays.SelectMiddleRelayFirst">یەکەم ریلەی ناوەڕاست هەڵبژێرە</x:String>
-  <x:String x:Key="Relays.UseAsPreferredMiddleHint">ئەم ریلەیە وەک ناوەڕاستی دەستی هەرزەکار دادەنێت. ئەمە دەتوانێت ناساناسی و بەردەستی کەم بکات.</x:String>
   <x:String x:Key="Relays.PreferenceSaved">پێشوازی {0} بۆ {1} پاراستراوە.</x:String>
-  <x:String x:Key="Relays.MapPlaceholderTitle">جوگرافیای تۆڕ</x:String>
-  <x:String x:Key="Relays.MapPlaceholderHint">پارێزراوە بۆ دیمەنی نەخشەی circuit-ی داهاتوو. شێوازی ئێستا شوێنەکە بە راستی دادەنێت بەجیاتی دروستکردنی جوگرافیا.</x:String>
   <x:String x:Key="Relays.Bandwidth1Mb">کەمترین 1 MB/s</x:String>
   <x:String x:Key="Relays.Bandwidth10Mb">کەمترین 10 MB/s</x:String>
   <x:String x:Key="Relays.Bandwidth50Mb">کەمترین 50 MB/s</x:String>
@@ -626,10 +536,6 @@
   <x:String x:Key="Relays.RoleExit">دەرچوون</x:String>
 
   <!-- V3 Status -->
-  <x:String x:Key="Status.Connection">پەیوەندی</x:String>
-  <x:String x:Key="Status.Protection">پارێزگاری</x:String>
-  <x:String x:Key="Status.Engine">ئەنجین</x:String>
-  <x:String x:Key="Status.Update">نوێکردنەوە</x:String>
   <x:String x:Key="Status.ProtectionSystem">ڕووتینگی سراسەری سیستەم چالاکە</x:String>
   <x:String x:Key="Status.ProtectionProxy">ڕووتینگی پرۆکسی چالاکە</x:String>
   <x:String x:Key="Status.ProtectionOff">پارێزگاری ناچالاکە</x:String>
@@ -641,4 +547,27 @@
   <x:String x:Key="Status.UpdateUnknown">دۆخی نوێکردنەوە بەردەست نییە</x:String>
   <x:String x:Key="Status.UpdateAvailable">نوێکردنەوە بەردەستە: {0}</x:String>
   <x:String x:Key="Status.UpdateCurrent">نوێترین وەشانە</x:String>
+  <!-- Routing rules and other strings that were English-only in every translation -->
+  <x:String x:Key="Home.IpGeoCaveat">ئەو وڵاتەی پیشان دەدرێت لەم IPـیەوە خەمڵێنراوە و لەوانەیە جیاواز بێت لە دەرچوونی هەڵبژێردراوت. Tor هێشتا بە وڵاتی دەرچوونی هەڵبژێردراوتدا دەڕوات.</x:String>
+  <x:String x:Key="Logs.TabBridges">بریجی ئێستا</x:String>
+  <x:String x:Key="Settings.EntryNodeBridgesNote">هەڵبژاردنی گرێی چوونەژوورەوە بەردەست نییە کاتێک بریجەکان چالاکن: بریجەکە خۆی دەروازەی چوونەژوورەوەتە بۆ Tor.</x:String>
+  <x:String x:Key="Settings.SplitTunnelingToggleHint">ئەپە هەڵبژێردراوەکان بە Tor دا بنێرە و با ئەوانی تر ڕاستەوخۆ پەیوەندی بکەن. پێویستی بە دۆخی TUN/VPN هەیە؛ ئەمە چالاک بکە بۆ بەکارهێنانی هەڵبژێری ئەپ و هەڵبژاردەکانی خوارەوە. گۆڕانکارییەکانی ڕێڕەوکردن لە پەیوەندیی داهاتوودا جێبەجێ دەبن. (kill switch تەنها لە دۆخی تونێلی تەواودا کاردەکات، بۆیە تا ئەمە چالاک بێت بەردەست نییە.)</x:String>
+  <x:String x:Key="Settings.RoutingRulesTitle">یاساکانی ڕێڕەوکردن (دۆخی TUN/VPN)</x:String>
+  <x:String x:Key="Settings.RoutingRulesHint">دۆمەین یان مەودای IPی دیاریکراو ڕاستەوخۆ بنێرە (بێ Tor) یان بیانبەستە. تەنها لە دۆخی TUN/VPN دا کاردەکات. هەر هێڵێک یەک تۆمار؛ ئەو هێڵانەی بە # دەست پێدەکەن پشتگوێ دەخرێن. دۆمەینەکان هەموو ژێردۆمەینەکانیان دەگرنەوە؛ مەودای IP بە شێوازی CIDR (بۆ نموونە 10.0.0.0/8).</x:String>
+  <x:String x:Key="Settings.RoutingBypass">تێپەڕاندنی Tor (ڕاستەوخۆ)</x:String>
+  <x:String x:Key="Settings.RoutingBypassHint">ئەمانە بە IP ڕاستەقینەکەت دەردەچن، نەک بە Tor دا. بەسوودە بۆ ماڵپەڕە ناوخۆیی یان ناو وڵاتییەکان کە بە Tor کار ناکەن.</x:String>
+  <x:String x:Key="Settings.RoutingBlock">بەستن</x:String>
+  <x:String x:Key="Settings.RoutingBlockHint">ئەمانە بە تەواوی دەبەسترێن. بەسوودە بۆ دۆمەینی ڕیکلام یان شوێنکەوتن.</x:String>
+  <x:String x:Key="Settings.CountryRoutingTitle">ڕێڕەوکردن بەپێی وڵات (دۆخی TUN/VPN)</x:String>
+  <x:String x:Key="Settings.CountryRoutingHint">هەموو وڵاتێک بەپێی IP ڕاستەوخۆ بنێرە یان ببەستە، بە لیستی geoip کە خۆکار نوێ دەبنەوە. تەنها لە دۆخی TUN/VPN دا کاردەکات. کۆدی وڵاتی ISO بەکاربهێنە (بۆ نموونە ir، ru، de)، هەر هێڵێک یەکێک یان بە فاریزە جیاکراوە. لیستەکان لە پاشبنەمادا خۆکار دادەگیرێن و نوێ دەبنەوە.</x:String>
+  <x:String x:Key="Settings.CountryBypass">ئەم وڵاتانە ڕاستەوخۆ (تێپەڕاندنی Tor)</x:String>
+  <x:String x:Key="Settings.CountryBypassHint">ترافیک بۆ IPی ئەم وڵاتانە بە IP ڕاستەقینەکەت دەردەچێت، نەک بە Tor دا. بەسوودە بۆ ماڵپەڕە ناو وڵاتییەکان کە بە Tor کار ناکەن.</x:String>
+  <x:String x:Key="Settings.CountryBlock">بەستنی ئەم وڵاتانە</x:String>
+  <x:String x:Key="Settings.CountryBlockHint">ترافیک بۆ IPی ئەم وڵاتانە بە تەواوی دەبەسترێت.</x:String>
+  <x:String x:Key="Settings.SiteRoutingTitle">ڕێڕەوکردن بەپێی جۆری دۆمەین (دۆخی TUN/VPN)</x:String>
+  <x:String x:Key="Settings.SiteRoutingHint">هەموو جۆرێکی دۆمەین ڕاستەوخۆ بنێرە یان ببەستە، بە لیستی geosite کە خۆکار نوێ دەبنەوە (بۆ نموونە category-ads-all بۆ بەستنی ڕیکلام و شوێنکەوتووەکان، یان جۆرێکی وڵات وەک ir بۆ ڕاستەوخۆ هێشتنەوەی ماڵپەڕەکانی). تەنها لە دۆخی TUN/VPN دا کاردەکات. هەر هێڵێک یەک جۆر یان بە فاریزە جیاکراوە. لیستەکان لە پاشبنەمادا خۆکار دادەگیرێن و نوێ دەبنەوە.</x:String>
+  <x:String x:Key="Settings.SiteBypass">ئەم جۆرانە ڕاستەوخۆ (تێپەڕاندنی Tor)</x:String>
+  <x:String x:Key="Settings.SiteBypassHint">دۆمەینەکانی ئەم جۆرانە بە IP ڕاستەقینەکەت دەردەچن، نەک بە Tor دا. بەسوودە بۆ ماڵپەڕە ناو وڵاتییەکان کە بە Tor کار ناکەن.</x:String>
+  <x:String x:Key="Settings.SiteBlock">بەستنی ئەم جۆرانە</x:String>
+  <x:String x:Key="Settings.SiteBlockHint">دۆمەینەکانی ئەم جۆرانە بە تەواوی دەبەسترێن. category-ads-all هەڵبژاردەیەکی باشە بۆ بەستنی ڕیکلام و شوێنکەوتووەکان.</x:String>
 </ResourceDictionary>

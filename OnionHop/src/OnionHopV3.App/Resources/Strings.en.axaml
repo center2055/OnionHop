@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!-- Common -->
-  <x:String x:Key="Common.Search">Search</x:String>
 
   <!-- Navigation -->
   <x:String x:Key="Nav.Home">Home</x:String>
@@ -91,12 +90,8 @@
   <x:String x:Key="Saved.EmptyDescription">Save working bridges or SNI hosts from the scanner to build your library.</x:String>
 
   <!-- Home -->
-  <x:String x:Key="Home.Title">Connection</x:String>
   <x:String x:Key="Home.CurrentIp">Current IP</x:String>
   <x:String x:Key="Home.IpGeoCaveat">The displayed country is estimated from this IP and can differ from your chosen exit — Tor still routes through the exit country you selected.</x:String>
-  <x:String x:Key="Home.SocksPort">SOCKS Port</x:String>
-  <x:String x:Key="Home.HttpPort">HTTP Port</x:String>
-  <x:String x:Key="Home.ManualExitFingerprint">Manual Exit Fingerprint</x:String>
   <x:String x:Key="Home.Connect">Connect</x:String>
   <x:String x:Key="Home.Disconnect">Disconnect</x:String>
   <x:String x:Key="Home.Cancel">Cancel</x:String>
@@ -107,10 +102,8 @@
   <x:String x:Key="Home.SystemProxyOn">System Proxy: ON</x:String>
   <x:String x:Key="Home.SystemProxyOff">System Proxy: OFF</x:String>
   <x:String x:Key="Home.SystemProxyTooltip">Whether system traffic routes through Tor in Proxy Mode. Toggle before connecting to pre-set the behavior, or while connected to switch live without dropping Tor. When OFF, system traffic goes direct (e.g. a separate VPN); apps pointed at the SOCKS port still use Tor.</x:String>
-  <x:String x:Key="Home.BridgeDataAutoUpdates">Bridge data auto-updates</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateUnknown">Bridge data has not been updated yet.</x:String>
   <x:String x:Key="Home.BridgeDataLastUpdateValue">Bridge data last updated {0}.</x:String>
-  <x:String x:Key="Home.Routing">Routing</x:String>
   <x:String x:Key="Home.SmartConnect">Smart Connect (recommended)</x:String>
   <x:String x:Key="Home.SmartConnectHint">Automatically picks the best Tor connection strategy for your network and country profile. When enabled, bridge/censorship settings may be overridden.</x:String>
   <x:String x:Key="Home.Mode">Mode</x:String>
@@ -118,19 +111,9 @@
   <x:String x:Key="Home.ModeTun">TUN/VPN Mode</x:String>
   <x:String x:Key="Home.Automatic">Automatic</x:String>
   <x:String x:Key="Home.ExitLocation">Exit Location</x:String>
-  <x:String x:Key="Home.ExitLocationManualHint">Manual exit fingerprint is set. Exit location is disabled.</x:String>
-  <x:String x:Key="Home.TorNetwork">Tor Network</x:String>
-  <x:String x:Key="Home.TorNetworkHint">Shows Tor's own traffic (from the control port).</x:String>
-  <x:String x:Key="Home.TunOptions">TUN/VPN Options</x:String>
-  <x:String x:Key="Home.HybridRouting">Hybrid routing (split tunneling)</x:String>
-  <x:String x:Key="Home.KillSwitch">Kill switch (strict TUN only)</x:String>
-  <x:String x:Key="Home.KillSwitchHint">Kill switch requires Administrator and is disabled in Hybrid mode.</x:String>
-  <x:String x:Key="Home.ConnectionElapsed">Connected for</x:String>
   <x:String x:Key="Home.DownloadingComponents">Downloading components...</x:String>
-  <x:String x:Key="Home.QuickActions">Quick actions</x:String>
 
   <!-- Logs -->
-  <x:String x:Key="Logs.Title">Logs</x:String>
   <x:String x:Key="Logs.TabApp">App</x:String>
   <x:String x:Key="Logs.TabDns">DNS</x:String>
   <x:String x:Key="Logs.TabBridges">Current Bridge</x:String>
@@ -143,7 +126,6 @@
   <x:String x:Key="Logs.TipLocalOnly">Logs are local-only.</x:String>
 
   <!-- About -->
-  <x:String x:Key="About.Title">About</x:String>
   <x:String x:Key="About.Links">Links</x:String>
   <x:String x:Key="About.GitHubIssues">GitHub Issues</x:String>
   <x:String x:Key="About.Discord">Discord</x:String>
@@ -161,7 +143,6 @@
   <x:String x:Key="About.SniSources">SNI / front-host candidate lists, used by the SNI scanner's Request SNI:</x:String>
   <x:String x:Key="About.Changelog">History of OnionHop</x:String>
   <x:String x:Key="About.Refresh">Refresh</x:String>
-  <x:String x:Key="About.ChangelogDetails">Details</x:String>
   <x:String x:Key="About.ChangelogDetailsExpand">Details +</x:String>
   <x:String x:Key="About.ChangelogViewOnline">View on GitHub</x:String>
   <x:String x:Key="About.ChangelogDetailsCollapse">Details -</x:String>
@@ -176,16 +157,8 @@
   <x:String x:Key="About.ChangelogTypeBeta">Beta / Pre-release</x:String>
   <x:String x:Key="About.ChangelogDateUnknown">Unknown date</x:String>
   <x:String x:Key="About.ChangelogNotesMissing">No changelog notes were provided for this release.</x:String>
-  <x:String x:Key="About.Subtitle">History of OnionHop, project links, and release notes.</x:String>
   <x:String x:Key="About.ProductName">OnionHop V3</x:String>
   <x:String x:Key="About.Tagline">A lightweight desktop control surface for Tor routing, identity changes, and bridge-aware connection choices.</x:String>
-  <x:String x:Key="About.BuildRuntime">Build &amp; runtime</x:String>
-  <x:String x:Key="About.Version">Version</x:String>
-  <x:String x:Key="About.Engine">Tor engine</x:String>
-  <x:String x:Key="About.UpdateState">Update state</x:String>
-  <x:String x:Key="About.LocalOnly">Local diagnostics</x:String>
-  <x:String x:Key="About.LocalOnlyHint">Logs and session activity stay on this device unless you explicitly export them.</x:String>
-  <x:String x:Key="About.LinksHint">Project links open in your default browser.</x:String>
   <x:String x:Key="About.ShowHistory">Show history</x:String>
   <x:String x:Key="About.HideHistory">Hide history</x:String>
 
@@ -206,12 +179,10 @@
   <x:String x:Key="Settings.AppearanceSystemDefault">System default</x:String>
   <x:String x:Key="Settings.AppearanceDark">Dark</x:String>
   <x:String x:Key="Settings.AppearanceLight">Light</x:String>
-  <x:String x:Key="Settings.DarkMode">Dark mode</x:String>
   <x:String x:Key="Settings.NativeChrome">Use native window chrome (titlebar/buttons)</x:String>
   <x:String x:Key="Settings.Language">Language</x:String>
   <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetails">Show advanced connection details on Home</x:String>
   <x:String x:Key="Settings.ShowAdvancedHomeConnectionDetailsHint">Shows active SOCKS/HTTP ports and manual exit fingerprint status on the Home card.</x:String>
-  <x:String x:Key="Settings.Maintenance">Maintenance</x:String>
   <x:String x:Key="Settings.ResetHint">Resets all OnionHop V3 settings back to defaults.</x:String>
   <x:String x:Key="Settings.RestoreDefaults">Restore default settings</x:String>
 
@@ -220,8 +191,6 @@
   <x:String x:Key="Settings.BridgeType">Bridge type</x:String>
   <x:String x:Key="Settings.BridgeSource">Bridge source</x:String>
   <x:String x:Key="Settings.BridgeSourceHint">Auto tries the OnionHop collector and Tor bridge service, then falls back to local offline lists. "OnionHop collector only" pulls pre-tested bridges from the collector (obfs4, webtunnel, vanilla).</x:String>
-  <x:String x:Key="Settings.BridgeSourceCredits">Offline bridge fallback data: Tor-Bridges-Namer by Chara-Freedom and contributors.</x:String>
-  <x:String x:Key="Settings.CustomBridges">Custom bridges (optional, overrides built-in)</x:String>
   <x:String x:Key="Settings.CustomBridgesWatermark">Paste bridge lines from bridges.torproject.org...</x:String>
   <x:String x:Key="Settings.CustomSni">Custom SNI/front hosts (optional)</x:String>
   <x:String x:Key="Settings.CustomSniWatermark">example.com, another.example</x:String>
@@ -240,10 +209,19 @@
   <x:String x:Key="Settings.OnionServicesHint">Publish something on this machine or your network under a .onion address: a camera, a NAS, a web app. No port forwarding, no static IP and no DynDNS, and it is not exposed to the open internet. Addresses are assigned on connect and stay the same afterwards.</x:String>
   <x:String x:Key="Settings.OnionServicesWarning">Anyone who has the address can reach that device, so the device's own password is what protects it. Give it a strong one and treat the address as a secret.</x:String>
   <x:String x:Key="Settings.OnionServiceLabelWatermark">Name (e.g. Camera)</x:String>
+  <x:String x:Key="Settings.OnionServiceName">Name</x:String>
   <x:String x:Key="Settings.OnionServiceOnionPort">Onion port</x:String>
   <x:String x:Key="Settings.OnionServiceTargetHost">Forward to host</x:String>
   <x:String x:Key="Settings.OnionServiceTargetPort">Port</x:String>
   <x:String x:Key="Settings.OnionServiceAdd">Add</x:String>
+  <x:String x:Key="Settings.OnionServiceNotPublished">Not published yet. Connect to get the address.</x:String>
+  <x:String x:Key="Settings.OnionServiceCopied">Address copied to clipboard.</x:String>
+  <x:String x:Key="Settings.OnionServiceBadOnionPort">The onion port must be a number between 1 and 65535.</x:String>
+  <x:String x:Key="Settings.OnionServiceBadTargetPort">The target port must be a number between 1 and 65535.</x:String>
+  <x:String x:Key="Settings.OnionServiceAdded">Added. Connect to publish it and get the address.</x:String>
+  <x:String x:Key="Settings.OnionServiceRemoved">Removed.</x:String>
+  <x:String x:Key="Settings.OnionServiceEnabled">Enabled. It publishes on the next connect.</x:String>
+  <x:String x:Key="Settings.OnionServiceDisabled">Disabled. It will not be published.</x:String>
   <x:String x:Key="Settings.OnionServiceToggle">On/Off</x:String>
   <x:String x:Key="Settings.SnowflakeAmpHint">Reach the Snowflake broker through Google's AMP cache instead of contacting it directly. Turn this on if you see "Snowflake broker unreachable" — it helps in networks that block the broker. Only affects the snowflake bridge type.</x:String>
   <x:String x:Key="Settings.AppPickerButton">Choose running apps…</x:String>
@@ -258,15 +236,11 @@
   <x:String x:Key="Common.Apply">Apply</x:String>
   <x:String x:Key="Common.Cancel">Cancel</x:String>
   <x:String x:Key="Settings.SnowflakeAmp">Snowflake: Use AMP cache (for blocked networks)</x:String>
-  <x:String x:Key="Settings.AmpCacheUrl">AMP cache URL (optional)</x:String>
-  <x:String x:Key="Settings.AmpCacheWatermark">https://cdn.ampproject.org/</x:String>
   <x:String x:Key="Settings.ProxyModeTitle">Proxy Mode</x:String>
   <x:String x:Key="Settings.ProxyScope">Proxy behavior</x:String>
   <x:String x:Key="Settings.ProxyScopeHint">System proxy (all apps) sets HTTP/HTTPS + SOCKS. SOCKS browser/.onion mode sets SOCKS only for better .onion compatibility in browsers. Local-only keeps system proxy settings untouched for manual app setup.</x:String>
   <x:String x:Key="Settings.PreferredSocksPort">Preferred SOCKS port</x:String>
   <x:String x:Key="Settings.PreferredHttpPort">Preferred HTTP tunnel port</x:String>
-  <x:String x:Key="Settings.AllowLanProxyAccess">Allow LAN proxy access</x:String>
-  <x:String x:Key="Settings.AllowLanProxyAccessHint">Exposes Tor proxy ports on local network interfaces so other devices can connect. Keep disabled unless you trust your LAN.</x:String>
 
   <x:String x:Key="Settings.SecureDns">Secure DNS (DoH) in VPN mode</x:String>
   <x:String x:Key="Settings.DnsProvider">DNS Provider</x:String>
@@ -275,12 +249,8 @@
   <x:String x:Key="Settings.CustomDohHostWatermark">cloudflare-dns.com or https://dns.example:443</x:String>
   <x:String x:Key="Settings.CustomDohPath">Custom DoH path</x:String>
   <x:String x:Key="Settings.CustomDohPathWatermark">/dns-query</x:String>
-  <x:String x:Key="Settings.OnionDnsProxy">Proxy .onion DNS via Tor (Admin)</x:String>
-  <x:String x:Key="Settings.OnionDnsProxyHint">When enabled and running with elevated privileges, .onion DNS queries are routed through Tor.</x:String>
 
   <x:String x:Key="Settings.TorAdvanced">Tor Advanced</x:String>
-  <x:String x:Key="Settings.TorAdvancedHint">Grouped controls help keep this section readable. Expand only what you need.</x:String>
-  <x:String x:Key="Settings.AdvancedPerformanceSection">Performance &amp; compatibility</x:String>
   <x:String x:Key="Settings.AdvancedTunSection">TUN engine</x:String>
   <x:String x:Key="Settings.AdvancedTunSectionHint">Applies only in TUN/VPN mode. Use defaults unless you need compatibility tuning.</x:String>
   <x:String x:Key="Settings.TunCore">TUN core</x:String>
@@ -291,28 +261,19 @@
   <x:String x:Key="Settings.TunStrictRouteHint">When enabled, routes must stay in the TUN path. Disable only for troubleshooting difficult networks.</x:String>
   <x:String x:Key="Settings.KillSwitch">Kill switch</x:String>
   <x:String x:Key="Settings.KillSwitchHint">If the connection drops unexpectedly, all internet traffic is blocked until you restore it on the Home page or connect again, so nothing goes out on your real connection. Full-tunnel TUN mode only, not with split tunneling.</x:String>
+  <x:String x:Key="Settings.TunStackHint">How the tunnel handles traffic. Mixed suits most systems; try System or gVisor only if connections are unreliable.</x:String>
+  <x:String x:Key="Settings.RouteAllWebTrafficHint">In Hybrid mode, also send web traffic (ports 80 and 443) from every app through Tor, not only the apps you chose. Apps on the bypass list stay direct.</x:String>
   <x:String x:Key="Settings.TunDisableIpv6">Disable IPv6 in the tunnel</x:String>
   <x:String x:Key="Settings.TunDisableIpv6Hint">Builds the tunnel adapter without an IPv6 address. Turn this on if the tunnel fails to start with "set ipv6 address". OnionHop already retries without IPv6 on its own; this skips the failed attempt.</x:String>
-  <x:String x:Key="Settings.AdvancedTrafficRulesSection">Traffic restrictions</x:String>
-  <x:String x:Key="Settings.AdvancedManualExitSection">Manual exit override</x:String>
   <x:String x:Key="Settings.EntryNode">Entry node (optional)</x:String>
   <x:String x:Key="Settings.EntryNodeHint">Entry nodes can't be used together with bridges.</x:String>
   <x:String x:Key="Settings.EntryNodeBridgesNote">Entry node selection is unavailable while bridges are on — the bridge is your entry into Tor.</x:String>
-  <x:String x:Key="Settings.IPv6Support">IPv6 support</x:String>
-  <x:String x:Key="Settings.HardwareAccel">Hardware acceleration</x:String>
-  <x:String x:Key="Settings.ConnectionPadding">Connection padding</x:String>
   <x:String x:Key="Settings.OptionDefault">Default</x:String>
   <x:String x:Key="Settings.OptionEnabled">Enabled</x:String>
   <x:String x:Key="Settings.OptionDisabled">Disabled</x:String>
   <x:String x:Key="Settings.ConnectionPaddingAuto">Auto (recommended)</x:String>
-  <x:String x:Key="Settings.MaxCircuitInactivity">Max circuit inactivity (minutes)</x:String>
   <x:String x:Key="Settings.ConnectionTimeoutSeconds">Connection timeout (seconds)</x:String>
-  <x:String x:Key="Settings.ConnectionTimeoutSecondsWatermark">Empty = Auto, 0 = Disabled</x:String>
   <x:String x:Key="Settings.ConnectionTimeoutSecondsHint">Leave empty to use OnionHop defaults, set 0 to disable timeout, or enter 1-3600 for a fixed timeout.</x:String>
-  <x:String x:Key="Settings.RestrictedFirewallMode">Restricted Firewall Mode</x:String>
-  <x:String x:Key="Settings.AllowedPorts">Allowed ports</x:String>
-  <x:String x:Key="Settings.AllowedPortsWatermark">80,443</x:String>
-  <x:String x:Key="Settings.EntryExitTip">Tip: restricting entry/exit nodes can reduce reliability and speed.</x:String>
   <x:String x:Key="Settings.ManualExitFingerprint">Manual Exit Node Fingerprint</x:String>
   <x:String x:Key="Settings.ManualExitFingerprintWatermark">Optional (e.g. $FINGERPRINT)</x:String>
   <x:String x:Key="Settings.ManualEntryFingerprint">Manual Guard Node Fingerprint</x:String>
@@ -332,11 +293,6 @@
   <x:String x:Key="Settings.RouteAllWebTraffic">Route all web traffic (ports 80/443) through Tor</x:String>
   <x:String x:Key="Settings.BlockQuic">Block QUIC/UDP for Tor apps (prevents bypass leaks)</x:String>
   <x:String x:Key="Settings.BlockUdp">Block UDP traffic</x:String>
-  <x:String x:Key="Settings.TorApps">Apps routed through Tor (Hybrid mode)</x:String>
-  <x:String x:Key="Settings.TorAppsWatermark">firefox&#10;chrome&#10;brave</x:String>
-  <x:String x:Key="Settings.BypassApps">Apps bypassing Tor (optional)</x:String>
-  <x:String x:Key="Settings.BypassAppsWatermark">steam&#10;discord</x:String>
-  <x:String x:Key="Settings.SplitTunnelingEnableHint">Switch to TUN/VPN mode on the Home page, then turn on "Split Tunneling" above to choose which apps use Tor.</x:String>
 
   <x:String x:Key="Settings.RoutingRulesTitle">Routing rules (TUN/VPN mode)</x:String>
   <x:String x:Key="Settings.RoutingRulesHint">Send specific domains or IP ranges direct (bypassing Tor) or block them. Only applies in TUN/VPN mode. One entry per line; lines starting with # are ignored. Domains match all subdomains; IP ranges use CIDR (e.g. 10.0.0.0/8).</x:String>
@@ -394,12 +350,8 @@
   <x:String x:Key="TunCore.Xray">xray (experimental)</x:String>
 
   <!-- Language names -->
-  <x:String x:Key="Language.English">English</x:String>
-  <x:String x:Key="Language.German">German</x:String>
 
   <!-- Window controls -->
-  <x:String x:Key="Window.Minimize">Minimize</x:String>
-  <x:String x:Key="Window.MaximizeRestore">Maximize / Restore</x:String>
   <x:String x:Key="Window.Close">Close</x:String>
 
   <!-- Runtime status -->
@@ -425,7 +377,6 @@
 
   <!-- V3 Navigation -->
   <x:String x:Key="Nav.Relays">Relays</x:String>
-  <x:String x:Key="Nav.Navigation">Navigation</x:String>
 
   <!-- Common -->
   <x:String x:Key="Common.Idle">Idle</x:String>
@@ -438,31 +389,7 @@
   <x:String x:Key="Accent.System">Follow Windows</x:String>
 
   <!-- V3 Home -->
-  <x:String x:Key="Home.V3HeroTitle">Connection overview</x:String>
-  <x:String x:Key="Home.V3HeroSubtitle">Live Tor route, bridge, and identity status.</x:String>
-  <x:String x:Key="Home.EngineMode">Tor engine</x:String>
   <x:String x:Key="Home.CopyIp">Copy IP</x:String>
-  <x:String x:Key="Home.NetworkOverview">Network overview</x:String>
-  <x:String x:Key="Home.Download">Download</x:String>
-  <x:String x:Key="Home.Upload">Upload</x:String>
-  <x:String x:Key="Home.CircuitYou">You</x:String>
-  <x:String x:Key="Home.CircuitGuard">Guard</x:String>
-  <x:String x:Key="Home.CircuitMiddle">Middle</x:String>
-  <x:String x:Key="Home.CircuitExit">Exit</x:String>
-  <x:String x:Key="Home.CircuitInternet">Internet</x:String>
-  <x:String x:Key="Home.CircuitBridge">Bridge / entry</x:String>
-  <x:String x:Key="Home.CircuitMiddleActive">Relay mesh</x:String>
-  <x:String x:Key="Home.CircuitMiddleIdle">Waiting for a circuit</x:String>
-  <x:String x:Key="Home.CircuitInternetIdle">Not routed yet</x:String>
-  <x:String x:Key="Home.CircuitGuardHint">Selected entry preference or bridge-aware path.</x:String>
-  <x:String x:Key="Home.CircuitExitHint">Current exit preference or manual fingerprint.</x:String>
-  <x:String x:Key="Home.RoutingPreferences">Routing &amp; preferences</x:String>
-  <x:String x:Key="Home.ModeHint">Switch between lightweight proxy routing and system-wide VPN mode.</x:String>
-  <x:String x:Key="Home.ExitLocationHint">Manual exit choices are advanced and can affect anonymity and availability.</x:String>
-  <x:String x:Key="Home.AdvancedPreferences">Open advanced preferences</x:String>
-  <x:String x:Key="Home.RecentActivity">Recent session activity</x:String>
-  <x:String x:Key="Home.NoRecentEvents">No recent events yet</x:String>
-  <x:String x:Key="Home.NoRecentEventsHint">Connection, bridge, and network actions will appear here during this session.</x:String>
   <!-- Home redesign (#73) -->
   <x:String x:Key="Home.StatusConnected">Connected</x:String>
   <x:String x:Key="Home.StatusConnecting">Connecting…</x:String>
@@ -502,16 +429,9 @@
   <x:String x:Key="Home.Uploaded">Uploaded</x:String>
   <x:String x:Key="Home.CircuitsCaption">Built this session</x:String>
   <x:String x:Key="Home.IdentityChangesCaption">New identities requested</x:String>
-  <x:String x:Key="Home.SessionTransfer">Data transferred</x:String>
-  <x:String x:Key="Home.SessionTransferHint">Total traffic seen on the current Tor session.</x:String>
   <x:String x:Key="Home.SessionCircuits">Circuits built</x:String>
-  <x:String x:Key="Home.SessionCircuitsHint">Session-level circuit counter from connects and identity changes.</x:String>
   <x:String x:Key="Home.SessionIdentityChanges">Identity changes</x:String>
-  <x:String x:Key="Home.SessionIdentityChangesHint">New identity requests during this app session.</x:String>
   <x:String x:Key="Home.SessionUptime">Uptime</x:String>
-  <x:String x:Key="Home.SessionUptimeHint">Current connected runtime for this session.</x:String>
-  <x:String x:Key="Home.PortHint">SOCKS endpoint reserved for Tor-aware clients.</x:String>
-  <x:String x:Key="Home.HttpPortHint">HTTP bridge port used when local HTTP tunneling is active.</x:String>
 
   <!-- V3 Settings -->
   <x:String x:Key="Settings.AutoConnectHint">Start the app ready to connect without extra clicks.</x:String>
@@ -519,7 +439,7 @@
   <x:String x:Key="Settings.MinimizeToTrayHint">Closing the window keeps OnionHop alive in the tray/menu bar.</x:String>
   <x:String x:Key="Settings.AutoUpdateHint">Checks GitHub release metadata and surfaces newer builds.</x:String>
   <x:String x:Key="Settings.DiscordStatusHint">Optional rich presence. No traffic or browsing content is shared.</x:String>
-  <x:String x:Key="Settings.AppearanceModeHint">Prepared for future light mode without changing backend behavior.</x:String>
+  <x:String x:Key="Settings.AppearanceModeHint">Follow your system setting, or always use light or dark.</x:String>
   <x:String x:Key="Settings.AccentColor">Accent color</x:String>
   <x:String x:Key="Settings.AccentColorHint">Switch the UI accent without changing routing behavior.</x:String>
   <x:String x:Key="Settings.LanguageHint">UI localization only. Connection behavior is unchanged.</x:String>
@@ -550,7 +470,7 @@
   <x:String x:Key="Snowflake.SectionTitle">Snowflake bridge (volunteer)</x:String>
   <x:String x:Key="Snowflake.SectionHint">Run a Snowflake proxy to help censored users reach Tor. This relays other people's traffic over WebRTC and is independent of your own connection — it does not route your traffic. Works best on an unrestricted/full-cone NAT.</x:String>
   <x:String x:Key="Snowflake.Enable">Run as a Snowflake proxy</x:String>
-  <x:String x:Key="Snowflake.EnableHint">Start/stop volunteering now. Requires the snowflake-proxy binary (built by download-deps.ps1 with Go, or set ONIONHOP_SNOWFLAKE_PROXY_PATH).</x:String>
+  <x:String x:Key="Snowflake.EnableHint">Start or stop volunteering now.</x:String>
   <x:String x:Key="Snowflake.AutoStart">Start Snowflake proxy when OnionHop launches</x:String>
   <x:String x:Key="Snowflake.AutoStartHint">Automatically begin volunteering each time the app starts.</x:String>
   <x:String x:Key="Snowflake.Capacity">Max concurrent clients</x:String>
@@ -558,14 +478,14 @@
   <x:String x:Key="Snowflake.Status">Status</x:String>
   <x:String x:Key="Snowflake.StatusStopped">Not running.</x:String>
   <x:String x:Key="Snowflake.StatusRunning">Running — NAT type: {0}, {1} connection(s) served this session.</x:String>
-  <x:String x:Key="Snowflake.StatusUnavailable">Snowflake proxy binary not found. Build it with download-deps.ps1 (needs Go) or set ONIONHOP_SNOWFLAKE_PROXY_PATH.</x:String>
+  <x:String x:Key="Snowflake.StatusUnavailable">The Snowflake proxy is missing from this installation. Reinstall OnionHop to restore it.</x:String>
   <x:String x:Key="Settings.RelayRefreshInterval">Relay data refresh interval</x:String>
-  <x:String x:Key="Settings.RelayRefreshIntervalHint">Controls how frequently relay metadata should be refreshed in future iterations.</x:String>
+  <x:String x:Key="Settings.RelayRefreshIntervalHint">How often OnionHop refreshes its Tor bridge lists in the background.</x:String>
   <x:String x:Key="Settings.RelayRefreshSixHours">Every 6 hours</x:String>
   <x:String x:Key="Settings.RelayRefreshTwelveHours">Every 12 hours</x:String>
   <x:String x:Key="Settings.RelayRefreshTwentyFourHours">Every 24 hours</x:String>
   <x:String x:Key="Settings.UpdateChannel">Update channel</x:String>
-  <x:String x:Key="Settings.UpdateChannelHint">Stable uses published releases. Preview keeps room for beta surfaces later.</x:String>
+  <x:String x:Key="Settings.UpdateChannelHint">Stable offers only full releases. Preview also offers pre-releases when there are any.</x:String>
   <x:String x:Key="Settings.UpdateChannelStable">Stable</x:String>
   <x:String x:Key="Settings.UpdateChannelPreview">Preview</x:String>
   <x:String x:Key="Settings.UseBridgesHint">Bridges are for censorship resistance, not for ordinary location switching.</x:String>
@@ -575,12 +495,11 @@
   <x:String x:Key="Settings.ExitLocation">Exit location</x:String>
   <x:String x:Key="Settings.ExitLocationAdvancedHint">Manual exit shaping is advanced and can reduce anonymity or reliability.</x:String>
   <x:String x:Key="Settings.BlockQuicHint">Prevents QUIC from bypassing Tor-routed browser traffic in Hybrid mode.</x:String>
-  <x:String x:Key="Settings.BlockUdpHint">Blocks UDP in TUN mode by default because Tor does not transport UDP.</x:String>
+  <x:String x:Key="Settings.BlockUdpHint">Only applies with split tunneling. Tor can't carry UDP, so in full-tunnel mode no UDP leaves this computer except DNS, which goes through Tor. With split tunneling, this stops UDP from apps routed through Tor from going out directly.</x:String>
   <x:String x:Key="Settings.OpenConnectedPageHint">Optional launch target after a successful connection.</x:String>
   <x:String x:Key="Settings.OpenDisconnectedPageHint">Optional page to reopen when the tunnel stops.</x:String>
 
   <!-- V3 Logs -->
-  <x:String x:Key="Logs.Subtitle">Local-only diagnostics with source and severity filtering.</x:String>
   <x:String x:Key="Logs.Search">Search logs</x:String>
   <x:String x:Key="Logs.FilterAll">All</x:String>
   <x:String x:Key="Logs.LevelInfo">Info</x:String>
@@ -600,14 +519,10 @@
   <x:String x:Key="Logs.Summary">Summary</x:String>
   <x:String x:Key="Logs.TotalEntries">Total entries</x:String>
   <x:String x:Key="Logs.ActiveSources">Active sources</x:String>
-  <x:String x:Key="Logs.LocalOnly">Local only</x:String>
   <x:String x:Key="Logs.Pause">Pause</x:String>
   <x:String x:Key="Logs.AutoScroll">Auto-scroll</x:String>
-  <x:String x:Key="Logs.FooterHint">Pause stops the filtered view from refreshing; the underlying runtime logs continue buffering locally.</x:String>
 
   <!-- V3 Relays -->
-  <x:String x:Key="Relays.Title">Relay browser</x:String>
-  <x:String x:Key="Relays.Subtitle">Inspect the live Tor directory without presenting relays like ordinary VPN locations.</x:String>
   <x:String x:Key="Relays.Refresh">Refresh</x:String>
   <x:String x:Key="Relays.Search">Search nickname, fingerprint, country, or IP</x:String>
   <x:String x:Key="Relays.AllCountries">All countries</x:String>
@@ -637,16 +552,11 @@
   <x:String x:Key="Relays.FieldFlags">Flags</x:String>
   <x:String x:Key="Relays.UseAsPreferredExit">Use as preferred exit (experimental)</x:String>
   <x:String x:Key="Relays.SelectExitRelayFirst">Select an exit relay first</x:String>
-  <x:String x:Key="Relays.UseAsPreferredExitHint">Pins this relay as a strict manual exit. This can reduce anonymity and availability.</x:String>
   <x:String x:Key="Relays.UseAsPreferredGuard">Use as preferred guard (experimental)</x:String>
   <x:String x:Key="Relays.SelectGuardRelayFirst">Select a guard relay first</x:String>
-  <x:String x:Key="Relays.UseAsPreferredGuardHint">Pins this relay as a strict manual guard. This can reduce anonymity and availability.</x:String>
   <x:String x:Key="Relays.UseAsPreferredMiddle">Use as preferred middle (experimental)</x:String>
   <x:String x:Key="Relays.SelectMiddleRelayFirst">Select a middle relay first</x:String>
-  <x:String x:Key="Relays.UseAsPreferredMiddleHint">Pins this relay as a strict manual middle. This can reduce anonymity and availability.</x:String>
   <x:String x:Key="Relays.PreferenceSaved">Preferred {0} saved for {1}.</x:String>
-  <x:String x:Key="Relays.MapPlaceholderTitle">Network geography</x:String>
-  <x:String x:Key="Relays.MapPlaceholderHint">Reserved for a future map-based circuit view. The current shell keeps the space honest instead of faking geography.</x:String>
   <x:String x:Key="Relays.Bandwidth1Mb">1 MB/s minimum</x:String>
   <x:String x:Key="Relays.Bandwidth10Mb">10 MB/s minimum</x:String>
   <x:String x:Key="Relays.Bandwidth50Mb">50 MB/s minimum</x:String>
@@ -655,10 +565,6 @@
   <x:String x:Key="Relays.RoleExit">Exit</x:String>
 
   <!-- V3 Status -->
-  <x:String x:Key="Status.Connection">Connection</x:String>
-  <x:String x:Key="Status.Protection">Protection</x:String>
-  <x:String x:Key="Status.Engine">Engine</x:String>
-  <x:String x:Key="Status.Update">Update</x:String>
   <x:String x:Key="Status.ProtectionSystem">System-wide routing active</x:String>
   <x:String x:Key="Status.ProtectionProxy">Proxy routing active</x:String>
   <x:String x:Key="Status.ProtectionOff">Protection inactive</x:String>
