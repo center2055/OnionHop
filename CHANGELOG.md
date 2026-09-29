@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.8.3 (2026-09-29)
 
 Fixes
 - **TUN/VPN mode now checks that the tunnel is really carrying your traffic, and says so plainly when it isn't (#83).** The IP on Home was always fetched through Tor's own SOCKS port, so it showed a Tor exit whenever Tor was running, even if the tunnel was carrying nothing at all. A user saw "all traffic via Tor" next to a Tor IP while their browser reported their real one. Full-tunnel sessions now also make a fresh connection the way any other program would, and compare its public IP with the one seen before connecting. If it comes out with your real address, Home turns red with "Not protected" and explains what to do, instead of a green shield. When the check passes, Home shows "Tunnel verified". If you have routing rules that send some sites, countries or categories around Tor, a direct answer may simply be one of them, so it is logged as inconclusive rather than raising the alarm.
