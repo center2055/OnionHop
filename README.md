@@ -150,3 +150,13 @@ dotnet run --project OnionHop/src/OnionHopV3.App -c Release
 ```
 
 The ArtiHop 2-hop engine is built from its own public repo, [center2055/ArtiHop](https://github.com/center2055/ArtiHop) — only the compiled binary is bundled; its source is not vendored.
+
+## License
+
+Copyright (C) 2025 OnionHop Authors
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+The full license text is in [LICENSE](LICENSE).
