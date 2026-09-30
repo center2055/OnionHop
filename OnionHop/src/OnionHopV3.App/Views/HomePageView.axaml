@@ -34,10 +34,13 @@
                                 VerticalAlignment="Top" />
 
             <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-              <TextBlock Text="{Binding HeroTitle}"
-                         FontSize="28"
-                         FontWeight="SemiBold"
-                         TextTrimming="CharacterEllipsis" />
+              <!-- Shrinks instead of cutting off when there is little room (small screens, long
+                   translations): the AppImage catalog's screenshot of a small window read "Discon...". -->
+              <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding HeroTitle}"
+                           FontSize="28"
+                           FontWeight="SemiBold" />
+              </Viewbox>
               <TextBlock Text="{Binding HeroDetail}"
                          Classes="Muted"
                          FontSize="14"

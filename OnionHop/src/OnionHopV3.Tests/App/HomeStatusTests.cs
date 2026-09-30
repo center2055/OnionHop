@@ -119,6 +119,12 @@ public sealed class HomeStatusTests
     [InlineData("12:00:01 Auto IP refresh started", true)]
     [InlineData("12:00:01 Tor arguments: -f torrc", true)]
     [InlineData("12:00:01 Paths: baseDir=%USERPROFILE%", true)]
+    [InlineData("12:00:01 Tor node DB update failed: Name or service not known", true)]
+    [InlineData("12:00:01 Tor node DB updated: 94 countries loaded from Onionoo.", true)]
+    [InlineData("12:00:01 Country DB update failed: timeout", true)]
+    [InlineData("12:00:01 Direct IP lookup failed: No such host is known.", true)]
+    [InlineData("12:00:01 Startup IP lookup failed: timeout", true)]
+    [InlineData("12:00:01 Connect failed: Tor did not finish bootstrapping.", false)]
     [InlineData("12:00:01 Kill switch lifted.", false)]
     public void Routine_polling_stays_off_the_home_page(string line, bool routine)
     {

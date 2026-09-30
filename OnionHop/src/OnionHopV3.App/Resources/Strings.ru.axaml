@@ -388,13 +388,13 @@
   <x:String x:Key="Home.ViewLogs">Открыть журналы</x:String>
   <x:String x:Key="Home.ConnectionSection">Подключение</x:String>
   <x:String x:Key="Home.MoreSettings">Другие настройки</x:String>
-  <x:String x:Key="Home.ModeHintProxy">Через Tor идут только приложения, которые следуют настройкам прокси Windows. Браузеры обычно следуют; загрузчики, игры и многие другие программы нет.</x:String>
+  <x:String x:Key="Home.ModeHintProxy">Через Tor идут только приложения, которые следуют системным настройкам прокси. Браузеры обычно следуют; загрузчики, игры и многие другие программы нет.</x:String>
   <x:String x:Key="Home.ModeHintTun">Через Tor идёт каждое приложение на этом компьютере. Нужны права администратора.</x:String>
   <x:String x:Key="Home.ModeHintHybrid">Раздельное туннелирование включено: через Tor идут только приложения, выбранные в настройках.</x:String>
   <x:String x:Key="Home.ModeLockedHint">Заблокировано, пока идёт сеанс. Отключитесь, чтобы изменить.</x:String>
   <x:String x:Key="Home.ExitCountryHint">Страна, из которой, как кажется, идёт ваш трафик.</x:String>
   <x:String x:Key="Home.SystemProxy">Системный прокси</x:String>
-  <x:String x:Key="Home.SystemProxyHint">Направляет настройки прокси Windows на Tor, чтобы браузеры его использовали. Другие приложения можно настроить на SOCKS {0}.</x:String>
+  <x:String x:Key="Home.SystemProxyHint">Направляет системные настройки прокси на Tor, чтобы браузеры его использовали. Другие приложения можно настроить на SOCKS {0}.</x:String>
   <x:String x:Key="Home.SessionSection">Этот сеанс</x:String>
   <x:String x:Key="Home.Downloaded">Загружено</x:String>
   <x:String x:Key="Home.Uploaded">Отправлено</x:String>

@@ -388,13 +388,13 @@
   <x:String x:Key="Home.ViewLogs">Voir les journaux</x:String>
   <x:String x:Key="Home.ConnectionSection">Connexion</x:String>
   <x:String x:Key="Home.MoreSettings">Plus de paramètres</x:String>
-  <x:String x:Key="Home.ModeHintProxy">Seules les applications qui suivent les paramètres de proxy de Windows passent par Tor. Les navigateurs le font généralement ; les gestionnaires de téléchargement, les jeux et beaucoup d'autres programmes, non.</x:String>
+  <x:String x:Key="Home.ModeHintProxy">Seules les applications qui suivent les paramètres de proxy du système passent par Tor. Les navigateurs le font généralement ; les gestionnaires de téléchargement, les jeux et beaucoup d'autres programmes, non.</x:String>
   <x:String x:Key="Home.ModeHintTun">Chaque application de cet ordinateur passe par Tor. Nécessite des droits d'administrateur.</x:String>
   <x:String x:Key="Home.ModeHintHybrid">La tunnellisation partagée est activée : seules les applications choisies dans les paramètres passent par Tor.</x:String>
   <x:String x:Key="Home.ModeLockedHint">Verrouillé pendant une session. Déconnectez-vous pour le modifier.</x:String>
   <x:String x:Key="Home.ExitCountryHint">Le pays d'où votre trafic semble provenir.</x:String>
   <x:String x:Key="Home.SystemProxy">Proxy système</x:String>
-  <x:String x:Key="Home.SystemProxyHint">Dirige les paramètres de proxy de Windows vers Tor, afin que les navigateurs l'utilisent. D'autres applications peuvent être réglées sur SOCKS {0}.</x:String>
+  <x:String x:Key="Home.SystemProxyHint">Dirige les paramètres de proxy du système vers Tor, afin que les navigateurs l'utilisent. D'autres applications peuvent être réglées sur SOCKS {0}.</x:String>
   <x:String x:Key="Home.SessionSection">Cette session</x:String>
   <x:String x:Key="Home.Downloaded">Téléchargé</x:String>
   <x:String x:Key="Home.Uploaded">Envoyé</x:String>

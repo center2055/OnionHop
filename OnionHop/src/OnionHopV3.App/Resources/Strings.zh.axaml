@@ -388,13 +388,13 @@
   <x:String x:Key="Home.ViewLogs">查看日志</x:String>
   <x:String x:Key="Home.ConnectionSection">连接</x:String>
   <x:String x:Key="Home.MoreSettings">更多设置</x:String>
-  <x:String x:Key="Home.ModeHintProxy">只有遵循 Windows 代理设置的应用才会经过 Tor。浏览器通常会遵循；下载器、游戏和许多其他程序不会。</x:String>
+  <x:String x:Key="Home.ModeHintProxy">只有遵循 系统代理设置的应用才会经过 Tor。浏览器通常会遵循；下载器、游戏和许多其他程序不会。</x:String>
   <x:String x:Key="Home.ModeHintTun">这台电脑上的每个应用都会经过 Tor。需要管理员权限。</x:String>
   <x:String x:Key="Home.ModeHintHybrid">分流隧道已开启：只有你在设置中选择的应用经过 Tor。</x:String>
   <x:String x:Key="Home.ModeLockedHint">会话进行中无法更改。请先断开连接。</x:String>
   <x:String x:Key="Home.ExitCountryHint">你的流量看起来来自的国家/地区。</x:String>
   <x:String x:Key="Home.SystemProxy">系统代理</x:String>
-  <x:String x:Key="Home.SystemProxyHint">将 Windows 代理设置指向 Tor，让浏览器使用它。其他应用可以设置为 SOCKS {0}。</x:String>
+  <x:String x:Key="Home.SystemProxyHint">将 系统代理设置指向 Tor，让浏览器使用它。其他应用可以设置为 SOCKS {0}。</x:String>
   <x:String x:Key="Home.SessionSection">本次会话</x:String>
   <x:String x:Key="Home.Downloaded">已下载</x:String>
   <x:String x:Key="Home.Uploaded">已上传</x:String>

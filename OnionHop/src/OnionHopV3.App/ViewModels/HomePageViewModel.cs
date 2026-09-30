@@ -288,14 +288,20 @@ public sealed class HomePageViewModel : PageViewModelBase
     }
 
     /// <summary>Lines that are either constant background polling or too long and technical to mean
-    /// anything at a glance. They stay in the Logs page, just not on Home.</summary>
+    /// anything at a glance. They stay in the Logs page, just not on Home. That includes the
+    /// background relay-list and IP lookups: they have nothing to do with connecting, yet offline
+    /// they failed in red as Home's headline event (the AppImage catalog's screenshot shows one).</summary>
     internal static bool IsRoutineLine(string line)
     {
         var message = line.Length > 9 ? line[9..] : line;
         return message.StartsWith("IP check", StringComparison.OrdinalIgnoreCase)
                || message.StartsWith("Auto IP refresh", StringComparison.OrdinalIgnoreCase)
                || message.StartsWith("Tor arguments:", StringComparison.OrdinalIgnoreCase)
-               || message.StartsWith("Paths:", StringComparison.OrdinalIgnoreCase);
+               || message.StartsWith("Paths:", StringComparison.OrdinalIgnoreCase)
+               || message.StartsWith("Tor node DB", StringComparison.OrdinalIgnoreCase)
+               || message.StartsWith("Country DB update", StringComparison.OrdinalIgnoreCase)
+               || message.StartsWith("Direct IP lookup", StringComparison.OrdinalIgnoreCase)
+               || message.StartsWith("Startup IP lookup", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static HomeActivityItem ParseEvent(string line)

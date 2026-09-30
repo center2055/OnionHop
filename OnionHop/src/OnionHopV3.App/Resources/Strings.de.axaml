@@ -388,13 +388,13 @@
   <x:String x:Key="Home.ViewLogs">Protokolle anzeigen</x:String>
   <x:String x:Key="Home.ConnectionSection">Verbindung</x:String>
   <x:String x:Key="Home.MoreSettings">Weitere Einstellungen</x:String>
-  <x:String x:Key="Home.ModeHintProxy">Nur Apps, die den Windows-Proxy-Einstellungen folgen, laufen über Tor. Browser tun das meist; Downloader, Spiele und viele andere Programme nicht.</x:String>
+  <x:String x:Key="Home.ModeHintProxy">Nur Apps, die den System-Proxy-Einstellungen folgen, laufen über Tor. Browser tun das meist; Downloader, Spiele und viele andere Programme nicht.</x:String>
   <x:String x:Key="Home.ModeHintTun">Jede App auf diesem Computer läuft über Tor. Benötigt Administratorrechte.</x:String>
   <x:String x:Key="Home.ModeHintHybrid">Split-Tunneling ist an: Nur die in den Einstellungen gewählten Apps laufen über Tor.</x:String>
   <x:String x:Key="Home.ModeLockedHint">Gesperrt, solange eine Sitzung läuft. Trenne die Verbindung, um ihn zu ändern.</x:String>
   <x:String x:Key="Home.ExitCountryHint">Das Land, aus dem dein Datenverkehr zu kommen scheint.</x:String>
   <x:String x:Key="Home.SystemProxy">System-Proxy</x:String>
-  <x:String x:Key="Home.SystemProxyHint">Richtet die Windows-Proxy-Einstellungen auf Tor aus, damit Browser es nutzen. Andere Apps können auf SOCKS {0} eingestellt werden.</x:String>
+  <x:String x:Key="Home.SystemProxyHint">Richtet die System-Proxy-Einstellungen auf Tor aus, damit Browser es nutzen. Andere Apps können auf SOCKS {0} eingestellt werden.</x:String>
   <x:String x:Key="Home.SessionSection">Diese Sitzung</x:String>
   <x:String x:Key="Home.Downloaded">Heruntergeladen</x:String>
   <x:String x:Key="Home.Uploaded">Hochgeladen</x:String>

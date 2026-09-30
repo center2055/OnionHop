@@ -417,13 +417,13 @@
   <x:String x:Key="Home.ViewLogs">View logs</x:String>
   <x:String x:Key="Home.ConnectionSection">Connection</x:String>
   <x:String x:Key="Home.MoreSettings">More settings</x:String>
-  <x:String x:Key="Home.ModeHintProxy">Only apps that follow the Windows proxy settings go through Tor. Browsers usually do; downloaders, games and many other programs don't.</x:String>
+  <x:String x:Key="Home.ModeHintProxy">Only apps that follow the system proxy settings go through Tor. Browsers usually do; downloaders, games and many other programs don't.</x:String>
   <x:String x:Key="Home.ModeHintTun">Every app on this computer goes through Tor. Needs administrator rights.</x:String>
   <x:String x:Key="Home.ModeHintHybrid">Split tunneling is on: only the apps you chose in Settings go through Tor.</x:String>
   <x:String x:Key="Home.ModeLockedHint">Locked while a session is running. Disconnect to change it.</x:String>
   <x:String x:Key="Home.ExitCountryHint">The country your traffic appears to come from.</x:String>
   <x:String x:Key="Home.SystemProxy">System proxy</x:String>
-  <x:String x:Key="Home.SystemProxyHint">Points the Windows proxy settings at Tor, so browsers use it. Other apps can be set to SOCKS {0}.</x:String>
+  <x:String x:Key="Home.SystemProxyHint">Points the system proxy settings at Tor, so browsers use it. Other apps can be set to SOCKS {0}.</x:String>
   <x:String x:Key="Home.SessionSection">This session</x:String>
   <x:String x:Key="Home.Downloaded">Downloaded</x:String>
   <x:String x:Key="Home.Uploaded">Uploaded</x:String>

@@ -2,8 +2,10 @@ using System;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Styling;
 
 namespace OnionHopV3.App.Views;
@@ -13,9 +15,34 @@ public partial class MainWindow : Window
     // Height (px) of the integrated drag strip at the top of the window.
     private const double TitleBarDragHeight = 36;
 
+    // Segoe Fluent Icons only exists on Windows. Elsewhere the caption glyphs came out as empty
+    // "missing glyph" boxes (the AppImage catalog's screenshot of the Linux build shows three), so
+    // other platforms get the same icons drawn as 10px vector paths. Settable for render checks.
+    internal static bool UseGlyphCaptionIcons = OperatingSystem.IsWindows();
+
+    private const string MinimizeIcon = "M0,5.5 L10,5.5";
+    private const string MaximizeIcon = "M0.5,0.5 L9.5,0.5 L9.5,9.5 L0.5,9.5 Z";
+    private const string RestoreIcon = "M0.5,2.5 L7.5,2.5 L7.5,9.5 L0.5,9.5 Z M2.5,2.5 L2.5,0.5 L9.5,0.5 L9.5,7.5 L7.5,7.5";
+    private const string CloseIcon = "M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5";
+
     public MainWindow()
     {
         InitializeComponent();
+
+        if (!UseGlyphCaptionIcons)
+        {
+            if (this.FindControl<Button>("MinimizeButton") is { } minimize)
+            {
+                minimize.Content = CaptionIcon(MinimizeIcon);
+            }
+
+            if (this.FindControl<Button>("CloseButton") is { } close)
+            {
+                close.Content = CaptionIcon(CloseIcon);
+            }
+
+            UpdateMaximizeGlyph();
+        }
 
         Initialized += (_, _) => ApplyWindowChrome();
         Opened += (_, _) =>
@@ -115,12 +142,22 @@ public partial class MainWindow : Window
     {
         if (this.FindControl<Button>("MaximizeButton") is { } button)
         {
+            var maximized = WindowState == WindowState.Maximized;
             // 0xE922 = maximize, 0xE923 = restore (Segoe Fluent Icons).
-            button.Content = WindowState == WindowState.Maximized
-                ? ((char)0xE923).ToString()
-                : ((char)0xE922).ToString();
+            button.Content = UseGlyphCaptionIcons
+                ? ((char)(maximized ? 0xE923 : 0xE922)).ToString()
+                : CaptionIcon(maximized ? RestoreIcon : MaximizeIcon);
         }
     }
+
+    private static Path CaptionIcon(string data) => new()
+    {
+        Data = StreamGeometry.Parse(data),
+        Width = 10,
+        Height = 10,
+        StrokeThickness = 1,
+        Stretch = Stretch.None
+    };
 
     private void OnMinimizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 

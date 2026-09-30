@@ -388,13 +388,13 @@
   <x:String x:Key="Home.ViewLogs">مشاهده گزارش‌ها</x:String>
   <x:String x:Key="Home.ConnectionSection">اتصال</x:String>
   <x:String x:Key="Home.MoreSettings">تنظیمات بیشتر</x:String>
-  <x:String x:Key="Home.ModeHintProxy">فقط برنامه‌هایی که از تنظیمات پروکسی ویندوز پیروی می‌کنند از Tor عبور می‌کنند. مرورگرها معمولاً پیروی می‌کنند؛ دانلودرها، بازی‌ها و بسیاری از برنامه‌های دیگر نه.</x:String>
+  <x:String x:Key="Home.ModeHintProxy">فقط برنامه‌هایی که از تنظیمات پروکسی سیستم پیروی می‌کنند از Tor عبور می‌کنند. مرورگرها معمولاً پیروی می‌کنند؛ دانلودرها، بازی‌ها و بسیاری از برنامه‌های دیگر نه.</x:String>
   <x:String x:Key="Home.ModeHintTun">همه برنامه‌های این رایانه از Tor عبور می‌کنند. به دسترسی مدیر نیاز دارد.</x:String>
   <x:String x:Key="Home.ModeHintHybrid">تونل‌زنی تقسیمی روشن است: فقط برنامه‌هایی که در تنظیمات انتخاب کرده‌اید از Tor عبور می‌کنند.</x:String>
   <x:String x:Key="Home.ModeLockedHint">تا زمانی که جلسه در جریان است قفل است. برای تغییر، اتصال را قطع کنید.</x:String>
   <x:String x:Key="Home.ExitCountryHint">کشوری که ترافیک شما به نظر می‌رسد از آن می‌آید.</x:String>
   <x:String x:Key="Home.SystemProxy">پروکسی سیستم</x:String>
-  <x:String x:Key="Home.SystemProxyHint">تنظیمات پروکسی ویندوز را به Tor هدایت می‌کند تا مرورگرها از آن استفاده کنند. برنامه‌های دیگر را می‌توان روی SOCKS {0} تنظیم کرد.</x:String>
+  <x:String x:Key="Home.SystemProxyHint">تنظیمات پروکسی سیستم را به Tor هدایت می‌کند تا مرورگرها از آن استفاده کنند. برنامه‌های دیگر را می‌توان روی SOCKS {0} تنظیم کرد.</x:String>
   <x:String x:Key="Home.SessionSection">این جلسه</x:String>
   <x:String x:Key="Home.Downloaded">دریافت‌شده</x:String>
   <x:String x:Key="Home.Uploaded">ارسال‌شده</x:String>

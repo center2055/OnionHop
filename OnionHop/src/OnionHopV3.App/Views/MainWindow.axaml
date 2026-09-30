@@ -56,6 +56,13 @@
       <Setter Property="Background" Value="#C42B1C" />
       <Setter Property="Foreground" Value="White" />
     </Style>
+    <!-- Vector caption icons, used where Segoe Fluent Icons does not exist (see MainWindow.axaml.cs). -->
+    <Style Selector="Button.CaptionButton Path">
+      <Setter Property="Stroke" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.CaptionClose:pointerover Path">
+      <Setter Property="Stroke" Value="White" />
+    </Style>
   </Window.Styles>
 
   <!-- Panel lets the caption buttons overlay the top-right of the NavigationView. -->

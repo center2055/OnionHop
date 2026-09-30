@@ -388,13 +388,13 @@
   <x:String x:Key="Home.ViewLogs">پیشاندانی تۆمارەکان</x:String>
   <x:String x:Key="Home.ConnectionSection">پەیوەندی</x:String>
   <x:String x:Key="Home.MoreSettings">ڕێکخستنی زیاتر</x:String>
-  <x:String x:Key="Home.ModeHintProxy">تەنها ئەو ئەپانەی شوێن ڕێکخستنەکانی پرۆکسی ویندۆز دەکەون بە Tor دا تێدەپەڕن. وێبگەڕەکان زۆرجار دەیکەن؛ داگرەکان، یارییەکان و زۆر بەرنامەی تر نایکەن.</x:String>
+  <x:String x:Key="Home.ModeHintProxy">تەنها ئەو ئەپانەی شوێن ڕێکخستنەکانی پرۆکسی سیستەم دەکەون بە Tor دا تێدەپەڕن. وێبگەڕەکان زۆرجار دەیکەن؛ داگرەکان، یارییەکان و زۆر بەرنامەی تر نایکەن.</x:String>
   <x:String x:Key="Home.ModeHintTun">هەموو ئەپێکی ئەم کۆمپیوتەرە بە Tor دا تێدەپەڕێت. مافی بەڕێوەبەری پێویستە.</x:String>
   <x:String x:Key="Home.ModeHintHybrid">تونێلی دابەشکراو چالاکە: تەنها ئەو ئەپانەی لە ڕێکخستنەکاندا هەڵتبژاردوون بە Tor دا تێدەپەڕن.</x:String>
   <x:String x:Key="Home.ModeLockedHint">کاتێک دانیشتنێک کاردەکات داخراوە. بۆ گۆڕین پەیوەندییەکە بپچڕێنە.</x:String>
   <x:String x:Key="Home.ExitCountryHint">ئەو وڵاتەی ترافیکەکەت وا دەردەکەوێت لێیەوە هاتبێت.</x:String>
   <x:String x:Key="Home.SystemProxy">پرۆکسی سیستەم</x:String>
-  <x:String x:Key="Home.SystemProxyHint">ڕێکخستنەکانی پرۆکسی ویندۆز ئاڕاستەی Tor دەکات، بۆ ئەوەی وێبگەڕەکان بەکاری بهێنن. ئەپەکانی تر دەتوانرێت لەسەر SOCKS {0} ڕێکبخرێن.</x:String>
+  <x:String x:Key="Home.SystemProxyHint">ڕێکخستنەکانی پرۆکسی سیستەم ئاڕاستەی Tor دەکات، بۆ ئەوەی وێبگەڕەکان بەکاری بهێنن. ئەپەکانی تر دەتوانرێت لەسەر SOCKS {0} ڕێکبخرێن.</x:String>
   <x:String x:Key="Home.SessionSection">ئەم دانیشتنە</x:String>
   <x:String x:Key="Home.Downloaded">داگیراو</x:String>
   <x:String x:Key="Home.Uploaded">بارکراو</x:String>
