@@ -38,7 +38,8 @@ jobs:
       - name: Install AppImage tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2 wget unzip
+          # zsync provides zsyncmake, which writes the .zsync file AppImageUpdate uses.
+          sudo apt-get install -y wget unzip zsync
 
       - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray)
         run: |
@@ -98,13 +99,22 @@ jobs:
           RUN
           chmod +x "$APPDIR/AppRun"
 
+      # The maintained appimagetool (AppImage/appimagetool) embeds the static type 2 runtime, so the
+      # AppImage no longer needs libfuse2 on the user's system; the old AppImageKit build did. The
+      # update information lets AppImageUpdate and similar tools fetch only the changed blocks from
+      # the latest release, using the .zsync file published next to the AppImage.
       - name: Build AppImage
         run: |
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
-          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool OnionHop.AppDir OnionHop-x86_64.AppImage
+          UPDATE_INFO="gh-releases-zsync|${GITHUB_REPOSITORY_OWNER}|${GITHUB_REPOSITORY#*/}|latest|OnionHop-x86_64.AppImage.zsync"
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool -u "$UPDATE_INFO" OnionHop.AppDir OnionHop-x86_64.AppImage
+          # appimagetool writes the .zsync itself when zsyncmake is installed; make sure it exists.
+          if [ ! -f OnionHop-x86_64.AppImage.zsync ]; then
+            zsyncmake -u OnionHop-x86_64.AppImage -o OnionHop-x86_64.AppImage.zsync OnionHop-x86_64.AppImage
+          fi
           sha256sum OnionHop-x86_64.AppImage | tee OnionHop-x86_64.AppImage.sha256.txt
-          ls -lh OnionHop-x86_64.AppImage
+          ls -lh OnionHop-x86_64.AppImage OnionHop-x86_64.AppImage.zsync
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -113,6 +123,7 @@ jobs:
           path: |
             OnionHop-x86_64.AppImage
             OnionHop-x86_64.AppImage.sha256.txt
+            OnionHop-x86_64.AppImage.zsync
           if-no-files-found: error
 
       - name: Attach to release
@@ -122,4 +133,4 @@ jobs:
         run: |
           TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
           echo "Attaching AppImage to release $TAG"
-          gh release upload "$TAG" OnionHop-x86_64.AppImage OnionHop-x86_64.AppImage.sha256.txt --repo "${{ github.repository }}" --clobber
+          gh release upload "$TAG" OnionHop-x86_64.AppImage OnionHop-x86_64.AppImage.sha256.txt OnionHop-x86_64.AppImage.zsync --repo "${{ github.repository }}" --clobber

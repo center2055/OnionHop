@@ -8,6 +8,9 @@ Fixes
 - **The Proxy Mode hints no longer mention Windows on Linux and macOS.** They now talk about the system proxy settings.
 - **Background lookups no longer take over Home's Latest line.** Refreshing the public relay list or looking up your IP fails harmlessly when you are offline, but it showed up in red as the headline event. It is still in Logs.
 
+Additions
+- **The AppImage can update itself.** It now carries update information for AppImageUpdate and similar tools, with a `.zsync` file published next to it in each release, so an update only downloads the parts that changed. It is also built with the static AppImage runtime, so it no longer needs libfuse2 installed.
+
 ## v3.8.3 (2026-09-29)
 
 Fixes
