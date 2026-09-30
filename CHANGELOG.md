@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.8.4 (2026-09-30)
 
 Fixes
 - **Linux: the window buttons no longer show as empty boxes.** Minimize, maximize and close were drawn with an icon font that only exists on Windows, so on Linux they came out as three "missing glyph" boxes (spotted in the AppImage catalog's screenshot). Outside Windows they are now drawn as vector icons; Windows keeps its native ones.
