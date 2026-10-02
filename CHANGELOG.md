@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.8.5 (2026-10-02)
+
+Fixes
+- **Home: the IP is big again and the buttons are back in a row.** In 3.8.3 the IP shrank to small text in a line of facts and the buttons moved into a column, which testers found awkward to use. The IP now has its own panel on the right in large type, with the copy button, uptime, exit and the tunnel check, and Connect/Disconnect, New Identity and Refresh IP sit in a row under the status again, like before 3.8.3. What the status says stays the 3.8.3 way, so it still reflects whether you are actually protected rather than the last message. In a narrow window the IP panel moves under the status instead of squeezing it (tester report).
+
 ## v3.8.4 (2026-09-30)
 
 Fixes

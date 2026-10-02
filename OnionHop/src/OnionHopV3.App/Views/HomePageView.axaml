@@ -27,7 +27,15 @@
       <!-- ===== Status ===== -->
       <Border Classes="Card" Padding="24">
         <StackPanel Spacing="16">
-          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
+          <!-- Layout of the Home testers knew before #73: the actions in a row under the status, and the
+               IP big in its own panel (it had become small text in the facts row). What the status
+               says is still the #73 logic. On a narrow card the IP panel moves under the text instead
+               of squeezing it (HomePageView.axaml.cs). -->
+          <Grid x:Name="StatusGrid"
+                ColumnDefinitions="Auto,*,Auto"
+                RowDefinitions="Auto,Auto"
+                ColumnSpacing="20"
+                SizeChanged="OnStatusGridSizeChanged">
             <controls:StatusOrb Size="72"
                                 Tone="{Binding HeroTone}"
                                 Kind="{Binding HeroIcon}"
@@ -48,64 +56,51 @@
                          TextTrimming="CharacterEllipsis"
                          TextWrapping="Wrap" />
 
-              <!-- At-a-glance facts. Wraps instead of squeezing on a narrow window. -->
-              <WrapPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <StackPanel Orientation="Horizontal"
-                            Spacing="6"
-                            Margin="0,0,22,6"
-                            ToolTip.Tip="{DynamicResource Home.IpGeoCaveat}">
-                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.IpNetworkOutline}"
-                                      Width="16" Height="16"
-                                      Foreground="{DynamicResource TextSecondaryBrush}"
-                                      VerticalAlignment="Center" />
-                  <TextBlock Text="{DynamicResource Home.CurrentIp}" Classes="Caption" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding State.CurrentIp}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                  <Button Classes="IconButton"
-                          Width="26" Height="26"
-                          Padding="0"
-                          IsVisible="{Binding HasRealIp}"
-                          Click="OnCopyIpClick"
-                          ToolTip.Tip="{DynamicResource Home.CopyIp}">
-                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}" Width="13" Height="13" />
-                  </Button>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal"
-                            Spacing="6"
-                            Margin="0,0,22,6"
-                            IsVisible="{Binding State.IsConnected}">
-                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.MapMarkerOutline}"
-                                      Width="16" Height="16"
-                                      Foreground="{DynamicResource TextSecondaryBrush}"
-                                      VerticalAlignment="Center" />
-                  <TextBlock Text="{DynamicResource Home.MetaExit}" Classes="Caption" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding SelectedExitLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal"
-                            Spacing="6"
-                            Margin="0,0,22,6"
-                            IsVisible="{Binding State.ShowConnectionElapsed}">
-                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.TimerOutline}"
-                                      Width="16" Height="16"
-                                      Foreground="{DynamicResource TextSecondaryBrush}"
-                                      VerticalAlignment="Center" />
-                  <TextBlock Text="{DynamicResource Home.SessionUptime}" Classes="Caption" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding State.ConnectionElapsed}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal"
-                            Spacing="6"
-                            Margin="0,0,22,6"
-                            IsVisible="{Binding ShowTunnelVerified}"
-                            ToolTip.Tip="{DynamicResource Home.TunnelVerifiedHint}">
-                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.CheckDecagram}"
-                                      FlowDirection="LeftToRight"
-                                      Width="16" Height="16"
-                                      Foreground="{DynamicResource SuccessBrush}"
-                                      VerticalAlignment="Center" />
-                  <TextBlock Text="{DynamicResource Home.TunnelVerified}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
+              <!-- Actions in one row, the one that matters first and filled. -->
+              <WrapPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Classes="ActionPrimary"
+                        Height="40"
+                        MinWidth="116"
+                        Margin="0,0,8,8"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding State.ConnectCommand}"
+                        IsVisible="{Binding State.ShowConnectButton}"
+                        Content="{DynamicResource Home.Connect}" />
+                <Button Height="40"
+                        MinWidth="116"
+                        Margin="0,0,8,8"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding State.ReleaseKillSwitchCommand}"
+                        IsVisible="{Binding ShowKillSwitchHold}"
+                        Content="{DynamicResource Home.RestoreInternet}" />
+                <Button Classes="ActionDanger"
+                        Height="40"
+                        MinWidth="116"
+                        Margin="0,0,8,8"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding State.DisconnectCommand}"
+                        IsVisible="{Binding State.ShowDisconnectButton}"
+                        Content="{DynamicResource Home.Disconnect}" />
+                <Button Height="40"
+                        MinWidth="116"
+                        Margin="0,0,8,8"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding State.CancelConnectCommand}"
+                        IsVisible="{Binding State.ShowCancelButton}"
+                        Content="{DynamicResource Home.Cancel}" />
+                <Button Height="40"
+                        Padding="16,0"
+                        Margin="0,0,8,8"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding State.ChangeIdentityCommand}"
+                        IsEnabled="{Binding CanChangeIdentity}"
+                        Content="{DynamicResource Home.NewIdentity}" />
+                <Button Height="40"
+                        Padding="16,0"
+                        Margin="0,0,8,8"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding State.RefreshIpCommand}"
+                        Content="{DynamicResource Home.RefreshIp}" />
               </WrapPanel>
 
               <TextBlock Text="{Binding State.AdvancedConnectionSummary}"
@@ -115,46 +110,72 @@
                          IsVisible="{Binding State.ShowAdvancedHomeConnectionDetails}" />
             </StackPanel>
 
-            <!-- Actions: the one that matters is first and filled; the rest match its width. -->
-            <StackPanel Grid.Column="2" Spacing="8" Width="176" VerticalAlignment="Center">
-              <Button Classes="ActionPrimary"
-                      Height="42"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center"
-                      Command="{Binding State.ConnectCommand}"
-                      IsVisible="{Binding State.ShowConnectButton}"
-                      Content="{DynamicResource Home.Connect}" />
-              <Button Height="42"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center"
-                      Command="{Binding State.ReleaseKillSwitchCommand}"
-                      IsVisible="{Binding ShowKillSwitchHold}"
-                      Content="{DynamicResource Home.RestoreInternet}" />
-              <Button Classes="ActionDanger"
-                      Height="42"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center"
-                      Command="{Binding State.DisconnectCommand}"
-                      IsVisible="{Binding State.ShowDisconnectButton}"
-                      Content="{DynamicResource Home.Disconnect}" />
-              <Button Height="42"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center"
-                      Command="{Binding State.CancelConnectCommand}"
-                      IsVisible="{Binding State.ShowCancelButton}"
-                      Content="{DynamicResource Home.Cancel}" />
-              <Button Height="36"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center"
-                      Command="{Binding State.ChangeIdentityCommand}"
-                      IsEnabled="{Binding CanChangeIdentity}"
-                      Content="{DynamicResource Home.NewIdentity}" />
-              <Button Height="36"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center"
-                      Command="{Binding State.RefreshIpCommand}"
-                      Content="{DynamicResource Home.RefreshIp}" />
-            </StackPanel>
+            <!-- The IP, big, with what belongs to it: copy, uptime, exit, the tunnel check. -->
+            <Border x:Name="IpPanel"
+                    Grid.Column="2"
+                    Classes="CardSecondary"
+                    Padding="16,12,10,14"
+                    MinWidth="220"
+                    VerticalAlignment="Top">
+              <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto" ToolTip.Tip="{DynamicResource Home.IpGeoCaveat}">
+                  <TextBlock Text="{DynamicResource Home.CurrentIp}" Classes="Caption" VerticalAlignment="Center" />
+                  <Button Grid.Column="1"
+                          Classes="IconButton"
+                          Width="28" Height="28"
+                          Padding="0"
+                          IsVisible="{Binding HasRealIp}"
+                          Click="OnCopyIpClick"
+                          ToolTip.Tip="{DynamicResource Home.CopyIp}">
+                    <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}" Width="14" Height="14" />
+                  </Button>
+                </Grid>
+                <TextBlock Text="{Binding State.CurrentIp}"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           FlowDirection="LeftToRight"
+                           HorizontalAlignment="Left" />
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,4,0,0"
+                            IsVisible="{Binding State.ShowConnectionElapsed}"
+                            ToolTip.Tip="{DynamicResource Home.SessionUptime}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.TimerOutline}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding State.ConnectionElapsed}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            IsVisible="{Binding State.IsConnected}"
+                            ToolTip.Tip="{DynamicResource Home.MetaExit}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.MapMarkerOutline}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding SelectedExitLabel}"
+                             FontWeight="SemiBold"
+                             MaxWidth="200"
+                             TextTrimming="CharacterEllipsis"
+                             VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            IsVisible="{Binding ShowTunnelVerified}"
+                            ToolTip.Tip="{DynamicResource Home.TunnelVerifiedHint}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.CheckDecagram}"
+                                      FlowDirection="LeftToRight"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource SuccessBrush}"
+                                      VerticalAlignment="Center" />
+                  <TextBlock Text="{DynamicResource Home.TunnelVerified}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
           </Grid>
 
           <ProgressBar Minimum="0"
