@@ -138,6 +138,9 @@ public sealed class OnionHopClient : IDisposable
     private string _connectionStatus = "Disconnected";
     private string _statusMessage = "Ready to route traffic through Tor.";
     private double _connectionProgress;
+    // The engine's own bootstrap percentage for the current attempt (Tor's "Bootstrapped N%",
+    // ArtiHop's "bootstrap progress"), read by WatchAttemptDeadlineAsync from another thread.
+    private volatile int _bootstrapPercent;
     private string _currentIp = "--.--.--.--";
 
     private bool _dependencyDownloadInProgress;
@@ -908,7 +911,17 @@ public sealed class OnionHopClient : IDisposable
         }
 
         var connectTimeout = ResolveConnectTimeout(options.ConnectionTimeoutSeconds, automaticConnectTimeout);
-        if (connectTimeout.HasValue)
+
+        // A Smart Connect attempt's short budget stretches while Tor is visibly getting through (see
+        // WatchAttemptDeadlineAsync). A timeout the user set stays exact.
+        var progressAwareDeadline = connectTimeout.HasValue &&
+                                    options.SmartConnectAttemptTimeoutSeconds is > 0 &&
+                                    !options.ConnectionTimeoutSeconds.HasValue;
+        if (progressAwareDeadline)
+        {
+            RaiseLog($"Connection timeout: {(int)connectTimeout!.Value.TotalSeconds}s, longer while Tor keeps making progress (up to {(int)ProgressingAttemptCap.TotalSeconds}s).");
+        }
+        else if (connectTimeout.HasValue)
         {
             RaiseLog($"Connection timeout: {(int)connectTimeout.Value.TotalSeconds}s.");
         }
@@ -918,7 +931,13 @@ public sealed class OnionHopClient : IDisposable
         }
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        if (connectTimeout.HasValue)
+        using var stopDeadlineWatch = new CancellationTokenSource();
+        _bootstrapPercent = 0;
+        if (progressAwareDeadline)
+        {
+            _ = WatchAttemptDeadlineAsync(connectTimeout!.Value, timeoutCts, stopDeadlineWatch.Token);
+        }
+        else if (connectTimeout.HasValue)
         {
             timeoutCts.CancelAfter(connectTimeout.Value);
         }
@@ -1186,9 +1205,96 @@ public sealed class OnionHopClient : IDisposable
         }
         finally
         {
+            stopDeadlineWatch.Cancel();
             _isConnecting = false;
             PublishStatus();
         }
+    }
+
+    // Smart Connect gives each attempt a short budget so a blocked transport fails fast. But once Tor
+    // has finished a handshake through the transport (15% bootstrapped), the transport works and only
+    // the download is slow, typical of Snowflake on a throttled network. Ending such an attempt at
+    // its budget and moving on threw away the one route that was getting through. So past the budget
+    // an attempt keeps going while its bootstrap still moves, up to a hard cap.
+    private const int TransportGetsThroughPercent = 15;
+    private static readonly TimeSpan ProgressStallWindow = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan ProgressingAttemptCap = TimeSpan.FromMinutes(4);
+
+    private async Task WatchAttemptDeadlineAsync(TimeSpan budget, CancellationTokenSource attempt, CancellationToken stop)
+    {
+        var started = DateTime.UtcNow;
+        var lastPercent = 0;
+        var lastProgressUtc = started;
+        var extended = false;
+        try
+        {
+            while (!attempt.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), stop).ConfigureAwait(false);
+                var now = DateTime.UtcNow;
+                var percent = _bootstrapPercent;
+                // Any change counts: a lower number means Tor started over (the automatic-bridge
+                // fallback moving to its next transport), which is activity too.
+                if (percent != lastPercent)
+                {
+                    lastPercent = percent;
+                    lastProgressUtc = now;
+                }
+
+                var decision = DecideAttemptDeadline(now - started, budget, percent, now - lastProgressUtc);
+                if (decision == AttemptDeadline.Continue)
+                {
+                    continue;
+                }
+
+                if (decision == AttemptDeadline.Extend)
+                {
+                    if (!extended)
+                    {
+                        extended = true;
+                        RaiseLog($"Tor is getting through ({percent}% bootstrapped); giving this attempt more time while it keeps progressing.");
+                    }
+
+                    continue;
+                }
+
+                if (extended)
+                {
+                    RaiseLog($"Tor stopped making progress at {percent}%; ending this attempt.");
+                }
+
+                attempt.Cancel();
+                return;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The attempt finished (connected or failed) before its deadline.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Same, raced with the attempt's cleanup.
+        }
+    }
+
+    internal enum AttemptDeadline
+    {
+        Continue,
+        Extend,
+        End
+    }
+
+    internal static AttemptDeadline DecideAttemptDeadline(TimeSpan elapsed, TimeSpan budget, int bootstrapPercent, TimeSpan sinceLastProgress)
+    {
+        if (elapsed < budget)
+        {
+            return AttemptDeadline.Continue;
+        }
+
+        var gettingThrough = bootstrapPercent >= TransportGetsThroughPercent;
+        return gettingThrough && sinceLastProgress < ProgressStallWindow && elapsed < ProgressingAttemptCap
+            ? AttemptDeadline.Extend
+            : AttemptDeadline.End;
     }
 
     public Task DisconnectAsync() => DisconnectAsync(force: false);
@@ -4022,6 +4128,7 @@ public sealed class OnionHopClient : IDisposable
         if (line.Contains("Bootstrapped", StringComparison.OrdinalIgnoreCase))
         {
             var percent = ExtractProgress(line);
+            _bootstrapPercent = percent;
             _connectionProgress = percent / 100d;
             if (_isConnecting)
             {
@@ -4150,6 +4257,7 @@ public sealed class OnionHopClient : IDisposable
         // connect bar (between "started" at 20% and "SOCKS ready" at 82%) instead of the log.
         if (TorLogHelper.TryParseArtiHopBootstrap(line, out var percent, out var stage))
         {
+            _bootstrapPercent = percent;
             if (_isConnecting)
             {
                 _connectionProgress = Math.Max(_connectionProgress, 0.2 + (0.6 * percent / 100d));
