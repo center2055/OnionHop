@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- **The Arti and ArtiHop engines no longer need the Visual C++ Redistributable on Windows.** Both were built against `vcruntime140.dll`, which Windows does not ship and OnionHop did not bundle, so on a PC without the redistributable (common on clean or trimmed Windows 10 installs) the engine could not start at all. Both now have the C runtime built in.
+- **Arti engine: a copy left running by a crashed or force-closed session is stopped again.** That leftover keeps Arti's state locked, so the next connect fails until it is gone. OnionHop already cleaned it up for Tor and ArtiHop, but to make sure it only stops its own copy it checks where the program lives, and Arti protects its process from exactly that kind of inspection, so OnionHop always skipped it and the Arti engine stayed broken until a reboot. OnionHop now asks Windows for the program's path in a way Arti allows.
+- **Linux: Proxy Mode no longer demands root when Smart Connect is off (#84).** "DNS leak protection", on by default, turns on a system DNS proxy that needs root on Linux. Smart Connect quietly left that out when OnionHop was not root, but with Smart Connect off the same setting made OnionHop refuse to connect, even in local-proxy mode, which never needs root. It now connects and leaves the system's DNS alone, with a note in the log; apps that send host names through the proxy still have them resolved by Tor. TUN mode still asks for root, since it cannot work without it.
+
+Additions
+- **LAN sharing addresses on Home (#85).** With LAN access allowed, other devices on your network can use Tor through this computer, but the addresses to give them were nowhere in the app. Home now shows them while connected (SOCKS5 and, where there is one, HTTP), with copy buttons. The address shown is the one your network actually reaches; OnionHop's own tunnel adapter and VM switches are skipped.
+- **Arti 2.7.0.** The Arti engine is updated from 2.3.0, and no longer needs a separate `sqlite3.dll`. It is built with a fix for an upstream bug in 2.7.0 that hangs Arti on Windows at 100% CPU while it reads the Tor network directory, so it never finishes starting.
+- **ArtiHop 0.2.0, on Arti 2.7.**
+  - **New Identity works with ArtiHop.** It used to say to disconnect and reconnect; ArtiHop now switches new connections to fresh circuits on request.
+  - **`.onion` sites work through ArtiHop.** It was built without Arti's onion service support, so every `.onion` address failed.
+  - **Sites and apps are kept on separate circuits** the way Tor does by default: different SOCKS credentials (Tor Browser uses them per site) or different devices on your LAN never share one. Before, everything going through ArtiHop could share a circuit.
+  - **Failing pages fail faster.** A name that does not exist or a refused port used to be retried on three fresh circuits before the error came back; only failures a new circuit can fix are retried now. Apps also get a proper "host not found" or "connection refused" instead of a generic failure.
+  - **The connect bar moves while ArtiHop starts.** It used to sit still until ArtiHop was fully up; it now follows ArtiHop's startup, with what it is doing (fetching the consensus, certificates, relay descriptors) in the status.
+  - Faster relaying (larger buffers, no Nagle delay on small writes), and a client that never finishes the SOCKS handshake is dropped after 30 seconds instead of holding a connection forever. Sites that do not exist or refuse the connection no longer fill the log with warnings.
+
 ## v3.8.5 (2026-10-02)
 
 Fixes
