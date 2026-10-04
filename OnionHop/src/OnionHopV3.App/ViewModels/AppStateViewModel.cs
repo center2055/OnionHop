@@ -1667,14 +1667,23 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                         : "Checking connectivity and local Tor components...",
                     Math.Min(0.08 + (index * 0.04), 0.18));
 
-                if (SmartConnectEnabled &&
-                    attemptOptions.OnionDnsProxyEnabled &&
+                // On Linux the system DNS proxy (what "DNS leak protection" turns on) needs root, and
+                // nothing else in Proxy Mode does. Leave the system's DNS alone instead of refusing to
+                // connect (#84): Smart Connect already did that, but with Smart Connect off the same
+                // default setting made even local-proxy mode demand root. TUN mode really needs root
+                // and is still checked below.
+                if (attemptOptions.OnionDnsProxyEnabled &&
+                    !IsTunModeOption(attemptOptions) &&
                     !PlatformHelper.IsAdministrator() &&
                     !OperatingSystem.IsWindows() &&
                     !OperatingSystem.IsMacOS())
                 {
-                    attemptOptions = attemptOptions with { OnionDnsProxyEnabled = false };
-                    AppendLog("Smart Connect: disabled .onion DNS proxy for this attempt because elevated privileges are required.");
+                    attemptOptions = attemptOptions with { OnionDnsProxyEnabled = false, FullDnsOverTor = false };
+                    if (index == 0)
+                    {
+                        AppendLog("DNS leak protection needs root on Linux, so this session leaves the system's DNS alone. " +
+                                  "Apps that send host names through OnionHop's proxy still have them resolved by Tor.");
+                    }
                 }
 
                 if (SmartConnectEnabled)
