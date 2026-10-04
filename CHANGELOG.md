@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.8.6 (2026-10-04)
 
 Fixes
 - **The Arti and ArtiHop engines no longer need the Visual C++ Redistributable on Windows.** Both were built against `vcruntime140.dll`, which Windows does not ship and OnionHop did not bundle, so on a PC without the redistributable (common on clean or trimmed Windows 10 installs) the engine could not start at all. Both now have the C runtime built in.
