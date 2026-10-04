@@ -356,8 +356,7 @@ internal sealed class ArtiHopService : IDisposable
             try
             {
                 // Only our binary - never touch an unrelated process that happens to share the name.
-                string? exePath = null;
-                try { exePath = process.MainModule?.FileName; } catch { }
+                var exePath = Platform.PlatformHelper.TryGetProcessPath(process);
                 if (string.IsNullOrEmpty(exePath) ||
                     !string.Equals(Path.GetFullPath(exePath!), targetPath, StringComparison.OrdinalIgnoreCase))
                 {

@@ -555,8 +555,7 @@ internal sealed class TorService : IDisposable
             try
             {
                 // Only touch the orphan if it's the same executable we're about to launch.
-                string? exePath = null;
-                try { exePath = process.MainModule?.FileName; } catch { }
+                var exePath = Platform.PlatformHelper.TryGetProcessPath(process);
                 if (string.IsNullOrEmpty(exePath) ||
                     !string.Equals(Path.GetFullPath(exePath!), targetPath, StringComparison.OrdinalIgnoreCase))
                 {
@@ -619,8 +618,7 @@ internal sealed class TorService : IDisposable
             {
                 try
                 {
-                    string? exePath = null;
-                    try { exePath = process.MainModule?.FileName; } catch { }
+                    var exePath = Platform.PlatformHelper.TryGetProcessPath(process);
                     if (string.IsNullOrEmpty(exePath))
                     {
                         continue;

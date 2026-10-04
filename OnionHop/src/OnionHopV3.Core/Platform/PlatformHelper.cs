@@ -39,6 +39,27 @@ public static class PlatformHelper
         return IsUnixRoot();
     }
 
+    /// <summary>
+    /// Full path of a process's executable, or null when it cannot be read. On Windows this works
+    /// for processes that block memory reads, such as Arti (see <see cref="Windows.WindowsProcessPath"/>).
+    /// </summary>
+    internal static string? TryGetProcessPath(System.Diagnostics.Process process)
+    {
+        if (IsWin && Windows.WindowsProcessPath.Get(process.Id) is { } path)
+        {
+            return path;
+        }
+
+        try
+        {
+            return process.MainModule?.FileName;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     internal static IProxyService CreateProxyService()
     {
         if (IsWin)

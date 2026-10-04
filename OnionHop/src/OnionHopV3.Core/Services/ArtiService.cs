@@ -422,8 +422,7 @@ internal sealed class ArtiService : IDisposable
         {
             try
             {
-                string? exePath = null;
-                try { exePath = process.MainModule?.FileName; } catch { }
+                var exePath = Platform.PlatformHelper.TryGetProcessPath(process);
                 if (string.IsNullOrEmpty(exePath) ||
                     !string.Equals(Path.GetFullPath(exePath!), targetPath, StringComparison.OrdinalIgnoreCase))
                 {
