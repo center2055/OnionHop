@@ -642,6 +642,26 @@ public sealed class SmartConnectAdvisor
     }
 
     /// <summary>
+    /// Move the strategies whose transport failed on this network recently to the back, keeping the
+    /// order within both groups. They stay in the plan: censors move, and one of them may still be
+    /// the only thing that works.
+    /// </summary>
+    public static IReadOnlyList<Strategy> DemoteRecentlyFailed(
+        IReadOnlyList<Strategy> strategies,
+        IReadOnlySet<string> failedTransports)
+    {
+        if (strategies.Count < 2 || failedTransports.Count == 0)
+        {
+            return strategies;
+        }
+
+        return strategies
+            .Where(strategy => !failedTransports.Contains(GetStrategyTransport(strategy)))
+            .Concat(strategies.Where(strategy => failedTransports.Contains(GetStrategyTransport(strategy))))
+            .ToList();
+    }
+
+    /// <summary>
     /// Reorder bridge strategies by measured reachability: transports with reachable bridges (more =
     /// better, faster = better) lead, transports proven to have zero reachable bridges sink to the
     /// back. Transports not in <paramref name="reachabilityByTransport"/> (e.g. fronted snowflake/

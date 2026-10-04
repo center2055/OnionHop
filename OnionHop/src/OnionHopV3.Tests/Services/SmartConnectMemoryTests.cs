@@ -14,6 +14,8 @@ public sealed class SmartConnectMemoryTests : IDisposable
     public void Dispose()
     {
         try { if (File.Exists(_tempFile)) File.Delete(_tempFile); } catch { }
+        var failures = Path.Combine(Path.GetDirectoryName(_tempFile)!, Path.GetFileNameWithoutExtension(_tempFile) + "-failures.json");
+        try { if (File.Exists(failures)) File.Delete(failures); } catch { }
     }
 
     [Fact]
@@ -66,6 +68,45 @@ public sealed class SmartConnectMemoryTests : IDisposable
         memory.Invalidate(key);
 
         Assert.Null(memory.TryGet(key));
+    }
+
+    [Fact]
+    public void Failures_are_remembered_per_network_and_cleared_by_a_success()
+    {
+        var iran = SmartConnectMemory.BuildNetworkKey("IR", "5.22.1.1");
+        var russia = SmartConnectMemory.BuildNetworkKey("RU", "95.1.2.3");
+        var memory = new SmartConnectMemory(_tempFile);
+
+        memory.RecordFailure(iran, "obfs4");
+        memory.RecordFailure(iran, "direct");
+
+        Assert.Equal(["direct", "obfs4"], new SmartConnectMemory(_tempFile).GetRecentlyFailedTransports(iran).Order());
+        Assert.Empty(memory.GetRecentlyFailedTransports(russia));
+
+        memory.RecordSuccess(iran, "obfs4", useBridges: true);
+
+        Assert.Equal(["direct"], memory.GetRecentlyFailedTransports(iran));
+    }
+}
+
+public sealed class DemoteRecentlyFailedTests
+{
+    [Fact]
+    public void Failed_transports_move_to_the_back_in_their_order()
+    {
+        var strategies = SmartConnectAdvisor.BuildStrategiesForRisk(
+            new OnionHopConnectOptions(),
+            SmartConnectAdvisor.RiskLevel.Restricted,
+            ["webtunnel", "snowflake", "obfs4"]);
+        var before = strategies.Select(s => s.Name).ToList();
+
+        var demoted = SmartConnectAdvisor.DemoteRecentlyFailed(
+            strategies,
+            new System.Collections.Generic.HashSet<string> { "webtunnel", "obfs4" });
+
+        var names = demoted.Select(s => s.Name).ToList();
+        Assert.Equal(["bridge:webtunnel", "bridge:obfs4"], names.TakeLast(2));
+        Assert.Equal(before.Where(n => n is not ("bridge:webtunnel" or "bridge:obfs4")), names.SkipLast(2));
     }
 }
 

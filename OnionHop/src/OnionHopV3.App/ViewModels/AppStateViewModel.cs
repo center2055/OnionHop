@@ -1714,6 +1714,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                     break;
                 }
 
+                if (SmartConnectEnabled && !_connectCts.IsCancellationRequested)
+                {
+                    _smartConnectMemory.RecordFailure(_smartConnectNetworkKey, SmartConnectAdvisor.GetStrategyTransport(strategy));
+                }
+
                 if (index >= strategies.Count - 1)
                 {
                     break;
@@ -1819,9 +1824,11 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         OnionHopConnectOptions baseOptions,
         CancellationToken token)
     {
+        // Set again below once the plan knows the network; until then nothing may be remembered
+        // against the previous connect's network.
+        _smartConnectNetworkKey = null;
         if (!SmartConnectEnabled)
         {
-            _smartConnectNetworkKey = null;
             return [new SmartConnectAdvisor.Strategy("manual", "Smart Connect disabled.", baseOptions)];
         }
 
@@ -1841,10 +1848,22 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                     strategies = await ApplyReachabilityRacingAsync(baseOptions, strategies, token);
                 }
 
+                // Failure memory: what failed on this network in the last two days goes last.
+                _smartConnectNetworkKey = SmartConnectMemory.BuildNetworkKey(plan.CountryCode, plan.PublicIp);
+                var recentlyFailed = _smartConnectMemory.GetRecentlyFailedTransports(_smartConnectNetworkKey);
+                var demoted = SmartConnectAdvisor.DemoteRecentlyFailed(strategies, recentlyFailed);
+                if (!demoted.SequenceEqual(strategies))
+                {
+                    var tryLast = demoted
+                        .Select(SmartConnectAdvisor.GetStrategyTransport)
+                        .Where(recentlyFailed.Contains);
+                    AppendLog($"Smart Connect: trying {string.Join(", ", tryLast)} last (failed on this network recently).");
+                    strategies = demoted;
+                }
+
                 // Success memory: if a strategy is known to have worked on this network before, try it
                 // first. The rest of the ladder stays as the fallback. A failed remembered strategy is
                 // invalidated after the attempt loop (see ConnectAsync).
-                _smartConnectNetworkKey = SmartConnectMemory.BuildNetworkKey(plan.CountryCode, plan.PublicIp);
                 var remembered = _smartConnectMemory.TryGet(_smartConnectNetworkKey);
                 if (remembered != null)
                 {

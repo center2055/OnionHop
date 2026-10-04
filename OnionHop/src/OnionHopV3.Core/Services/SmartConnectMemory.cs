@@ -12,6 +12,8 @@ namespace OnionHopV3.Core.Services;
 /// with the remembered winner instead of re-deriving the whole ladder - turning a repeat connect from
 /// "probe everything again" into "try what worked last time first". A failure of the remembered
 /// strategy invalidates it so we don't keep retrying something that stopped working (censors move).
+/// Failed attempts are remembered per transport too, so for a while a transport that just failed on
+/// a network is tried last there instead of costing the user the same wait on every connect.
 /// </summary>
 public sealed class SmartConnectMemory
 {
@@ -21,9 +23,16 @@ public sealed class SmartConnectMemory
     private static readonly TimeSpan EntryTtl = TimeSpan.FromDays(14);
     private const int MaxEntries = 64;
 
+    // How long a failed transport stays at the back of the line on a network. Long enough that the
+    // next few connects skip what just failed, short enough to try it again once censors move on.
+    private static readonly TimeSpan FailureMemory = TimeSpan.FromHours(48);
+    private const int MaxFailureEntries = 256;
+
     private readonly string _path;
+    private readonly string _failuresPath;
     private readonly object _gate = new();
     private Dictionary<string, Entry>? _entries;
+    private Dictionary<string, DateTimeOffset>? _failures;
 
     public SmartConnectMemory(string? overridePath = null)
     {
@@ -31,6 +40,9 @@ public sealed class SmartConnectMemory
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "OnionHop",
             "smartconnect-memory.json");
+        _failuresPath = Path.Combine(
+            Path.GetDirectoryName(_path) ?? string.Empty,
+            Path.GetFileNameWithoutExtension(_path) + "-failures.json");
     }
 
     /// <summary>
@@ -108,6 +120,109 @@ public sealed class SmartConnectMemory
             _entries![networkKey] = new Entry(transport.Trim().ToLowerInvariant(), useBridges, DateTimeOffset.UtcNow);
             TrimToCapacity();
             Persist();
+
+            // It works here now, whatever happened to it before.
+            EnsureFailuresLoaded();
+            if (_failures!.Remove(FailureKey(networkKey, transport)))
+            {
+                PersistFailures();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Record that <paramref name="transport"/> ("direct", "obfs4", ...) did not connect on this
+    /// network, so the next connects try it last for a while.
+    /// </summary>
+    public void RecordFailure(string? networkKey, string transport)
+    {
+        if (string.IsNullOrWhiteSpace(networkKey) || string.IsNullOrWhiteSpace(transport))
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            EnsureFailuresLoaded();
+            _failures![FailureKey(networkKey, transport)] = DateTimeOffset.UtcNow;
+            if (_failures.Count > MaxFailureEntries)
+            {
+                foreach (var oldest in _failures.OrderBy(pair => pair.Value).Take(_failures.Count - MaxFailureEntries).Select(pair => pair.Key).ToList())
+                {
+                    _failures.Remove(oldest);
+                }
+            }
+
+            PersistFailures();
+        }
+    }
+
+    /// <summary>Transports that failed on this network within the last 48 hours.</summary>
+    public IReadOnlySet<string> GetRecentlyFailedTransports(string? networkKey)
+    {
+        var failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(networkKey))
+        {
+            return failed;
+        }
+
+        var prefix = networkKey + "|";
+        var now = DateTimeOffset.UtcNow;
+        lock (_gate)
+        {
+            EnsureFailuresLoaded();
+            foreach (var (key, failedUtc) in _failures!)
+            {
+                if (key.StartsWith(prefix, StringComparison.Ordinal) && now - failedUtc <= FailureMemory)
+                {
+                    failed.Add(key[prefix.Length..]);
+                }
+            }
+        }
+
+        return failed;
+    }
+
+    private static string FailureKey(string networkKey, string transport) =>
+        networkKey + "|" + transport.Trim().ToLowerInvariant();
+
+    private void EnsureFailuresLoaded()
+    {
+        if (_failures != null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(_failuresPath))
+            {
+                _failures = JsonSerializer.Deserialize<Dictionary<string, DateTimeOffset>>(File.ReadAllText(_failuresPath));
+            }
+        }
+        catch
+        {
+            // Corrupt/unreadable: start fresh.
+        }
+
+        _failures ??= new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
+    }
+
+    private void PersistFailures()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_failuresPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(_failuresPath, JsonSerializer.Serialize(_failures));
+        }
+        catch
+        {
+            // Persistence is best-effort.
         }
     }
 
