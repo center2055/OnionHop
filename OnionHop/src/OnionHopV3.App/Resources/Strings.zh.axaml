@@ -395,6 +395,9 @@
   <x:String x:Key="Home.ExitCountryHint">你的流量看起来来自的国家/地区。</x:String>
   <x:String x:Key="Home.SystemProxy">系统代理</x:String>
   <x:String x:Key="Home.SystemProxyHint">将 系统代理设置指向 Tor，让浏览器使用它。其他应用可以设置为 SOCKS {0}。</x:String>
+  <x:String x:Key="Home.LanSharing">局域网共享</x:String>
+  <x:String x:Key="Home.LanSharingHint">同一 Wi-Fi 或局域网中的其他设备可以通过这些地址使用 Tor。</x:String>
+  <x:String x:Key="Home.CopyAddress">复制地址</x:String>
   <x:String x:Key="Home.SessionSection">本次会话</x:String>
   <x:String x:Key="Home.Downloaded">已下载</x:String>
   <x:String x:Key="Home.Uploaded">已上传</x:String>

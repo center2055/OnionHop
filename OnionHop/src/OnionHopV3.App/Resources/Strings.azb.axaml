@@ -395,6 +395,9 @@
   <x:String x:Key="Home.ExitCountryHint">ترافیکینیزین گلدیگی گؤرونن اؤلکه.</x:String>
   <x:String x:Key="Home.SystemProxy">سیستم Proxy</x:String>
   <x:String x:Key="Home.SystemProxyHint">سیستم Proxy آیارلارینی Tor‌ا یؤنلدیر کی براوزرلر اونو ایشلتسین. باشقا اپلر SOCKS {0}‌ا قورولا بیلر.</x:String>
+  <x:String x:Key="Home.LanSharing">یئرلی شبکه‌ده پایلاشما</x:String>
+  <x:String x:Key="Home.LanSharingHint">وای‌فای یا یئرلی شبکه‌نیزده‌کی باشقا جیهازلار بو آدرسلر اوستوندن Tor ایشلده بیلرلر.</x:String>
+  <x:String x:Key="Home.CopyAddress">آدرسی کوپی ائت</x:String>
   <x:String x:Key="Home.SessionSection">بو سئانس</x:String>
   <x:String x:Key="Home.Downloaded">ائندیریلیب</x:String>
   <x:String x:Key="Home.Uploaded">یوکلنیب</x:String>

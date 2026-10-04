@@ -395,6 +395,9 @@
   <x:String x:Key="Home.ExitCountryHint">ئەو وڵاتەی ترافیکەکەت وا دەردەکەوێت لێیەوە هاتبێت.</x:String>
   <x:String x:Key="Home.SystemProxy">پرۆکسی سیستەم</x:String>
   <x:String x:Key="Home.SystemProxyHint">ڕێکخستنەکانی پرۆکسی سیستەم ئاڕاستەی Tor دەکات، بۆ ئەوەی وێبگەڕەکان بەکاری بهێنن. ئەپەکانی تر دەتوانرێت لەسەر SOCKS {0} ڕێکبخرێن.</x:String>
+  <x:String x:Key="Home.LanSharing">هاوبەشکردن لە تۆڕی ناوخۆیی</x:String>
+  <x:String x:Key="Home.LanSharingHint">ئامێرەکانی تر لە وای‌فای یان تۆڕی ناوخۆییەکەت دەتوانن لە ڕێگەی ئەم ناونیشانانەوە Tor بەکاربهێنن.</x:String>
+  <x:String x:Key="Home.CopyAddress">کۆپیکردنی ناونیشان</x:String>
   <x:String x:Key="Home.SessionSection">ئەم دانیشتنە</x:String>
   <x:String x:Key="Home.Downloaded">داگیراو</x:String>
   <x:String x:Key="Home.Uploaded">بارکراو</x:String>

@@ -298,6 +298,44 @@
                           VerticalAlignment="Center" />
           </Grid>
 
+          <!-- LAN sharing (#85): the addresses other devices on the network use, here rather than
+               nowhere. Only while connected with LAN access allowed, since the ports are known then. -->
+          <Grid ColumnDefinitions="*,Auto"
+                ColumnSpacing="16"
+                IsVisible="{Binding ShowLanSharing}">
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+              <TextBlock Text="{DynamicResource Home.LanSharing}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Home.LanSharingHint}" Classes="Caption" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="8" FlowDirection="LeftToRight">
+                <TextBlock Text="SOCKS5" Classes="Caption" Width="52" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LanSocksEndpoint}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <Button Classes="IconButton"
+                        Width="26" Height="26"
+                        Padding="0"
+                        Click="OnCopyLanSocksClick"
+                        ToolTip.Tip="{DynamicResource Home.CopyAddress}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}" Width="13" Height="13" />
+                </Button>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal"
+                          Spacing="8"
+                          FlowDirection="LeftToRight"
+                          IsVisible="{Binding ShowLanHttp}">
+                <TextBlock Text="HTTP" Classes="Caption" Width="52" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LanHttpEndpoint}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <Button Classes="IconButton"
+                        Width="26" Height="26"
+                        Padding="0"
+                        Click="OnCopyLanHttpClick"
+                        ToolTip.Tip="{DynamicResource Home.CopyAddress}">
+                  <icons:MaterialIcon Kind="{x:Static mi:MaterialIconKind.ContentCopy}" Width="13" Height="13" />
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
             <StackPanel Spacing="2">
               <TextBlock Text="{DynamicResource Home.SmartConnect}" FontWeight="SemiBold" />

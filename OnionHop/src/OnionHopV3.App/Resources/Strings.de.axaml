@@ -395,6 +395,9 @@
   <x:String x:Key="Home.ExitCountryHint">Das Land, aus dem dein Datenverkehr zu kommen scheint.</x:String>
   <x:String x:Key="Home.SystemProxy">System-Proxy</x:String>
   <x:String x:Key="Home.SystemProxyHint">Richtet die System-Proxy-Einstellungen auf Tor aus, damit Browser es nutzen. Andere Apps können auf SOCKS {0} eingestellt werden.</x:String>
+  <x:String x:Key="Home.LanSharing">LAN-Freigabe</x:String>
+  <x:String x:Key="Home.LanSharingHint">Andere Geräte in deinem WLAN oder LAN können Tor über diese Adressen nutzen.</x:String>
+  <x:String x:Key="Home.CopyAddress">Adresse kopieren</x:String>
   <x:String x:Key="Home.SessionSection">Diese Sitzung</x:String>
   <x:String x:Key="Home.Downloaded">Heruntergeladen</x:String>
   <x:String x:Key="Home.Uploaded">Hochgeladen</x:String>

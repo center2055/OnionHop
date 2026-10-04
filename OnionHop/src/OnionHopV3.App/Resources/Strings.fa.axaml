@@ -395,6 +395,9 @@
   <x:String x:Key="Home.ExitCountryHint">کشوری که ترافیک شما به نظر می‌رسد از آن می‌آید.</x:String>
   <x:String x:Key="Home.SystemProxy">پروکسی سیستم</x:String>
   <x:String x:Key="Home.SystemProxyHint">تنظیمات پروکسی سیستم را به Tor هدایت می‌کند تا مرورگرها از آن استفاده کنند. برنامه‌های دیگر را می‌توان روی SOCKS {0} تنظیم کرد.</x:String>
+  <x:String x:Key="Home.LanSharing">اشتراک در شبکه محلی</x:String>
+  <x:String x:Key="Home.LanSharingHint">دستگاه‌های دیگر در وای‌فای یا شبکه محلی شما می‌توانند از طریق این نشانی‌ها از Tor استفاده کنند.</x:String>
+  <x:String x:Key="Home.CopyAddress">کپی نشانی</x:String>
   <x:String x:Key="Home.SessionSection">این جلسه</x:String>
   <x:String x:Key="Home.Downloaded">دریافت‌شده</x:String>
   <x:String x:Key="Home.Uploaded">ارسال‌شده</x:String>

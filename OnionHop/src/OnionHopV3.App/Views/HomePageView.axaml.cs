@@ -31,6 +31,22 @@ public partial class HomePageView : UserControl
         panel.Margin = beside ? new Avalonia.Thickness(0) : new Avalonia.Thickness(0, 8, 0, 0);
     }
 
+    private async void OnCopyLanSocksClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is HomePageViewModel viewModel)
+        {
+            await ClipboardHelper.SetTextAsync(this, viewModel.LanSocksEndpoint);
+        }
+    }
+
+    private async void OnCopyLanHttpClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is HomePageViewModel viewModel)
+        {
+            await ClipboardHelper.SetTextAsync(this, viewModel.LanHttpEndpoint);
+        }
+    }
+
     private async void OnCopyIpClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is HomePageViewModel viewModel)

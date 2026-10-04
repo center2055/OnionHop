@@ -46,7 +46,9 @@ public sealed class HomePageViewModel : PageViewModelBase
         nameof(AppStateViewModel.SelectedLocationOption),
         nameof(AppStateViewModel.SelectedLocation),
         nameof(AppStateViewModel.ExitNodeFingerprint),
-        nameof(AppStateViewModel.CurrentIp)
+        nameof(AppStateViewModel.CurrentIp),
+        nameof(AppStateViewModel.AllowLanProxyAccess),
+        nameof(AppStateViewModel.HttpProxyPort)
     };
 
     private static readonly string[] DerivedProperties =
@@ -65,7 +67,11 @@ public sealed class HomePageViewModel : PageViewModelBase
         nameof(UploadRateText),
         nameof(SelectedExitLabel),
         nameof(CanChangeIdentity),
-        nameof(HasRealIp)
+        nameof(HasRealIp),
+        nameof(ShowLanSharing),
+        nameof(LanSocksEndpoint),
+        nameof(ShowLanHttp),
+        nameof(LanHttpEndpoint)
     ];
 
     private readonly Action _openSettings;
@@ -83,6 +89,7 @@ public sealed class HomePageViewModel : PageViewModelBase
         State.LogLines.CollectionChanged += OnLogsCollectionChanged;
         State.PropertyChanged += OnStatePropertyChanged;
         RefreshLatestEvent();
+        RefreshLanAddress();
     }
 
     public IRelayCommand OpenSettingsCommand { get; }
@@ -245,6 +252,31 @@ public sealed class HomePageViewModel : PageViewModelBase
 
     public string SystemProxyHint => string.Format(L("Home.SystemProxyHint"), $"127.0.0.1:{State.SocksProxyPort}");
 
+    // ----- LAN sharing (#85) -------------------------------------------------------------------
+
+    private string? _lanAddress;
+
+    /// <summary>
+    /// With LAN access allowed, other devices on the network can use Tor through this computer, but
+    /// the addresses to give them were nowhere in the app. Shown while connected, since the ports are
+    /// only known then.
+    /// </summary>
+    public bool ShowLanSharing => State.AllowLanProxyAccess && State.IsConnected && _lanAddress != null;
+
+    public string LanSocksEndpoint => $"{_lanAddress}:{State.SocksProxyPort}";
+
+    /// <summary>The HTTP listener only exists in some proxy scopes; its port reads "--" otherwise.</summary>
+    public bool ShowLanHttp => ShowLanSharing && int.TryParse(State.HttpProxyPort, out _);
+
+    public string LanHttpEndpoint => $"{_lanAddress}:{State.HttpProxyPort}";
+
+    private void RefreshLanAddress()
+    {
+        _lanAddress = State.AllowLanProxyAccess && State.IsConnected
+            ? OnionHopV3.Core.Networking.LanAddressFinder.GetPrimaryLanIPv4()
+            : null;
+    }
+
     // ----- Session figures ---------------------------------------------------------------------
 
     public string DownloadRateText => $"↓ {State.DownloadSpeed}";
@@ -262,6 +294,11 @@ public sealed class HomePageViewModel : PageViewModelBase
         if (e.PropertyName == null || !StatusInputs.Contains(e.PropertyName))
         {
             return;
+        }
+
+        if (e.PropertyName is nameof(AppStateViewModel.IsConnected) or nameof(AppStateViewModel.AllowLanProxyAccess))
+        {
+            RefreshLanAddress();
         }
 
         foreach (var property in DerivedProperties)
