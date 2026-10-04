@@ -4119,6 +4119,21 @@ public sealed class OnionHopClient : IDisposable
         }
 
         line = StripAnsi(line);
+
+        // ArtiHop 0.2+ reports its bootstrap the way Tor's "Bootstrapped N%" lines do: show it on the
+        // connect bar (between "started" at 20% and "SOCKS ready" at 82%) instead of the log.
+        if (TorLogHelper.TryParseArtiHopBootstrap(line, out var percent, out var stage))
+        {
+            if (_isConnecting)
+            {
+                _connectionProgress = Math.Max(_connectionProgress, 0.2 + (0.6 * percent / 100d));
+                _statusMessage = stage is null ? $"ArtiHop bootstrapping ({percent}%)" : $"ArtiHop: {stage} ({percent}%)";
+                PublishStatus();
+            }
+
+            return;
+        }
+
         if (ShouldLogTorLine(line) || line.Contains("artihop", StringComparison.OrdinalIgnoreCase) || line.Contains("arti", StringComparison.OrdinalIgnoreCase))
         {
             RaiseLog($"ArtiHop log: {line}");

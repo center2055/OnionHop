@@ -29,6 +29,28 @@ public sealed class TorLogHelperTests
     }
 
     [Theory]
+    [InlineData("2026-10-04T09:22:04.266795Z  INFO artihop::tor_client: bootstrap progress: 15%: connecting successfully; directory is fetching a consensus percent=15", 15, "fetching a consensus")]
+    [InlineData("INFO artihop::tor_client: bootstrap progress: 36%: connecting successfully; directory is fetching authority certificates (0/9) percent=36", 36, "fetching authority certificates (0/9)")]
+    [InlineData("INFO artihop::tor_client: bootstrap progress: 0%: connecting to the internet; not downloading percent=0", 0, "connecting to the internet; not downloading")]
+    [InlineData("bootstrap progress: 100%:", 100, null)]
+    public void TryParseArtiHopBootstrap_ReadsPercentAndStage(string line, int percent, string? stage)
+    {
+        Assert.True(TorLogHelper.TryParseArtiHopBootstrap(line, out var parsedPercent, out var parsedStage));
+        Assert.Equal(percent, parsedPercent);
+        Assert.Equal(stage, parsedStage);
+    }
+
+    [Theory]
+    [InlineData("INFO artihop: Tor client bootstrapped")]
+    [InlineData("bootstrap progress: lots%: nope")]
+    [InlineData("bootstrap progress: 250%: nope")]
+    [InlineData("Bootstrapped 25% (requesting_status): Asking for networkstatus consensus")]
+    public void TryParseArtiHopBootstrap_IgnoresOtherLines(string line)
+    {
+        Assert.False(TorLogHelper.TryParseArtiHopBootstrap(line, out _, out _));
+    }
+
+    [Theory]
     [InlineData("no configured transport called obfs4", true)]
     [InlineData("no such transport is supported", true)]
     [InlineData("failed to bind port 9050", true)]

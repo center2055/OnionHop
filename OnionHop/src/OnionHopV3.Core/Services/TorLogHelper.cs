@@ -37,6 +37,54 @@ internal static class TorLogHelper
         return string.IsNullOrWhiteSpace(summary) ? null : summary;
     }
 
+    /// <summary>
+    /// ArtiHop 0.2+ logs lines like "bootstrap progress: 36%: connecting successfully; directory is
+    /// fetching authority certificates (0/9) percent=36" while it bootstraps. Returns the percent and
+    /// what it is doing now ("fetching authority certificates (0/9)").
+    /// </summary>
+    internal static bool TryParseArtiHopBootstrap(string line, out int percent, out string? stage)
+    {
+        const string Marker = "bootstrap progress: ";
+        percent = 0;
+        stage = null;
+
+        var start = line.IndexOf(Marker, StringComparison.Ordinal);
+        if (start < 0)
+        {
+            return false;
+        }
+
+        var rest = line[(start + Marker.Length)..];
+        var percentEnd = rest.IndexOf('%');
+        if (percentEnd <= 0
+            || !int.TryParse(rest[..percentEnd], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value)
+            || value > 100)
+        {
+            return false;
+        }
+
+        percent = value;
+        var text = rest[(percentEnd + 1)..].TrimStart(':', ' ');
+
+        // The log line ends with the structured field tracing appends ("percent=36").
+        var field = text.LastIndexOf(" percent=", StringComparison.Ordinal);
+        if (field >= 0)
+        {
+            text = text[..field];
+        }
+
+        const string DirectoryPrefix = "directory is ";
+        var directory = text.IndexOf(DirectoryPrefix, StringComparison.Ordinal);
+        if (directory >= 0)
+        {
+            text = text[(directory + DirectoryPrefix.Length)..];
+        }
+
+        text = text.Trim();
+        stage = text.Length == 0 ? null : text;
+        return true;
+    }
+
     internal static bool IsFatalTorBootstrapLine(string line)
     {
         return line.Contains("no configured transport called", StringComparison.OrdinalIgnoreCase)
