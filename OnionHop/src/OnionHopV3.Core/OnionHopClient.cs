@@ -1970,13 +1970,7 @@ public sealed class OnionHopClient : IDisposable
 
         if (string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal))
         {
-            // ArtiHop has no control-port listener (the Arti fork only accepts --mode/--socks/--log/
-            // --bridges-config), so there is no NEWNYM flow. Surface that honestly instead of failing
-            // silently; disconnecting and reconnecting builds fresh circuits.
-            _statusMessage = "ArtiHop does not expose a NEWNYM control yet. Disconnect and reconnect to rotate circuits.";
-            RaiseLog("New Identity skipped: ArtiHop runtime does not provide a control-port NEWNYM flow.");
-            PublishStatus();
-            return false;
+            return await ChangeArtiHopIdentityAsync(token).ConfigureAwait(false);
         }
 
         if (IsUsingArtiRuntime)
@@ -2011,6 +2005,59 @@ public sealed class OnionHopClient : IDisposable
         await Task.Delay(1200, token).ConfigureAwait(false);
         await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
         return true;
+    }
+
+    /// <summary>
+    /// ArtiHop 0.2+ swaps to fresh circuits for new streams on NEWNYM, over its loopback control
+    /// listener. Older builds have none; reconnecting rotates circuits there.
+    /// </summary>
+    private async Task<bool> ChangeArtiHopIdentityAsync(CancellationToken token)
+    {
+        if (!_artiHopService.HasControlEndpoint)
+        {
+            _statusMessage = "This ArtiHop build cannot switch circuits on request. Disconnect and reconnect to rotate circuits.";
+            RaiseLog("New Identity skipped: the bundled ArtiHop has no control listener (added in ArtiHop 0.2.0).");
+            PublishStatus();
+            return false;
+        }
+
+        if (DateTime.UtcNow - _lastNewnymUtc < TimeSpan.FromSeconds(10))
+        {
+            _statusMessage = "Please wait a moment before requesting another identity.";
+            PublishStatus();
+            return false;
+        }
+
+        _statusMessage = "Requesting a new Tor circuit...";
+        PublishStatus();
+
+        if (!await _artiHopService.SendNewIdentityAsync(token).ConfigureAwait(false))
+        {
+            _statusMessage = "Unable to request a new identity from ArtiHop.";
+            PublishStatus();
+            return false;
+        }
+
+        _lastNewnymUtc = DateTime.UtcNow;
+        RaiseLog("ArtiHop: new identity requested; new connections use fresh circuits.");
+        await Task.Delay(1200, token).ConfigureAwait(false);
+        await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>A loopback TCP port nothing is listening on right now.</summary>
+    private static int FindFreeLoopbackPort()
+    {
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            return ((IPEndPoint)listener.LocalEndpoint).Port;
+        }
+        finally
+        {
+            listener.Stop();
+        }
     }
 
     public async Task ChangeExitCountryAsync(string? countryCode, CancellationToken token)
@@ -2722,8 +2769,9 @@ public sealed class OnionHopClient : IDisposable
 
     private bool IsTorRuntimeRunning => _torService.IsRunning || _artiService.IsRunning || _artiHopService.IsRunning;
 
-    // ArtiHop shares Arti's SOCKS-only limitations (no control-port NEWNYM, no live entry/middle/exit
-    // pinning, no traffic-byte counters), so it is treated as part of the "Arti family" runtime.
+    // ArtiHop shares Arti's SOCKS-only limitations (no Tor control port, so no live entry/middle/exit
+    // pinning and no traffic-byte counters), so it is treated as part of the "Arti family" runtime.
+    // New Identity is the exception: ArtiHop 0.2+ handles it over its own control listener.
     private bool IsUsingArtiRuntime =>
         string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArti, StringComparison.Ordinal) ||
         string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal);
@@ -3285,7 +3333,7 @@ public sealed class OnionHopClient : IDisposable
             !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
             !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
         {
-            RaiseLog("ArtiHop mode ignores country/relay pinning and control-port identity changes; use the Classic engine if you need those.");
+            RaiseLog("ArtiHop mode ignores country and relay pinning; use the Classic engine if you need those.");
         }
 
         // ArtiHop (our Arti fork) now supports bridges + pluggable transports via Arti's native config.
@@ -3373,11 +3421,11 @@ public sealed class OnionHopClient : IDisposable
             RaiseLog($"ArtiHop: connecting through {hopBridgeLines.Count} bridge(s) via native Arti pluggable-transport support.");
         }
 
-        // ArtiHop (the bundled Arti fork) has no control-port listener, so OnionHop must NOT pass
-        // --control: the binary rejects the unknown argument and exits before its SOCKS port opens
-        // ("unexpected argument '--control' found"), which surfaces as "ArtiHop exited before its
-        // SOCKS port became ready". New Identity is therefore unavailable in ArtiHop mode and is
-        // handled gracefully in ChangeIdentityAsync (reconnecting rotates circuits instead).
+        // ArtiHop 0.2+ rotates circuits on request through a loopback control listener (New Identity).
+        // Older builds reject --control and exit before their SOCKS port opens ("unexpected argument
+        // '--control' found"), so it is only passed to builds that report support.
+        int? controlPort = ArtiHopService.SupportsControlListener(artiHopPath) ? FindFreeLoopbackPort() : null;
+
         // Bridges force 3-hop (see ArtiHopNormalMode): a 2-hop "bridge -> exit" circuit is rejected by
         // Tor exits, so when bridges are in use run ArtiHop in standard 3-hop mode (the upfront log
         // above already explained this to the user). Without bridges, keep the signature 2-hop circuit.
@@ -3391,6 +3439,7 @@ public sealed class OnionHopClient : IDisposable
             ArtiHopPath = artiHopPath,
             SocksPort = _activeSocksPort,
             SocksListenAddress = _activeProxyBindAddress,
+            ControlPort = controlPort,
             Mode = artiHopMode,
             WorkingDirectory = Path.GetDirectoryName(artiHopPath),
             BridgesConfigPath = bridgesConfigPath

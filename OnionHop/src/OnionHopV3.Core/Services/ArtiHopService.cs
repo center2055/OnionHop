@@ -34,6 +34,81 @@ internal sealed class ArtiHopService : IDisposable
     public event EventHandler? Exited;
 
     public bool IsRunning => _process != null && !_process.HasExited;
+
+    /// <summary>True when this session's ArtiHop was started with a control listener (New Identity).</summary>
+    public bool HasControlEndpoint => _controlEndpoint != null && IsRunning;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> ControlSupportCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// ArtiHop 0.2.0 added a loopback control listener (--control, accepting NEWNYM). Older builds
+    /// reject the flag and exit before opening their SOCKS port, so it is only passed to builds that
+    /// report 0.2.0 or newer. Cached per binary and modification time; a failed probe means no.
+    /// </summary>
+    internal static bool SupportsControlListener(string artiHopPath)
+    {
+        string key;
+        try
+        {
+            key = $"{Path.GetFullPath(artiHopPath)}|{File.GetLastWriteTimeUtc(artiHopPath).Ticks}";
+        }
+        catch
+        {
+            return false;
+        }
+
+        return ControlSupportCache.GetOrAdd(key, _ =>
+        {
+            try
+            {
+                var psi = new ProcessStartInfo(artiHopPath, "--version")
+                {
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+                using var process = Process.Start(psi);
+                if (process == null)
+                {
+                    return false;
+                }
+
+                var output = process.StandardOutput.ReadToEndAsync();
+                if (!process.WaitForExit(5000))
+                {
+                    try { process.Kill(); } catch { }
+                    return false;
+                }
+
+                return ParseArtiHopVersion(output.Result) is { } version && version >= new Version(0, 2, 0);
+            }
+            catch
+            {
+                return false;
+            }
+        });
+    }
+
+    /// <summary>"artihop 0.2.0" (clap's --version output) to 0.2.0; null for anything else.</summary>
+    internal static Version? ParseArtiHopVersion(string? output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return null;
+        }
+
+        var parts = output.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2 || !string.Equals(parts[0], "artihop", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // Drop any pre-release or build suffix ("0.3.0-dev") before parsing.
+        var numeric = parts[1].Split('-', '+')[0];
+        return Version.TryParse(numeric, out var version) ? version : null;
+    }
     public int? ExitCode => _process?.HasExited == true ? _process.ExitCode : null;
 
     public string RecentOutput
@@ -83,9 +158,15 @@ internal sealed class ArtiHopService : IDisposable
             : config.LogFilter.Trim();
 
         var arguments = new List<string> { "--mode", mode, "--socks", endpoint, "--log", logFilter };
-        // ArtiHop has no control listener, so we never pass --control: the binary rejects the unknown
-        // argument and exits before opening its SOCKS port. New Identity is unavailable in ArtiHop mode.
+        // Only builds that support it get --control (see SupportsControlListener): older ones reject
+        // the unknown argument and exit before opening their SOCKS port.
         _controlEndpoint = null;
+        if (config.ControlPort is int controlPort)
+        {
+            arguments.Add("--control");
+            arguments.Add($"127.0.0.1:{controlPort}");
+            _controlEndpoint = new IPEndPoint(IPAddress.Loopback, controlPort);
+        }
 
         if (!string.IsNullOrWhiteSpace(config.BridgesConfigPath))
         {
@@ -223,14 +304,14 @@ internal sealed class ArtiHopService : IDisposable
             await stream.WriteAsync(payload, cts.Token).ConfigureAwait(false);
             await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
-            // Best-effort read of the "OK" acknowledgement.
-            var buffer = new byte[16];
-            try
+            // ArtiHop answers "OK" once later streams will use fresh circuits.
+            var buffer = new byte[32];
+            var read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
+            var reply = System.Text.Encoding.ASCII.GetString(buffer, 0, read).Trim();
+            if (!reply.StartsWith("OK", StringComparison.Ordinal))
             {
-                await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
-            }
-            catch
-            {
+                _log($"ArtiHop refused the new-identity request: {reply}");
+                return false;
             }
 
             return true;
