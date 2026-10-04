@@ -120,20 +120,38 @@ public sealed class SmartConnectAdvisorTests
     }
 
     [Fact]
-    public void BuildStrategiesForRisk_Severe_LeadsWithSnowflakeAmp()
+    public void BuildStrategiesForRisk_Severe_LeadsWithSnowflake_without_forcing_amp()
     {
         var options = new OnionHopConnectOptions { UseSnowflakeAmp = false };
 
-        // Severe (no country preference) leads with the snowflake bridge and forces AMP fronting,
-        // which is the most blocking-resistant first move.
+        // Severe (no country preference) leads with the snowflake bridge. AMP is not forced: its
+        // rendezvous needs a Google front, which China blocks.
         var strategies = SmartConnectAdvisor.BuildStrategiesForRisk(options, SmartConnectAdvisor.RiskLevel.Severe);
 
         Assert.NotEmpty(strategies);
         Assert.Equal("bridge:snowflake", strategies[0].Name);
-        Assert.True(strategies[0].Options.UseSnowflakeAmp);
+        Assert.All(strategies, s => Assert.False(s.Options.UseSnowflakeAmp));
         // dnstt is present as the last-resort transport, and direct is the final fallback.
         Assert.Contains(strategies, s => s.Name == "bridge:dnstt");
         Assert.Equal("direct", strategies[^1].Name);
+    }
+
+    [Fact]
+    public void BuildStrategiesForRisk_follows_the_preferred_order_and_attaches_country_lines()
+    {
+        var snowflakeLines = new[] { "snowflake 192.0.2.3:80 A url=https://x.test fronts=a.test", "snowflake 192.0.2.5:80 A sqsqueue=https://q.test" };
+        var strategies = SmartConnectAdvisor.BuildStrategiesForRisk(
+            new OnionHopConnectOptions { CensorshipCountryCode = "cn" },
+            SmartConnectAdvisor.RiskLevel.Severe,
+            ["webtunnel", "snowflake", "obfs4"],
+            new Dictionary<string, IReadOnlyList<string>> { ["snowflake"] = snowflakeLines });
+
+        Assert.Equal(["bridge:webtunnel", "bridge:snowflake", "bridge:obfs4"], strategies.Take(3).Select(s => s.Name));
+        var snowflake = strategies.Single(s => s.Name == "bridge:snowflake");
+        Assert.Equal(string.Join("\n", snowflakeLines), snowflake.Options.CountryBridgeLines);
+        Assert.Contains("Tor's lines", snowflake.Reason);
+        Assert.Null(strategies.Single(s => s.Name == "bridge:webtunnel").Options.CountryBridgeLines);
+        Assert.All(strategies, s => Assert.Equal("cn", s.Options.CensorshipCountryCode));
     }
 
     [Fact]

@@ -82,6 +82,15 @@ public sealed record OnionHopConnectOptions
     public bool UseSnowflakeAmp { get; init; }
     public string? SnowflakeAmpCache { get; init; }
 
+    // Smart Connect: bridge lines Tor itself recommends for this transport in the user's country
+    // (Tor's circumvention settings), e.g. Snowflake with the domain fronts that get through there.
+    // Used instead of fetched or bundled lines of the same transport. Null = none.
+    public string? CountryBridgeLines { get; init; }
+
+    // Smart Connect: the detected country (ISO code), so Tor's bridge service can hand out bridges
+    // meant for it. Null = unknown.
+    public string? CensorshipCountryCode { get; init; }
+
     public string TorIpv6Mode { get; init; } = ToggleModeDefault;
     public string HardwareAccelerationMode { get; init; } = ToggleModeDefault;
     public string ConnectionPaddingMode { get; init; } = ConnectionPaddingAuto;

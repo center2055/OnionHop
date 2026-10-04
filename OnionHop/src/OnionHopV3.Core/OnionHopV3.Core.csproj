@@ -11,6 +11,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Snapshot of Tor's per-country circumvention settings (bridges.torproject.org/moat/
+         circumvention/map), used until a newer copy can be downloaded. See CircumventionSettings. -->
+    <EmbeddedResource Include="Resources\circumvention-map.json" LogicalName="OnionHopV3.Core.Resources.circumvention-map.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- DPAPI for protecting small secrets at rest (e.g. the upstream-proxy password). The package
          is cross-platform-safe: it builds on all OSes and only throws if Protect/Unprotect is called
          on a non-Windows OS, which SecretProtector guards against. -->

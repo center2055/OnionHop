@@ -16,6 +16,8 @@ namespace OnionHopV3.Core.Services;
 /// snowflake/webtunnel/conjure do better; some Iran ISPs throttle snowflake, where webtunnel/obfs4
 /// shine). Country data is intentionally conservative and based on widely reported Tor reachability;
 /// it is a prior, not a verdict - live signals can push risk <i>higher</i>, never below the floor.
+/// For the countries Tor curates itself (see <see cref="CircumventionSettings"/>), Smart Connect
+/// follows Tor's transport order and bridge lines; the orders here cover the rest.
 /// </summary>
 public static class CensorshipProfiles
 {

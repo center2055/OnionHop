@@ -45,6 +45,15 @@ internal sealed class TorBridgeManager
     // offline lists, capped at MaxSupplementedBridgeCount so Tor isn't handed an unwieldy bridge set.
     private const int MinHealthyBridgeCount = 8;
     private const int MaxSupplementedBridgeCount = 14;
+    // Longest an attempt spends fetching bridges online before using saved/bundled ones. Smart
+    // Connect's attempts are short (45s), so they get the tighter cap.
+    private static readonly TimeSpan BridgeFetchBudget = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan SmartConnectBridgeFetchBudget = TimeSpan.FromSeconds(12);
+    // Tor's bridge service is blocked or dropped in many censored networks: give its per-country
+    // request only a few seconds before moving on to the collector. Together with the collector
+    // top-up after a success, this stays inside SmartConnectBridgeFetchBudget.
+    private static readonly TimeSpan CountryMoatRequestBudget = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan CollectorTopUpBudget = TimeSpan.FromSeconds(5);
     // How long a cached bridge set is considered "fresh" before we proactively try to re-fetch. Kept
     // generous (a week) so a reinstall, app update, or restart reuses the bridges that already worked
     // instead of going back to the network every 12 hours - and if a re-fetch fails (e.g. a censored
@@ -458,10 +467,23 @@ internal sealed class TorBridgeManager
             }
         }
 
+        // Smart Connect: the lines Tor itself ships for this transport in the user's country (e.g.
+        // Snowflake with the domain fronts that get through there). Used as they are.
+        var countryLines = sourcePreference == BridgeSourcePreference.Auto
+            ? ExtractBridgeLines(options.CountryBridgeLines)
+                .Where(line => IsLineForBridgeType(line, selectedBridgeType))
+                .ToList()
+            : [];
+
         if (custom.Count > 0)
         {
             selected = custom;
             usingCustom = true;
+        }
+        else if (countryLines.Count > 0)
+        {
+            selected = countryLines;
+            log($"Using Tor's {countryLines.Count} {selectedBridgeType} bridge line(s) for {options.CensorshipCountryCode?.ToUpperInvariant() ?? "this country"}.");
         }
         else if (sourcePreference != BridgeSourcePreference.Custom)
         {
@@ -476,8 +498,28 @@ internal sealed class TorBridgeManager
                 var preferFreshTested = sourcePreference == BridgeSourcePreference.Auto
                     && IsCollectorSupportedType(selectedBridgeType)
                     && !_runtimeFetchedBridges.ContainsKey(selectedBridgeType);
-                var fetched = await TryFetchBridgeLinesAsync(
-                    selectedBridgeType, log, token, forceRefresh: preferFreshTested, collectorOnly: collectorOnly).ConfigureAwait(false);
+
+                // Fetching runs inside the attempt's own time budget, and on a network that silently
+                // drops the bridge sources every request waits out its full timeout. Cap the fetch so
+                // the attempt still has time to start Tor with saved or bundled bridges.
+                var fetchBudget = options.SmartConnectAttemptTimeoutSeconds is > 0
+                    ? SmartConnectBridgeFetchBudget
+                    : BridgeFetchBudget;
+                using var fetchCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                fetchCts.CancelAfter(fetchBudget);
+                IReadOnlyList<string> fetched;
+                try
+                {
+                    fetched = await TryFetchBridgeLinesAsync(
+                        selectedBridgeType, log, fetchCts.Token, forceRefresh: preferFreshTested, collectorOnly: collectorOnly,
+                        countryCode: options.CensorshipCountryCode).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    log($"Fetching {selectedBridgeType} bridges took longer than {(int)fetchBudget.TotalSeconds}s; using saved bridges instead.");
+                    fetched = GetStaleCacheFallbackBridgeLines(selectedBridgeType, log);
+                }
+
                 if (fetched.Count > 0)
                 {
                     selected = fetched;
@@ -623,9 +665,10 @@ internal sealed class TorBridgeManager
 
         // Snowflake AMP-cache rendezvous is configured on the BRIDGE LINE (ampcache=<url>), not as a
         // -ampcache CLI flag on the transport plugin: lyrebird (the bundled snowflake binary) rejects
-        // the flag ("flag provided but not defined: -ampcache") and exits with status 2, which killed
-        // every snowflake attempt for heavily-censored users where Smart Connect forces AMP (issue #71).
-        if (options.UseSnowflakeAmp && selected.Count > 0)
+        // the flag ("flag provided but not defined: -ampcache") and exits with status 2 (issue #71).
+        // Tor's own lines for the user's country are left alone: they already use the rendezvous that
+        // works there (the AMP cache only where Google is reachable).
+        if (options.UseSnowflakeAmp && selected.Count > 0 && countryLines.Count == 0)
         {
             selected = ApplySnowflakeAmpCacheToBridges(options, selected, log);
         }
@@ -739,7 +782,8 @@ internal sealed class TorBridgeManager
         CancellationToken token,
         bool forceRefresh = false,
         HttpClient? httpClientOverride = null,
-        bool collectorOnly = false)
+        bool collectorOnly = false,
+        string? countryCode = null)
     {
         if (string.IsNullOrWhiteSpace(bridgeType) || string.Equals(bridgeType, "custom", StringComparison.OrdinalIgnoreCase))
         {
@@ -828,6 +872,52 @@ internal sealed class TorBridgeManager
 
                     log($"OnionHop collector returned no usable {bridgeType} bridges.");
                     return GetStaleCacheFallbackBridgeLines(bridgeType, log);
+                }
+
+                // In a censored country, Tor's bridge service hands out bridges meant for it (what
+                // Tor Browser's Connection Assist gets). They are less likely to be on the public
+                // lists censors scrape than the collector's, so they lead, topped up with the
+                // collector's tested set. Off in uncensored countries (no country passed).
+                if (!string.IsNullOrWhiteSpace(countryCode) && IsCountryBridgeServiceType(bridgeType))
+                {
+                    var forCountry = await TryFetchCountryBridgesFromMoatAsync(httpClient, bridgeType, countryCode, token).ConfigureAwait(false);
+                    if (forCountry.Count > 0)
+                    {
+                        var merged = forCountry.ToList();
+                        // Short, separate budget: running out here must not cost the bridges we have.
+                        IReadOnlyList<string> collector;
+                        using (var topUp = CancellationTokenSource.CreateLinkedTokenSource(token))
+                        {
+                            topUp.CancelAfter(CollectorTopUpBudget);
+                            try
+                            {
+                                collector = await TryFetchBridgeLinesFromCollectorAsync(httpClient, bridgeType, log, topUp.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                            {
+                                collector = Array.Empty<string>();
+                            }
+                        }
+
+                        foreach (var line in collector)
+                        {
+                            if (merged.Count >= MaxSupplementedBridgeCount)
+                            {
+                                break;
+                            }
+
+                            if (!merged.Contains(line, StringComparer.OrdinalIgnoreCase))
+                            {
+                                merged.Add(line);
+                            }
+                        }
+
+                        _runtimeFetchedBridges[bridgeType] = merged;
+                        SaveCachedBridgeLines(bridgeType, merged);
+                        log($"Loaded {forCountry.Count} {bridgeType} bridge(s) for {countryCode.ToUpperInvariant()} from Tor's bridge service" +
+                            (merged.Count > forCountry.Count ? $", plus {merged.Count - forCountry.Count} from the OnionHop collector." : "."));
+                        return merged;
+                    }
                 }
 
                 // Prefer the OnionHop collector's pre-tested set (Tested & Active, then Full Archive)
@@ -970,6 +1060,31 @@ internal sealed class TorBridgeManager
         return Array.Empty<string>();
     }
 
+    // Transports Tor's bridge service distributes per country (snowflake and meek come from Tor's
+    // per-country settings instead, see CircumventionSettings).
+    private static bool IsCountryBridgeServiceType(string bridgeType) =>
+        string.Equals(bridgeType, Obfs4BridgeType, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(bridgeType, WebTunnelBridgeType, StringComparison.OrdinalIgnoreCase);
+
+    private async Task<IReadOnlyList<string>> TryFetchCountryBridgesFromMoatAsync(
+        HttpClient httpClient,
+        string bridgeType,
+        string countryCode,
+        CancellationToken token)
+    {
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
+        budget.CancelAfter(CountryMoatRequestBudget);
+        try
+        {
+            return await TryFetchBridgeLinesFromMoatSettingsEndpointAsync(
+                httpClient, MoatSettingsUrl, bridgeType, [bridgeType], budget.Token, countryCode.Trim().ToLowerInvariant()).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            return Array.Empty<string>();
+        }
+    }
+
     private async Task<IReadOnlyList<string>> TryFetchBridgeLinesViaMoatAsync(HttpClient httpClient, string bridgeType, CancellationToken token)
     {
         var moatBuiltin = await TryFetchBridgeLinesFromMoatBuiltinAsync(httpClient, bridgeType, token).ConfigureAwait(false);
@@ -1016,12 +1131,14 @@ internal sealed class TorBridgeManager
         string endpointUrl,
         string bridgeType,
         IReadOnlyList<string> transports,
-        CancellationToken token)
+        CancellationToken token,
+        string? countryCode = null)
     {
         try
         {
             var payload = JsonSerializer.Serialize(new MoatSettingsRequest
             {
+                Country = countryCode,
                 Transports = transports.ToList()
             });
             using var content = new StringContent(payload, Encoding.UTF8, "application/vnd.api+json");
@@ -1528,11 +1645,20 @@ internal sealed class TorBridgeManager
         return $"ClientTransportPlugin snowflake exec {Path.Combine(ptRelativePath, LyrebirdFileName)}";
     }
 
+    // The AMP cache rendezvous only works through Google: the broker request goes to the AMP cache,
+    // domain-fronted as www.google.com, and the cache fetches it from the broker's own URL. That is
+    // how Tor's AMP lines look; the default lines' CDN77 url and fronts cannot carry it.
+    private const string SnowflakeBrokerUrl = "https://snowflake-broker.torproject.net/";
+    private const string SnowflakeAmpFront = "www.google.com";
+    private static readonly Regex SnowflakeRendezvousArg = new(@"^(?:url|front|fronts|ampcache)=", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     /// <summary>
-    /// Add the AMP-cache rendezvous to each snowflake bridge line as an <c>ampcache=&lt;url&gt;</c>
-    /// SOCKS arg - the form both lyrebird and snowflake-client read from the bridge line. Lines that
-    /// already carry an <c>ampcache=</c> are left untouched, and non-snowflake lines are ignored.
-    /// (Replaces the old <c>-ampcache</c> plugin-exec flag that lyrebird rejects, issue #71.)
+    /// Switch each snowflake bridge line to the AMP-cache rendezvous: the broker's own URL, the AMP
+    /// cache and a Google front, in place of the line's url and fronts. Appending only
+    /// <c>ampcache=</c> to a CDN77-fronted line made every broker request fail with a protocol error,
+    /// so Snowflake never connected with AMP on. Lines that already use the AMP cache or another
+    /// rendezvous (an SQS queue) are left as they are, and non-snowflake lines are ignored. (This is
+    /// a bridge-line setting; the <c>-ampcache</c> plugin flag is rejected by lyrebird, issue #71.)
     /// </summary>
     internal static IReadOnlyList<string> ApplySnowflakeAmpCacheToBridges(
         OnionHopConnectOptions options, IReadOnlyList<string> bridgeLines, Action<string> log)
@@ -1557,9 +1683,9 @@ internal sealed class TorBridgeManager
         foreach (var line in bridgeLines)
         {
             if (line.TrimStart().StartsWith("snowflake", StringComparison.OrdinalIgnoreCase) &&
-                !Regex.IsMatch(line, @"(?:^|\s)ampcache=", RegexOptions.IgnoreCase))
+                !Regex.IsMatch(line, @"(?:^|\s)(?:ampcache|sqsqueue)=", RegexOptions.IgnoreCase))
             {
-                updated.Add(line.TrimEnd() + " ampcache=" + url);
+                updated.Add(ToSnowflakeAmpLine(line, url));
                 applied++;
             }
             else
@@ -1570,10 +1696,22 @@ internal sealed class TorBridgeManager
 
         if (applied > 0)
         {
-            log($"Snowflake AMP cache enabled: {url}");
+            log($"Snowflake AMP cache enabled: {url} (fronted as {SnowflakeAmpFront}).");
         }
 
         return updated;
+    }
+
+    internal static string ToSnowflakeAmpLine(string line, string ampCacheUrl)
+    {
+        var tokens = line.Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => !SnowflakeRendezvousArg.IsMatch(token))
+            .ToList();
+        tokens.Add("url=" + SnowflakeBrokerUrl);
+        tokens.Add("ampcache=" + ampCacheUrl);
+        tokens.Add("front=" + SnowflakeAmpFront);
+        return string.Join(' ', tokens);
     }
 
     public static string NormalizeClientTransportPlugin(string pluginLine)
@@ -2234,6 +2372,16 @@ internal sealed class TorBridgeManager
         }
 
         return plugins.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    // Whether a bridge line is for the given bridge type. OnionHop calls meek_lite "meek".
+    private static bool IsLineForBridgeType(string line, string bridgeType)
+    {
+        var transport = ExtractBridgeTransport(line);
+        return transport is not null &&
+               (string.Equals(transport, bridgeType, StringComparison.OrdinalIgnoreCase) ||
+                (string.Equals(bridgeType, "meek", StringComparison.OrdinalIgnoreCase) &&
+                 string.Equals(transport, "meek_lite", StringComparison.OrdinalIgnoreCase)));
     }
 
     private static string? ExtractBridgeTransport(string bridgeLine)
@@ -3148,6 +3296,12 @@ internal sealed class TorBridgeManager
 
     private sealed class MoatSettingsRequest
     {
+        // Without it the service goes by the requesting IP's country; with it, it answers for the
+        // country Smart Connect detected.
+        [JsonPropertyName("country")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Country { get; set; }
+
         [JsonPropertyName("transports")]
         public List<string> Transports { get; set; } = [];
     }

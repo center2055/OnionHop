@@ -1148,6 +1148,7 @@ public sealed class OnionHopClient : IDisposable
             // the .srs lists over the circuit we now have. The next TUN start then references them
             // as local files with no GitHub dependency.
             StartGeoRuleSetBackgroundRefresh(resolvedOptions);
+            StartCircumventionSettingsBackgroundRefresh();
 
             // Publish the user's onion services now that Tor has a circuit. Tor holds these only for
             // the lifetime of the process, so this runs on every connect, re-using each saved key so
@@ -3716,6 +3717,31 @@ public sealed class OnionHopClient : IDisposable
     // Fire-and-forget refresh of the configured geo rule-sets through the live Tor SOCKS proxy
     // (issue #68 follow-up). Runs in every connection mode: proxy-mode connects warm the cache for a
     // later TUN connect too. No-op when no geo routing is configured.
+    // Tor's per-country circumvention settings (what Smart Connect follows in censored countries) are
+    // refreshed through Tor once connected, at most daily: bridges.torproject.org is blocked in exactly
+    // the countries that need them, and this way the request never shows on the local network either.
+    private void StartCircumventionSettingsBackgroundRefresh()
+    {
+        var socksPort = _activeSocksPort;
+        if (socksPort <= 0)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var client = Socks5HttpClient.Create("127.0.0.1", socksPort, TimeSpan.FromSeconds(60));
+                using var budget = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+                await CircumventionSettings.TryRefreshAsync(client, RaiseLog, budget.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+        });
+    }
+
     private void StartGeoRuleSetBackgroundRefresh(OnionHopConnectOptions options)
     {
         var tags = new List<string>();

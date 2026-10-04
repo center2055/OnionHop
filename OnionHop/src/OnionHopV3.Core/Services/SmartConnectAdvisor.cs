@@ -211,8 +211,39 @@ public sealed class SmartConnectAdvisor
             log?.Invoke($"Smart Connect: country {countryCode} censorship prior raised risk {liveRisk} -> {risk} (offline profile).");
         }
 
-        var preferredTransports = CensorshipProfiles.GetPreferredTransports(countryCode);
-        var strategies = BuildStrategiesForRisk(baseOptions, risk, preferredTransports);
+        // Tor's own recommendations for this country, the data behind Tor Browser's Connection
+        // Assist: which transports to try in which order, and for some of them the exact bridge lines
+        // that work there. Where Tor has them, they beat our own table. Tor only curates countries
+        // that block it, so having any also means direct Tor is not the plan.
+        var circumvention = CircumventionSettings.Current;
+        var torSettings = circumvention.ForCountry(countryCode);
+        IReadOnlyList<string> preferredTransports;
+        var countryBridgeLines = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        if (torSettings.Count > 0)
+        {
+            preferredTransports = torSettings.Select(setting => setting.Transport).ToList();
+            foreach (var setting in torSettings.Where(setting => setting.BridgeLines.Count > 0))
+            {
+                countryBridgeLines[setting.Transport] = setting.BridgeLines;
+            }
+
+            log?.Invoke($"Smart Connect: following Tor's recommendations for {countryCode}: {string.Join(" -> ", preferredTransports)} ({circumvention.Source}).");
+            if (risk < RiskLevel.Moderate)
+            {
+                log?.Invoke($"Smart Connect: Tor lists {countryCode} as censored; raising risk {risk} -> {RiskLevel.Moderate}.");
+                risk = RiskLevel.Moderate;
+            }
+        }
+        else
+        {
+            preferredTransports = CensorshipProfiles.GetPreferredTransports(countryCode);
+        }
+
+        var strategies = BuildStrategiesForRisk(
+            baseOptions with { CensorshipCountryCode = countryCode },
+            risk,
+            preferredTransports,
+            countryBridgeLines);
 
         if (stats.HasValue)
         {
@@ -389,13 +420,28 @@ public sealed class SmartConnectAdvisor
         OnionHopConnectOptions baseOptions,
         RiskLevel risk,
         IReadOnlyList<string> preferredTransports)
+        => BuildStrategiesForRisk(baseOptions, risk, preferredTransports, new Dictionary<string, IReadOnlyList<string>>());
+
+    /// <param name="countryBridgeLines">
+    /// Bridge lines Tor recommends per transport for the user's country (Tor's circumvention
+    /// settings); a strategy for such a transport uses exactly these.
+    /// </param>
+    public static IReadOnlyList<Strategy> BuildStrategiesForRisk(
+        OnionHopConnectOptions baseOptions,
+        RiskLevel risk,
+        IReadOnlyList<string> preferredTransports,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> countryBridgeLines)
     {
         var strategies = new List<Strategy>();
 
-        // A country's preferred transports (from the offline profile) lead the bridge ladder, then
-        // the risk-tier defaults fill in anything not already covered. Deduplicated downstream.
+        // A country's preferred transports (Tor's recommendations, else our offline profile) lead
+        // the bridge ladder, then the risk-tier defaults fill in anything not already covered.
+        // Deduplicated downstream.
         IEnumerable<string> BridgeLadder(IReadOnlyList<string> tierDefaults)
             => (preferredTransports ?? Array.Empty<string>()).Concat(tierDefaults);
+
+        void AddBridgeLadder(IEnumerable<string> transports, string reasonPrefix)
+            => SmartConnectAdvisor.AddBridgeLadder(strategies, baseOptions, transports, reasonPrefix, countryBridgeLines);
 
         switch (risk)
         {
@@ -406,25 +452,27 @@ public sealed class SmartConnectAdvisor
                 // bridges when direct works?" surprise we want to avoid.
                 AddDirect(strategies, baseOptions, "Open network profile. Try direct Tor first.", DirectPrimaryAttemptTimeoutSeconds);
                 AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
-                AddBridgeLadder(strategies, baseOptions, BridgeLadder(OpenLadder), "Fallback");
+                AddBridgeLadder(BridgeLadder(OpenLadder), "Fallback");
                 break;
 
             case RiskLevel.Moderate:
                 // Try direct briefly, but bridges are the real plan here.
                 AddDirect(strategies, baseOptions, "Moderately restricted profile. Try a brief direct attempt.");
-                AddBridgeLadder(strategies, baseOptions, BridgeLadder(ModerateLadder), "Bridge");
+                AddBridgeLadder(BridgeLadder(ModerateLadder), "Bridge");
                 break;
 
             case RiskLevel.Restricted:
                 // No direct first - Tor is commonly blocked here. Bridges lead; direct is a last resort.
-                AddBridgeLadder(strategies, baseOptions, BridgeLadder(RestrictedLadder), "Restricted profile bridge");
+                AddBridgeLadder(BridgeLadder(RestrictedLadder), "Restricted profile bridge");
                 AddDirect(strategies, baseOptions, "Last fallback: direct Tor.");
                 break;
 
             case RiskLevel.Severe:
-                // Aggressive, modern ladder. Snowflake with AMP fronting first, ending in dnstt
-                // (works where only DNS gets through). Direct only as an absolute last resort.
-                AddBridgeLadder(strategies, baseOptions, BridgeLadder(SevereLadder), "Heavily restricted profile bridge", forceSnowflakeAmp: true);
+                // Aggressive, modern ladder ending in dnstt (works where only DNS gets through).
+                // Direct only as an absolute last resort. Snowflake is not forced onto the AMP cache:
+                // that rendezvous needs a Google front, which China blocks, and the countries Tor
+                // curates get Tor's own Snowflake lines for them instead.
+                AddBridgeLadder(BridgeLadder(SevereLadder), "Heavily restricted profile bridge");
                 AddDirect(strategies, baseOptions, "Last fallback: direct Tor.");
                 break;
 
@@ -433,7 +481,7 @@ public sealed class SmartConnectAdvisor
                 // it the same full bootstrap budget as Open before falling back to bridges.
                 AddDirect(strategies, baseOptions, "Unknown network profile. Start direct.", DirectPrimaryAttemptTimeoutSeconds);
                 AddBridge(strategies, baseOptions, AutomaticBridgeType, "Fallback: automatic bridges.");
-                AddBridgeLadder(strategies, baseOptions, BridgeLadder(["obfs4", "snowflake"]), "Fallback");
+                AddBridgeLadder(BridgeLadder(["obfs4", "snowflake"]), "Fallback");
                 break;
         }
 
@@ -445,7 +493,7 @@ public sealed class SmartConnectAdvisor
         OnionHopConnectOptions baseOptions,
         IEnumerable<string> transports,
         string reasonPrefix,
-        bool forceSnowflakeAmp = false)
+        IReadOnlyDictionary<string, IReadOnlyList<string>> countryBridgeLines)
     {
         foreach (var transport in transports)
         {
@@ -457,7 +505,13 @@ public sealed class SmartConnectAdvisor
             var label = string.Equals(transport, AutomaticBridgeType, StringComparison.OrdinalIgnoreCase)
                 ? "automatic bridges"
                 : $"{transport} bridge";
-            AddBridge(target, baseOptions, transport, $"{reasonPrefix}: {label}.", forceSnowflakeAmp);
+            countryBridgeLines.TryGetValue(transport.Trim(), out var lines);
+            if (lines is { Count: > 0 })
+            {
+                label += " (Tor's lines for this country)";
+            }
+
+            AddBridge(target, baseOptions, transport, $"{reasonPrefix}: {label}.", lines);
         }
     }
 
@@ -499,13 +553,9 @@ public sealed class SmartConnectAdvisor
         OnionHopConnectOptions baseOptions,
         string bridgeType,
         string reason,
-        bool forceSnowflakeAmp = false)
+        IReadOnlyList<string>? countryBridgeLines = null)
     {
         var normalizedBridgeType = string.IsNullOrWhiteSpace(bridgeType) ? AutomaticBridgeType : bridgeType.Trim().ToLowerInvariant();
-        var shouldApplySnowflakeAmp = normalizedBridgeType == "snowflake" || normalizedBridgeType == AutomaticBridgeType;
-        var useSnowflakeAmp = shouldApplySnowflakeAmp
-            ? (baseOptions.UseSnowflakeAmp || forceSnowflakeAmp)
-            : baseOptions.UseSnowflakeAmp;
 
         target.Add(new Strategy(
             Name: $"bridge:{normalizedBridgeType}",
@@ -518,9 +568,9 @@ public sealed class SmartConnectAdvisor
                 BridgeSourceMode = OnionHopConnectOptions.BridgeSourceAuto,
                 CustomBridges = null,
                 CustomSniHosts = null,
+                CountryBridgeLines = countryBridgeLines is { Count: > 0 } ? string.Join("\n", countryBridgeLines) : null,
                 SelectedEntryLocation = OnionHopConnectOptions.AutomaticLocationLabel,
                 ExitNodeFingerprint = null,
-                UseSnowflakeAmp = useSnowflakeAmp,
                 SmartConnectAttemptTimeoutSeconds = BridgeAttemptTimeoutSeconds
             }));
     }

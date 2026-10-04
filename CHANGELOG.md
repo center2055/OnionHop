@@ -5,6 +5,12 @@
 Fixes
 - **The page scrollbars show again.** Since the end of May, the scrollbar of Home, Settings and About sat just outside the area those pages were allowed to draw in, so it was cut off completely. On a smaller screen the lower part of Settings could then only be reached with a mouse wheel (user report). The scrollbar now shows at the window's edge again (on the left in right-to-left languages), with its arrow buttons.
 - **Pages scroll with the keyboard.** Page Up and Page Down scroll the current page wherever focus is, even in the menu. After a click on the page's background, the arrow keys, Home and End scroll it too, instead of moving through the menu.
+- **Snowflake works with the AMP cache.** Turning on "AMP cache" (and Smart Connect, which forced it in China, Iran and Turkmenistan) kept Snowflake's usual CDN77 route and only added the AMP cache, a combination its broker rejects, so Snowflake never connected that way. AMP lines now use the route that works with it, fronted through Google like Tor's own AMP lines.
+- **Bridge downloads no longer eat a whole Smart Connect attempt.** On a network that silently drops the bridge sources, fetching bridges could use up an attempt's time before Tor even started. Fetching now gives up after 12 seconds (30 outside Smart Connect) and uses the saved bridges instead.
+
+Smart Connect
+- **Follows Tor's own advice for censored countries.** For the countries Tor itself curates (China, Iran, Russia, Turkmenistan, Belarus, Myanmar, Egypt, Hong Kong), Smart Connect now tries the transports in the order Tor recommends there and uses the bridge lines Tor ships for them, such as Snowflake with the domain fronts that get through in that country, an Amazon SQS rendezvous for China and the AMP cache for Turkmenistan. These are the settings behind Tor Browser's Connection Assist. A copy ships with the app, since Tor's site is blocked in those countries, and it is refreshed through Tor after connecting.
+- **Asks Tor for bridges meant for your country.** obfs4 and webtunnel bridges are requested from Tor's bridge service for the detected country first, the way Tor Browser does, then topped up with the OnionHop collector's tested bridges. Bridges handed out that way are less likely to be on the public lists that censors block.
 
 ## v3.8.6 (2026-10-04)
 

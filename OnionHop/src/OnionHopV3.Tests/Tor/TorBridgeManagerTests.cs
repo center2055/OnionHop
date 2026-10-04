@@ -354,6 +354,85 @@ public sealed class TorBridgeManagerTests
     }
 
     [Fact]
+    public void SnowflakeAmpCache_routes_the_broker_through_google_instead_of_the_cdn77_fronts()
+    {
+        // The AMP rendezvous only works fronted as www.google.com with the broker's own URL. Keeping
+        // the default line's CDN77 url/fronts and just adding ampcache= made every broker request fail.
+        var line = "snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 " +
+                   "url=https://1098762253.rsc.cdn77.org/ fronts=app.datapacket.com,www.datapacket.com ice=stun:stun.l.google.com:19302 utls-imitate=hellorandomizedalpn";
+
+        var amp = TorBridgeManager.ApplySnowflakeAmpCacheToBridges(new OnionHopConnectOptions { UseSnowflakeAmp = true }, [line], _ => { })[0];
+
+        Assert.Equal(
+            "snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 " +
+            "ice=stun:stun.l.google.com:19302 utls-imitate=hellorandomizedalpn " +
+            "url=https://snowflake-broker.torproject.net/ ampcache=https://cdn.ampproject.org/ front=www.google.com",
+            amp);
+    }
+
+    [Fact]
+    public void SnowflakeAmpCache_leaves_an_sqs_rendezvous_alone()
+    {
+        var sqs = new[] { "snowflake 192.0.2.5:80 ABC sqsqueue=https://sqs.us-east-2.amazonaws.com/1/snowflake-broker sqscreds=x" };
+        var result = TorBridgeManager.ApplySnowflakeAmpCacheToBridges(new OnionHopConnectOptions { UseSnowflakeAmp = true }, sqs, _ => { });
+        Assert.Equal(sqs[0], result[0]);
+    }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_uses_tors_lines_for_the_country_as_they_are()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            var snowflakeA = "snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://1098762253.rsc.cdn77.org fronts=www.phpmyadmin.net,cdn.zk.mk";
+            var snowflakeB = "snowflake 192.0.2.5:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 sqsqueue=https://sqs.us-east-2.amazonaws.com/1/snowflake-broker sqscreds=x";
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "snowflake",
+                CensorshipCountryCode = "cn",
+                // Lines for other transports in the same field are not this attempt's business.
+                CountryBridgeLines = string.Join("\n", snowflakeA, snowflakeB, "meek_lite 192.0.2.20:80 url=https://x.test front=y.test"),
+                // Tor's lines already use the rendezvous that works in the country: no AMP rewrite.
+                UseSnowflakeAmp = true
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Equal(new[] { snowflakeA, snowflakeB }.OrderBy(l => l), lines.OrderBy(l => l));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task GetBridgeLinesAsync_country_meek_lite_lines_count_as_meek()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            var meek = "meek_lite 192.0.2.20:80 url=https://1603026938.rsc.cdn77.org front=www.phpmyadmin.net utls=HelloRandomizedALPN";
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "meek",
+                CensorshipCountryCode = "tm",
+                CountryBridgeLines = meek
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Equal(meek, Assert.Single(lines));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
     public void GetBridgeTypeKeys_includes_conjure_when_transport_exists()
     {
         var config = new PluggableTransportConfig
