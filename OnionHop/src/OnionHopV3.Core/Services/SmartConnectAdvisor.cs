@@ -120,9 +120,18 @@ public sealed class SmartConnectAdvisor
                 Strategies: [customStrategy]);
         }
 
-        var publicIp = await IpLookupService.TryFetchDirectIpAsync(
+        // Every lookup here goes straight out over the user's own network, which in the countries
+        // that matter most often drops foreign hosts without an answer. One after another, each
+        // waiting out a 30s timeout, they could keep "analyzing the network" up for minutes before
+        // the first attempt. Side by side under one short budget, a dead lookup costs seconds.
+        using var lookupBudget = CancellationTokenSource.CreateLinkedTokenSource(token);
+        lookupBudget.CancelAfter(LookupBudget);
+        var ipLookup = IpLookupService.TryFetchDirectIpAsync(
             message => log?.Invoke($"Smart Connect: {message}"),
-            token).ConfigureAwait(false);
+            lookupBudget.Token);
+        var countryLookup = ResolveCountryCodeAsync(log, lookupBudget.Token);
+        var publicIp = await WithinBudgetAsync(ipLookup, token, null).ConfigureAwait(false);
+        var countryCode = await WithinBudgetAsync(countryLookup, token, null).ConfigureAwait(false);
 
         if (!string.IsNullOrWhiteSpace(publicIp))
         {
@@ -133,10 +142,17 @@ public sealed class SmartConnectAdvisor
             log?.Invoke("Smart Connect: direct IP could not be determined.");
         }
 
-        var countryCode = await ResolveCountryCodeAsync(publicIp, log, token).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(countryCode))
         {
             log?.Invoke($"Smart Connect: detected country {countryCode}.");
+            CountryGuess.Remember(countryCode);
+        }
+        else if (CountryGuess.TryGuess() is { } guess)
+        {
+            // Lookups blocked: "unknown" would mean trying direct Tor first, the one thing that does
+            // not work where lookups get blocked. Go by what this computer says instead.
+            countryCode = guess.Country;
+            log?.Invoke($"Smart Connect: country lookups failed; going by {guess.Basis}: {countryCode}.");
         }
         else
         {
@@ -148,8 +164,12 @@ public sealed class SmartConnectAdvisor
         BaselineSummary? csvBaseline = null;
         if (!string.IsNullOrWhiteSpace(countryCode))
         {
-            stats = await TryFetchTorStatsAsync(countryCode!, log, token).ConfigureAwait(false);
-            recentMeasurements = await TryFetchRecentMeasurementsSummaryAsync(countryCode!, log, token).ConfigureAwait(false);
+            using var signalBudget = CancellationTokenSource.CreateLinkedTokenSource(token);
+            signalBudget.CancelAfter(LookupBudget);
+            var statsLookup = TryFetchTorStatsAsync(countryCode!, log, signalBudget.Token);
+            var measurementsLookup = TryFetchRecentMeasurementsSummaryAsync(countryCode!, log, signalBudget.Token);
+            stats = await WithinBudgetAsync(statsLookup, token, null).ConfigureAwait(false);
+            recentMeasurements = await WithinBudgetAsync(measurementsLookup, token, null).ConfigureAwait(false);
             csvBaseline = await TryLoadCsvBaselineSummaryAsync(countryCode!, log, token).ConfigureAwait(false);
         }
 
@@ -718,52 +738,60 @@ public sealed class SmartConnectAdvisor
             options.OnionDnsProxyEnabled ? "dnsproxy:1" : "dnsproxy:0");
     }
 
-    private static async Task<string?> ResolveCountryCodeAsync(string? publicIp, Action<string>? log, CancellationToken token)
+    // Total time for the IP and country lookups, and again for the OONI lookups. Each answers in
+    // well under a second where it is reachable.
+    private static readonly TimeSpan LookupBudget = TimeSpan.FromSeconds(8);
+
+    // A lookup cut off by its budget is just "no answer"; only the user's own cancel aborts.
+    private static async Task<T> WithinBudgetAsync<T>(Task<T> lookup, CancellationToken userToken, T noAnswer)
     {
-        string? countryCode = null;
         try
         {
-            countryCode = await TryFetchCountryCodeFromOoniGeoLookupAsync(publicIp, token).ConfigureAwait(false);
+            return await lookup.ConfigureAwait(false);
         }
-        // Only user/system cancellation propagates. HttpClient timeouts throw TaskCanceledException
-        // (an OperationCanceledException) too - on hostile networks those must degrade to the
-        // fallback path below, not abort the whole connect as if the user pressed cancel (#65).
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        catch (OperationCanceledException) when (!userToken.IsCancellationRequested)
         {
-            throw;
+            return noAnswer;
         }
-        catch (Exception ex)
-        {
-            log?.Invoke($"Smart Connect: OONI geolookup failed: {ex.Message}");
-        }
+    }
 
-        if (!string.IsNullOrWhiteSpace(countryCode))
+    // Both services report the country of the address the request comes from, so they need no IP
+    // lookup first and run side by side; the first answer wins.
+    private static async Task<string?> ResolveCountryCodeAsync(Action<string>? log, CancellationToken token)
+    {
+        using var race = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var pending = new List<(string Source, Task<string?> Lookup)>
         {
-            log?.Invoke("Smart Connect: country resolved from OONI geolookup.");
-            return countryCode;
-        }
+            ("OONI geolookup", TryFetchCountryCodeFromOoniGeoLookupAsync(null, race.Token)),
+            ("ipwho.is", TryFetchCountryCodeFromIpWhoIsAsync(null, race.Token))
+        };
 
-        try
+        while (pending.Count > 0)
         {
-            countryCode = await TryFetchCountryCodeFromIpWhoIsAsync(publicIp, token).ConfigureAwait(false);
-        }
-        // Only user/system cancellation propagates. HttpClient timeouts throw TaskCanceledException
-        // (an OperationCanceledException) too - on hostile networks those must degrade to the
-        // fallback path below, not abort the whole connect as if the user pressed cancel (#65).
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            log?.Invoke($"Smart Connect: ipwho.is lookup failed: {ex.Message}");
-            countryCode = null;
-        }
-
-        if (!string.IsNullOrWhiteSpace(countryCode))
-        {
-            log?.Invoke("Smart Connect: country resolved from ipwho.is.");
-            return countryCode;
+            var finished = await Task.WhenAny(pending.Select(entry => entry.Lookup)).ConfigureAwait(false);
+            var entry = pending.First(candidate => candidate.Lookup == finished);
+            pending.Remove(entry);
+            try
+            {
+                var countryCode = await finished.ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(countryCode))
+                {
+                    log?.Invoke($"Smart Connect: country resolved from {entry.Source}.");
+                    race.Cancel();
+                    return countryCode;
+                }
+            }
+            // Only user/system cancellation propagates. HttpClient timeouts throw TaskCanceledException
+            // (an OperationCanceledException) too - on hostile networks those must degrade to the
+            // other lookup, not abort the whole connect as if the user pressed cancel (#65).
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke($"Smart Connect: {entry.Source} failed: {ex.Message}");
+            }
         }
 
         return null;
