@@ -9,9 +9,11 @@
              d:DesignWidth="1200"
              d:DesignHeight="820"
              x:Class="OnionHopV3.App.Views.SettingsPageView"
-             x:DataType="vm:SettingsPageViewModel">
+             x:DataType="vm:SettingsPageViewModel"
+             ClipToBounds="False">
 
-  <TabControl>
+  <!-- Not clipped either: each tab's scrollbar sits past the right edge, like the other pages'. -->
+  <TabControl ClipToBounds="False">
     <TabItem>
       <TabItem.Header>
         <TextBlock Text="{DynamicResource Settings.TabGeneral}"
@@ -19,6 +21,8 @@
       </TabItem.Header>
       <ScrollViewer VerticalScrollBarVisibility="Auto"
                     Margin="0,0,-32,0"
+                    Focusable="True"
+                    IsTabStop="False"
                     Padding="0,0,32,0">
         <StackPanel Spacing="18"
                     Margin="0,12,0,0">
@@ -147,6 +151,8 @@
       </TabItem.Header>
       <ScrollViewer VerticalScrollBarVisibility="Auto"
                     Margin="0,0,-32,0"
+                    Focusable="True"
+                    IsTabStop="False"
                     Padding="0,0,32,0">
         <StackPanel Spacing="18"
                     Margin="0,12,0,0">
@@ -436,6 +442,8 @@
       </TabItem.Header>
       <ScrollViewer VerticalScrollBarVisibility="Auto"
                     Margin="0,0,-32,0"
+                    Focusable="True"
+                    IsTabStop="False"
                     Padding="0,0,32,0">
         <StackPanel Spacing="18"
                     Margin="0,12,0,0">

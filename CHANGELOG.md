@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- **The page scrollbars show again.** Since the end of May, the scrollbar of Home, Settings and About sat just outside the area those pages were allowed to draw in, so it was cut off completely. On a smaller screen the lower part of Settings could then only be reached with a mouse wheel (user report). The scrollbar now shows at the window's edge again (on the left in right-to-left languages), with its arrow buttons.
+- **Pages scroll with the keyboard.** Page Up and Page Down scroll the current page wherever focus is, even in the menu. After a click on the page's background, the arrow keys, Home and End scroll it too, instead of moving through the menu.
+
 ## v3.8.6 (2026-10-04)
 
 Fixes

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -7,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 
 namespace OnionHopV3.App.Views;
 
@@ -58,6 +60,89 @@ public partial class MainWindow : Window
         // Caption buttons and other interactive controls handle their own pointer events, so this
         // (unhandled-only) handler does not interfere with them.
         AddHandler(PointerPressedEvent, OnTitleBarPointerPressed, RoutingStrategies.Bubble, handledEventsToo: false);
+
+        AddHandler(KeyDownEvent, OnMenuPageKeyPreview, RoutingStrategies.Tunnel);
+        AddHandler(KeyDownEvent, OnPageScrollKeyDown, RoutingStrategies.Bubble, handledEventsToo: false);
+    }
+
+    // Scrolling the page without a mouse wheel (a user's wheel was broken, and the arrow keys only
+    // moved through the menu). Page Up/Down and Home/End scroll the current page unless a focused
+    // control in it already used the key. The arrow keys scroll it once focus is in the page itself,
+    // which clicking the page's background does (its scroller is focusable).
+    private void OnPageScrollKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.None)
+        {
+            return;
+        }
+
+        var arrow = e.Key is Key.Up or Key.Down;
+        if (!arrow && e.Key is not (Key.PageUp or Key.PageDown or Key.Home or Key.End))
+        {
+            return;
+        }
+
+        if (FindPageScroller() is not { } scroller)
+        {
+            return;
+        }
+
+        if (arrow && !ReferenceEquals(FocusManager?.GetFocusedElement(), scroller))
+        {
+            return;
+        }
+
+        e.Handled = Scroll(scroller, e.Key);
+    }
+
+    // The menu takes Page Up/Down without doing anything useful with them, so with focus there they
+    // never reached the page. Take them first. Home/End and the arrows stay with the menu.
+    private void OnMenuPageKeyPreview(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.None || e.Key is not (Key.PageUp or Key.PageDown))
+        {
+            return;
+        }
+
+        if (FocusManager?.GetFocusedElement() is not Visual focused ||
+            this.FindControl<ContentControl>("PageHost") is not { } host ||
+            host.IsVisualAncestorOf(focused) ||
+            FindPageScroller() is not { } scroller)
+        {
+            return;
+        }
+
+        e.Handled = Scroll(scroller, e.Key);
+    }
+
+    private static bool Scroll(ScrollViewer scroller, Key key)
+    {
+        switch (key)
+        {
+            case Key.PageUp: scroller.PageUp(); return true;
+            case Key.PageDown: scroller.PageDown(); return true;
+            case Key.Home: scroller.ScrollToHome(); return true;
+            case Key.End: scroller.ScrollToEnd(); return true;
+            case Key.Up: scroller.LineUp(); return true;
+            case Key.Down: scroller.LineDown(); return true;
+            default: return false;
+        }
+    }
+
+    // The page's main scroller: the biggest visible one that has something to scroll. Pages with
+    // lists (Relays, Logs) have several; the biggest is the one people mean.
+    private ScrollViewer? FindPageScroller()
+    {
+        if (this.FindControl<ContentControl>("PageHost") is not { } host)
+        {
+            return null;
+        }
+
+        return host.GetVisualDescendants()
+            .OfType<ScrollViewer>()
+            .Where(s => s.IsEffectivelyVisible && s.Extent.Height > s.Viewport.Height + 1)
+            .OrderByDescending(s => s.Bounds.Width * s.Bounds.Height)
+            .FirstOrDefault();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

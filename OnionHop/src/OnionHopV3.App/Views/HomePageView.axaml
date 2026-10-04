@@ -10,13 +10,16 @@
              d:DesignWidth="1100"
              d:DesignHeight="900"
              x:Class="OnionHopV3.App.Views.HomePageView"
-             x:DataType="vm:HomePageViewModel">
+             x:DataType="vm:HomePageViewModel"
+             ClipToBounds="False">
   <!-- Home (#73): status first, one short answer to "am I protected", then the few controls people
        actually change, then this session's numbers. Advanced options (Tor engine, bridge source,
        bridge updates) live in Settings, reachable from the Connection card. -->
   <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto"
                 Margin="0,0,-32,0"
+                Focusable="True"
+                IsTabStop="False"
                 Padding="0,0,32,0">
     <StackPanel Spacing="16"
                 MaxWidth="1120"

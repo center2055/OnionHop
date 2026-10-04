@@ -10,11 +10,14 @@
              d:DesignWidth="1100"
              d:DesignHeight="760"
              x:Class="OnionHopV3.App.Views.AboutPageView"
-             x:DataType="vm:AboutPageViewModel">
+             x:DataType="vm:AboutPageViewModel"
+             ClipToBounds="False">
 
   <Grid>
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   Margin="0,0,-32,0"
+                  Focusable="True"
+                  IsTabStop="False"
                   Padding="0,0,32,0">
       <Grid ColumnDefinitions="4*,6*"
             ColumnSpacing="16">
