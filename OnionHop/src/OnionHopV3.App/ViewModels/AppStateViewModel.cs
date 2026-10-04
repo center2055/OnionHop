@@ -1948,10 +1948,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             }
 
             var reordered = SmartConnectAdvisor.ReorderByReachability(strategies, reachability);
-            if (reordered.Count > 0 &&
-                !string.Equals(reordered[0].Name, strategies[0].Name, StringComparison.OrdinalIgnoreCase))
+            var unreachable = reachability.Where(kvp => kvp.Value.ReachableCount <= 0).Select(kvp => kvp.Key).ToList();
+            if (unreachable.Count > 0)
             {
-                AppendLog($"Smart Connect: leading with '{SmartConnectAdvisor.GetStrategyTransport(reordered[0])}' (most reachable here).");
+                AppendLog($"Smart Connect: trying {string.Join(", ", unreachable)} last (nothing of it reachable here).");
             }
 
             return reordered;

@@ -15,7 +15,7 @@ public sealed class ReachabilityReorderTests
             CensorshipProfiles.GetPreferredTransports("CN"));
 
     [Fact]
-    public void Leads_with_the_transport_that_has_reachable_bridges()
+    public void Dead_transports_go_last_and_the_rest_keep_the_plans_order()
     {
         var ladder = SevereLadder();
         var reach = new Dictionary<string, (int, int?)>
@@ -26,8 +26,10 @@ public sealed class ReachabilityReorderTests
 
         var reordered = SmartConnectAdvisor.ReorderByReachability(ladder, reach);
 
-        var firstBridge = reordered.First(s => s.Name.StartsWith("bridge:"));
-        Assert.Equal("bridge:obfs4", firstBridge.Name);
+        Assert.Equal("bridge:webtunnel", reordered[^1].Name);
+        Assert.Equal(
+            ladder.Where(s => s.Name != "bridge:webtunnel").Select(s => s.Name),
+            reordered.Take(reordered.Count - 1).Select(s => s.Name));
     }
 
     [Fact]
@@ -48,18 +50,20 @@ public sealed class ReachabilityReorderTests
     }
 
     [Fact]
-    public void More_reachable_and_faster_ranks_higher()
+    public void Reachable_transports_are_not_reranked_by_counts()
     {
+        // Bridge counts and pings compare nothing across transports (a TCP-reachable obfs4 bridge
+        // may still be cut off by DPI), so the plan's order stands among reachable transports.
         var ladder = SevereLadder();
         var reach = new Dictionary<string, (int, int?)>
         {
-            ["obfs4"] = (3, 400),    // few + slow
-            ["webtunnel"] = (40, 60) // many + fast
+            ["snowflake"] = (2, 300),
+            ["obfs4"] = (40, 60)
         };
 
         var reordered = SmartConnectAdvisor.ReorderByReachability(ladder, reach);
 
-        Assert.True(IndexOf(reordered, "bridge:webtunnel") < IndexOf(reordered, "bridge:obfs4"));
+        Assert.Equal(ladder.Select(s => s.Name), reordered.Select(s => s.Name));
     }
 
     [Fact]

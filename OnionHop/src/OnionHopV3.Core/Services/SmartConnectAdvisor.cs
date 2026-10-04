@@ -662,11 +662,13 @@ public sealed class SmartConnectAdvisor
     }
 
     /// <summary>
-    /// Reorder bridge strategies by measured reachability: transports with reachable bridges (more =
-    /// better, faster = better) lead, transports proven to have zero reachable bridges sink to the
-    /// back. Transports not in <paramref name="reachabilityByTransport"/> (e.g. fronted snowflake/
-    /// dnstt that can't be pre-probed, or the "automatic" meta-type) keep their relative order in the
-    /// middle. Non-bridge strategies (direct) keep their original position. Pure and order-stable.
+    /// Move the bridge strategies whose transport was measured unreachable here to the back; all
+    /// others keep the plan's order. Reachable transports are deliberately not re-ranked by how
+    /// many bridges answered or how fast: a probe sees obfs4 bridges that answer a TCP connect but
+    /// are cut off by DPI right after, and Snowflake's few fronts next to dozens of obfs4 bridges,
+    /// so counts compare nothing. The plan's order comes from Tor's field data for the country or
+    /// our profile; the probe's job is to skip what certainly fails. Non-bridge strategies (direct)
+    /// and unmeasured transports keep their place. Pure and order-stable.
     /// </summary>
     public static IReadOnlyList<Strategy> ReorderByReachability(
         IReadOnlyList<Strategy> strategies,
@@ -677,39 +679,14 @@ public sealed class SmartConnectAdvisor
             return strategies;
         }
 
-        // Stable rank: lower sorts earlier.
-        //   probed + has reachable bridges -> 0 (fastest/most first)
-        //   not probed (unknown)           -> 1 (keep middle)
-        //   probed + zero reachable        -> 2 (sink)
-        double RankOf(Strategy strategy)
-        {
-            if (!strategy.Options.UseTorBridges)
-            {
-                return 1d; // direct/manual: leave where it is among the unknowns
-            }
-
-            var transport = GetStrategyTransport(strategy);
-            if (!reachabilityByTransport.TryGetValue(transport, out var reach))
-            {
-                return 1d; // unknown / not pre-probed
-            }
-
-            if (reach.ReachableCount <= 0)
-            {
-                return 2d; // proven dead here
-            }
-
-            // Best when many bridges and low ping. Map into (0,1) so it always sorts before unknowns.
-            var pingPenalty = Math.Clamp((reach.FastestPingMs ?? 1000) / 10000d, 0d, 0.9d);
-            var countBonus = Math.Clamp(reach.ReachableCount / 100d, 0d, 0.9d);
-            return Math.Clamp(0.5d + pingPenalty - countBonus, 0.001d, 0.999d);
-        }
+        bool ProvenDead(Strategy strategy) =>
+            strategy.Options.UseTorBridges &&
+            reachabilityByTransport.TryGetValue(GetStrategyTransport(strategy), out var reach) &&
+            reach.ReachableCount <= 0;
 
         return strategies
-            .Select((strategy, index) => (strategy, index, rank: RankOf(strategy)))
-            .OrderBy(t => t.rank)
-            .ThenBy(t => t.index) // stable within the same rank band
-            .Select(t => t.strategy)
+            .Where(strategy => !ProvenDead(strategy))
+            .Concat(strategies.Where(ProvenDead))
             .ToList();
     }
 

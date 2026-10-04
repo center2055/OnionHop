@@ -573,10 +573,35 @@ public static class BridgeScanService
     }
 
     /// <summary>
-    /// Pull the broker/front host from a fronted bridge line. Prefers the <c>url=</c> host, then a
-    /// dnstt <c>doh=</c>/<c>dot=</c> resolver host, then the first <c>fronts=</c> entry, then <c>front=</c>.
+    /// The host a bridge line's transport first connects to. For a domain-fronted line that is the
+    /// front (<c>fronts=</c>/<c>front=</c>), not the <c>url=</c> host: the url host only travels
+    /// inside the fronted request, and fronting exists because it is often blocked, so probing it
+    /// reported working Snowflake/meek routes as dead. Without a front: the <c>url=</c> host
+    /// (webtunnel's real endpoint, an unfronted broker), the SQS queue host, then a dnstt
+    /// <c>doh=</c>/<c>dot=</c> resolver host.
     /// </summary>
-    internal static string? ExtractFrontHost(string line)
+    internal static string? ExtractFrontHost(string line) => ExtractConnectHosts(line).FirstOrDefault();
+
+    /// <summary>
+    /// Every host a bridge line's transport may connect to first: all of its fronts (the client
+    /// picks one of them), else the single host described on <see cref="ExtractFrontHost"/>.
+    /// </summary>
+    internal static IReadOnlyList<string> ExtractConnectHosts(string line)
+    {
+        var fronts = MatchKeyValue(line, "fronts") ?? MatchKeyValue(line, "front");
+        if (!string.IsNullOrWhiteSpace(fronts))
+        {
+            var hosts = fronts.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (hosts.Length > 0)
+            {
+                return hosts;
+            }
+        }
+
+        return ExtractUnfrontedHost(line) is { } host ? [host] : [];
+    }
+
+    private static string? ExtractUnfrontedHost(string line)
     {
         var url = MatchKeyValue(line, "url");
         if (!string.IsNullOrWhiteSpace(url) &&
@@ -584,6 +609,15 @@ public static class BridgeScanService
             !string.IsNullOrWhiteSpace(uri.Host))
         {
             return uri.Host;
+        }
+
+        // Snowflake's SQS rendezvous talks to the queue's host directly.
+        var sqs = MatchKeyValue(line, "sqsqueue");
+        if (!string.IsNullOrWhiteSpace(sqs) &&
+            Uri.TryCreate(sqs, UriKind.Absolute, out var sqsUri) &&
+            !string.IsNullOrWhiteSpace(sqsUri.Host))
+        {
+            return sqsUri.Host;
         }
 
         // dnstt rides a DNS-over-HTTPS/TLS resolver; probe that resolver host.
@@ -603,19 +637,36 @@ public static class BridgeScanService
             return colon > 0 ? dot[..colon] : dot;
         }
 
-        var fronts = MatchKeyValue(line, "fronts");
-        if (!string.IsNullOrWhiteSpace(fronts))
-        {
-            var first = fronts.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(first))
-            {
-                return first;
-            }
-        }
+        return null;
+    }
 
-        var front = MatchKeyValue(line, "front");
-        return string.IsNullOrWhiteSpace(front) ? null : front;
+    /// <summary>
+    /// Milliseconds for a TCP connect plus TLS handshake to <paramref name="host"/> with it as the
+    /// SNI, or null if either fails. Fronted transports are typically blocked by SNI: the TCP
+    /// connect still succeeds and the handshake is reset, so a TCP probe alone calls them reachable.
+    /// Certificates are not checked; this measures reachability, nothing is sent after the handshake.
+    /// </summary>
+    public static async Task<int?> ProbeTlsAsync(string host, int port, TimeSpan timeout, CancellationToken token)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(timeout);
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            using var tcp = new TcpClient();
+            await tcp.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
+            await using var tls = new SslStream(tcp.GetStream(), leaveInnerStreamOpen: false, (_, _, _, _) => true);
+            await tls.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = host }, cts.Token).ConfigureAwait(false);
+            return (int)stopwatch.ElapsedMilliseconds;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>Extract the raw <c>url=</c> value (webtunnel's real HTTPS endpoint) from a bridge line.</summary>
