@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.9 (2026-10-14)
 
 Fixes
 - **Tor stops when OnionHop exits (#87).** Closing OnionHop while connected could leave tor.exe running in the background with its SOCKS port open: a failure while shutting down the Discord status skipped the cleanup that stops Tor, and ending OnionHop from Task Manager or a crash never ran it at all. Tor now stops first on exit, and on Windows the engines (Tor, Arti, ArtiHop and their bridge transports) are tied to OnionHop, so Windows ends them along with it however it exits.
@@ -17,6 +17,8 @@ Smart Connect
 - **Routes that are slow but working get the time they need.** Each attempt has a short budget so that blocked routes fail fast, but routes that were getting through slowly were cut off too, typically Snowflake fetching Tor's directory over a throttled network, and Smart Connect moved on to worse options. Once Tor has completed a handshake through a route, the attempt now continues as long as it keeps making progress, up to 4 minutes.
 - **Learns what fails on your network.** Smart Connect remembered only the route that last worked; the ones that failed were tried again in the same order on every connect, each costing its full wait. A route that failed on your network is now tried last there for the next two days, and moves back to its usual place as soon as it works again.
 - **Knows the country even when it cannot be looked up.** If the lookups are blocked, Smart Connect goes by the country it detected on an earlier connect, or by this computer's time zone, instead of "unknown", which meant trying direct Tor first: exactly what fails where lookups are blocked.
+- **Its quick checks only skip routes that are dead.** Before connecting in a censored country, Smart Connect checks which routes answer. It also used to reorder the working ones by how many bridges answered, which pushed obfs4 to the front even where its bridges answer a connection and are cut off right after. Now routes where nothing answers go last and the rest keep Tor's order.
+- **The bridge scanner checks Snowflake and meek against the right host.** It tested the address hidden inside the fronted request, which is often blocked, instead of the domain front the transport actually connects to, so working lines could show as unreachable.
 
 ## v3.8.6 (2026-10-04)
 
