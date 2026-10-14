@@ -23,7 +23,7 @@ public sealed class CircumventionSettings
     public const string MapUrl = "https://bridges.torproject.org/moat/circumvention/map";
 
     /// <summary>When the bundled snapshot was taken.</summary>
-    public const string BundledSnapshotDate = "2026-10-04";
+    public const string BundledSnapshotDate = "2026-10-14";
 
     private const string BundledResourceName = "OnionHopV3.Core.Resources.circumvention-map.json";
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromDays(1);
