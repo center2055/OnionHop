@@ -1614,8 +1614,25 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
         }
 
-        _discordPresence.Dispose();
-        _client.Dispose();
+        // The client first: it restores the system proxy and DNS and stops Tor. Nothing cosmetic may
+        // stand in its way; an exception from the Discord client used to skip it, leaving tor.exe
+        // running with its SOCKS port open after OnionHop exited (#87).
+        try
+        {
+            _client.Dispose();
+        }
+        catch (Exception ex)
+        {
+            OnionHopV3.Core.Services.StartupLogger.Write($"Dispose: client cleanup failed: {ex.Message}");
+        }
+
+        try
+        {
+            _discordPresence.Dispose();
+        }
+        catch
+        {
+        }
     }
 
     [RelayCommand]

@@ -144,6 +144,9 @@ internal sealed class SnowflakeProxyService : IDisposable
             throw new InvalidOperationException("Unable to launch the Snowflake proxy.");
         }
 
+        // Ends with OnionHop even when its own cleanup never runs (#87).
+        Platform.Windows.WindowsChildProcessJob.Track(_process);
+
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
 

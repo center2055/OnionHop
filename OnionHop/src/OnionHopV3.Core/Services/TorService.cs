@@ -142,6 +142,9 @@ internal sealed class TorService : IDisposable
             throw new InvalidOperationException("Unable to launch Tor.");
         }
 
+        // Ends with OnionHop even when its own cleanup never runs (#87).
+        Platform.Windows.WindowsChildProcessJob.Track(_process);
+
         config.ProcessStarted?.Invoke(_process);
 
         _process.BeginOutputReadLine();

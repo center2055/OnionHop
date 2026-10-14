@@ -212,6 +212,9 @@ internal sealed class ArtiHopService : IDisposable
             throw new InvalidOperationException("Unable to launch ArtiHop.");
         }
 
+        // Ends with OnionHop even when its own cleanup never runs (#87).
+        Platform.Windows.WindowsChildProcessJob.Track(_process);
+
         config.ProcessStarted?.Invoke(_process);
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
