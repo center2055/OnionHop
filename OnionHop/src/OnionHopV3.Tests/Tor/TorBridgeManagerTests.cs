@@ -354,6 +354,41 @@ public sealed class TorBridgeManagerTests
     }
 
     [Fact]
+    public void GetClientTransportPlugins_runs_webtunnel_through_lyrebird_with_an_upstream_proxy()
+    {
+        // #88: webtunnel-client answers Tor's outgoing-proxy setup with "proxy is not supported" and
+        // Tor drops the transport; lyrebird carries webtunnel through the proxy.
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "webtunnel",
+                UpstreamProxyEnabled = true,
+                UpstreamProxyHost = "127.0.0.1",
+                UpstreamProxyPort = 1080
+            };
+
+            var plugins = manager.GetClientTransportPlugins(
+                options,
+                ["webtunnel 198.51.100.20:443 0123456789ABCDEF0123456789ABCDEF01234567 url=https://example.test/ ver=0.0.3"],
+                Path.Combine(dir, "tor"),
+                null,
+                _ => { });
+
+            var plugin = Assert.Single(plugins);
+            Assert.StartsWith("ClientTransportPlugin webtunnel exec ", plugin);
+            Assert.Contains(PlatformHelper.LyrebirdBinaryName, plugin);
+            Assert.DoesNotContain(PlatformHelper.WebTunnelClientBinaryName, plugin);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
     public void SnowflakeAmpCache_routes_the_broker_through_google_instead_of_the_cdn77_fronts()
     {
         // The AMP rendezvous only works fronted as www.google.com with the broker's own URL. Keeping

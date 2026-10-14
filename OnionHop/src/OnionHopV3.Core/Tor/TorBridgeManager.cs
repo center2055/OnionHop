@@ -1546,9 +1546,20 @@ internal sealed class TorBridgeManager
         string? webTunnelPlugin = null;
         if (needed.Contains(WebTunnelBridgeType))
         {
-            if (!TryEnsureWebTunnelClient(ptPath, log, out webTunnelPlugin))
+            // The separate webtunnel-client cannot use an upstream proxy: Tor gets "proxy is not
+            // supported" from it, drops the transport, and the connect fails (#88). lyrebird carries
+            // webtunnel too and supports the proxy, so it takes over then, and whenever
+            // webtunnel-client is missing.
+            var lyrebirdWebTunnel = $"ClientTransportPlugin {WebTunnelBridgeType} exec {Path.Combine(ptRelativePath, LyrebirdFileName)}";
+            if (options.UpstreamProxyEnabled && !string.IsNullOrWhiteSpace(options.UpstreamProxyHost))
             {
-                return Array.Empty<string>();
+                log("Upstream proxy is on: running webtunnel through lyrebird, which can use the proxy.");
+                webTunnelPlugin = lyrebirdWebTunnel;
+            }
+            else if (!TryEnsureWebTunnelClient(ptPath, log, out webTunnelPlugin))
+            {
+                log("webtunnel-client is not available: running webtunnel through lyrebird instead.");
+                webTunnelPlugin = lyrebirdWebTunnel;
             }
         }
 
