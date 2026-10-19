@@ -67,6 +67,27 @@ public sealed class BridgeScanServiceTests
     }
 
     [Theory]
+    // Domain-fronted: the front is what the transport connects to; the url host only travels inside
+    // the fronted request (and is often the blocked one).
+    [InlineData("snowflake 192.0.2.3:80 2B28 url=https://1098762253.rsc.cdn77.org fronts=www.phpmyadmin.net,cdn.zk.mk", "www.phpmyadmin.net")]
+    [InlineData("meek_lite 192.0.2.20:80 url=https://1603026938.rsc.cdn77.org front=www.phpmyadmin.net", "www.phpmyadmin.net")]
+    // Snowflake's SQS rendezvous: the queue host.
+    [InlineData("snowflake 192.0.2.5:80 2B28 sqsqueue=https://sqs.us-east-2.amazonaws.com/4903/snowflake-broker sqscreds=x", "sqs.us-east-2.amazonaws.com")]
+    public void ExtractFrontHost_prefers_the_front_over_the_hidden_url_host(string line, string expected)
+    {
+        Assert.Equal(expected, BridgeScanService.ExtractFrontHost(line));
+    }
+
+    [Fact]
+    public void ExtractConnectHosts_lists_every_front_including_a_comma_separated_front()
+    {
+        Assert.Equal(
+            ["www.phpmyadmin.net", "cdn.zk.mk"],
+            BridgeScanService.ExtractConnectHosts("snowflake 192.0.2.3:80 2B28 url=https://1098762253.rsc.cdn77.org front=www.phpmyadmin.net,cdn.zk.mk"));
+        Assert.Empty(BridgeScanService.ExtractConnectHosts("obfs4 1.2.3.4:443 ABC cert=x iat-mode=0"));
+    }
+
+    [Theory]
     [InlineData("dnstt 192.0.2.4:1 A998F319 doh=https://dns.google/dns-query pubkey=2411 domain=t.ruhnama.net", "dns.google")]
     [InlineData("dnstt 192.0.2.4:2 80EEFA4F dot=dot.example:853 pubkey=a2fb domain=t2.example.org", "dot.example")]
     // webtunnel: the real endpoint is the url= host, not the (placeholder) IP:port.

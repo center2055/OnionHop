@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Smart Connect
+- **Checks every route before connecting, all at once.** In censored countries Smart Connect first checks which routes answer. It checked them one after another, so on a slow network often only the first got checked in time, and it skipped Snowflake, meek, conjure and dnstt entirely, the routes that matter most where censorship is heaviest. All routes are now checked side by side. For those four it tests a real TLS connection to the domain fronts, Amazon SQS queue or DNS resolver they actually connect to, using Tor's lines for your country, since censors block these by name. Routes where nothing answers are tried last.
+
 ## v3.9 (2026-10-14)
 
 Fixes

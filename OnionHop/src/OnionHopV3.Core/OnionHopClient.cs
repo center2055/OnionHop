@@ -320,95 +320,143 @@ public sealed class OnionHopClient : IDisposable
     }
 
     /// <summary>
-    /// Concurrently measure which bridge transports have reachable bridges from this network, so
-    /// Smart Connect can lead with the transport that actually works here instead of trying them in a
-    /// fixed order. For each transport we fetch its candidate bridges and TCP-probe them in parallel
-    /// (the same reachability scan used before launch); the result maps transport -> (reachable count,
-    /// fastest ping). Fronted transports (snowflake/dnstt) have no probeable endpoint and are omitted
-    /// (the caller leaves them in their default position). This is the safe form of "racing": we race
-    /// cheap reachability probes up front, then run a single clean connect - never multiple live Tor
-    /// processes mutating system proxy/DNS/TUN state at once.
+    /// Measure which bridge transports get through from this network, so Smart Connect can skip the
+    /// ones that certainly fail. All transports are probed at the same time, within one budget:
+    /// <list type="bullet">
+    /// <item>obfs4/webtunnel/vanilla: fetch their candidate bridges and scan them (TCP, and
+    /// webtunnel's real WebSocket upgrade), the same scan used before launch. The fetch doubles as
+    /// a prefetch: the attempt reuses what it found.</item>
+    /// <item>fronted transports (snowflake, meek, conjure, dnstt): a TLS handshake, with the host as
+    /// SNI, to the hosts they connect to first: their domain fronts, SQS queue or DoH resolver. A
+    /// censor blocks these by SNI, which a TCP probe alone does not see.</item>
+    /// </list>
+    /// The result maps transport -> (reachable bridges or hosts, fastest ms); a transport missing
+    /// from it could not be measured in time. This is the safe form of "racing": cheap probes up
+    /// front, then a single clean connect - never multiple live Tor processes mutating system
+    /// proxy/DNS/TUN state at once.
     /// </summary>
-    public async Task<IReadOnlyDictionary<string, (int ReachableCount, int? FastestPingMs)>> ProbeTransportReachabilityAsync(
+    public Task<IReadOnlyDictionary<string, (int ReachableCount, int? FastestPingMs)>> ProbeTransportReachabilityAsync(
         OnionHopConnectOptions options,
         IReadOnlyList<string> transports,
         TimeSpan budget,
         CancellationToken token)
-    {
-        var result = new Dictionary<string, (int, int?)>(StringComparer.OrdinalIgnoreCase);
-        if (transports.Count == 0)
-        {
-            return result;
-        }
+        => ProbeTransportReachabilityAsync(transports.Select(transport => (transport, options)).ToList(), budget, token);
 
+    /// <param name="candidates">
+    /// Each transport with the options its attempt will use; Smart Connect's carry Tor's bridge lines
+    /// for the user's country, so those are what gets probed.
+    /// </param>
+    public async Task<IReadOnlyDictionary<string, (int ReachableCount, int? FastestPingMs)>> ProbeTransportReachabilityAsync(
+        IReadOnlyList<(string Transport, OnionHopConnectOptions Options)> candidates,
+        TimeSpan budget,
+        CancellationToken token)
+    {
         using var budgetCts = CancellationTokenSource.CreateLinkedTokenSource(token);
         budgetCts.CancelAfter(budget);
 
-        try
+        var probes = candidates
+            .Select(candidate => (Transport: candidate.Transport?.Trim().ToLowerInvariant() ?? string.Empty, candidate.Options))
+            .Where(candidate => candidate.Transport.Length > 0 && !TorBridgeManager.IsAutomaticBridgeType(candidate.Transport))
+            .DistinctBy(candidate => candidate.Transport)
+            .Select(candidate => ProbeTransportAsync(
+                candidate.Transport,
+                candidate.Options with { SelectedBridgeType = candidate.Transport, UseTorBridges = true },
+                budgetCts.Token))
+            .ToList();
+        var outcomes = await Task.WhenAll(probes).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+
+        var result = new Dictionary<string, (int, int?)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (transport, outcome) in outcomes)
         {
-            foreach (var transport in transports.Distinct(StringComparer.OrdinalIgnoreCase))
+            if (outcome is { } measured)
             {
-                budgetCts.Token.ThrowIfCancellationRequested();
-
-                // Skip the meta "automatic" type and fronted transports with no pingable endpoint.
-                if (TorBridgeManager.IsAutomaticBridgeType(transport) ||
-                    !TorBridgeManager.BridgeTypeHasProbeableEndpoint(transport))
-                {
-                    continue;
-                }
-
-                IReadOnlyList<string> lines;
-                try
-                {
-                    var probeOptions = options with { SelectedBridgeType = transport, UseTorBridges = true };
-                    lines = await _bridgeManager.GetBridgeLinesAsync(probeOptions, _ptConfig, _ => { }, budgetCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (!token.IsCancellationRequested)
-                {
-                    break; // budget elapsed
-                }
-                catch
-                {
-                    continue;
-                }
-
-                if (lines.Count == 0)
-                {
-                    continue;
-                }
-
-                IReadOnlyList<BridgeScanResult> scan;
-                try
-                {
-                    scan = await BridgeScanService.ScanAsync(lines, 24, TimeSpan.FromSeconds(3), progress: null, budgetCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (!token.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch
-                {
-                    continue;
-                }
-
-                var working = scan.Where(r => r.IsWorking).ToList();
-                if (working.Count > 0)
-                {
-                    var fastest = working.Where(r => r.PingMs.HasValue).Select(r => r.PingMs!.Value).DefaultIfEmpty(int.MaxValue).Min();
-                    result[transport] = (working.Count, fastest == int.MaxValue ? null : fastest);
-                }
-                else
-                {
-                    result[transport] = (0, null);
-                }
+                result[transport] = measured;
             }
-        }
-        catch (OperationCanceledException) when (!token.IsCancellationRequested)
-        {
-            // budget elapsed - return what we have
         }
 
         return result;
+    }
+
+    // How long one fronted host gets for its TCP connect and TLS handshake, and how many hosts of a
+    // transport are tried (they are tried at the same time).
+    private static readonly TimeSpan FrontedProbeTimeout = TimeSpan.FromSeconds(4);
+    private const int MaxFrontedProbeHosts = 6;
+
+    // One transport's probe. Null when it could not be measured: the budget ran out, the user
+    // cancelled (the caller checks), or there was nothing to probe.
+    private async Task<(string Transport, (int ReachableCount, int? FastestPingMs)? Outcome)> ProbeTransportAsync(
+        string transport,
+        OnionHopConnectOptions options,
+        CancellationToken token)
+    {
+        try
+        {
+            if (TorBridgeManager.BridgeTypeHasProbeableEndpoint(transport))
+            {
+                var lines = await _bridgeManager.GetBridgeLinesAsync(options, _ptConfig, _ => { }, token).ConfigureAwait(false);
+                if (lines.Count == 0)
+                {
+                    return (transport, null);
+                }
+
+                var scan = await BridgeScanService.ScanAsync(lines, 24, TimeSpan.FromSeconds(3), progress: null, token).ConfigureAwait(false);
+                return (transport, SummarizeReachability(scan.Where(result => result.IsWorking).Select(result => result.PingMs)));
+            }
+
+            var hosts = FrontedProbeHosts(transport, options, _ptConfig);
+            if (hosts.Count == 0)
+            {
+                return (transport, null);
+            }
+
+            var handshakes = await Task.WhenAll(hosts.Select(host => BridgeScanService.ProbeTlsAsync(host, 443, FrontedProbeTimeout, token))).ConfigureAwait(false);
+            return (transport, SummarizeReachability(handshakes.Where(ms => ms.HasValue)));
+        }
+        catch
+        {
+            return (transport, null);
+        }
+    }
+
+    private static (int ReachableCount, int? FastestPingMs) SummarizeReachability(IEnumerable<int?> reachablePings)
+    {
+        var pings = reachablePings.ToList();
+        var fastest = pings.Where(ping => ping.HasValue).Select(ping => ping!.Value).DefaultIfEmpty(int.MaxValue).Min();
+        return (pings.Count, fastest == int.MaxValue ? null : fastest);
+    }
+
+    /// <summary>
+    /// The hosts a fronted transport's attempt connects to first, from the lines that attempt will
+    /// use: Tor's lines for the user's country when Smart Connect has them, else the bundled ones
+    /// (pt_config, then the scanner's built-in set), with the AMP rewrite applied when AMP is on,
+    /// since that moves Snowflake to a Google front.
+    /// </summary>
+    internal static IReadOnlyList<string> FrontedProbeHosts(string transport, OnionHopConnectOptions options, PluggableTransportConfig? config)
+    {
+        IReadOnlyList<string> lines = (options.CountryBridgeLines ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(line => TorBridgeManager.IsLineForBridgeType(line, transport))
+            .ToList();
+        if (lines.Count == 0)
+        {
+            if (config?.Bridges != null && config.Bridges.TryGetValue(transport, out var bundled) && bundled.Count > 0)
+            {
+                lines = bundled;
+            }
+            else if (BridgeSourceService.BuiltInBridges.TryGetValue(transport, out var builtIn))
+            {
+                lines = builtIn;
+            }
+
+            lines = TorBridgeManager.ApplySnowflakeAmpCacheToBridges(options, lines, static _ => { });
+        }
+
+        return lines
+            .SelectMany(BridgeScanService.ExtractConnectHosts)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MaxFrontedProbeHosts)
+            .ToList();
     }
 
     public async Task<BridgeDataRefreshStatus> RefreshBridgeDistributionAsync(OnionHopConnectOptions options, CancellationToken token = default)

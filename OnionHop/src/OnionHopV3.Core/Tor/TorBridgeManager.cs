@@ -2386,7 +2386,7 @@ internal sealed class TorBridgeManager
     }
 
     // Whether a bridge line is for the given bridge type. OnionHop calls meek_lite "meek".
-    private static bool IsLineForBridgeType(string line, string bridgeType)
+    internal static bool IsLineForBridgeType(string line, string bridgeType)
     {
         var transport = ExtractBridgeTransport(line);
         return transport is not null &&

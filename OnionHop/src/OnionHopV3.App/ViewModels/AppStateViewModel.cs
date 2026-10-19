@@ -1862,7 +1862,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 // front, then a single clean connect (never multiple live Tor processes at once).
                 if (plan.Risk is SmartConnectAdvisor.RiskLevel.Restricted or SmartConnectAdvisor.RiskLevel.Severe)
                 {
-                    strategies = await ApplyReachabilityRacingAsync(baseOptions, strategies, token);
+                    strategies = await ApplyReachabilityRacingAsync(strategies, token);
                 }
 
                 // Failure memory: what failed on this network in the last two days goes last.
@@ -1922,36 +1922,37 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
 
     // Total wall-clock budget for the up-front reachability race. Probes run concurrently, so this is
     // roughly one round of probing, not the sum across transports.
-    private static readonly TimeSpan ReachabilityRaceBudget = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan ReachabilityRaceBudget = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// Concurrently measure which bridge transports have live bridges on this network and reorder the
-    /// strategy ladder to lead with the most reachable one. Best-effort: any failure / timeout leaves
-    /// the ladder unchanged. This is the "racing" win without the danger of multiple live Tor stacks.
+    /// Concurrently measure which bridge transports get through on this network, each with the
+    /// options (and so the bridge lines) its attempt will use, and move the ones where nothing
+    /// answered to the back of the ladder. Best-effort: any failure / timeout leaves the ladder
+    /// unchanged. This is the "racing" win without the danger of multiple live Tor stacks.
     /// </summary>
     private async Task<IReadOnlyList<SmartConnectAdvisor.Strategy>> ApplyReachabilityRacingAsync(
-        OnionHopConnectOptions baseOptions,
         IReadOnlyList<SmartConnectAdvisor.Strategy> strategies,
         CancellationToken token)
     {
         try
         {
-            // Probe the distinct probeable bridge transports that appear in the ladder.
-            var transports = strategies
+            // Probe each distinct bridge transport in the ladder with its own strategy's options:
+            // those carry Tor's lines for the user's country, which are what its attempt will use.
+            var candidates = strategies
                 .Where(s => s.Options.UseTorBridges)
-                .Select(SmartConnectAdvisor.GetStrategyTransport)
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(s => (Transport: SmartConnectAdvisor.GetStrategyTransport(s), s.Options))
+                .Where(c => !string.IsNullOrWhiteSpace(c.Transport) && !OnionHopClient.IsAutomaticBridgeType(c.Transport))
+                .DistinctBy(c => c.Transport, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            if (transports.Count < 2)
+            if (candidates.Count < 2)
             {
                 return strategies;
             }
 
             UpdatePreparationStatus("Smart Connect is checking which bridges are reachable...", 0.05);
             var reachability = await _client.ProbeTransportReachabilityAsync(
-                baseOptions, transports, ReachabilityRaceBudget, token).ConfigureAwait(false);
+                candidates, ReachabilityRaceBudget, token).ConfigureAwait(false);
 
             if (reachability.Count == 0)
             {

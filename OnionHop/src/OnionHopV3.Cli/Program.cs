@@ -722,9 +722,10 @@ internal sealed class CliHost : IAsyncDisposable
 
     private async Task ReachabilityAsync(CancellationToken token)
     {
+        // Fronted transports count too: for them the probe is a TLS handshake to the domain fronts
+        // (or SQS queue / DoH resolver) they connect to.
         var probeable = _client.GetBridgeTypes()
-            .Where(t => OnionHopClient.BridgeTypeHasProbeableEndpoint(t)
-                        && !OnionHopClient.IsAutomaticBridgeType(t)
+            .Where(t => !OnionHopClient.IsAutomaticBridgeType(t)
                         && t != "custom" && t != "vanilla")
             .ToList();
         if (probeable.Count == 0)
