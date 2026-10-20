@@ -144,8 +144,11 @@ build_tor_from_source() {
         fetch_verified "https://archive.torproject.org/tor-package-archive/tor-$TOR_SRC_VERSION.tar.gz" "$TOR_SRC_SHA256" "$tor_archive"
     fi
     tar -xzf "$tor_archive" -C "$TEMP_DIR"
+    # The compiler, ar and strip carry the target prefix, but pkg-config is the host's, which tor's
+    # toolchain name check rejects; it is pointed at the libraries built above instead.
     (cd "$TEMP_DIR/tor-$TOR_SRC_VERSION" \
-        && ./configure --host="$CROSS" --prefix="$prefix" \
+        && PKG_CONFIG_LIBDIR="$prefix/lib/pkgconfig" ./configure --host="$CROSS" --prefix="$prefix" \
+            --disable-tool-name-check \
             --enable-static-libevent --with-libevent-dir="$prefix" \
             --enable-static-openssl --with-openssl-dir="$prefix" \
             --enable-static-zlib --with-zlib-dir="$prefix" \
