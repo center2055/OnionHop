@@ -8,6 +8,10 @@
     <RootNamespace>OnionHopV3.Cli</RootNamespace>
     <Version>3.9</Version>
     <AssemblyTitle>OnionHop CLI</AssemblyTitle>
+    <!-- Without this .NET refuses to start where libicu is not installed, as on minimal installs and
+         slim containers that headless boxes often run. The CLI only prints English, so it needs no
+         culture data, and numbers in its JSON output no longer follow the system locale (#89). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>

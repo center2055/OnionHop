@@ -61,6 +61,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 | **macOS** | `OnionHop-3.x-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
 | **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface |
 | **Linux CLI** | `OnionHopCLI-…linux-x64.tar.gz` | Terminal interface |
+| **Linux CLI (ARM)** | `OnionHopCLI-…linux-arm64.tar.gz` (64-bit) / `…linux-arm.tar.gz` (32-bit ARMv7) | Raspberry Pi and other ARM boards; see [Headless use](#headless-use-cli) |
 | **macOS CLI** | `OnionHopCLI-…macos-arm64.tar.gz` (Apple Silicon) / `…macos-x64.tar.gz` (Intel) | Terminal interface; signed & notarized — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) like the DMGs |
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
@@ -111,6 +112,53 @@ Only in TUN/VPN Mode — route selected apps through Tor while others stay direc
 
 ---
 
+## Headless use (CLI)
+
+The CLI runs without a desktop, e.g. on a Raspberry Pi that shares Tor with your home network. Use `linux-arm64` on a 64-bit OS and `linux-arm` on a 32-bit one (Pi 2 and newer); `dpkg --print-architecture` prints `arm64` or `armhf`. It needs Debian 12/13 or a similar distribution (glibc 2.35+, `ca-certificates`).
+
+```bash
+sudo mkdir -p /opt/onionhop
+sudo tar -xzf OnionHopCLI-<version>-linux-arm.tar.gz -C /opt/onionhop
+/opt/onionhop/OnionHopV3.Cli connect --proxy-scope local --lan on
+```
+
+- `connect` keeps running until it is stopped. Ctrl+C, SIGTERM (systemd, Docker, `kill`) and SIGHUP (a closed SSH session) all disconnect cleanly and stop Tor.
+- `--proxy-scope local` leaves the system proxy alone, which a headless box does not have.
+- `--lan on` listens on every network interface instead of 127.0.0.1, and prints the SOCKS and HTTP addresses other devices should use. Anyone who can reach those ports can use them, so on a router block them on the internet-facing interface.
+- The kill switch only exists in TUN mode and only when it is turned on; the CLI never turns it on, so Proxy Mode leaves your firewall rules alone.
+
+To start it at boot, create `/etc/systemd/system/onionhop.service`:
+
+```ini
+[Unit]
+Description=OnionHop (Tor with Smart Connect)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=onionhop
+ExecStart=/opt/onionhop/OnionHopV3.Cli connect --proxy-scope local --lan on
+# Only the CLI gets SIGTERM, so it stops Tor itself before exiting.
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo useradd --system --create-home --home-dir /var/lib/onionhop onionhop
+sudo systemctl daemon-reload
+sudo systemctl enable --now onionhop
+journalctl -u onionhop -f
+```
+
+Settings and Smart Connect's memory of your network live in the service user's `~/.config/OnionHop`, Tor and its state in `~/.local/share/OnionHop`.
+
+---
+
 ## Permissions
 
 - **Network access** — IP checks, Onionoo relay/country data, GitHub release metadata, bridge sources, and dependency downloads.
@@ -135,9 +183,11 @@ Fetch runtime dependencies (Tor, pluggable transports, sing-box, Wintun, ArtiHop
 powershell -NoProfile -ExecutionPolicy Bypass -File download-deps.ps1
 ```
 ```bash
-# Linux
+# Linux (this machine's architecture, or pass x64, arm64 or arm)
 ./download-deps.sh
 ```
+
+For `arm64` and `arm`, Tor (with OpenSSL, libevent and zlib) and the transports are built from source, since the Tor Project publishes no stable Linux ARM bundle. That needs Go, plus the cross compiler when building on an x86_64 machine (`gcc-aarch64-linux-gnu` or `gcc-arm-linux-gnueabihf`).
 
 Build & run:
 

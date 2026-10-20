@@ -1,5 +1,6 @@
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using OnionHopV3.Core;
 using OnionHopV3.Core.Models;
@@ -16,21 +17,39 @@ internal static class Program
 
         using var shutdownCts = new CancellationTokenSource();
         await using var host = new CliHost();
-        var ctrlCCount = 0;
-        Console.CancelKeyPress += (_, eventArgs) =>
+        var stopRequests = 0;
+
+        // The first stop request disconnects cleanly; a second one means that is stuck, so leave now.
+        void RequestStop(string reason)
         {
-            eventArgs.Cancel = true;
-            ctrlCCount++;
-            if (ctrlCCount == 1)
+            if (Interlocked.Increment(ref stopRequests) == 1)
             {
-                host.WriteInfo("Ctrl+C received. Stopping...");
+                host.WriteInfo($"{reason} received. Stopping...");
                 shutdownCts.Cancel();
                 return;
             }
 
-            host.WriteWarning("Second Ctrl+C - forcing exit.");
+            host.WriteWarning($"Second {reason} - forcing exit.");
             Environment.Exit(130);
+        }
+
+        Console.CancelKeyPress += (_, eventArgs) =>
+        {
+            eventArgs.Cancel = true;
+            RequestStop("Ctrl+C");
         };
+
+        // systemd, Docker and `kill` stop the CLI with SIGTERM, and a dropped SSH session sends
+        // SIGHUP. The runtime's default for both ends the process on the spot without disconnecting,
+        // which left Tor running on its ports after a plain `kill`. Stop the same way as Ctrl+C.
+        void OnStopSignal(PosixSignalContext context)
+        {
+            context.Cancel = true;
+            RequestStop(context.Signal.ToString());
+        }
+
+        using var sigterm = OperatingSystem.IsWindows() ? null : PosixSignalRegistration.Create(PosixSignal.SIGTERM, OnStopSignal);
+        using var sighup = OperatingSystem.IsWindows() ? null : PosixSignalRegistration.Create(PosixSignal.SIGHUP, OnStopSignal);
 
         try
         {
@@ -177,10 +196,12 @@ internal sealed class CliHost : IAsyncDisposable
         WriteHint("  --dns <auto|cloudflare|quad9|adguard|mullvad|opendns|google|custom>", "DoH provider");
         WriteHint("  --onion-dns-proxy <on|off>", "enable the .onion DNS proxy listener");
         WriteHint("  --hold <on|off>", "keep running after connect (non-interactive)");
+        WriteHint("  --lan <on|off>", "share the SOCKS/HTTP proxy with your network (listens on all interfaces)");
         WriteLine(string.Empty, ConsoleColor.Gray);
         WriteLine("Examples:", ConsoleColor.White);
         WriteHint("  connect --engine artihop", "fast 2-hop connect");
         WriteHint("  connect --mode tun --bridge-type snowflake", "TUN mode over snowflake");
+        WriteHint("  connect --proxy-scope local --lan on", "headless box sharing Tor with the LAN; SIGTERM disconnects cleanly");
         WriteHint("  scan obfs4 200", "probe up to 200 obfs4 bridges");
         WriteLine(string.Empty, ConsoleColor.Gray);
     }
@@ -217,7 +238,18 @@ internal sealed class CliHost : IAsyncDisposable
         while (!token.IsCancellationRequested)
         {
             WriteInline(PromptText(), ConnectedColor());
-            var line = Console.ReadLine();
+            string? line;
+            try
+            {
+                // ReadLine cannot be canceled, so wait on it with the stop token: a SIGTERM or SIGHUP
+                // at the prompt then ends the session instead of waiting for Enter.
+                line = await Task.Run(Console.ReadLine).WaitAsync(token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
             if (line == null)
             {
                 break;
@@ -287,7 +319,9 @@ internal sealed class CliHost : IAsyncDisposable
 
                 if (!isInteractive && request.Hold)
                 {
-                    WriteInfo("Connected. Press Ctrl+C to disconnect and exit.");
+                    WriteInfo(OperatingSystem.IsWindows()
+                        ? "Connected. Press Ctrl+C to disconnect and exit."
+                        : "Connected. Press Ctrl+C (or send SIGTERM) to disconnect and exit.");
                     await WaitUntilCanceledAsync(token);
                 }
 
@@ -540,6 +574,10 @@ internal sealed class CliHost : IAsyncDisposable
                 _connectedSinceUtc = DateTimeOffset.UtcNow;
                 _lastConnectRequest = request;
                 WriteSuccess($"Connected.  IP {snapshot.CurrentIp}   SOCKS 127.0.0.1:{snapshot.SocksPort}");
+                if (request.ShareWithLan)
+                {
+                    WriteInfo($"Shared with your network: {DescribeLanEndpoints(snapshot)}. Anyone who can reach this machine can use it.");
+                }
                 return true;
             }
         }
@@ -961,9 +999,11 @@ internal sealed class CliHost : IAsyncDisposable
         var dep = GetDependencySnapshot();
         var connColor = s.IsConnected ? ConsoleColor.Green : s.IsConnecting ? ConsoleColor.Yellow : ConsoleColor.DarkGray;
 
+        var sharedWithLan = s.IsConnected && _lastConnectRequest is { ShareWithLan: true };
+
         if (_jsonMode)
         {
-            WriteLine($"{{\"connected\":{s.IsConnected.ToString().ToLowerInvariant()},\"status\":\"{s.ConnectionStatus}\",\"ip\":\"{s.CurrentIp}\",\"socks\":{s.SocksPort}}}", ConsoleColor.Gray);
+            WriteLine($"{{\"connected\":{s.IsConnected.ToString().ToLowerInvariant()},\"status\":\"{s.ConnectionStatus}\",\"ip\":\"{s.CurrentIp}\",\"socks\":{s.SocksPort},\"lan\":{sharedWithLan.ToString().ToLowerInvariant()}}}", ConsoleColor.Gray);
             return;
         }
 
@@ -978,6 +1018,10 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine($"  {"Public IP",-12}: {s.CurrentIp}", s.IsConnected ? ConsoleColor.Cyan : ConsoleColor.Gray);
         WriteLine($"  {"SOCKS",-12}: 127.0.0.1:{s.SocksPort}", ConsoleColor.Gray);
         WriteLine($"  {"HTTP",-12}: {(s.HttpPort.HasValue ? $"127.0.0.1:{s.HttpPort.Value}" : "disabled")}", ConsoleColor.Gray);
+        if (sharedWithLan)
+        {
+            WriteLine($"  {"LAN",-12}: {DescribeLanEndpoints(s)}", ConsoleColor.Gray);
+        }
         WriteLine($"  {"System proxy",-12}: {(_client.IsSystemProxyEnabled ? "ON" : "off")}", ConsoleColor.Gray);
         if (_connectedSinceUtc.HasValue && s.IsConnected)
         {
@@ -1061,6 +1105,8 @@ internal sealed class CliHost : IAsyncDisposable
             OnionDnsProxyEnabled = request.UseOnionDnsProxy,
             PreferredSocksPort = OnionHopConnectOptions.DefaultSocksPort,
             PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort,
+            // --lan: listen on every interface so other devices can use this machine's Tor (#89).
+            AllowLanProxyAccess = request.ShareWithLan,
             ConnectionPaddingMode = OnionHopConnectOptions.ConnectionPaddingAuto,
             TorIpv6Mode = OnionHopConnectOptions.ToggleModeDefault,
             HardwareAccelerationMode = OnionHopConnectOptions.ToggleModeDefault,
@@ -1198,7 +1244,8 @@ internal sealed class CliHost : IAsyncDisposable
             StrictManualExitNodeFingerprint: GetBool(o, "strict-exit-fingerprint", true),
             Engine: GetOption(o, "engine", "auto"),
             BridgeSource: GetOption(o, "bridge-source", "auto"),
-            BridgeSourceProvided: o.ContainsKey("bridge-source"));
+            BridgeSourceProvided: o.ContainsKey("bridge-source"),
+            ShareWithLan: GetBool(o, "lan", false));
     }
 
     private static Dictionary<string, string> ParseOptions(IReadOnlyList<string> args)
@@ -1307,6 +1354,17 @@ internal sealed class CliHost : IAsyncDisposable
 
     private static string FormatUptime(TimeSpan t)
         => t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes}m {t.Seconds}s" : t.TotalMinutes >= 1 ? $"{t.Minutes}m {t.Seconds}s" : $"{t.Seconds}s";
+
+    /// <summary>
+    /// What other devices point at when the proxy is shared with the network: this machine's LAN
+    /// address, since the 127.0.0.1 shown everywhere else only works on this machine.
+    /// </summary>
+    private static string DescribeLanEndpoints(OnionHopClient.StatusUpdate s)
+    {
+        var host = OnionHopV3.Core.Networking.LanAddressFinder.GetPrimaryLanIPv4() ?? "<this machine's IP>";
+        var http = s.HttpPort.HasValue ? $", HTTP {host}:{s.HttpPort.Value}" : string.Empty;
+        return $"SOCKS {host}:{s.SocksPort}{http}";
+    }
 
     private static string FormatBytes(long bytes)
     {
@@ -1440,6 +1498,17 @@ internal sealed class CliHost : IAsyncDisposable
         {
             _host = host;
             _label = label;
+
+            // Redirected output (systemd's journal, a log file, a pipe) cannot redraw a line in
+            // place, so every frame piled up in the log. Say it once instead.
+            if (Console.IsOutputRedirected)
+            {
+                _stopped = true;
+                _task = Task.CompletedTask;
+                host.WriteInfo($"{label}...");
+                return;
+            }
+
             _task = Task.Run(async () =>
             {
                 var i = 0;
@@ -1487,5 +1556,6 @@ internal sealed class CliHost : IAsyncDisposable
         bool StrictManualExitNodeFingerprint,
         string Engine,
         string BridgeSource,
-        bool BridgeSourceProvided = false);
+        bool BridgeSourceProvided = false,
+        bool ShareWithLan = false);
 }

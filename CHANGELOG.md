@@ -5,6 +5,13 @@
 Smart Connect
 - **Checks every route before connecting, all at once.** In censored countries Smart Connect first checks which routes answer. It checked them one after another, so on a slow network often only the first got checked in time, and it skipped Snowflake, meek, conjure and dnstt entirely, the routes that matter most where censorship is heaviest. All routes are now checked side by side. For those four it tests a real TLS connection to the domain fronts, Amazon SQS queue or DNS resolver they actually connect to, using Tor's lines for your country, since censors block these by name. Routes where nothing answers are tried last.
 
+CLI
+- **Builds for ARM Linux (#89).** The CLI is now also published for 64-bit ARM (`linux-arm64`) and 32-bit ARMv7 (`linux-arm`), for example for a Raspberry Pi that shares Tor with its network. The Tor Project publishes no stable Linux ARM build of Tor, so for these Tor and its transports are built from source.
+- **Shares Tor with your network: `connect --lan on`.** The SOCKS and HTTP proxy then listen on every network interface instead of only this computer, and the CLI prints the addresses other devices should use.
+- **Stops cleanly when a service manager stops it.** SIGTERM (systemd, Docker, `kill`) and SIGHUP (a closed SSH session) ended the CLI on the spot without disconnecting, which left Tor running after a plain `kill`. Both now disconnect and stop Tor first, like Ctrl+C. The README shows how to run the CLI as a systemd service.
+- **Readable logs when the output is not a terminal.** Under systemd or in a log file, the progress spinner wrote a new copy of its line many times a second. It now writes the step once.
+- **Starts without libicu.** .NET refused to start on systems without the libicu package, which minimal installs often lack. The CLI no longer needs it, and `json on` output now writes numbers the same way in every language, where the `plan` score used to get a decimal comma.
+
 ## v3.9 (2026-10-14)
 
 Fixes

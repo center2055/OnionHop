@@ -42,11 +42,13 @@ internal sealed class DependencyManager
         ["sing-box-1.13.13-darwin-arm64.tar.gz"] = "4ac414d4ede9ec21bc79d8ccf40b4679429203b9e06ad96d2d8d34c0fe940558",
         ["sing-box-1.13.13-linux-amd64.tar.gz"] = "bb99cabf47694625db421ee17898f36cdc1f9c2cb5decf65b12bac8d8437e842",
         ["sing-box-1.13.13-linux-arm64.tar.gz"] = "d7fab87b921933eb281d8ee7bd5377cdd8228089f1f7c807c9363a6a2329286c",
+        ["sing-box-1.13.13-linux-armv7.tar.gz"] = "3df25c595c8a669fb27d6ffae844dbe8bc049d11b181ae39cffc6e3b0a6b0e9f",
         ["Xray-windows-64.zip"] = "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad",
         ["Xray-macos-64.zip"] = "f5b0471d3459eff1b82e48af0aeac186abcc3298210070afbbbd8437a4e8b203",
         ["Xray-macos-arm64-v8a.zip"] = "2e93a67e8aa1936ecefb307e120830fcbd4c643ab9b1c46a2d0838d5f8409eaf",
         ["Xray-linux-64.zip"] = "23cd9af937744d97776ee35ecad4972cf4b2109d1e0fe6be9930467608f7c8ae",
         ["Xray-linux-arm64-v8a.zip"] = "4d30283ae614e3057f730f67cd088a42be6fdf91f8639d82cb69e48cde80413c",
+        ["Xray-linux-arm32-v7a.zip"] = "c7265ae13c63ca0241a037df4ef960ad37938c8a67d984cc08834b2cfdf5654b",
     };
 
     private const string WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip";

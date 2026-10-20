@@ -112,74 +112,71 @@ public static class PlatformHelper
                 ? ["Safari", "Google Chrome", "Firefox", "firefox", "Brave Browser", "Microsoft Edge"]
             : ["firefox", "chrome", "chromium", "brave"];
 
-    public static string TorExpertBundlePlatformSuffix
-    {
-        get
-        {
-            if (IsWin)
-            {
-                return "windows-x86_64";
-            }
+    // Downloaded helpers have to run in this process's userland, which on Linux can differ from the
+    // kernel: 32-bit Raspberry Pi OS runs a 64-bit kernel on a Pi 4 or 5, so the OS reports Arm64
+    // while only 32-bit programs can run there.
+    private static Architecture HelperArchitecture =>
+        IsLinux ? RuntimeInformation.ProcessArchitecture : RuntimeInformation.OSArchitecture;
 
-            var arch = RuntimeInformation.OSArchitecture;
-            var archSuffix = arch switch
-            {
-                Architecture.Arm64 => "aarch64",
-                _ => "x86_64"
-            };
+    public static string TorExpertBundlePlatformSuffix => TorExpertBundleSuffixFor(IsWin, IsMac, HelperArchitecture);
 
-            if (IsMac)
-            {
-                return $"macos-{archSuffix}";
-            }
-
-            return $"linux-{archSuffix}";
-        }
-    }
-
-    public static string SingBoxPlatformAssetFilter
-    {
-        get
-        {
-            if (IsWin)
-            {
-                return "windows-amd64.zip";
-            }
-
-            var arch = RuntimeInformation.OSArchitecture;
-            var goArch = arch switch
-            {
-                Architecture.Arm64 => "arm64",
-                _ => "amd64"
-            };
-
-            if (IsMac)
-            {
-                return $"darwin-{goArch}.tar.gz";
-            }
-
-            return $"linux-{goArch}.tar.gz";
-        }
-    }
+    public static string SingBoxPlatformAssetFilter => SingBoxAssetFilterFor(IsWin, IsMac, HelperArchitecture);
 
     /// <summary>The exact Xray release asset for this platform, e.g. "Xray-windows-64.zip".</summary>
-    public static string XrayAssetName
+    public static string XrayAssetName => XrayAssetNameFor(IsWin, IsMac, HelperArchitecture);
+
+    internal static string TorExpertBundleSuffixFor(bool isWindows, bool isMac, Architecture architecture)
     {
-        get
+        if (isWindows)
         {
-            if (IsWin)
-            {
-                return "Xray-windows-64.zip";
-            }
-
-            var arm64 = RuntimeInformation.OSArchitecture == Architecture.Arm64;
-            if (IsMac)
-            {
-                return arm64 ? "Xray-macos-arm64-v8a.zip" : "Xray-macos-64.zip";
-            }
-
-            return arm64 ? "Xray-linux-arm64-v8a.zip" : "Xray-linux-64.zip";
+            return "windows-x86_64";
         }
+
+        var archSuffix = architecture switch
+        {
+            Architecture.Arm64 => "aarch64",
+            Architecture.Arm => "armv7",
+            _ => "x86_64"
+        };
+
+        return isMac ? $"macos-{archSuffix}" : $"linux-{archSuffix}";
+    }
+
+    internal static string SingBoxAssetFilterFor(bool isWindows, bool isMac, Architecture architecture)
+    {
+        if (isWindows)
+        {
+            return "windows-amd64.zip";
+        }
+
+        var goArch = architecture switch
+        {
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "armv7",
+            _ => "amd64"
+        };
+
+        return isMac ? $"darwin-{goArch}.tar.gz" : $"linux-{goArch}.tar.gz";
+    }
+
+    internal static string XrayAssetNameFor(bool isWindows, bool isMac, Architecture architecture)
+    {
+        if (isWindows)
+        {
+            return "Xray-windows-64.zip";
+        }
+
+        if (isMac)
+        {
+            return architecture == Architecture.Arm64 ? "Xray-macos-arm64-v8a.zip" : "Xray-macos-64.zip";
+        }
+
+        return architecture switch
+        {
+            Architecture.Arm64 => "Xray-linux-arm64-v8a.zip",
+            Architecture.Arm => "Xray-linux-arm32-v7a.zip",
+            _ => "Xray-linux-64.zip"
+        };
     }
 
     private static bool IsUnixRoot()

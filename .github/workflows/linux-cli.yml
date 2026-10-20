@@ -1,15 +1,16 @@
 name: Build Linux CLI
 
-# Builds the self-contained Linux x64 OnionHop CLI on a clean GitHub-hosted
-# runner and packages it as a .tar.gz (the CLI bundles the same Tor + transport
-# + sing-box/xray runtime as the desktop app). Run it manually from the Actions
-# tab; the tarball is uploaded as a build artifact and can be attached to a
-# release.
+# Builds the self-contained Linux OnionHop CLI on clean GitHub-hosted runners and packages it as a
+# .tar.gz per architecture (the CLI bundles the same Tor + transport + sing-box/xray runtime as the
+# desktop app). x64 uses the Tor Project's expert bundle; arm64 and arm (32-bit ARMv7, e.g. a
+# Raspberry Pi) are cross-compiled from source by download-deps.sh and smoke-tested in an emulated
+# Debian 13 container (#89). Run it manually from the Actions tab; the tarballs are uploaded as build
+# artifacts and can be attached to a release.
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Release tag to attach the CLI tarball to (e.g. v3.1.0). Leave blank to only produce a build artifact."
+        description: "Release tag to attach the CLI tarballs to (e.g. v3.1.0). Leave blank to only produce build artifacts."
         required: false
         default: ""
   release:
@@ -20,7 +21,22 @@ permissions:
 
 jobs:
   cli:
+    name: CLI ${{ matrix.rid }}
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            rid: linux-x64
+          - arch: arm64
+            rid: linux-arm64
+            cross: gcc-aarch64-linux-gnu
+            platform: linux/arm64
+          - arch: arm
+            rid: linux-arm
+            cross: gcc-arm-linux-gnueabihf
+            platform: linux/arm/v7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,18 +53,23 @@ jobs:
         with:
           go-version: "stable"
 
-      - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray)
+      - name: Install the cross compiler
+        if: matrix.cross
         run: |
-          chmod +x download-deps.sh
-          bash download-deps.sh
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.cross }}
+
+      - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray, ArtiHop)
+        run: bash download-deps.sh ${{ matrix.arch }}
 
       - name: Test
+        if: matrix.arch == 'x64'
         run: dotnet test OnionHop/OnionHopV3.sln -c Release
 
-      - name: Publish CLI (linux-x64, self-contained)
+      - name: Publish CLI (${{ matrix.rid }}, self-contained)
         run: |
           dotnet publish OnionHop/src/OnionHopV3.Cli/OnionHopV3.Cli.csproj \
-            -c Release -r linux-x64 --self-contained true \
+            -c Release -r ${{ matrix.rid }} --self-contained true \
             /p:PublishSingleFile=false /p:PublishReadyToRun=false \
             -o publish-cli
 
@@ -61,11 +82,44 @@ jobs:
             [ -d "$d" ] && chmod +x "$d"/* 2>/dev/null || true
           done
 
+      - name: Set up QEMU
+        if: matrix.platform
+        uses: docker/setup-qemu-action@v3
+
+      # Every bundled program must start on the target. The ARM builds run in a plain Debian 13
+      # container: no libicu, no OpenSSL, the package folder mounted read-only.
+      - name: Smoke test - the bundled binaries start
+        run: |
+          if [ -z "${{ matrix.platform }}" ]; then
+            bash .github/scripts/linux-cli-smoke.sh "$PWD/publish-cli" binaries
+          else
+            docker run --rm --platform ${{ matrix.platform }} \
+              -v "$PWD/publish-cli:/opt/onionhop:ro" -v "$PWD/.github/scripts:/scripts:ro" \
+              debian:trixie-slim bash /scripts/linux-cli-smoke.sh /opt/onionhop binaries
+          fi
+
+      # Connects through Tor with --lan on, then stops the CLI with SIGTERM the way systemd does and
+      # checks that it exits 0 with Tor stopped. Needs the Tor network, so a failure is reported
+      # without blocking the release upload.
+      - name: Smoke test - connect, then SIGTERM
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          if [ -z "${{ matrix.platform }}" ]; then
+            bash .github/scripts/linux-cli-smoke.sh "$PWD/publish-cli" connect
+          else
+            docker run --rm --platform ${{ matrix.platform }} \
+              -v "$PWD/publish-cli:/opt/onionhop:ro" -v "$PWD/.github/scripts:/scripts:ro" \
+              debian:trixie-slim bash -c '
+                apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates openssl >/dev/null \
+                  && bash /scripts/linux-cli-smoke.sh /opt/onionhop connect'
+          fi
+
       - name: Package tarball
         id: pkg
         run: |
           VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' OnionHop/src/OnionHopV3.Cli/OnionHopV3.Cli.csproj || echo 0.0.0)
-          NAME="OnionHopCLI-${VERSION}-linux-x64.tar.gz"
+          NAME="OnionHopCLI-${VERSION}-${{ matrix.rid }}.tar.gz"
           tar -C publish-cli -czf "$NAME" .
           sha256sum "$NAME" | tee "${NAME}.sha256.txt"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
@@ -74,10 +128,10 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OnionHopCLI-linux-x64
+          name: OnionHopCLI-${{ matrix.rid }}
           path: |
-            OnionHopCLI-*-linux-x64.tar.gz
-            OnionHopCLI-*-linux-x64.tar.gz.sha256.txt
+            OnionHopCLI-*-${{ matrix.rid }}.tar.gz
+            OnionHopCLI-*-${{ matrix.rid }}.tar.gz.sha256.txt
           if-no-files-found: error
 
       - name: Attach to release
@@ -86,4 +140,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
-          gh release upload "$TAG" OnionHopCLI-*-linux-x64.tar.gz OnionHopCLI-*-linux-x64.tar.gz.sha256.txt --repo "${{ github.repository }}" --clobber
+          gh release upload "$TAG" OnionHopCLI-*-${{ matrix.rid }}.tar.gz OnionHopCLI-*-${{ matrix.rid }}.tar.gz.sha256.txt --repo "${{ github.repository }}" --clobber

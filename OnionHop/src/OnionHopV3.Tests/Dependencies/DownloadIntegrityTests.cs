@@ -1,9 +1,11 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV3.Core.Dependencies;
+using OnionHopV3.Core.Platform;
 using Xunit;
 
 namespace OnionHopV3.Tests.Dependencies;
@@ -87,17 +89,36 @@ public sealed class DownloadIntegrityTests
     [InlineData("sing-box-1.13.13-darwin-arm64.tar.gz")]
     [InlineData("sing-box-1.13.13-linux-amd64.tar.gz")]
     [InlineData("sing-box-1.13.13-linux-arm64.tar.gz")]
+    [InlineData("sing-box-1.13.13-linux-armv7.tar.gz")]
     [InlineData("Xray-windows-64.zip")]
     [InlineData("Xray-macos-64.zip")]
     [InlineData("Xray-macos-arm64-v8a.zip")]
     [InlineData("Xray-linux-64.zip")]
     [InlineData("Xray-linux-arm64-v8a.zip")]
+    [InlineData("Xray-linux-arm32-v7a.zip")]
     public void Every_platform_asset_has_a_pinned_hash(string assetName)
     {
         // With no API digest at all, each asset the app can pick still has a hash to check against.
         var hash = DependencyManager.ExpectedCoreSha256(assetName, null);
         Assert.NotNull(hash);
         Assert.Equal(64, hash!.Length);
+    }
+
+    [Theory]
+    [InlineData(false, false, Architecture.X64)]
+    [InlineData(false, false, Architecture.Arm64)]
+    [InlineData(false, false, Architecture.Arm)]
+    [InlineData(false, true, Architecture.X64)]
+    [InlineData(false, true, Architecture.Arm64)]
+    [InlineData(true, false, Architecture.X64)]
+    public void The_assets_each_platform_picks_are_all_pinned(bool windows, bool mac, Architecture architecture)
+    {
+        // Ties the asset names to the table: a platform that picks a name with no pinned hash would
+        // fail every download whose release digest is missing.
+        Assert.NotNull(DependencyManager.ExpectedCoreSha256(
+            "sing-box-1.13.13-" + PlatformHelper.SingBoxAssetFilterFor(windows, mac, architecture), null));
+        Assert.NotNull(DependencyManager.ExpectedCoreSha256(
+            PlatformHelper.XrayAssetNameFor(windows, mac, architecture), null));
     }
 
     [Fact]
