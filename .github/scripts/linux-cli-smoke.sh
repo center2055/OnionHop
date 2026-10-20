@@ -29,7 +29,8 @@ starts() {
 
 check_binaries() {
     starts "OnionHop CLI" "$DIR/OnionHopV3.Cli" version
-    starts tor "$DIR/tor/tor" --version
+    # The x64 expert bundle's tor has no rpath; TorService puts its folder on LD_LIBRARY_PATH too.
+    starts tor env LD_LIBRARY_PATH="$DIR/tor" "$DIR/tor/tor" --version
     starts lyrebird "$DIR/tor/pluggable_transports/lyrebird" -version
     starts conjure-client "$DIR/tor/pluggable_transports/conjure-client" -h
     starts webtunnel-client "$DIR/tor/pluggable_transports/webtunnel-client" -h

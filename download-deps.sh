@@ -187,7 +187,7 @@ if [ "$TARGET_ARCH" = "x64" ]; then
     # Bundle the shared libraries the expert-bundle tor is built against (libssl/libcrypto/libevent).
     # Without these, tor falls back to the system libs and can fail with errors like
     # "undefined symbol: evutil_secure_rng_add_bytes" when the host libevent is older/incompatible.
-    # tor has an rpath of $ORIGIN, so libraries next to the binary are found automatically.
+    # tor has no rpath: TorService puts this folder on LD_LIBRARY_PATH when it starts tor.
     cp "$TEMP_DIR/tor/"*.so* "$TOR_DIR/" 2>/dev/null || true
 
     echo "Installing Pluggable Transports..."
