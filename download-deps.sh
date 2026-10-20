@@ -24,10 +24,10 @@ case "$TARGET_ARCH" in
         SING_BOX_ARCH="amd64"; XRAY_ARCH="64" ;;
     arm64|aarch64)
         TARGET_ARCH="arm64"; GO_ARCH="arm64"; GO_ARM=""; CROSS="aarch64-linux-gnu"; RUST_TARGET="aarch64-unknown-linux-gnu"
-        OPENSSL_TARGET="linux-aarch64"; SING_BOX_ARCH="arm64"; XRAY_ARCH="arm64-v8a" ;;
+        OPENSSL_TARGET="linux-aarch64"; DEB_ARCH="arm64"; SING_BOX_ARCH="arm64"; XRAY_ARCH="arm64-v8a" ;;
     arm|armv7|armhf)
         TARGET_ARCH="arm"; GO_ARCH="arm"; GO_ARM="7"; CROSS="arm-linux-gnueabihf"; RUST_TARGET="armv7-unknown-linux-gnueabihf"
-        OPENSSL_TARGET="linux-armv4"; SING_BOX_ARCH="armv7"; XRAY_ARCH="arm32-v7a" ;;
+        OPENSSL_TARGET="linux-armv4"; DEB_ARCH="armhf"; SING_BOX_ARCH="armv7"; XRAY_ARCH="arm32-v7a" ;;
     *)
         echo "Unknown architecture '$TARGET_ARCH'. Use x64, arm64 or arm."
         exit 1 ;;
@@ -35,7 +35,7 @@ esac
 
 if [ -n "$CROSS" ]; then
     if ! command -v "$CROSS-gcc" >/dev/null 2>&1; then
-        echo "Building for $TARGET_ARCH needs $CROSS-gcc (Debian/Ubuntu: apt install gcc-$CROSS make perl)."
+        echo "Building for $TARGET_ARCH needs $CROSS-gcc (Debian/Ubuntu: apt install gcc-$CROSS libc6-dev-$DEB_ARCH-cross make perl)."
         exit 1
     fi
     if ! command -v go >/dev/null 2>&1; then

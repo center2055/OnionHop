@@ -31,11 +31,11 @@ jobs:
             rid: linux-x64
           - arch: arm64
             rid: linux-arm64
-            cross: gcc-aarch64-linux-gnu
+            cross: gcc-aarch64-linux-gnu libc6-dev-arm64-cross
             platform: linux/arm64
           - arch: arm
             rid: linux-arm
-            cross: gcc-arm-linux-gnueabihf
+            cross: gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
             platform: linux/arm/v7
     steps:
       - name: Checkout
