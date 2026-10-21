@@ -10,12 +10,24 @@
              d:DesignWidth="1200"
              d:DesignHeight="820"
              x:Class="OnionHopV3.App.Views.BridgeScannerPageView"
-             x:DataType="vm:BridgeScannerPageViewModel">
+             x:DataType="vm:BridgeScannerPageViewModel"
+             ClipToBounds="False">
 
-  <Grid RowDefinitions="Auto,*" RowSpacing="14">
+  <!-- Short windows: the scan settings and buttons wrap onto more rows as the window narrows, and
+       the results list used to get whatever height was left, often none. The page scrolls now, and
+       code-behind sizes its content (UpdateContentHeight). The -32 margin puts the scrollbar at the
+       window edge, like the other pages. -->
+  <ScrollViewer x:Name="PageScroll"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                Margin="0,0,-32,0"
+                Padding="0,0,32,0"
+                Focusable="True"
+                IsTabStop="False">
+  <Grid x:Name="PageContent" RowDefinitions="Auto,*" RowSpacing="14">
 
     <!-- Subtabs: bridge scanner (existing), SNI scanner, and the saved-bridges library (v3.6). -->
-    <WrapPanel Orientation="Horizontal">
+    <WrapPanel x:Name="TabStrip" Orientation="Horizontal">
       <RadioButton Classes="TabChip"
                    GroupName="ScannerTab"
                    IsChecked="{Binding IsBridgeTab, Mode=OneWay}"
@@ -37,7 +49,8 @@
     </WrapPanel>
 
     <!-- ============================ BRIDGE SCANNER ============================ -->
-    <Grid Grid.Row="1"
+    <Grid x:Name="BridgeTab"
+          Grid.Row="1"
           RowDefinitions="Auto,Auto,*"
           RowSpacing="14"
           IsVisible="{Binding IsBridgeTab}">
@@ -137,7 +150,8 @@
     </Grid>
 
     <!-- ============================ SNI SCANNER ============================ -->
-    <Grid Grid.Row="1"
+    <Grid x:Name="SniTab"
+          Grid.Row="1"
           RowDefinitions="Auto,Auto,*"
           RowSpacing="14"
           IsVisible="{Binding $parent[UserControl].((vm:BridgeScannerPageViewModel)DataContext).IsSniTab}"
@@ -271,7 +285,8 @@
     </Grid>
 
     <!-- ============================ SAVED LIBRARY ============================ -->
-    <Grid Grid.Row="1"
+    <Grid x:Name="SavedTab"
+          Grid.Row="1"
           RowDefinitions="Auto,*"
           RowSpacing="14"
           IsVisible="{Binding $parent[UserControl].((vm:BridgeScannerPageViewModel)DataContext).IsSavedTab}"
@@ -341,4 +356,5 @@
       </Border>
     </Grid>
   </Grid>
+  </ScrollViewer>
 </UserControl>

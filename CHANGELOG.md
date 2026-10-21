@@ -3,6 +3,7 @@
 ## Unreleased
 
 Fixes
+- **The Scanner page works in short windows.** Its results list got whatever height the scan settings left, often none at all. The page now scrolls, and the list keeps a usable height.
 - **Every package ships the same sing-box.** The Windows portable zip and the macOS DMGs took whatever sing-box was newest when they were built, instead of the version OnionHop's tunnel settings are tested with, and the Linux and macOS CLI were a version behind. All now bundle sing-box 1.13.13, and the build checks the sing-box and Xray downloads against pinned checksums.
 
 Smart Connect

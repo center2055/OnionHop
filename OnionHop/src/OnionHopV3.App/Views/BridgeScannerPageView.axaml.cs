@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -11,9 +12,47 @@ namespace OnionHopV3.App.Views;
 
 public partial class BridgeScannerPageView : UserControl
 {
+    // The results list never gets less than this; on a shorter window the page scrolls instead.
+    private const double MinResultsHeight = 260;
+
     public BridgeScannerPageView()
     {
         InitializeComponent();
+        // A resize, the settings wrapping onto another row, a tab switch or the custom-bridges box
+        // appearing all change how much height the results list has left.
+        LayoutUpdated += (_, _) => UpdateContentHeight();
+    }
+
+    /// <summary>
+    /// Makes the page content at least as tall as the window, so on a tall window the results list
+    /// fills the rest as before, and never shorter than the visible tab's settings plus
+    /// <see cref="MinResultsHeight"/>, so on a short one the page scrolls to a usable list instead of
+    /// squeezing it to nothing.
+    /// </summary>
+    private void UpdateContentHeight()
+    {
+        var viewport = PageScroll.Viewport.Height;
+        var tab = new[] { BridgeTab, SniTab, SavedTab }.FirstOrDefault(grid => grid.IsVisible);
+        if (viewport <= 0 || tab == null)
+        {
+            return;
+        }
+
+        // Everything above the results panel, which is the tab's last row.
+        var resultsRow = tab.RowDefinitions.Count - 1;
+        var above = tab.Children
+            .Where(child => child.IsVisible && Grid.GetRow(child) < resultsRow)
+            .GroupBy(Grid.GetRow)
+            .Sum(row => row.Max(child => child.DesiredSize.Height));
+        var needed = TabStrip.DesiredSize.Height + PageContent.RowSpacing
+                     + above + tab.RowSpacing * resultsRow
+                     + MinResultsHeight;
+
+        var height = Math.Max(viewport, needed);
+        if (double.IsNaN(PageContent.Height) || Math.Abs(PageContent.Height - height) > 0.5)
+        {
+            PageContent.Height = height;
+        }
     }
 
     private BridgeScannerPageViewModel? ViewModel => DataContext as BridgeScannerPageViewModel;
