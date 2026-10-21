@@ -98,21 +98,21 @@ jobs:
               debian:trixie-slim bash /scripts/linux-cli-smoke.sh /opt/onionhop binaries
           fi
 
-      # Connects through Tor with --lan on, then stops the CLI with SIGTERM the way systemd does and
-      # checks that it exits 0 with Tor stopped. Needs the Tor network, so a failure is reported
-      # without blocking the release upload.
+      # Connects through Tor sharing the proxy on eth0 only (--lan-interface: Tor's second listener),
+      # then stops the CLI with SIGTERM the way systemd does and checks that it exits 0 with Tor
+      # stopped. Needs the Tor network, so a failure is reported without blocking the release upload.
       - name: Smoke test - connect, then SIGTERM
         continue-on-error: true
         timeout-minutes: 20
         run: |
           if [ -z "${{ matrix.platform }}" ]; then
-            bash .github/scripts/linux-cli-smoke.sh "$PWD/publish-cli" connect
+            bash .github/scripts/linux-cli-smoke.sh "$PWD/publish-cli" connect eth0
           else
             docker run --rm --platform ${{ matrix.platform }} \
               -v "$PWD/publish-cli:/opt/onionhop:ro" -v "$PWD/.github/scripts:/scripts:ro" \
               debian:trixie-slim bash -c '
                 apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates openssl >/dev/null \
-                  && bash /scripts/linux-cli-smoke.sh /opt/onionhop connect'
+                  && bash /scripts/linux-cli-smoke.sh /opt/onionhop connect eth0'
           fi
 
       - name: Package tarball

@@ -642,6 +642,45 @@ public sealed class SmartConnectAdvisor
     }
 
     /// <summary>
+    /// Puts a bridge type the user picked explicitly (the CLI's <c>--bridge-type</c>) first. It runs
+    /// with their own options (bridge source, custom lines, SNI hosts) and Smart Connect's per-attempt
+    /// budget, and the plan's own attempt at that transport is dropped so it is not tried twice. The
+    /// rest of the plan stays as the fallback. Automatic bridges leave the plan as it is.
+    /// </summary>
+    public static IReadOnlyList<Strategy> LeadWithChosenBridge(
+        IReadOnlyList<Strategy> strategies,
+        OnionHopConnectOptions chosen)
+    {
+        var bridgeType = chosen.SelectedBridgeType?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(bridgeType) || OnionHopClient.IsAutomaticBridgeType(bridgeType))
+        {
+            return strategies;
+        }
+
+        var lead = new Strategy(
+            Name: $"bridge:{bridgeType}",
+            Reason: "The bridge type you chose.",
+            Options: chosen with
+            {
+                UseTorBridges = true,
+                UseCensoredMode = true,
+                SmartConnectAttemptTimeoutSeconds = BridgeAttemptTimeoutSeconds
+            });
+
+        var canonical = CanonicalTransport(bridgeType);
+        return
+        [
+            lead,
+            .. strategies.Where(strategy => !string.Equals(
+                CanonicalTransport(GetStrategyTransport(strategy)), canonical, StringComparison.OrdinalIgnoreCase))
+        ];
+    }
+
+    // Tor's map and the plan call meek "meek"; the CLI and settings say "meek-azure".
+    private static string CanonicalTransport(string transport) =>
+        transport.Trim().ToLowerInvariant() is "meek-azure" or "meek_lite" ? "meek" : transport.Trim().ToLowerInvariant();
+
+    /// <summary>
     /// Move the strategies whose transport failed on this network recently to the back, keeping the
     /// order within both groups. They stay in the plan: censors move, and one of them may still be
     /// the only thing that works.

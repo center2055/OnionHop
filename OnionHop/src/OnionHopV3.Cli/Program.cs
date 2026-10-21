@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using OnionHopV3.Core;
 using OnionHopV3.Core.Models;
+using OnionHopV3.Core.Networking;
 using OnionHopV3.Core.Platform;
 using OnionHopV3.Core.Services;
 
@@ -78,6 +80,7 @@ internal sealed class CliHost : IAsyncDisposable
 {
     private readonly OnionHopClient _client = new();
     private readonly SmartConnectAdvisor _advisor = new();
+    private readonly SmartConnectSession _smartConnect;
     private readonly SettingsService _settingsService = new();
     private readonly object _statusLock = new();
     private readonly object _consoleLock = new();
@@ -95,6 +98,8 @@ internal sealed class CliHost : IAsyncDisposable
     private OnionHopClient.DependencyUpdate _dependency = new(false, "Idle", 0);
     private DateTimeOffset? _connectedSinceUtc;
     private ConnectRequest? _lastConnectRequest;
+    // 1 while connected without a known exit IP: the background lookup's result still gets printed.
+    private int _exitIpPending;
 
     // Output verbosity. By default the firehose engine/Tor log is hidden; `logs on` shows it.
     private bool _showLogs;
@@ -102,6 +107,7 @@ internal sealed class CliHost : IAsyncDisposable
 
     public CliHost()
     {
+        _smartConnect = new SmartConnectSession(_client, _advisor, new SmartConnectMemory());
         _client.Log += (_, message) => { if (_showLogs) WriteLog("tor", message, ConsoleColor.DarkGray); };
         _client.DnsLog += (_, message) => { if (_showLogs) WriteLog("dns", message, ConsoleColor.DarkYellow); };
         _client.VpnLog += (_, message) => { if (_showLogs) WriteLog("vpn", message, ConsoleColor.DarkGray); };
@@ -187,7 +193,8 @@ internal sealed class CliHost : IAsyncDisposable
         WriteHint("  --mode <proxy|tun>", "connection mode (default proxy)");
         WriteHint("  --engine <auto|classic|artihop>", "Tor engine (artihop = fast 2-hop)");
         WriteHint("  --bridges <on|off>", "force bridges (manual mode)");
-        WriteHint("  --bridge-type <type>", "automatic, obfs4, snowflake, webtunnel, conjure, dnstt, meek-azure, vanilla, custom");
+        WriteHint("  --bridge-type <type>", "automatic, obfs4, snowflake, webtunnel, conjure, dnstt, meek-azure, vanilla, custom (Smart Connect tries it first)");
+        WriteHint("  --sni <host,host>", "fronts / SNI hosts for the chosen snowflake, meek or webtunnel bridges");
         WriteHint("  --bridge-source <auto|online|collector|offline|custom>", "where bridges come from (custom = saved custom bridge lines)");
         WriteHint("  --proxy-scope <system|socks|local>", "system = all apps, socks = browser/.onion, local = don't touch system proxy");
         WriteHint("  --exit <auto|cc>", "exit country, e.g. us, de");
@@ -197,11 +204,13 @@ internal sealed class CliHost : IAsyncDisposable
         WriteHint("  --onion-dns-proxy <on|off>", "enable the .onion DNS proxy listener");
         WriteHint("  --hold <on|off>", "keep running after connect (non-interactive)");
         WriteHint("  --lan <on|off>", "share the SOCKS/HTTP proxy with your network (listens on all interfaces)");
+        WriteHint("  --lan-interface <name|ip>", "share it on this interface only, e.g. wlan0 (a router's LAN side)");
         WriteLine(string.Empty, ConsoleColor.Gray);
         WriteLine("Examples:", ConsoleColor.White);
         WriteHint("  connect --engine artihop", "fast 2-hop connect");
         WriteHint("  connect --mode tun --bridge-type snowflake", "TUN mode over snowflake");
-        WriteHint("  connect --proxy-scope local --lan on", "headless box sharing Tor with the LAN; SIGTERM disconnects cleanly");
+        WriteHint("  connect --proxy-scope local --lan-interface wlan0", "router sharing Tor on its LAN side; SIGTERM disconnects cleanly");
+        WriteHint("  connect --bridge-type obfs4", "Smart Connect, trying obfs4 bridges first");
         WriteHint("  scan obfs4 200", "probe up to 200 obfs4 bridges");
         WriteLine(string.Empty, ConsoleColor.Gray);
     }
@@ -303,6 +312,8 @@ internal sealed class CliHost : IAsyncDisposable
         switch (command)
         {
             case "help":
+            case "--help":
+            case "-h":
             case "?":
                 PrintHelp(rest.Count > 0 ? rest[0] : null);
                 return CommandResult.Success;
@@ -494,40 +505,46 @@ internal sealed class CliHost : IAsyncDisposable
         }
 
         var baseOptions = BuildBaseOptions(request);
+        if (!string.IsNullOrWhiteSpace(request.LanInterface) &&
+            LanAddressFinder.ResolveShareAddress(request.LanInterface) == null)
+        {
+            var known = LanAddressFinder.GetLanIPv4Addresses();
+            WriteWarning($"--lan-interface: '{request.LanInterface}' is not a network interface or IPv4 address of this machine." +
+                         (known.Count > 0 ? $" This machine has: {string.Join(", ", known.Select(a => $"{a.InterfaceName} {a.Address}"))}." : string.Empty));
+            return false;
+        }
+
+        var connectClock = Stopwatch.StartNew();
         IReadOnlyList<SmartConnectAdvisor.Strategy> strategies;
 
         if (request.SmartConnect)
         {
             WriteInfo("Smart Connect: analyzing your network...");
-            SmartConnectAdvisor.Plan plan;
-            try
-            {
-                plan = await _advisor.BuildPlanAsync(baseOptions, m => { if (_showLogs) WriteLog("smart", m, ConsoleColor.Blue); }, token);
-            }
-            // Only a real Ctrl+C aborts; an HTTP-timeout TaskCanceledException from a probe must
-            // fall through to the generic plan, not print "Canceled." and give up (#65).
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception ex)
-            {
-                WriteWarning($"Smart Connect planning failed: {ex.Message}");
-                plan = new SmartConnectAdvisor.Plan(null, null, SmartConnectAdvisor.RiskLevel.Unknown, 0, 0, 0, 0, null, []);
-            }
+            strategies = await _smartConnect.BuildStrategiesAsync(
+                baseOptions,
+                m => { if (_showLogs) WriteLog("smart", m, ConsoleColor.Blue); },
+                WriteInfo,
+                WriteInfo,
+                token,
+                plan =>
+                {
+                    if (!string.IsNullOrWhiteSpace(plan.CountryCode))
+                    {
+                        WriteInfo($"Network: {plan.CountryCode}  risk={plan.Risk}  (score {plan.RestrictionScore:0.00})");
+                    }
+                });
 
-            if (!string.IsNullOrWhiteSpace(plan.CountryCode))
+            // An explicit --bridge-type goes first; Smart Connect's plan follows as the fallback.
+            if (request.BridgeTypeProvided)
             {
-                WriteInfo($"Network: {plan.CountryCode}  risk={plan.Risk}  (score {plan.RestrictionScore:0.00})");
+                strategies = SmartConnectAdvisor.LeadWithChosenBridge(strategies, baseOptions);
             }
-
-            strategies = plan.Strategies.Count > 0
-                ? plan.Strategies
-                : SmartConnectAdvisor.BuildStrategiesForRisk(baseOptions, SmartConnectAdvisor.RiskLevel.Unknown);
         }
         else
         {
             strategies = [new SmartConnectAdvisor.Strategy("manual", "Smart Connect disabled.", baseOptions)];
         }
 
-        Exception? lastError = null;
         for (var i = 0; i < strategies.Count; i++)
         {
             token.ThrowIfCancellationRequested();
@@ -554,35 +571,56 @@ internal sealed class CliHost : IAsyncDisposable
             _connectCts?.Dispose();
             _connectCts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
+            Interlocked.Exchange(ref _exitIpPending, 0);
             var spinner = new Spinner(this, $"Connecting via {strategy.Name}");
+            var attemptClock = Stopwatch.StartNew();
+            string? failure = null;
             try
             {
                 await _client.ConnectAsync(attemptOptions, _connectCts.Token);
             }
             catch (OperationCanceledException) { spinner.Stop(); throw; }
-            catch (Exception ex)
-            {
-                lastError = ex;
-                spinner.Stop();
-                WriteWarning($"Attempt failed: {Shorten(ex.Message)}");
-            }
+            // ConnectAsync reports its failures in the status; this only catches what slips past it.
+            catch (Exception ex) { failure = ex.Message; }
 
             spinner.Stop();
+            if (request.SmartConnect && !token.IsCancellationRequested)
+            {
+                _smartConnect.RecordAttempt(strategy, attemptClock.Elapsed);
+            }
+
             snapshot = GetStatusSnapshot();
             if (snapshot.IsConnected)
             {
                 _connectedSinceUtc = DateTimeOffset.UtcNow;
                 _lastConnectRequest = request;
-                WriteSuccess($"Connected.  IP {snapshot.CurrentIp}   SOCKS 127.0.0.1:{snapshot.SocksPort}");
-                if (request.ShareWithLan)
+                var ipKnown = IPAddress.TryParse(snapshot.CurrentIp, out _);
+                WriteSuccess($"Connected via {strategy.Name} after {FormatSeconds(connectClock.Elapsed)}.  " +
+                             $"IP {(ipKnown ? snapshot.CurrentIp : "still being looked up")}   SOCKS 127.0.0.1:{snapshot.SocksPort}");
+                if (!ipKnown)
                 {
-                    WriteInfo($"Shared with your network: {DescribeLanEndpoints(snapshot)}. Anyone who can reach this machine can use it.");
+                    // Printed by OnStatusUpdated once a later lookup finds it.
+                    Interlocked.Exchange(ref _exitIpPending, 1);
+                }
+
+                if (request.SharesWithLan)
+                {
+                    var whoCanUse = string.IsNullOrWhiteSpace(request.LanInterface) ? "this machine" : "that address";
+                    WriteInfo($"Shared with your network: {DescribeLanEndpoints(snapshot, request.LanInterface)}. Anyone who can reach {whoCanUse} can use it.");
                 }
                 return true;
             }
+
+            token.ThrowIfCancellationRequested();
+            WriteWarning($"{strategy.Name} did not connect after {FormatSeconds(attemptClock.Elapsed)}: {Shorten(failure ?? snapshot.StatusMessage)}");
         }
 
-        WriteWarning(lastError != null ? $"Connection failed: {Shorten(lastError.Message)}" : "Connection failed: no strategy succeeded.");
+        if (request.SmartConnect)
+        {
+            _smartConnect.RecordAllFailed();
+        }
+
+        WriteWarning($"Connection failed after {FormatSeconds(connectClock.Elapsed)}: no strategy succeeded.");
         return false;
     }
 
@@ -842,25 +880,37 @@ internal sealed class CliHost : IAsyncDisposable
 
     private async Task ShowPlanAsync(ConnectRequest request, CancellationToken token)
     {
-        WriteInfo("Building Smart Connect plan...");
+        Action<string> notice = _jsonMode ? _ => { } : WriteInfo;
+        notice("Building Smart Connect plan...");
         var baseOptions = BuildBaseOptions(request);
-        var plan = await _advisor.BuildPlanAsync(baseOptions, null, token);
+
+        // The order connect would use: the plan after the reachability check and what this network's
+        // memory says, with an explicit --bridge-type first.
+        var strategies = await _smartConnect.BuildStrategiesAsync(baseOptions, _ => { }, notice, notice, token);
+        if (request.BridgeTypeProvided)
+        {
+            strategies = SmartConnectAdvisor.LeadWithChosenBridge(strategies, baseOptions);
+        }
+
+        var plan = _smartConnect.Plan;
+        var risk = plan?.Risk ?? SmartConnectAdvisor.RiskLevel.Unknown;
+        var score = plan?.RestrictionScore ?? 0;
 
         if (_jsonMode)
         {
-            WriteLine($"{{\"country\":\"{plan.CountryCode}\",\"risk\":\"{plan.Risk}\",\"score\":{plan.RestrictionScore:0.000},\"strategies\":[{string.Join(",", plan.Strategies.Select(s => $"\"{s.Name}\""))}]}}", ConsoleColor.Gray);
+            WriteLine($"{{\"country\":\"{plan?.CountryCode}\",\"risk\":\"{risk}\",\"score\":{score:0.000},\"strategies\":[{string.Join(",", strategies.Select(s => $"\"{s.Name}\""))}]}}", ConsoleColor.Gray);
             return;
         }
 
         WriteSection("Smart Connect plan");
-        WriteLine($"  Country : {plan.CountryCode ?? "unknown"}", ConsoleColor.Gray);
-        WriteLine($"  IP      : {plan.PublicIp ?? "unknown"}", ConsoleColor.Gray);
-        WriteLine($"  Risk    : {plan.Risk}  (score {plan.RestrictionScore:0.000})", RiskColor(plan.Risk));
-        if (plan.Strategies.Count == 0) { WriteWarning("  No strategies available."); return; }
+        WriteLine($"  Country : {plan?.CountryCode ?? "unknown"}", ConsoleColor.Gray);
+        WriteLine($"  IP      : {plan?.PublicIp ?? "unknown"}", ConsoleColor.Gray);
+        WriteLine($"  Risk    : {risk}  (score {score:0.000})", RiskColor(risk));
+        if (strategies.Count == 0) { WriteWarning("  No strategies available."); return; }
         WriteLine("  Strategy order:", ConsoleColor.White);
-        for (var i = 0; i < plan.Strategies.Count; i++)
+        for (var i = 0; i < strategies.Count; i++)
         {
-            WriteLine($"    {i + 1}. {plan.Strategies[i].Name,-18} {plan.Strategies[i].Reason}", ConsoleColor.Gray);
+            WriteLine($"    {i + 1}. {strategies[i].Name,-18} {strategies[i].Reason}", ConsoleColor.Gray);
         }
     }
 
@@ -999,7 +1049,7 @@ internal sealed class CliHost : IAsyncDisposable
         var dep = GetDependencySnapshot();
         var connColor = s.IsConnected ? ConsoleColor.Green : s.IsConnecting ? ConsoleColor.Yellow : ConsoleColor.DarkGray;
 
-        var sharedWithLan = s.IsConnected && _lastConnectRequest is { ShareWithLan: true };
+        var sharedWithLan = s.IsConnected && _lastConnectRequest is { SharesWithLan: true };
 
         if (_jsonMode)
         {
@@ -1020,7 +1070,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine($"  {"HTTP",-12}: {(s.HttpPort.HasValue ? $"127.0.0.1:{s.HttpPort.Value}" : "disabled")}", ConsoleColor.Gray);
         if (sharedWithLan)
         {
-            WriteLine($"  {"LAN",-12}: {DescribeLanEndpoints(s)}", ConsoleColor.Gray);
+            WriteLine($"  {"LAN",-12}: {DescribeLanEndpoints(s, _lastConnectRequest?.LanInterface)}", ConsoleColor.Gray);
         }
         WriteLine($"  {"System proxy",-12}: {(_client.IsSystemProxyEnabled ? "ON" : "off")}", ConsoleColor.Gray);
         if (_connectedSinceUtc.HasValue && s.IsConnected)
@@ -1098,6 +1148,9 @@ internal sealed class CliHost : IAsyncDisposable
             // Custom bridge lines come from saved settings (the GUI's Custom bridges box, or the CLI's
             // `scan --use`); they only apply when the Custom source is selected (issue #70).
             CustomBridges = saved?.CustomBridges,
+            // --sni: fronts/SNI for the chosen snowflake, meek or webtunnel bridges. Smart Connect's
+            // own attempts keep the fronts Tor recommends for the country.
+            CustomSniHosts = request.SniHosts,
             UseTorBridges = useBridges,
             UseCensoredMode = useCensoredMode,
             UseSnowflakeAmp = request.UseSnowflakeAmp,
@@ -1105,8 +1158,10 @@ internal sealed class CliHost : IAsyncDisposable
             OnionDnsProxyEnabled = request.UseOnionDnsProxy,
             PreferredSocksPort = OnionHopConnectOptions.DefaultSocksPort,
             PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort,
-            // --lan: listen on every interface so other devices can use this machine's Tor (#89).
-            AllowLanProxyAccess = request.ShareWithLan,
+            // --lan: listen on every interface so other devices can use this machine's Tor (#89);
+            // --lan-interface: on that one only, e.g. a router's LAN side and not its WAN side.
+            AllowLanProxyAccess = request.SharesWithLan,
+            LanBindAddress = request.LanInterface,
             ConnectionPaddingMode = OnionHopConnectOptions.ConnectionPaddingAuto,
             TorIpv6Mode = OnionHopConnectOptions.ToggleModeDefault,
             HardwareAccelerationMode = OnionHopConnectOptions.ToggleModeDefault,
@@ -1211,6 +1266,13 @@ internal sealed class CliHost : IAsyncDisposable
         lock (_statusLock) { _status = update; }
         if (update.IsConnected && _connectedSinceUtc == null) _connectedSinceUtc = DateTimeOffset.UtcNow;
         if (!update.IsConnected && !update.IsConnecting) _connectedSinceUtc = null;
+
+        // The first lookup after connecting can time out on a slow link; Core looks again (#89).
+        if (update.IsConnected && IPAddress.TryParse(update.CurrentIp, out _) &&
+            Interlocked.Exchange(ref _exitIpPending, 0) == 1)
+        {
+            WriteInfo($"Tor exit IP: {update.CurrentIp}");
+        }
     }
 
     private void OnDependencyUpdated(OnionHopClient.DependencyUpdate update)
@@ -1245,8 +1307,12 @@ internal sealed class CliHost : IAsyncDisposable
             Engine: GetOption(o, "engine", "auto"),
             BridgeSource: GetOption(o, "bridge-source", "auto"),
             BridgeSourceProvided: o.ContainsKey("bridge-source"),
-            ShareWithLan: GetBool(o, "lan", false));
+            ShareWithLan: GetBool(o, "lan", false),
+            LanInterface: NullIfBlank(GetOption(o, "lan-interface", string.Empty)),
+            SniHosts: NullIfBlank(GetOption(o, "sni", string.Empty)));
     }
+
+    private static string? NullIfBlank(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static Dictionary<string, string> ParseOptions(IReadOnlyList<string> args)
     {
@@ -1356,15 +1422,26 @@ internal sealed class CliHost : IAsyncDisposable
         => t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes}m {t.Seconds}s" : t.TotalMinutes >= 1 ? $"{t.Minutes}m {t.Seconds}s" : $"{t.Seconds}s";
 
     /// <summary>
-    /// What other devices point at when the proxy is shared with the network: this machine's LAN
-    /// address, since the 127.0.0.1 shown everywhere else only works on this machine.
+    /// What other devices point at when the proxy is shared with the network, since the 127.0.0.1
+    /// shown everywhere else only works on this machine. Sharing on every interface lists all of
+    /// them: on a router the one with the default route is the WAN side, not the LAN (#89).
     /// </summary>
-    private static string DescribeLanEndpoints(OnionHopClient.StatusUpdate s)
+    private static string DescribeLanEndpoints(OnionHopClient.StatusUpdate s, string? lanInterface)
     {
-        var host = OnionHopV3.Core.Networking.LanAddressFinder.GetPrimaryLanIPv4() ?? "<this machine's IP>";
-        var http = s.HttpPort.HasValue ? $", HTTP {host}:{s.HttpPort.Value}" : string.Empty;
-        return $"SOCKS {host}:{s.SocksPort}{http}";
+        if (!string.IsNullOrWhiteSpace(lanInterface) && LanAddressFinder.ResolveShareAddress(lanInterface) is { } chosen)
+        {
+            var http = s.HttpPort.HasValue ? $", HTTP {chosen.Address}:{s.HttpPort.Value}" : string.Empty;
+            return $"SOCKS {chosen.Address}:{s.SocksPort}{http} ({chosen.InterfaceName} only)";
+        }
+
+        var ports = s.HttpPort.HasValue ? $"SOCKS port {s.SocksPort} and HTTP port {s.HttpPort.Value}" : $"SOCKS port {s.SocksPort}";
+        var addresses = LanAddressFinder.GetLanIPv4Addresses();
+        return addresses.Count == 0
+            ? $"{ports} on every interface"
+            : $"{ports} on every interface: {string.Join(", ", addresses.Select(a => $"{a.Address} ({a.InterfaceName})"))}";
     }
+
+    private static string FormatSeconds(TimeSpan t) => $"{Math.Round(t.TotalSeconds):0} s";
 
     private static string FormatBytes(long bytes)
     {
@@ -1557,5 +1634,11 @@ internal sealed class CliHost : IAsyncDisposable
         string Engine,
         string BridgeSource,
         bool BridgeSourceProvided = false,
-        bool ShareWithLan = false);
+        bool ShareWithLan = false,
+        string? LanInterface = null,
+        string? SniHosts = null)
+    {
+        // --lan-interface shares too, on that one interface only.
+        public bool SharesWithLan => ShareWithLan || !string.IsNullOrWhiteSpace(LanInterface);
+    }
 }

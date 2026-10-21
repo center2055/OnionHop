@@ -102,6 +102,9 @@ public sealed record OnionHopConnectOptions
     public int PreferredSocksPort { get; init; } = DefaultSocksPort;
     public int PreferredHttpPort { get; init; } = DefaultHttpPort;
     public bool AllowLanProxyAccess { get; init; }
+    // With AllowLanProxyAccess: share the proxy on this one local IPv4 address (one interface, e.g.
+    // a router's LAN side) instead of every interface. Null shares on all of them (0.0.0.0).
+    public string? LanBindAddress { get; init; }
     // Proxy Mode only. When false, connecting does NOT point the OS system proxy at Tor (apps can
     // still use the SOCKS port directly). Lets the user pre-decide post-connect behavior from Home.
     public bool ApplySystemProxyOnConnect { get; init; } = true;

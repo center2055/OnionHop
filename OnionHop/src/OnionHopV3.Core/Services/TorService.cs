@@ -751,11 +751,17 @@ internal sealed class TorService : IDisposable
         return sb.ToString().Trim();
     }
 
-    private static IReadOnlyList<string> BuildArguments(TorLaunchConfig config, string dataDirectory)
+    internal static IReadOnlyList<string> BuildArguments(TorLaunchConfig config, string dataDirectory)
     {
         var arguments = new List<string>();
 
         AddArgument(arguments, "--SocksPort", FormatPortEndpoint(config.SocksListenAddress, config.SocksPort, "127.0.0.1"));
+        // Sharing on one interface adds a listener there; a separate SocksPort keeps Tor's per-device
+        // circuit isolation, which a relay in front of the loopback port would lose.
+        foreach (var address in config.AdditionalSocksListenAddresses ?? [])
+        {
+            AddArgument(arguments, "--SocksPort", FormatPortEndpoint(address, config.SocksPort, "127.0.0.1"));
+        }
         if (config.HttpTunnelPort.HasValue)
         {
             AddArgument(arguments, "--HTTPTunnelPort", FormatPortEndpoint(config.HttpTunnelListenAddress, config.HttpTunnelPort.Value, "127.0.0.1"));
@@ -1264,6 +1270,7 @@ internal sealed class TorLaunchConfig
     public string TorPath { get; init; } = string.Empty;
     public int SocksPort { get; init; }
     public string? SocksListenAddress { get; init; }
+    public IReadOnlyList<string>? AdditionalSocksListenAddresses { get; init; }
     public int? HttpTunnelPort { get; init; }
     public string? HttpTunnelListenAddress { get; init; }
     public int? DnsPort { get; init; }

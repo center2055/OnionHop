@@ -30,21 +30,40 @@ public static class LanAddressFinder
         "vethernet", "wsl", "docker", "vbox"
     ];
 
+    /// <summary>One of this computer's IPv4 addresses with the adapter it belongs to.</summary>
+    public sealed record LanAddress(string InterfaceName, IPAddress Address);
+
     /// <summary>The best LAN IPv4 address of this computer, or null when there is none.</summary>
-    public static string? GetPrimaryLanIPv4()
+    public static string? GetPrimaryLanIPv4() => Pick(ReadCandidates())?.ToString();
+
+    /// <summary>
+    /// Every private IPv4 address other devices could use, with its adapter. A router has one per
+    /// side, and the one with the default gateway, which <see cref="GetPrimaryLanIPv4"/> prefers, is
+    /// the side facing the internet (#89).
+    /// </summary>
+    public static IReadOnlyList<LanAddress> GetLanIPv4Addresses() => ListShareable(ReadCandidates());
+
+    /// <summary>
+    /// The address to share the proxy on for <paramref name="nameOrAddress"/>: an adapter name such
+    /// as eth0 or wlan0 gives its IPv4 address, private ones first; an IPv4 address must belong to
+    /// one of this computer's adapters. Null when neither matches.
+    /// </summary>
+    public static LanAddress? ResolveShareAddress(string nameOrAddress) =>
+        ResolveShareAddress(ReadCandidates(), nameOrAddress);
+
+    private static IReadOnlyList<Candidate> ReadCandidates()
     {
         try
         {
-            var candidates = NetworkInterface.GetAllNetworkInterfaces()
+            return NetworkInterface.GetAllNetworkInterfaces()
                 .Select(ToCandidate)
                 .Where(candidate => candidate != null)
                 .Select(candidate => candidate!)
                 .ToList();
-            return Pick(candidates)?.ToString();
         }
         catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException or InvalidOperationException)
         {
-            return null;
+            return [];
         }
     }
 
@@ -76,9 +95,7 @@ public static class LanAddressFinder
     internal static IPAddress? Pick(IEnumerable<Candidate> candidates)
     {
         var usable = candidates
-            .Where(candidate => candidate.IsUp
-                                && candidate.Type is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
-                                && !LooksVirtual(candidate))
+            .Where(IsShareable)
             .SelectMany(candidate => candidate.Addresses
                 .Where(IsPrivateIPv4)
                 .Select(address => (candidate.HasGateway, Address: address)))
@@ -87,6 +104,46 @@ public static class LanAddressFinder
         return usable.Where(entry => entry.HasGateway).Select(entry => entry.Address).FirstOrDefault()
                ?? usable.Select(entry => entry.Address).FirstOrDefault();
     }
+
+    internal static IReadOnlyList<LanAddress> ListShareable(IEnumerable<Candidate> candidates) =>
+        candidates
+            .Where(IsShareable)
+            .SelectMany(candidate => candidate.Addresses
+                .Where(IsPrivateIPv4)
+                .Select(address => new LanAddress(candidate.Name, address)))
+            .ToList();
+
+    internal static LanAddress? ResolveShareAddress(IEnumerable<Candidate> candidates, string nameOrAddress)
+    {
+        var wanted = nameOrAddress.Trim();
+        var up = candidates.Where(candidate => candidate.IsUp).ToList();
+
+        if (IPAddress.TryParse(wanted, out var literal))
+        {
+            if (literal.AddressFamily != AddressFamily.InterNetwork || IPAddress.IsLoopback(literal))
+            {
+                return null;
+            }
+
+            var owner = up.FirstOrDefault(candidate => candidate.Addresses.Contains(literal));
+            return owner == null ? null : new LanAddress(owner.Name, literal);
+        }
+
+        // Named explicitly, so VM and container adapters count too; only loopback is never a LAN.
+        var named = up.FirstOrDefault(candidate =>
+            candidate.Type != NetworkInterfaceType.Loopback &&
+            string.Equals(candidate.Name, wanted, StringComparison.OrdinalIgnoreCase));
+        var address = named?.Addresses
+            .Where(address => address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(address))
+            .OrderBy(address => IsPrivateIPv4(address) ? 0 : 1)
+            .FirstOrDefault();
+        return address == null ? null : new LanAddress(named!.Name, address);
+    }
+
+    private static bool IsShareable(Candidate candidate) =>
+        candidate.IsUp
+        && candidate.Type is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
+        && !LooksVirtual(candidate);
 
     /// <summary>RFC 1918 ranges: 10/8, 172.16/12, 192.168/16. Link-local (169.254/16) is not private here.</summary>
     internal static bool IsPrivateIPv4(IPAddress address)

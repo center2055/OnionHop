@@ -119,12 +119,13 @@ The CLI runs without a desktop, e.g. on a Raspberry Pi that shares Tor with your
 ```bash
 sudo mkdir -p /opt/onionhop
 sudo tar -xzf OnionHopCLI-<version>-linux-arm.tar.gz -C /opt/onionhop
-/opt/onionhop/OnionHopV3.Cli connect --proxy-scope local --lan on
+/opt/onionhop/OnionHopV3.Cli connect --proxy-scope local --lan-interface wlan0
 ```
 
 - `connect` keeps running until it is stopped. Ctrl+C, SIGTERM (systemd, Docker, `kill`) and SIGHUP (a closed SSH session) all disconnect cleanly and stop Tor.
 - `--proxy-scope local` leaves the system proxy alone, which a headless box does not have.
-- `--lan on` listens on every network interface instead of 127.0.0.1, and prints the SOCKS and HTTP addresses other devices should use. Anyone who can reach those ports can use them, so on a router block them on the internet-facing interface.
+- `--lan-interface <name|ip>` shares the SOCKS and HTTP proxy on that one interface (here `wlan0`, a router's LAN side) as well as on 127.0.0.1. `--lan on` shares it on every interface instead, and lists their addresses; on a router that includes the internet-facing side, so prefer `--lan-interface` there or block the ports on that side. Anyone who can reach the shared ports can use them.
+- Smart Connect remembers what worked and what failed on your network, so the next connect skips the routes that keep failing. `--bridge-type obfs4` makes it try obfs4 first; `plan` shows the order it will use, and each attempt reports how long it took.
 - The kill switch only exists in TUN mode and only when it is turned on; the CLI never turns it on, so Proxy Mode leaves your firewall rules alone.
 
 To start it at boot, create `/etc/systemd/system/onionhop.service`:
@@ -137,7 +138,7 @@ After=network-online.target
 
 [Service]
 User=onionhop
-ExecStart=/opt/onionhop/OnionHopV3.Cli connect --proxy-scope local --lan on
+ExecStart=/opt/onionhop/OnionHopV3.Cli connect --proxy-scope local --lan-interface wlan0
 # Only the CLI gets SIGTERM, so it stops Tor itself before exiting.
 KillMode=mixed
 TimeoutStopSec=30

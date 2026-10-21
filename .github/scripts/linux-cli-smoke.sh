@@ -2,11 +2,13 @@
 # Smoke test for a published Linux CLI folder: every bundled binary must start on this machine's
 # architecture, and with "connect" the CLI must reach Tor and stop cleanly on SIGTERM (#89).
 #
-# Usage: linux-cli-smoke.sh <cli dir> [binaries|connect]
+# Usage: linux-cli-smoke.sh <cli dir> [binaries|connect] [lan interface]
+# With an interface, connect shares the proxy on that one (--lan-interface), else on all (--lan on).
 set -u
 
 DIR="$1"
 MODE="${2:-binaries}"
+LAN_INTERFACE="${3:-}"
 
 fail() {
     echo "::error::$1"
@@ -54,7 +56,11 @@ tor_running() {
 connect_and_terminate() {
     local log cli code i
     log="$(mktemp)"
-    "$DIR/OnionHopV3.Cli" connect --smart off --proxy-scope local --lan on >"$log" 2>&1 &
+    if [ -n "$LAN_INTERFACE" ]; then
+        "$DIR/OnionHopV3.Cli" connect --smart off --proxy-scope local --lan-interface "$LAN_INTERFACE" >"$log" 2>&1 &
+    else
+        "$DIR/OnionHopV3.Cli" connect --smart off --proxy-scope local --lan on >"$log" 2>&1 &
+    fi
     cli=$!
 
     # Emulated ARM is slow: give Tor up to six minutes.
@@ -64,11 +70,11 @@ connect_and_terminate() {
         sleep 3
     done
     cat "$log"
-    if ! grep -q "Connected.  IP" "$log"; then
+    if ! grep -q "Connected via" "$log"; then
         kill -9 "$cli" 2>/dev/null
         fail "the CLI did not connect"
     fi
-    grep -q "Shared with your network" "$log" || fail "--lan on did not report the LAN endpoints"
+    grep -q "Shared with your network" "$log" || fail "LAN sharing did not report its endpoints"
     tor_running || fail "tor is not running while connected"
 
     kill -TERM "$cli"

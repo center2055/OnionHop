@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -153,6 +154,9 @@ public sealed class OnionHopClient : IDisposable
     private int _activeSocksPort = DefaultSocksPort;
     private int? _activeHttpPort;
     private string _activeProxyBindAddress = "127.0.0.1";
+    // The one interface the proxy is shared on (LanBindAddress), and the relays serving it there.
+    private IPAddress? _lanShareAddress;
+    private readonly List<TcpRelay> _lanShareRelays = [];
     private int? _activeDnsPort;
     private string? _activeDnsBindAddress;
     private string _activeTorEngine = OnionHopConnectOptions.TorEngineClassic;
@@ -915,10 +919,13 @@ public sealed class OnionHopClient : IDisposable
 
         _activeDnsPort = null;
         _activeDnsBindAddress = null;
-        _activeProxyBindAddress = options.AllowLanProxyAccess ? "0.0.0.0" : "127.0.0.1";
-        if (options.AllowLanProxyAccess)
+        var lanShareError = ResolveLanShare(options);
+        _activeProxyBindAddress = options.AllowLanProxyAccess && _lanShareAddress == null ? "0.0.0.0" : "127.0.0.1";
+        if (options.AllowLanProxyAccess && lanShareError == null)
         {
-            RaiseLog("LAN proxy access enabled: SOCKS/HTTP listeners will accept connections from local network interfaces.");
+            RaiseLog(_lanShareAddress == null
+                ? "LAN proxy access enabled: SOCKS/HTTP listeners will accept connections from local network interfaces."
+                : $"LAN proxy access enabled on {_lanShareAddress} only: SOCKS/HTTP accept connections from that interface and this computer.");
         }
 
         if (options.OnionDnsProxyEnabled)
@@ -1012,6 +1019,11 @@ public sealed class OnionHopClient : IDisposable
 
         try
         {
+            if (lanShareError != null)
+            {
+                throw new InvalidOperationException(lanShareError);
+            }
+
             var xrayTunCompatibilityProxyApplied = false;
             RaiseLog($"Connecting. Engine={ResolveEffectiveTorEngine(options)}, Mode={options.SelectedConnectionMode}, Hybrid={options.UseHybridRouting}, Exit={options.SelectedLocation}, Bridges={(options.UseTorBridges ? options.SelectedBridgeType : "off")}");
 
@@ -1087,6 +1099,8 @@ public sealed class OnionHopClient : IDisposable
             {
                 await StartHttpProxyBridgeAsync(timeoutCts.Token).ConfigureAwait(false);
             }
+
+            StartLanShareRelays();
 
             if (IsTunMode(resolvedOptions) &&
                 string.Equals(_activeVpnCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal))
@@ -1209,6 +1223,7 @@ public sealed class OnionHopClient : IDisposable
             PublishStatus();
 
             await RefreshIpAsync(updateStatusMessage: false, CancellationToken.None).ConfigureAwait(false);
+            StartExitIpRetryIfUnknown();
 
             // Refresh the geo rule-set cache through Tor in the background (issue #68 follow-up):
             // raw.githubusercontent.com is blocked exactly where those rules matter most, so fetch
@@ -2448,6 +2463,7 @@ public sealed class OnionHopClient : IDisposable
         try
         {
             _httpProxyBridgeService.Stop();
+            StopLanShareRelays();
         }
         catch (Exception ex)
         {
@@ -2792,6 +2808,7 @@ public sealed class OnionHopClient : IDisposable
             await Task.Run(() =>
             {
                 _httpProxyBridgeService.Stop();
+                StopLanShareRelays();
                 StopSingBoxProcess();
 
                 // A kill switch that has fired outlives this teardown on purpose (see
@@ -2885,20 +2902,23 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
+    /// <summary>The state <see cref="StatusUpdated"/> last reported, read on demand.</summary>
+    public StatusUpdate CurrentStatus => new(
+        IsConnecting: _isConnecting,
+        IsConnected: _isConnected,
+        IsDisconnecting: _isDisconnecting,
+        ConnectionStatus: _connectionStatus,
+        StatusMessage: _statusMessage,
+        ConnectionProgress: _connectionProgress,
+        CurrentIp: _currentIp,
+        SocksPort: _activeSocksPort,
+        HttpPort: _activeHttpPort,
+        TunnelCheck: _tunnelCheck,
+        KillSwitchHolding: _killSwitchHolding);
+
     private void PublishStatus()
     {
-        StatusUpdated?.Invoke(this, new StatusUpdate(
-            IsConnecting: _isConnecting,
-            IsConnected: _isConnected,
-            IsDisconnecting: _isDisconnecting,
-            ConnectionStatus: _connectionStatus,
-            StatusMessage: _statusMessage,
-            ConnectionProgress: _connectionProgress,
-            CurrentIp: _currentIp,
-            SocksPort: _activeSocksPort,
-            HttpPort: _activeHttpPort,
-            TunnelCheck: _tunnelCheck,
-            KillSwitchHolding: _killSwitchHolding));
+        StatusUpdated?.Invoke(this, CurrentStatus);
     }
 
     private void PublishDependency()
@@ -3351,6 +3371,7 @@ public sealed class OnionHopClient : IDisposable
             TorPath = torPath,
             SocksPort = _activeSocksPort,
             SocksListenAddress = _activeProxyBindAddress,
+            AdditionalSocksListenAddresses = _lanShareAddress is { } lan ? [lan.ToString()] : null,
             HttpTunnelPort = null,
             HttpTunnelListenAddress = null,
             DnsPort = options.OnionDnsProxyEnabled ? _activeDnsPort : null,
@@ -3605,6 +3626,87 @@ public sealed class OnionHopClient : IDisposable
         _statusMessage = $"ArtiHop SOCKS runtime is ready ({hopLabel}).";
         RaiseLog($"ArtiHop SOCKS runtime is listening on {_activeProxyBindAddress}:{_activeSocksPort} (mode={artiHopMode}).");
         PublishStatus();
+    }
+
+    // Sets the interface this connect shares the proxy on; returns why the requested one cannot be used.
+    private string? ResolveLanShare(OnionHopConnectOptions options)
+    {
+        _lanShareAddress = null;
+        if (!options.AllowLanProxyAccess || string.IsNullOrWhiteSpace(options.LanBindAddress))
+        {
+            return null;
+        }
+
+        var resolved = LanAddressFinder.ResolveShareAddress(options.LanBindAddress);
+        if (resolved == null)
+        {
+            return $"{options.LanBindAddress.Trim()} is not a network interface or IPv4 address of this computer, so the proxy cannot be shared on it.";
+        }
+
+        _lanShareAddress = resolved.Address;
+        return null;
+    }
+
+    // Shares the proxy on the one chosen interface. Tor listens there itself (a second SocksPort,
+    // which keeps its per-device circuit isolation); Arti, ArtiHop and the HTTP proxy listen on
+    // loopback only, so a relay forwards that interface's connections to them.
+    private void StartLanShareRelays()
+    {
+        if (_lanShareAddress is not { } lan)
+        {
+            return;
+        }
+
+        if (!string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineClassic, StringComparison.Ordinal))
+        {
+            // Sharing SOCKS is the point of LAN access, so failing here fails the connect.
+            StartLanShareRelay(lan, _activeSocksPort, "SOCKS");
+        }
+
+        if (_activeHttpPort is { } httpPort)
+        {
+            try
+            {
+                StartLanShareRelay(lan, httpPort, "HTTP");
+            }
+            catch (Exception ex)
+            {
+                RaiseLog(ex.Message);
+            }
+        }
+    }
+
+    private void StartLanShareRelay(IPAddress lan, int port, string label)
+    {
+        try
+        {
+            var relay = TcpRelay.Start(new IPEndPoint(lan, port), new IPEndPoint(IPAddress.Loopback, port));
+            lock (_lanShareRelays)
+            {
+                _lanShareRelays.Add(relay);
+            }
+
+            RaiseLog($"{label} proxy shared on {lan}:{port}.");
+        }
+        catch (SocketException ex)
+        {
+            throw new InvalidOperationException($"Could not share the {label} proxy on {lan}:{port}: {ex.Message}", ex);
+        }
+    }
+
+    private void StopLanShareRelays()
+    {
+        List<TcpRelay> relays;
+        lock (_lanShareRelays)
+        {
+            relays = [.. _lanShareRelays];
+            _lanShareRelays.Clear();
+        }
+
+        foreach (var relay in relays)
+        {
+            relay.Dispose();
+        }
     }
 
     private async Task StartHttpProxyBridgeAsync(CancellationToken token)
@@ -3874,6 +3976,43 @@ public sealed class OnionHopClient : IDisposable
     // Tor's per-country circumvention settings (what Smart Connect follows in censored countries) are
     // refreshed through Tor once connected, at most daily: bridges.torproject.org is blocked in exactly
     // the countries that need them, and this way the request never shows on the local network either.
+    // The first exit-IP lookup runs right after bootstrap, when the first circuits through a slow
+    // bridge can take longer than its budget, and the IP then showed "--.--.--.--" for the whole
+    // session (#89). Look again a few times while this connection lasts.
+    private static readonly TimeSpan[] ExitIpRetryDelays = [TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(60)];
+    private int _exitIpRetrySerial;
+
+    private void StartExitIpRetryIfUnknown()
+    {
+        if (IPAddress.TryParse(_currentIp?.Trim(), out _))
+        {
+            return;
+        }
+
+        // A newer connection's retries replace these.
+        var serial = Interlocked.Increment(ref _exitIpRetrySerial);
+        _ = Task.Run(async () =>
+        {
+            foreach (var delay in ExitIpRetryDelays)
+            {
+                await Task.Delay(delay).ConfigureAwait(false);
+                if (serial != Volatile.Read(ref _exitIpRetrySerial) || !_isConnected || _isDisconnecting
+                    || IPAddress.TryParse(_currentIp?.Trim(), out _))
+                {
+                    return;
+                }
+
+                try
+                {
+                    await RefreshIpAsync(updateStatusMessage: false, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            }
+        });
+    }
+
     private void StartCircumventionSettingsBackgroundRefresh()
     {
         var socksPort = _activeSocksPort;

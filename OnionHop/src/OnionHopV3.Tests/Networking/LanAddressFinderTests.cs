@@ -82,4 +82,55 @@ public sealed class LanAddressFinderTests
             Nic("Mobile", "100.70.1.2", gateway: true)
         ]));
     }
+
+    // A Raspberry Pi as a router: the uplink has the default route, the access point serves the LAN.
+    private static readonly Candidate[] Router =
+    [
+        Nic("eth0", "10.24.7.15", gateway: true),
+        Nic("wlan0", "192.168.4.1"),
+        Nic("lo", "127.0.0.1", type: NetworkInterfaceType.Loopback),
+        Nic("docker0", "172.17.0.1", description: "docker bridge")
+    ];
+
+    [Fact]
+    public void Lists_every_side_of_a_router_not_just_the_one_with_the_default_route()
+    {
+        // Pick alone would answer eth0, the side facing the internet (#89).
+        var listed = LanAddressFinder.ListShareable(Router);
+
+        Assert.Equal(
+            ["eth0 10.24.7.15", "wlan0 192.168.4.1"],
+            listed.Select(entry => $"{entry.InterfaceName} {entry.Address}"));
+    }
+
+    [Theory]
+    [InlineData("wlan0", "wlan0", "192.168.4.1")]
+    [InlineData("WLAN0", "wlan0", "192.168.4.1")]
+    [InlineData("192.168.4.1", "wlan0", "192.168.4.1")]
+    [InlineData("docker0", "docker0", "172.17.0.1")] // named explicitly, so a container bridge is fine
+    public void Resolves_an_interface_name_or_one_of_its_addresses(string wanted, string expectedName, string expectedAddress)
+    {
+        var resolved = LanAddressFinder.ResolveShareAddress(Router, wanted);
+
+        Assert.NotNull(resolved);
+        Assert.Equal(expectedName, resolved!.InterfaceName);
+        Assert.Equal(expectedAddress, resolved.Address.ToString());
+    }
+
+    [Theory]
+    [InlineData("wlan1")]          // no such interface
+    [InlineData("192.168.4.99")]   // not an address of this machine
+    [InlineData("lo")]             // loopback is this machine only
+    [InlineData("127.0.0.1")]
+    [InlineData("fe80::1")]        // IPv4 only
+    public void Rejects_what_cannot_be_shared_on(string wanted)
+    {
+        Assert.Null(LanAddressFinder.ResolveShareAddress(Router, wanted));
+    }
+
+    [Fact]
+    public void A_down_interface_cannot_be_shared_on()
+    {
+        Assert.Null(LanAddressFinder.ResolveShareAddress([Nic("wlan0", "192.168.4.1", up: false)], "wlan0"));
+    }
 }
