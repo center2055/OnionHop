@@ -28,8 +28,8 @@ internal sealed class DependencyManager
     // fresh install could get a core the generated configs had never been tested against, and
     // sing-box has broken existing configs between minor releases before. When bumping the bundled
     // cores, update the versions and the hashes below together.
-    private const string SingBoxVersion = "1.13.13";
-    private const string XrayVersion = "26.3.27";
+    internal const string SingBoxVersion = "1.13.13";
+    internal const string XrayVersion = "26.3.27";
     private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/tags/v" + SingBoxVersion;
     private const string XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v" + XrayVersion;
 

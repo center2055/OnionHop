@@ -16,8 +16,16 @@ TEMP_DIR="$REPO_ROOT/temp_deps_macos"
 # Versions (keep in sync with download-deps.sh)
 TOR_VERSION="15.0.14"
 WEBTUNNEL_VERSION="v0.0.3"
-SING_BOX_VERSION="1.13.12"
+# sing-box and Xray stay on the versions OnionHop's configs are tested against
+# (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s.
+SING_BOX_VERSION="1.13.13"
 XRAY_VERSION="v26.3.27"
+CORE_SHA256="
+sing-box-1.13.13-darwin-amd64.tar.gz 477afd64ad7751214f01338ba244265ecc223966ddb58214963f526dca7f424e
+sing-box-1.13.13-darwin-arm64.tar.gz 4ac414d4ede9ec21bc79d8ccf40b4679429203b9e06ad96d2d8d34c0fe940558
+Xray-macos-64.zip f5b0471d3459eff1b82e48af0aeac186abcc3298210070afbbbd8437a4e8b203
+Xray-macos-arm64-v8a.zip 2e93a67e8aa1936ecefb307e120830fcbd4c643ab9b1c46a2d0838d5f8409eaf
+"
 ARTI_HOP_REPO_URL="https://github.com/center2055/ArtiHop.git"
 SNOWFLAKE_REPO_URL="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git"
 
@@ -126,10 +134,23 @@ else
     echo "Go not found, skipping dnstt-client build."
 fi
 
+# fetch_core <url> <file>: download a sing-box/Xray asset and check it against CORE_SHA256.
+fetch_core() {
+    local name expected
+    name="$(basename "$1")"
+    expected="$(echo "$CORE_SHA256" | awk -v name="$name" '$1 == name { print $2 }')"
+    if [ -z "$expected" ]; then
+        echo "No SHA-256 pinned for $name; update CORE_SHA256 together with the version."
+        exit 1
+    fi
+    curl -fL "$1" -o "$2"
+    echo "$expected  $2" | shasum -a 256 -c -
+}
+
 # 4. Sing-box (SagerNet publishes separate darwin builds; lipo them together).
 echo "Downloading Sing-box ($SING_BOX_VERSION, universal)..."
 for arch in amd64 arm64; do
-    curl -fL "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-darwin-${arch}.tar.gz" -o "$TEMP_DIR/sing-box-${arch}.tar.gz"
+    fetch_core "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-darwin-${arch}.tar.gz" "$TEMP_DIR/sing-box-${arch}.tar.gz"
     mkdir -p "$TEMP_DIR/sb-${arch}"
     tar -xzf "$TEMP_DIR/sing-box-${arch}.tar.gz" -C "$TEMP_DIR/sb-${arch}"
 done
@@ -139,8 +160,8 @@ make_universal "$SB_AMD64" "$SB_ARM64" "$VPN_DIR/sing-box"
 
 # 5. Xray.
 echo "Downloading Xray ($XRAY_VERSION, universal)..."
-curl -fL "https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-macos-64.zip" -o "$TEMP_DIR/xray-x64.zip"
-curl -fL "https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-macos-arm64-v8a.zip" -o "$TEMP_DIR/xray-arm64.zip"
+fetch_core "https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-macos-64.zip" "$TEMP_DIR/xray-x64.zip"
+fetch_core "https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-macos-arm64-v8a.zip" "$TEMP_DIR/xray-arm64.zip"
 unzip -q -o "$TEMP_DIR/xray-x64.zip" -d "$TEMP_DIR/xray_x64"
 unzip -q -o "$TEMP_DIR/xray-arm64.zip" -d "$TEMP_DIR/xray_arm64"
 make_universal "$TEMP_DIR/xray_x64/xray" "$TEMP_DIR/xray_arm64/xray" "$VPN_DIR/xray"

@@ -55,10 +55,20 @@ TEMP_DIR="$REPO_ROOT/temp_deps_linux"
 # Versions
 TOR_VERSION="15.0.14"
 WEBTUNNEL_VERSION="v0.0.3"
-SING_BOX_VERSION="1.13.12"
+# sing-box and Xray stay on the versions OnionHop's configs are tested against
+# (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s.
+SING_BOX_VERSION="1.13.13"
 XRAY_VERSION="v26.3.27"
 SING_BOX_URL="https://github.com/SagerNet/sing-box/releases/download/v$SING_BOX_VERSION/sing-box-$SING_BOX_VERSION-linux-$SING_BOX_ARCH.tar.gz"
 XRAY_URL="https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-linux-$XRAY_ARCH.zip"
+CORE_SHA256="
+sing-box-1.13.13-linux-amd64.tar.gz bb99cabf47694625db421ee17898f36cdc1f9c2cb5decf65b12bac8d8437e842
+sing-box-1.13.13-linux-arm64.tar.gz d7fab87b921933eb281d8ee7bd5377cdd8228089f1f7c807c9363a6a2329286c
+sing-box-1.13.13-linux-armv7.tar.gz 3df25c595c8a669fb27d6ffae844dbe8bc049d11b181ae39cffc6e3b0a6b0e9f
+Xray-linux-64.zip 23cd9af937744d97776ee35ecad4972cf4b2109d1e0fe6be9930467608f7c8ae
+Xray-linux-arm64-v8a.zip 4d30283ae614e3057f730f67cd088a42be6fdf91f8639d82cb69e48cde80413c
+Xray-linux-arm32-v7a.zip c7265ae13c63ca0241a037df4ef960ad37938c8a67d984cc08834b2cfdf5654b
+"
 ARTI_HOP_REPO_URL="https://github.com/center2055/ArtiHop.git"
 SNOWFLAKE_PROXY_PACKAGE="gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
 PT_GITLAB="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports"
@@ -84,6 +94,11 @@ echo "=== OnionHop Linux Dependency Downloader ($TARGET_ARCH) ==="
 fetch_verified() {
     curl -fL "$1" -o "$3"
     echo "$2  $3" | sha256sum -c -
+}
+
+# core_sha256 <url>: the pinned SHA-256 of a sing-box/Xray asset, empty when none is pinned.
+core_sha256() {
+    echo "$CORE_SHA256" | awk -v name="$(basename "$1")" '$1 == name { print $2 }'
 }
 
 # go_build <source dir> <package> <output> [extra ldflags]: a static build for the target architecture.
@@ -238,7 +253,7 @@ fi
 # 4. Sing-box
 echo "Downloading Sing-box..."
 SB_ARCHIVE="$TEMP_DIR/sing-box.tar.gz"
-curl -fL "$SING_BOX_URL" -o "$SB_ARCHIVE"
+fetch_verified "$SING_BOX_URL" "$(core_sha256 "$SING_BOX_URL")" "$SB_ARCHIVE"
 tar -xzf "$SB_ARCHIVE" -C "$TEMP_DIR"
 SB_SRC_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "sing-box-*")
 cp "$SB_SRC_DIR/sing-box" "$VPN_DIR/"
@@ -246,7 +261,7 @@ cp "$SB_SRC_DIR/sing-box" "$VPN_DIR/"
 # 5. Xray
 echo "Downloading Xray..."
 XRAY_ARCHIVE="$TEMP_DIR/xray.zip"
-curl -fL "$XRAY_URL" -o "$XRAY_ARCHIVE"
+fetch_verified "$XRAY_URL" "$(core_sha256 "$XRAY_URL")" "$XRAY_ARCHIVE"
 unzip -q -o "$XRAY_ARCHIVE" -d "$TEMP_DIR/xray_ext"
 cp "$TEMP_DIR/xray_ext/xray" "$VPN_DIR/"
 

@@ -15,8 +15,15 @@ if ([string]::IsNullOrWhiteSpace($TorVersion)) {
 $TorFallbackVersion = "15.0.5"
 $TorBaseUrl = "https://dist.torproject.org/torbrowser"
 $TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser"
-$SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/latest"
-$XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
+# sing-box and Xray stay on the versions OnionHop's configs are tested against
+# (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s. Taking
+# "latest" put a sing-box the configs were never tested with into the portable build.
+$SingBoxVersion = "1.13.13"
+$XrayVersion = "v26.3.27"
+$CoreSha256 = @{
+    "sing-box-1.13.13-windows-amd64.zip" = "aea1fa983134a2e2d0600581d1178e98bd6bb93ae12ad8c333eaacae68a1694c"
+    "Xray-windows-64.zip" = "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad"
+}
 $WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip"
 # Known SHA256 checksum for Wintun 0.14.1
 $WintunExpectedHash = "07C256185D6EE3652E09FA55C0B673E2624B565E02C4B9091C79CA7D2F24EF51"
@@ -677,17 +684,8 @@ try {
     # --- 3-5. Sing-box, xray and Wintun (parallel download) ---
     Write-Host "`n[3-5/5] Downloading Sing-box, xray and Wintun in parallel..."
     
-    # Get sing-box URL first (API call)
-    $SbRelease = Invoke-RestMethod -Uri $SingBoxApiUrl
-    $SbAsset = $SbRelease.assets | Where-Object { $_.name -like "*windows-amd64.zip" } | Select-Object -First 1
-    if (-not $SbAsset) { throw "No windows-amd64 asset found." }
-    $SbUrl = $SbAsset.browser_download_url
-
-    # Get xray URL
-    $XrayRelease = Invoke-RestMethod -Uri $XrayApiUrl
-    $XrayAsset = $XrayRelease.assets | Where-Object { $_.name -like "*windows-64.zip" -or $_.name -like "*win7-64.zip" } | Select-Object -First 1
-    if (-not $XrayAsset) { throw "No xray windows-64 asset found." }
-    $XrayUrl = $XrayAsset.browser_download_url
+    $SbUrl = "https://github.com/SagerNet/sing-box/releases/download/v$SingBoxVersion/sing-box-$SingBoxVersion-windows-amd64.zip"
+    $XrayUrl = "https://github.com/XTLS/Xray-core/releases/download/$XrayVersion/Xray-windows-64.zip"
     
     $SbArchive = Join-Path $TempDir "sing-box.zip"
     $XrayArchive = Join-Path $TempDir "xray.zip"
@@ -726,6 +724,18 @@ try {
     $downloadJobs | Remove-Job -Force
     Write-Host "  Downloads completed." -ForegroundColor Green
     
+    # Verify the sing-box and xray archives against their pinned checksums
+    foreach ($core in @(@{ Url = $SbUrl; File = $SbArchive }, @{ Url = $XrayUrl; File = $XrayArchive })) {
+        $name = Split-Path $core.Url -Leaf
+        if (-not $CoreSha256.ContainsKey($name)) {
+            throw "No SHA-256 pinned for $name; update `$CoreSha256 together with the version."
+        }
+        Write-Host "Verifying $name checksum..."
+        if (-not (Verify-FileHash -filePath $core.File -expectedHash $CoreSha256[$name])) {
+            throw "$name failed checksum verification. The file may be corrupted or tampered with."
+        }
+    }
+
     # Verify Wintun checksum
     Write-Host "Verifying Wintun checksum..."
     if (-not (Verify-FileHash -filePath $WintunArchive -expectedHash $WintunExpectedHash)) {
