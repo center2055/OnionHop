@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -69,6 +70,7 @@ internal sealed class ArtiHopService : IDisposable
                     RedirectStandardError = true,
                     CreateNoWindow = true
                 };
+                psi.WithUtf8Output();
                 using var process = Process.Start(psi);
                 if (process == null)
                 {
@@ -186,6 +188,7 @@ internal sealed class ArtiHopService : IDisposable
                 ?? Path.GetDirectoryName(config.ArtiHopPath)
                 ?? AppContext.BaseDirectory
         };
+        psi.WithUtf8Output();
 
         // ArtiHop logs via tracing-subscriber, which emits ANSI color codes by default. Disable them
         // so the in-app log shows clean text instead of escape sequences.

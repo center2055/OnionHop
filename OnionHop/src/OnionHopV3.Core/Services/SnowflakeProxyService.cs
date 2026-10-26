@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -123,6 +124,7 @@ internal sealed class SnowflakeProxyService : IDisposable
                 ?? System.IO.Path.GetDirectoryName(config.ProxyPath)
                 ?? AppContext.BaseDirectory
         };
+        psi.WithUtf8Output();
 
         foreach (var argument in arguments)
         {

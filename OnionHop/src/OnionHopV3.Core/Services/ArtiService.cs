@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -83,6 +84,7 @@ internal sealed class ArtiService : IDisposable
                 ?? Path.GetDirectoryName(config.ArtiPath)
                 ?? AppContext.BaseDirectory
         };
+        psi.WithUtf8Output();
 
         // Suppress ANSI color codes in Arti's log output so the in-app log stays clean.
         psi.Environment["NO_COLOR"] = "1";

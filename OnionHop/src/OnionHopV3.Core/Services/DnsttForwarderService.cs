@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -138,6 +139,7 @@ internal sealed class DnsttForwarderService : IDisposable
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(exePath!) ?? AppContext.BaseDirectory
         };
+        psi.WithUtf8Output();
 
         foreach (var argument in arguments)
         {

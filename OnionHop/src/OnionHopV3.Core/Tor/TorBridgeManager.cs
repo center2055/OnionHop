@@ -1915,6 +1915,7 @@ internal sealed class TorBridgeManager
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+            psi.WithUtf8Output();
             // Minimal Tor pluggable-transport managed environment so the binary runs its real client
             // startup (where lyrebird exits 2 under Tor), then exits when we close its stdin.
             psi.Environment["TOR_PT_MANAGED_TRANSPORT_VER"] = "1";

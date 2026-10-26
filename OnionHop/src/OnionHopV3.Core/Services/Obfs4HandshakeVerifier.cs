@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -178,6 +179,7 @@ public static class Obfs4HandshakeVerifier
             RedirectStandardError = true,
             CreateNoWindow = true
         };
+        psi.WithUtf8Output();
         psi.Environment["TOR_PT_MANAGED_TRANSPORT_VER"] = "1";
         psi.Environment["TOR_PT_STATE_LOCATION"] = stateDir;
         psi.Environment["TOR_PT_EXIT_ON_STDIN_CLOSE"] = "1";

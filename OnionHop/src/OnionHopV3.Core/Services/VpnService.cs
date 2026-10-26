@@ -135,6 +135,7 @@ internal sealed class VpnService : IDisposable
             }
 
             // Capture startup output for crash diagnostics.
+        psi.WithUtf8Output();
             var startupLines = new List<string>();
             void CaptureStartupOutput(object s, DataReceivedEventArgs args)
             {
