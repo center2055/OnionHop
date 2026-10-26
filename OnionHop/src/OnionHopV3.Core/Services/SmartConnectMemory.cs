@@ -49,12 +49,19 @@ public sealed class SmartConnectMemory
     /// Build the network key from a country code and public IP. Uses the first two octets of an IPv4
     /// address (or the first IPv6 hextet pair) as a coarse network fingerprint: stable enough to
     /// survive a dynamic-IP change within the same ISP region, specific enough to tell networks apart.
-    /// Returns null when there isn't enough to form a meaningful key.
+    /// Where the address lookups are blocked the public IP is unknown, and every network in the
+    /// country shared one memory (#89); the local default gateway then tells them apart instead, e.g.
+    /// a home router from a phone's hotspot. Returns null when there isn't enough to form a key.
     /// </summary>
-    public static string? BuildNetworkKey(string? countryCode, string? publicIp)
+    public static string? BuildNetworkKey(string? countryCode, string? publicIp, string? localGateway = null)
     {
         var country = string.IsNullOrWhiteSpace(countryCode) ? null : countryCode.Trim().ToUpperInvariant();
         var prefix = BuildIpPrefix(publicIp);
+        if (prefix == null && !string.IsNullOrWhiteSpace(localGateway))
+        {
+            prefix = "gw:" + localGateway.Trim();
+        }
+
         if (country == null && prefix == null)
         {
             return null;

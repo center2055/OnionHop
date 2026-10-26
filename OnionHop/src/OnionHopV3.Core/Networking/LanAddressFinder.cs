@@ -51,6 +51,38 @@ public static class LanAddressFinder
     public static LanAddress? ResolveShareAddress(string nameOrAddress) =>
         ResolveShareAddress(ReadCandidates(), nameOrAddress);
 
+    /// <summary>
+    /// The IPv4 default gateway of this computer's real network adapter, the router it reaches the
+    /// internet through, or null. Tells networks apart where the public address cannot be looked up.
+    /// </summary>
+    public static string? GetDefaultGatewayIPv4()
+    {
+        try
+        {
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                var candidate = ToCandidate(nic);
+                if (candidate == null || !IsShareable(candidate))
+                {
+                    continue;
+                }
+
+                var gateway = nic.GetIPProperties().GatewayAddresses
+                    .Select(entry => entry.Address)
+                    .FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork && !address.Equals(IPAddress.Any));
+                if (gateway != null)
+                {
+                    return gateway.ToString();
+                }
+            }
+        }
+        catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException or InvalidOperationException)
+        {
+        }
+
+        return null;
+    }
+
     private static IReadOnlyList<Candidate> ReadCandidates()
     {
         try

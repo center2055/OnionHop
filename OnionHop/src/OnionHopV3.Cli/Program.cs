@@ -906,6 +906,9 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine($"  Country : {plan?.CountryCode ?? "unknown"}", ConsoleColor.Gray);
         WriteLine($"  IP      : {plan?.PublicIp ?? "unknown"}", ConsoleColor.Gray);
         WriteLine($"  Risk    : {risk}  (score {score:0.000})", RiskColor(risk));
+        // Results are remembered under the country and the public address, or the local gateway
+        // where the address lookups are blocked.
+        WriteLine($"  Memory  : {_smartConnect.NetworkKey ?? "none (network unknown)"}", ConsoleColor.Gray);
         if (strategies.Count == 0) { WriteWarning("  No strategies available."); return; }
         WriteLine("  Strategy order:", ConsoleColor.White);
         for (var i = 0; i < strategies.Count; i++)

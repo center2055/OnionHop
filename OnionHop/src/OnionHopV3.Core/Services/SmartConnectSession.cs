@@ -36,6 +36,9 @@ public sealed class SmartConnectSession
     /// <summary>The advisor's plan behind the last <see cref="BuildStrategiesAsync"/>; null when planning failed.</summary>
     public SmartConnectAdvisor.Plan? Plan { get; private set; }
 
+    /// <summary>What attempts are remembered under on this network, e.g. "IR/5.120" or "IR/gw:192.168.8.1".</summary>
+    public string? NetworkKey => _networkKey;
+
     /// <summary>
     /// The strategies to try, in order. Only real cancellation throws: when planning fails, a generic
     /// profile is returned instead.
@@ -76,7 +79,10 @@ public sealed class SmartConnectSession
                 }
 
                 // Failure memory: what failed on this network in the last two days goes last.
-                _networkKey = SmartConnectMemory.BuildNetworkKey(plan.CountryCode, plan.PublicIp);
+                _networkKey = SmartConnectMemory.BuildNetworkKey(
+                    plan.CountryCode,
+                    plan.PublicIp,
+                    plan.PublicIp == null ? Networking.LanAddressFinder.GetDefaultGatewayIPv4() : null);
                 var recentlyFailed = _memory.GetRecentlyFailedTransports(_networkKey);
                 var demoted = SmartConnectAdvisor.DemoteRecentlyFailed(strategies, recentlyFailed);
                 if (!demoted.SequenceEqual(strategies))

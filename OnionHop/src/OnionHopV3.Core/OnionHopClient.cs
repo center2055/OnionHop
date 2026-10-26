@@ -142,6 +142,8 @@ public sealed class OnionHopClient : IDisposable
     // The engine's own bootstrap percentage for the current attempt (Tor's "Bootstrapped N%",
     // ArtiHop's "bootstrap progress"), read by WatchAttemptDeadlineAsync from another thread.
     private volatile int _bootstrapPercent;
+    // The text of the last bootstrap step ("Connecting to a relay"), so a timeout can say where it stopped.
+    private volatile string? _bootstrapSummary;
     private string _currentIp = "--.--.--.--";
 
     private bool _dependencyDownloadInProgress;
@@ -988,6 +990,7 @@ public sealed class OnionHopClient : IDisposable
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
         using var stopDeadlineWatch = new CancellationTokenSource();
         _bootstrapPercent = 0;
+        _bootstrapSummary = null;
         if (progressAwareDeadline)
         {
             _ = WatchAttemptDeadlineAsync(connectTimeout!.Value, timeoutCts, stopDeadlineWatch.Token);
@@ -1240,9 +1243,19 @@ public sealed class OnionHopClient : IDisposable
         catch (OperationCanceledException)
         {
             var canceledByUser = token.IsCancellationRequested;
+            int proxyFailures;
+            lock (_bridgeFailureLock)
+            {
+                proxyFailures = _totalTorProxyFailures;
+            }
+
             var canceledMessage = canceledByUser || !connectTimeout.HasValue
                 ? "Connection canceled."
-                : "Connection canceled or timed out.";
+                : DescribeAttemptTimeout(
+                    _bootstrapPercent,
+                    _bootstrapSummary,
+                    proxyFailures,
+                    torPhases: string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineClassic, StringComparison.Ordinal));
             RaiseLog(canceledMessage);
             MaybeLogTransportBlockedHint();
             await DisconnectCoreAsync(disableStatusUpdate: true).ConfigureAwait(false);
@@ -4317,10 +4330,11 @@ public sealed class OnionHopClient : IDisposable
             var percent = ExtractProgress(line);
             _bootstrapPercent = percent;
             _connectionProgress = percent / 100d;
-            if (_isConnecting)
+            var summary = ExtractBootstrapSummary(line);
+            if (!string.IsNullOrWhiteSpace(summary))
             {
-                var summary = ExtractBootstrapSummary(line);
-                if (!string.IsNullOrWhiteSpace(summary))
+                _bootstrapSummary = summary;
+                if (_isConnecting)
                 {
                     _statusMessage = summary;
                 }
@@ -4445,6 +4459,11 @@ public sealed class OnionHopClient : IDisposable
         if (TorLogHelper.TryParseArtiHopBootstrap(line, out var percent, out var stage))
         {
             _bootstrapPercent = percent;
+            if (stage is not null)
+            {
+                _bootstrapSummary = stage;
+            }
+
             if (_isConnecting)
             {
                 _connectionProgress = Math.Max(_connectionProgress, 0.2 + (0.6 * percent / 100d));
@@ -4661,6 +4680,34 @@ public sealed class OnionHopClient : IDisposable
     // scan found reachable. Same machine, bridges reachable by a plain TCP probe, yet the transport
     // (lyrebird / webtunnel-client) fails them all - which usually means a firewall or security tool is
     // blocking the transport helper process, or the bridges are dead at the protocol layer (#74).
+    /// <summary>
+    /// Where an attempt was when its time ran out says which part is blocked, where "timed out" alone
+    /// did not (#89): before 5% the transport program never got going, below 10% nothing got through
+    /// to a bridge or relay (a blocked address, or for Snowflake no proxy from the broker), below 20%
+    /// a connection stood but the handshake through it never finished, and past that the route works
+    /// and only Tor's directory download stalled. Arti and ArtiHop count their own percentages, so
+    /// for them only the step is named.
+    /// </summary>
+    internal static string DescribeAttemptTimeout(int percent, string? summary, int transportFailures, bool torPhases)
+    {
+        var stage = percent switch
+        {
+            <= 0 => "nothing answered",
+            < 5 => "the transport program did not get going",
+            < 10 => "no connection to a bridge or relay got through",
+            < 20 => "a connection was made, but the handshake through it did not finish",
+            _ => "the route works, but the download through it stalled"
+        };
+
+        var step = string.IsNullOrWhiteSpace(summary) ? string.Empty : $" ({summary.Trim().TrimEnd('.')})";
+        var failures = transportFailures > 0
+            ? $" The transport reported {transportFailures} failed connection{(transportFailures == 1 ? "" : "s")}."
+            : string.Empty;
+        return torPhases
+            ? $"Timed out at {percent}%{step}: {stage}.{failures}"
+            : $"Timed out at {percent}%{step}.{failures}";
+    }
+
     private void MaybeLogTransportBlockedHint()
     {
         const int minProxyFailures = 5;

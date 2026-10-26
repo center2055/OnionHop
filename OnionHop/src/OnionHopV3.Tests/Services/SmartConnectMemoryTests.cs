@@ -34,6 +34,24 @@ public sealed class SmartConnectMemoryTests : IDisposable
     }
 
     [Fact]
+    public void BuildNetworkKey_tells_networks_apart_by_gateway_when_the_address_is_unknown()
+    {
+        // Where the address lookups are blocked, a home router and a phone's hotspot in the same
+        // country used to share one memory (#89).
+        Assert.Equal("IR/gw:192.168.8.1", SmartConnectMemory.BuildNetworkKey("IR", null, "192.168.8.1"));
+        Assert.NotEqual(
+            SmartConnectMemory.BuildNetworkKey("IR", null, "192.168.8.1"),
+            SmartConnectMemory.BuildNetworkKey("IR", null, "192.168.43.1"));
+    }
+
+    [Fact]
+    public void BuildNetworkKey_prefers_the_public_address_over_the_gateway()
+    {
+        Assert.Equal("IR/5.22", SmartConnectMemory.BuildNetworkKey("IR", "5.22.1.1", "192.168.8.1"));
+        Assert.Equal("IR/?", SmartConnectMemory.BuildNetworkKey("IR", null, null));
+    }
+
+    [Fact]
     public void Records_and_recalls_a_success()
     {
         var memory = new SmartConnectMemory(_tempFile);
