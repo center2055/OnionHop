@@ -2,8 +2,10 @@
 # Smoke test for a published Linux CLI folder: every bundled binary must start on this machine's
 # architecture, and with "connect" the CLI must reach Tor and stop cleanly on SIGTERM (#89).
 #
-# Usage: linux-cli-smoke.sh <cli dir> [binaries|connect] [lan interface]
+# Usage: linux-cli-smoke.sh <cli dir> [binaries|connect|tun] [lan interface]
 # With an interface, connect shares the proxy on that one (--lan-interface), else on all (--lan on).
+# tun runs as a normal user and expects pkexec to start the tunnel as root (#90); see
+# linux-tun-pkexec-test.sh for the container it needs.
 set -u
 
 DIR="$1"
@@ -43,14 +45,22 @@ check_binaries() {
     starts xray "$DIR/vpn/xray" version
 }
 
-tor_running() {
+process_running() {
     local p
     for p in /proc/[0-9]*; do
-        if [ "$(cat "$p/comm" 2>/dev/null)" = "tor" ]; then
+        if [ "$(cat "$p/comm" 2>/dev/null)" = "$1" ]; then
             return 0
         fi
     done
     return 1
+}
+
+tor_running() {
+    process_running tor
+}
+
+tun_up() {
+    ip -o link show 2>/dev/null | grep -qi onionhop
 }
 
 connect_and_terminate() {
@@ -97,8 +107,54 @@ connect_and_terminate() {
     echo "ok  connected, then SIGTERM disconnected cleanly and stopped tor"
 }
 
+tun_connect_and_terminate() {
+    local log cli code i
+    log="$(mktemp)"
+    "$DIR/OnionHopV3.Cli" connect --mode tun --smart off --proxy-scope local >"$log" 2>&1 &
+    cli=$!
+
+    for i in $(seq 1 100); do
+        grep -q "disconnect and exit" "$log" && break
+        kill -0 "$cli" 2>/dev/null || break
+        sleep 3
+    done
+    cat "$log"
+    if ! grep -q "Connected via" "$log"; then
+        kill -9 "$cli" 2>/dev/null
+        fail "the CLI did not connect in TUN mode"
+    fi
+    grep -q "through polkit" "$log" || fail "TUN mode did not ask for root through pkexec"
+    tun_up || fail "no OnionHop TUN interface while connected"
+    process_running sing-box || fail "the tunnel core is not running"
+
+    # No proxy set: the request leaves through the tunnel, so it reaches the web through Tor.
+    curl -s --max-time 90 https://check.torproject.org/api/ip >/tmp/tun-check.txt 2>&1
+    cat /tmp/tun-check.txt
+    grep -q '"IsTor":true' /tmp/tun-check.txt || fail "traffic without a proxy did not go through Tor"
+
+    kill -TERM "$cli"
+    for i in $(seq 1 60); do
+        kill -0 "$cli" 2>/dev/null || break
+        sleep 1
+    done
+    if kill -0 "$cli" 2>/dev/null; then
+        kill -9 "$cli"
+        fail "the CLI was still running 60 s after SIGTERM"
+    fi
+    wait "$cli"
+    code=$?
+    tail -n 3 "$log"
+    [ "$code" -eq 0 ] || fail "the CLI exited with $code after SIGTERM (expected 0)"
+    sleep 3
+    tun_up && fail "the TUN interface was left up after SIGTERM"
+    process_running sing-box && fail "the root tunnel core was left running after SIGTERM"
+    tor_running && fail "tor was left running after SIGTERM"
+    echo "ok  TUN mode as a normal user: pkexec started the tunnel, traffic went through Tor, SIGTERM took it down"
+}
+
 case "$MODE" in
     binaries) check_binaries ;;
     connect) connect_and_terminate ;;
+    tun) tun_connect_and_terminate ;;
     *) fail "unknown mode $MODE" ;;
 esac

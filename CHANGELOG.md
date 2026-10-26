@@ -14,6 +14,8 @@ Smart Connect
 - **The command line version works like the app (#89).** It took Smart Connect's bare plan and remembered nothing, so on every connect it spent a minute or more on routes that had just failed before reaching the one that works on that network. It now runs the same reachability check as the app, tries what failed there recently last and what worked there before first, and remembers how each attempt went.
 - **Tells your networks apart where the address lookups are blocked (#89).** Smart Connect remembers what works per network, keyed on your public address. Where the lookups for that address are blocked, every network in the country shared one memory. It now goes by the router your computer connects through instead, so a home connection and a phone's hotspot keep separate memories. The CLI's `plan` shows what results are remembered under.
 
+Linux
+- **TUN mode without running OnionHop as root (#90).** TUN/VPN mode told you to relaunch the whole app with sudo, which separates the settings from your user and leaves root-owned files behind. OnionHop now asks for your password through polkit (`pkexec`) when the tunnel starts, as the macOS app does, and runs only the tunnel as root. This works in the CLI too. The kill switch and the system DNS settings still need OnionHop itself to run as root.
 
 CLI
 - **Builds for ARM Linux (#89).** The CLI is now also published for 64-bit ARM (`linux-arm64`) and 32-bit ARMv7 (`linux-arm`), for example for a Raspberry Pi that shares Tor with its network. The Tor Project publishes no stable Linux ARM build of Tor, so for these Tor and its transports are built from source.

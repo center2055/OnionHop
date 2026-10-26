@@ -107,6 +107,8 @@ Runs Tor locally and sets the OS proxy to Tor's SOCKS5 endpoint. No admin requir
 ### TUN/VPN Mode (admin)
 Runs Tor + **sing-box** and routes traffic at the OS level (Wintun on Windows, system TUN on macOS/Linux). Requires Administrator. Most leak-resistant.
 
+On macOS and Linux OnionHop does not need to run as root for it: when you connect, it asks for your password (on Linux through polkit, `pkexec`) and runs only the tunnel as root. The kill switch and the system DNS settings still need OnionHop itself to run as root on Linux.
+
 ### Hybrid (split tunneling)
 Only in TUN/VPN Mode — route selected apps through Tor while others stay direct.
 

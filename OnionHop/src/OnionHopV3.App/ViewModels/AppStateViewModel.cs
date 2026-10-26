@@ -1686,10 +1686,9 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                 // On Linux the system DNS proxy (what "DNS leak protection" turns on) needs root, and
                 // nothing else in Proxy Mode does. Leave the system's DNS alone instead of refusing to
                 // connect (#84): Smart Connect already did that, but with Smart Connect off the same
-                // default setting made even local-proxy mode demand root. TUN mode really needs root
-                // and is still checked below.
+                // default setting made even local-proxy mode demand root. TUN mode without root runs
+                // only the tunnel as root (pkexec, #90), and the tunnel sends DNS through Tor itself.
                 if (attemptOptions.OnionDnsProxyEnabled &&
-                    !IsTunModeOption(attemptOptions) &&
                     !PlatformHelper.IsAdministrator() &&
                     !OperatingSystem.IsWindows() &&
                     !OperatingSystem.IsMacOS())
@@ -1697,8 +1696,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
                     attemptOptions = attemptOptions with { OnionDnsProxyEnabled = false, FullDnsOverTor = false };
                     if (index == 0)
                     {
-                        AppendLog("DNS leak protection needs root on Linux, so this session leaves the system's DNS alone. " +
-                                  "Apps that send host names through OnionHop's proxy still have them resolved by Tor.");
+                        AppendLog(IsTunModeOption(attemptOptions)
+                            ? "The tunnel sends DNS through Tor itself. The system DNS settings need OnionHop itself to run as root on Linux, so this session leaves them alone."
+                            : "DNS leak protection needs root on Linux, so this session leaves the system's DNS alone. " +
+                              "Apps that send host names through OnionHop's proxy still have them resolved by Tor.");
                     }
                 }
 
@@ -1905,7 +1906,16 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return true;
         }
 
-        StatusMessage = "This mode requires root privileges on this platform. Please relaunch OnionHop with elevated permissions.";
+        // Linux without root: the tunnel core asks for root through polkit when it starts (#90).
+        if (OperatingSystem.IsLinux() && IsTunModeOption(options) && !options.OnionDnsProxyEnabled && OnionHopClient.CanElevateTunnelWithPkexec)
+        {
+            AppendLog("Linux will ask for your password (polkit) before starting the tunnel. Only the tunnel runs as root; OnionHop stays in your session.");
+            return true;
+        }
+
+        StatusMessage = OperatingSystem.IsLinux() && IsTunModeOption(options)
+            ? "TUN/VPN mode needs root on Linux, and polkit's pkexec is not installed to ask for it. Install pkexec, or relaunch OnionHop with elevated permissions."
+            : "This mode requires root privileges on this platform. Please relaunch OnionHop with elevated permissions.";
         return false;
     }
 

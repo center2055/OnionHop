@@ -657,9 +657,15 @@ internal sealed class CliHost : IAsyncDisposable
                 WriteWarning("TUN on macOS needs root or a configured Network Extension. Re-run with sudo.");
                 return false;
             }
+            else if (OnionHopClient.CanElevateTunnelWithPkexec)
+            {
+                // Only the tunnel core runs as root, through polkit: a password dialog on a desktop,
+                // a password prompt in a terminal (#90).
+                WriteInfo("TUN mode: asking for root through polkit (pkexec) to start the tunnel.");
+            }
             else
             {
-                WriteWarning("TUN mode needs root on this platform. Re-run with sudo.");
+                WriteWarning("TUN mode needs root on this platform. Install pkexec (polkit), or re-run with sudo.");
                 return false;
             }
         }

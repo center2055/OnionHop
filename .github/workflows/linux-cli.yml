@@ -115,6 +115,18 @@ jobs:
                   && bash /scripts/linux-cli-smoke.sh /opt/onionhop connect eth0'
           fi
 
+      # TUN mode as a normal user (#90): pkexec starts only the tunnel core as root. A container gets
+      # a network of its own for the tunnel to take over, and a polkit rule stands in for the password
+      # nobody can type here. Needs the Tor network, so a failure does not block the release upload.
+      - name: Smoke test - TUN mode through pkexec
+        if: matrix.arch == 'x64'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          docker run --rm --cap-add NET_ADMIN --device /dev/net/tun \
+            -v "$PWD/publish-cli:/opt/onionhop:ro" -v "$PWD/.github/scripts:/scripts:ro" \
+            debian:trixie-slim bash /scripts/linux-tun-pkexec-test.sh /opt/onionhop
+
       - name: Package tarball
         id: pkg
         run: |

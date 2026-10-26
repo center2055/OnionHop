@@ -295,6 +295,9 @@ public sealed class OnionHopClient : IDisposable
     /// <summary>True for the meta "automatic" bridge type.</summary>
     public static bool IsAutomaticBridgeType(string? bridgeType) => TorBridgeManager.IsAutomaticBridgeType(bridgeType);
 
+    /// <summary>Whether TUN mode can ask for root through polkit on this Linux system (#90).</summary>
+    public static bool CanElevateTunnelWithPkexec => VpnService.CanElevateWithPkexec;
+
     /// <summary>True when a bridge transport has a fixed IP:port that can be reachability-probed.</summary>
     public static bool BridgeTypeHasProbeableEndpoint(string? bridgeType) => TorBridgeManager.BridgeTypeHasProbeableEndpoint(bridgeType);
 
@@ -3835,23 +3838,31 @@ public sealed class OnionHopClient : IDisposable
 
         if (!isAdmin && !OperatingSystem.IsMacOS())
         {
-            if (OperatingSystem.IsLinux())
+            if (!OperatingSystem.IsLinux())
+            {
+                throw new InvalidOperationException("TUN/VPN mode requires elevated privileges (run as Administrator/root).");
+            }
+
+            if (!VpnService.CanElevateWithPkexec)
             {
                 throw new InvalidOperationException(BuildLinuxTunElevationHelp());
             }
 
-            throw new InvalidOperationException("TUN/VPN mode requires elevated privileges (run as Administrator/root).");
+            RaiseLog("TUN/VPN mode: asking for your password through polkit (pkexec) to start the tunnel. Only the tunnel runs as root; OnionHop keeps running as you.");
+            if (options.KillSwitchEnabled)
+            {
+                RaiseLog("The kill switch needs OnionHop itself to run as root on Linux, so it cannot block traffic while only the tunnel runs as root.");
+            }
         }
 
         await _vpnService.StartAsync(config, token).ConfigureAwait(false);
     }
 
-    // TUN/VPN mode on Linux creates a system TUN device, which needs root. Unlike Windows (UAC helper)
-    // and macOS (privileged tunnel / Network Extension), the Linux build launches the VPN core as a
-    // child of the app, so the whole app must already be elevated. Running a packaged AppImage under
-    // plain `sudo` usually fails silently (the GUI can't reach the user's X/Wayland display), so give
-    // the user the exact, env-preserving command for their actual launch target instead of a generic
-    // "run as root" error.
+    // TUN/VPN mode on Linux creates a system TUN device, which needs root. Without root, the tunnel
+    // core is started through polkit's pkexec, like the macOS administrator prompt (#90). This help is
+    // for systems without pkexec. Running a packaged AppImage under plain `sudo` usually fails
+    // silently (the GUI can't reach the user's X/Wayland display), so give the user the exact,
+    // env-preserving command for their actual launch target instead of a generic "run as root" error.
     private static string BuildLinuxTunElevationHelp()
     {
         var appImage = Environment.GetEnvironmentVariable("APPIMAGE");
@@ -3860,8 +3871,9 @@ public sealed class OnionHopClient : IDisposable
             : (Environment.ProcessPath ?? "OnionHop");
 
         return
-            "TUN/VPN mode needs root on Linux (it creates a system TUN device). Proxy Mode works without root. " +
-            "To use TUN/VPN mode, quit OnionHop and relaunch it elevated while keeping your graphical session, e.g.:\n" +
+            "TUN/VPN mode needs root on Linux (it creates a system TUN device). OnionHop asks for it through polkit, " +
+            "but pkexec is not installed (install the pkexec or policykit-1 package). Proxy Mode works without root. " +
+            "Or quit OnionHop and relaunch it elevated while keeping your graphical session, e.g.:\n" +
             $"    sudo -E \"{launchTarget}\"\n" +
             "If the window does not appear (common on Wayland), first run:  xhost +SI:localuser:root  then the sudo command above.";
     }
