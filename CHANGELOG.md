@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.10 (2026-10-29)
 
 Fixes
 - **The exit IP shows up on slow connections.** The lookup right after connecting had one 18-second try, and over a slow bridge the IP then showed as `--.--.--.--` for the whole session. It is now tried again in the background.
