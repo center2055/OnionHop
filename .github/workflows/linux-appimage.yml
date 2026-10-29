@@ -99,6 +99,11 @@ jobs:
           RUN
           chmod +x "$APPDIR/AppRun"
 
+          # The AppImage runs as whoever starts it, so everything in it has to be readable by every
+          # user, and executable by every user where the owner can execute it. appimagetool refuses to
+          # build otherwise (the published .NET assemblies come out as 0744).
+          chmod -R a+rX "$APPDIR"
+
       # The maintained appimagetool (AppImage/appimagetool) embeds the static type 2 runtime, so the
       # AppImage no longer needs libfuse2 on the user's system; the old AppImageKit build did. The
       # update information lets AppImageUpdate and similar tools fetch only the changed blocks from
