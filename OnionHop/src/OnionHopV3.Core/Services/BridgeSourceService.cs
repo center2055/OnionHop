@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -218,7 +219,7 @@ public static class BridgeSourceService
     // Saved bridge lists (per category/transport/IP file) so scans work offline and persist across
     // restarts. Kept separate from the bundled curated lists so it is never overwritten on app update.
     private static string CacheDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop", "bridge-scan-cache");
+        AppDirectories.LocalData, "OnionHop", "bridge-scan-cache");
 
     private static void TryWriteCache(string fileName, string content)
     {

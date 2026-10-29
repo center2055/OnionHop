@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -11,7 +12,7 @@ public static class StartupLogger
 
     private static readonly object LockObj = new();
     private static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        AppDirectories.LocalData,
         "OnionHop",
         "startup.log");
 

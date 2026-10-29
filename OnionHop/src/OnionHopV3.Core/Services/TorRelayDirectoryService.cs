@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV3.Core.Models;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -23,7 +24,7 @@ public sealed class TorRelayDirectoryService
     public TorRelayDirectoryService()
     {
         _cachePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            AppDirectories.LocalData,
             "OnionHop",
             "relay-directory.json");
     }

@@ -89,7 +89,7 @@ internal sealed class TorBridgeManager
     {
         _baseDir = baseDir;
         _bridgeCachePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            AppDirectories.LocalData,
             "OnionHop V3",
             "bridge-cache.json");
     }

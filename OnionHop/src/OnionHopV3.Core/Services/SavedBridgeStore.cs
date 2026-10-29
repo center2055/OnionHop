@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using OnionHopV3.Core.Models;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -29,7 +30,7 @@ public sealed class SavedBridgeStore
     public SavedBridgeStore(string? overrideDirectory)
     {
         var dir = overrideDirectory ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop");
+            AppDirectories.RoamingData, "OnionHop");
         Directory.CreateDirectory(dir);
         _path = Path.Combine(dir, "saved-bridges.json");
     }

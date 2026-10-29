@@ -212,7 +212,7 @@ public sealed class OnionHopClient : IDisposable
     {
         try
         {
-            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var localAppData = AppDirectories.LocalData;
             if (!string.IsNullOrWhiteSpace(localAppData))
             {
                 var runtimeDir = Path.Combine(localAppData, "OnionHop");

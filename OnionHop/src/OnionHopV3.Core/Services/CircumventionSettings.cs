@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -51,7 +52,7 @@ public sealed class CircumventionSettings
     public IReadOnlyCollection<string> Countries => _byCountry.Keys.ToList();
 
     internal static string CachePath { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        AppDirectories.RoamingData,
         "OnionHop",
         "circumvention-map.json");
 

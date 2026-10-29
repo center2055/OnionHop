@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -20,7 +21,7 @@ public static class CountryGuess
     private static readonly TimeSpan RememberFor = TimeSpan.FromDays(30);
 
     internal static string MemoryPath { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        AppDirectories.RoamingData,
         "OnionHop",
         "smartconnect-country.json");
 

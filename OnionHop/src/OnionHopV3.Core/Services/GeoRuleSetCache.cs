@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -27,7 +28,7 @@ internal static class GeoRuleSetCache
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
 
     internal static string CacheDirectory { get; set; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop", "geo");
+        Path.Combine(AppDirectories.RoamingData, "OnionHop", "geo");
 
     /// <summary>Path of the cached .srs for a rule-set tag ("geosite-category-ir"), or null.</summary>
     public static string? TryGetLocalPath(string tag)

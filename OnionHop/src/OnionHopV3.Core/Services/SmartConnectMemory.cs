@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -37,7 +38,7 @@ public sealed class SmartConnectMemory
     public SmartConnectMemory(string? overridePath = null)
     {
         _path = overridePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            AppDirectories.RoamingData,
             "OnionHop",
             "smartconnect-memory.json");
         _failuresPath = Path.Combine(

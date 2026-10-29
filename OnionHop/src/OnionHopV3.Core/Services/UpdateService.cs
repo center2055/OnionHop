@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using OnionHopV3.Core.Models;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -68,7 +69,7 @@ public sealed class UpdateService
             return null;
         }
 
-        var updatesDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop", "updates");
+        var updatesDir = Path.Combine(AppDirectories.LocalData, "OnionHop", "updates");
         Directory.CreateDirectory(updatesDir);
         var fileName = string.IsNullOrWhiteSpace(info.FileName)
             ? $"OnionHop-Setup-{info.Version}.exe"

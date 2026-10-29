@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using OnionHopV3.Core.Networking;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -1170,8 +1171,8 @@ public sealed class SmartConnectAdvisor
         }
 
         var probeDirectories = new List<string>();
-        var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop");
-        var localAppDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnionHop V3");
+        var appDataDir = Path.Combine(AppDirectories.RoamingData, "OnionHop");
+        var localAppDataDir = Path.Combine(AppDirectories.LocalData, "OnionHop V3");
         var downloadsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         probeDirectories.Add(appDataDir);
         probeDirectories.Add(localAppDataDir);

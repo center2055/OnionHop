@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using OnionHopV3.Core.Models;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -17,7 +18,7 @@ public sealed class SettingsService
     /// <summary>Optional override for settings directory (e.g. for tests). When null, uses default AppData.</summary>
     public SettingsService(string? overrideSettingsDirectory)
     {
-        var dir = overrideSettingsDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OnionHop");
+        var dir = overrideSettingsDirectory ?? Path.Combine(AppDirectories.RoamingData, "OnionHop");
         Directory.CreateDirectory(dir);
         _settingsPath = Path.Combine(dir, "settings.json");
     }

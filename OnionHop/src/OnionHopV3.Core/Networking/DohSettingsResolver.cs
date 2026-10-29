@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Networking;
 
@@ -29,7 +30,7 @@ internal static class DohSettingsResolver
     };
     private static readonly object AutoProviderCacheLock = new();
     private static readonly string AutoProviderCachePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        AppDirectories.RoamingData,
         "OnionHop",
         "doh-auto-cache.json");
 

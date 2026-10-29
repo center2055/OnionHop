@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV3.Core.Models;
+using OnionHopV3.Core.Platform;
 
 namespace OnionHopV3.Core.Services;
 
@@ -22,7 +23,7 @@ public sealed class TorNodeDatabaseService
     public TorNodeDatabaseService()
     {
         _cachePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            AppDirectories.LocalData,
             "OnionHop V3",
             "tor-node-db.json");
     }
