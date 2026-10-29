@@ -213,6 +213,8 @@ chmod +x "$VPN_DIR/sing-box" "$VPN_DIR/xray" 2>/dev/null || true
 # || true: these are optional builds, and under set -e a failed [ -f ] test would kill the script.
 [ -f "$ARTI_HOP_DIR/artihop" ] && chmod +x "$ARTI_HOP_DIR/artihop" || true
 [ -f "$SNOWFLAKE_DIR/snowflake-proxy" ] && chmod +x "$SNOWFLAKE_DIR/snowflake-proxy" || true
+# The expert bundle's files are owner-only (0700): make them readable by whoever runs the CLI.
+chmod -R a+rX "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR" 2>/dev/null || true
 
 echo "=== Universal binary summary ==="
 for f in "$TOR_DIR/tor" "$PT_DIR/lyrebird" "$PT_DIR/conjure-client" "$PT_DIR/webtunnel-client" "$PT_DIR/dnstt-client" "$VPN_DIR/sing-box" "$VPN_DIR/xray" "$ARTI_HOP_DIR/artihop" "$SNOWFLAKE_DIR/snowflake-proxy"; do

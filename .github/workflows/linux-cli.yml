@@ -81,6 +81,9 @@ jobs:
           for d in publish-cli/tor publish-cli/tor/pluggable_transports publish-cli/vpn publish-cli/snowflake publish-cli/artihop; do
             [ -d "$d" ] && chmod +x "$d"/* 2>/dev/null || true
           done
+          # Readable by every user, not just the one who unpacks it: the README's systemd setup
+          # unpacks with sudo and runs as a service user.
+          chmod -R a+rX publish-cli
 
       - name: Set up QEMU
         if: matrix.platform

@@ -321,6 +321,10 @@ chmod +x "$VPN_DIR/sing-box" "$VPN_DIR/xray"
 [ -f "$ARTI_HOP_DIR/artihop" ] && chmod +x "$ARTI_HOP_DIR/artihop"
 [ -f "$SNOWFLAKE_DIR/snowflake-proxy" ] && chmod +x "$SNOWFLAKE_DIR/snowflake-proxy"
 
+# The expert bundle's files are owner-only (0700), so only whoever unpacked a package could read
+# Tor, its libraries and geoip: an install unpacked with sudo for a service user failed to start.
+chmod -R a+rX "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR"
+
 # Cleanup temp downloads (mirrors the Windows script).
 rm -rf "$TEMP_DIR"
 
