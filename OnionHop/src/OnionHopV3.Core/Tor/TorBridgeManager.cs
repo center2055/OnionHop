@@ -29,6 +29,12 @@ internal sealed class TorBridgeManager
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex BridgeFingerprintRegex = new("^[A-Fa-f0-9]{40}$", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Tor passes a bridge's key=value settings to its transport in the SOCKS5 username and password
+    /// fields, 255 bytes each, and refuses the whole configuration when one line has more than that.
+    /// </summary>
+    internal const int MaxTorTransportArgumentBytes = 510;
+
     public const string AutomaticBridgeType = "automatic";
     public const string VanillaBridgeType = "vanilla";
     private const string WebTunnelBridgeType = "webtunnel";
@@ -692,6 +698,15 @@ internal sealed class TorBridgeManager
             if (healthyOffline.Count > 0)
             {
                 selected = healthyOffline;
+            }
+        }
+
+        if (selected.Count > 0)
+        {
+            selected = DropLinesOverTorArgumentLimit(selected, log);
+            if (selected.Count == 0)
+            {
+                BridgeValidationMessage ??= $"Every bridge line has more settings than Tor accepts ({MaxTorTransportArgumentBytes} bytes), so none could be used.";
             }
         }
 
@@ -2819,25 +2834,91 @@ internal sealed class TorBridgeManager
         return host.Length > 0;
     }
 
-    private static IReadOnlyList<string> ApplyCustomSniHosts(IReadOnlyList<string> bridgeLines, IReadOnlyList<string> sniHosts)
+    internal static IReadOnlyList<string> ApplyCustomSniHosts(IReadOnlyList<string> bridgeLines, IReadOnlyList<string> sniHosts)
     {
         if (bridgeLines.Count == 0 || sniHosts.Count == 0)
         {
             return bridgeLines;
         }
 
-        var frontsValue = string.Join(",", sniHosts);
         var updated = new List<string>(bridgeLines.Count);
         foreach (var line in bridgeLines)
         {
             var chosen = sniHosts[Random.Shared.Next(sniHosts.Count)];
-            var modified = BridgeFrontsRegex.Replace(line, $"fronts={frontsValue}");
-            modified = BridgeFrontRegex.Replace(modified, $"front={chosen}");
+            var modified = BridgeFrontRegex.Replace(line, $"front={chosen}");
             modified = BridgeSniRegex.Replace(modified, $"sni={chosen}");
+            if (BridgeFrontsRegex.IsMatch(modified))
+            {
+                modified = ReplaceFrontsWithinTorLimit(modified, sniHosts);
+            }
+
             updated.Add(modified);
         }
 
         return updated;
+    }
+
+    // Snowflake picks one of its fronts at random for each rendezvous, so a line needs only some of
+    // the hosts. It used to get all of them, and a list like the one "Request SNI" fetches for Iran
+    // (56 hosts) pushed the line past Tor's limit, so Tor refused to start at all (#93). Each line now
+    // gets a random share of the hosts that fits, at least one.
+    private static string ReplaceFrontsWithinTorLimit(string line, IReadOnlyList<string> sniHosts)
+    {
+        var shuffled = sniHosts.ToList();
+        ShuffleInPlace(shuffled);
+
+        var fronts = new List<string> { shuffled[0] };
+        var result = BridgeFrontsRegex.Replace(line, "fronts=" + shuffled[0]);
+        for (var i = 1; i < shuffled.Count; i++)
+        {
+            fronts.Add(shuffled[i]);
+            var candidate = BridgeFrontsRegex.Replace(line, "fronts=" + string.Join(",", fronts));
+            if (GetTorTransportArgumentBytes(candidate) > MaxTorTransportArgumentBytes)
+            {
+                fronts.RemoveAt(fronts.Count - 1);
+                continue;
+            }
+
+            result = candidate;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The size of a bridge line's key=value settings the way Tor counts them: joined with ';', with
+    /// ';' and '\' escaped by a backslash.
+    /// </summary>
+    internal static int GetTorTransportArgumentBytes(string bridgeLine)
+    {
+        var arguments = bridgeLine
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => token.Contains('='))
+            .Select(token => token.Replace("\\", "\\\\").Replace(";", "\\;"));
+        return Encoding.UTF8.GetByteCount(string.Join(";", arguments));
+    }
+
+    // One line over Tor's limit makes Tor reject the whole configuration and exit, taking every other
+    // bridge down with it (#93). Such a line is dropped with a note in the log instead.
+    internal static IReadOnlyList<string> DropLinesOverTorArgumentLimit(IReadOnlyList<string> lines, Action<string> log)
+    {
+        List<string>? kept = null;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var bytes = GetTorTransportArgumentBytes(lines[i]);
+            if (bytes <= MaxTorTransportArgumentBytes)
+            {
+                kept?.Add(lines[i]);
+                continue;
+            }
+
+            kept ??= lines.Take(i).ToList();
+            var transport = lines[i].Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "bridge";
+            var endpoint = TryExtractBridgeEndpointFromLine(lines[i]) ?? "unknown address";
+            log($"Skipped a {transport} bridge ({endpoint}): its settings take {bytes} bytes, more than the {MaxTorTransportArgumentBytes} Tor accepts, and Tor would refuse to start with it.");
+        }
+
+        return kept ?? lines;
     }
 
     private IReadOnlyList<string> FilterTemporarilyUnhealthyBridgeLines(string bridgeType, IReadOnlyList<string> lines, Action<string> log)
