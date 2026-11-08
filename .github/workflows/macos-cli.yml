@@ -23,7 +23,8 @@ permissions:
 
 jobs:
   cli:
-    runs-on: macos-14
+    # GitHub no longer runs the macos-14 image: jobs that ask for it are cancelled at once.
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
