@@ -93,39 +93,129 @@ public sealed class DependencyManagerTests
     }
 
     [Fact]
-    public void TrySeedBundledRuntime_refreshes_stale_bridge_lists_but_leaves_other_files()
+    public void TrySeedBundledRuntime_replaces_files_that_differ_from_the_bundle()
     {
         var bundleDir = CreateTempDir();
         var runtimeDir = CreateTempDir();
 
         try
         {
-            var bundlePtDir = Path.Combine(bundleDir, "tor", "pluggable_transports");
-            var runtimePtDir = Path.Combine(runtimeDir, "tor", "pluggable_transports");
+            var bundleTorDir = Path.Combine(bundleDir, "tor");
+            var bundlePtDir = Path.Combine(bundleTorDir, "pluggable_transports");
+            var bundleVpnDir = Path.Combine(bundleDir, "vpn");
+            var runtimeTorDir = Path.Combine(runtimeDir, "tor");
+            var runtimePtDir = Path.Combine(runtimeTorDir, "pluggable_transports");
+            var runtimeVpnDir = Path.Combine(runtimeDir, "vpn");
             Directory.CreateDirectory(bundlePtDir);
+            Directory.CreateDirectory(bundleVpnDir);
             Directory.CreateDirectory(runtimePtDir);
+            Directory.CreateDirectory(runtimeVpnDir);
 
-            // Bundle ships refreshed bridge lists; runtime has stale copies (the upgrade scenario that
-            // left users connecting through a months-old, mostly-dead webtunnel list).
-            File.WriteAllText(Path.Combine(bundlePtDir, "bridges-community-webtunnel.txt"), "webtunnel NEW");
-            File.WriteAllText(Path.Combine(bundlePtDir, "bridges-webtunnel.txt"), "webtunnel NEW");
+            // The upgrade case: the runtime folder still holds what an earlier version shipped (#93
+            // showed Tor 0.4.9.6 running two releases after the app had moved on).
+            File.WriteAllText(Path.Combine(bundleTorDir, "tor.exe"), "tor 0.4.9.14");
             File.WriteAllText(Path.Combine(bundlePtDir, "lyrebird.exe"), "lyrebird-new");
-            File.WriteAllText(Path.Combine(runtimePtDir, "bridges-community-webtunnel.txt"), "webtunnel OLD STALE");
-            File.WriteAllText(Path.Combine(runtimePtDir, "bridges-webtunnel.txt"), "webtunnel OLD STALE");
+            File.WriteAllText(Path.Combine(bundlePtDir, "bridges-webtunnel.txt"), "webtunnel NEW");
+            File.WriteAllText(Path.Combine(bundleVpnDir, "sing-box.exe"), "sing-box 1.13.13");
+            File.WriteAllText(Path.Combine(runtimeTorDir, "tor.exe"), "tor 0.4.9.6");
             File.WriteAllText(Path.Combine(runtimePtDir, "lyrebird.exe"), "lyrebird-old");
+            File.WriteAllText(Path.Combine(runtimePtDir, "bridges-webtunnel.txt"), "webtunnel OLD STALE");
+            File.WriteAllText(Path.Combine(runtimeVpnDir, "sing-box.exe"), "sing-box 1.12.0");
+            // Files only the runtime folder has (caches, state) stay.
+            File.WriteAllText(Path.Combine(runtimeTorDir, "cached-bridges.txt"), "runtime only");
 
-            DependencyManager.TrySeedBundledRuntime(
+            var copied = DependencyManager.TrySeedBundledRuntime(
                 runtimeDir,
-                includeVpnDependencies: false,
+                includeVpnDependencies: true,
                 _ => { },
                 [bundleDir]);
 
-            // Stale bundled bridge lists are refreshed from the bundle (the bug: they used to be skipped
-            // because the file already existed, so the app kept using the old dead set forever).
-            Assert.Equal("webtunnel NEW", File.ReadAllText(Path.Combine(runtimePtDir, "bridges-community-webtunnel.txt")));
+            Assert.True(copied);
+            Assert.Equal("tor 0.4.9.14", File.ReadAllText(Path.Combine(runtimeTorDir, "tor.exe")));
+            Assert.Equal("lyrebird-new", File.ReadAllText(Path.Combine(runtimePtDir, "lyrebird.exe")));
             Assert.Equal("webtunnel NEW", File.ReadAllText(Path.Combine(runtimePtDir, "bridges-webtunnel.txt")));
-            // Only bridge lists are force-refreshed; other existing runtime files are left untouched.
-            Assert.Equal("lyrebird-old", File.ReadAllText(Path.Combine(runtimePtDir, "lyrebird.exe")));
+            Assert.Equal("sing-box 1.13.13", File.ReadAllText(Path.Combine(runtimeVpnDir, "sing-box.exe")));
+            Assert.Equal("runtime only", File.ReadAllText(Path.Combine(runtimeTorDir, "cached-bridges.txt")));
+            Assert.Empty(Directory.GetFiles(runtimeDir, "*.new", SearchOption.AllDirectories));
+        }
+        finally
+        {
+            try { Directory.Delete(bundleDir, true); } catch { }
+            try { Directory.Delete(runtimeDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void TrySeedBundledRuntime_leaves_the_runtime_copy_alone_while_the_bundle_is_unchanged()
+    {
+        var bundleDir = CreateTempDir();
+        var runtimeDir = CreateTempDir();
+
+        try
+        {
+            var bundleTorDir = Path.Combine(bundleDir, "tor");
+            var runtimeTorDir = Path.Combine(runtimeDir, "tor");
+            Directory.CreateDirectory(bundleTorDir);
+            File.WriteAllText(Path.Combine(bundleTorDir, "tor.exe"), "tor bundled");
+
+            Assert.True(DependencyManager.TrySeedBundledRuntime(runtimeDir, includeVpnDependencies: false, _ => { }, [bundleDir]));
+
+            // Changed after the sync, for example by hand: with the same bundle, nothing is compared or
+            // copied again on the next start.
+            File.WriteAllText(Path.Combine(runtimeTorDir, "tor.exe"), "tor replaced by hand");
+            Assert.False(DependencyManager.TrySeedBundledRuntime(runtimeDir, includeVpnDependencies: false, _ => { }, [bundleDir]));
+            Assert.Equal("tor replaced by hand", File.ReadAllText(Path.Combine(runtimeTorDir, "tor.exe")));
+
+            // A new bundle (an app update) is followed again.
+            File.WriteAllText(Path.Combine(bundleTorDir, "tor.exe"), "tor from the update");
+            File.SetLastWriteTimeUtc(Path.Combine(bundleTorDir, "tor.exe"), DateTime.UtcNow.AddMinutes(1));
+            Assert.True(DependencyManager.TrySeedBundledRuntime(runtimeDir, includeVpnDependencies: false, _ => { }, [bundleDir]));
+            Assert.Equal("tor from the update", File.ReadAllText(Path.Combine(runtimeTorDir, "tor.exe")));
+        }
+        finally
+        {
+            try { Directory.Delete(bundleDir, true); } catch { }
+            try { Directory.Delete(runtimeDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void TrySeedBundledRuntime_retries_a_file_that_was_in_use()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            // Only Windows refuses to replace a file that is open; elsewhere the rename goes through.
+            return;
+        }
+
+        var bundleDir = CreateTempDir();
+        var runtimeDir = CreateTempDir();
+
+        try
+        {
+            var bundleTorDir = Path.Combine(bundleDir, "tor");
+            var runtimeTorDir = Path.Combine(runtimeDir, "tor");
+            Directory.CreateDirectory(bundleTorDir);
+            Directory.CreateDirectory(runtimeTorDir);
+            File.WriteAllText(Path.Combine(bundleTorDir, "tor.exe"), "tor new");
+            File.WriteAllText(Path.Combine(bundleTorDir, "geoip"), "geoip new");
+            File.WriteAllText(Path.Combine(runtimeTorDir, "tor.exe"), "tor old");
+            File.WriteAllText(Path.Combine(runtimeTorDir, "geoip"), "geoip old");
+
+            var log = new System.Collections.Generic.List<string>();
+            using (new FileStream(Path.Combine(runtimeTorDir, "tor.exe"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                DependencyManager.TrySeedBundledRuntime(runtimeDir, includeVpnDependencies: false, log.Add, [bundleDir]);
+            }
+
+            Assert.Equal("tor old", File.ReadAllText(Path.Combine(runtimeTorDir, "tor.exe")));
+            Assert.Equal("geoip new", File.ReadAllText(Path.Combine(runtimeTorDir, "geoip")));
+            Assert.Contains(log, line => line.Contains("tor.exe") && line.Contains("next start"));
+
+            // No stamp was written, so the next start tries again and succeeds.
+            DependencyManager.TrySeedBundledRuntime(runtimeDir, includeVpnDependencies: false, _ => { }, [bundleDir]);
+            Assert.Equal("tor new", File.ReadAllText(Path.Combine(runtimeTorDir, "tor.exe")));
+            Assert.Empty(Directory.GetFiles(runtimeDir, "*.new", SearchOption.AllDirectories));
         }
         finally
         {

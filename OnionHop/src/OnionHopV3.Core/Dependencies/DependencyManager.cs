@@ -5,6 +5,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -775,22 +777,32 @@ internal sealed class DependencyManager
         var copiedAny = false;
         var torDir = Path.Combine(baseDir, "tor");
         var vpnDir = Path.Combine(baseDir, "vpn");
+        var torSynced = false;
+        var vpnSynced = false;
 
+        // The runtime copy follows the first bundle found. Any further one only fills in missing files,
+        // so two different bundles cannot keep replacing each other's files.
         foreach (var probeDir in EnumerateBundledRuntimeProbeDirectories(probeDirectories))
         {
-            copiedAny |= CopyBundledRuntimeDirectoryIfMissing(
-                Path.Combine(probeDir, "tor"),
+            var bundledTor = Path.Combine(probeDir, "tor");
+            copiedAny |= SyncBundledRuntimeDirectory(
+                bundledTor,
                 torDir,
                 preserveFileName: "pt_config.json",
+                replaceChanged: !torSynced,
                 log);
+            torSynced |= Directory.Exists(bundledTor);
 
             if (includeVpnDependencies)
             {
-                copiedAny |= CopyBundledRuntimeDirectoryIfMissing(
-                    Path.Combine(probeDir, "vpn"),
+                var bundledVpn = Path.Combine(probeDir, "vpn");
+                copiedAny |= SyncBundledRuntimeDirectory(
+                    bundledVpn,
                     vpnDir,
                     preserveFileName: null,
+                    replaceChanged: !vpnSynced,
                     log);
+                vpnSynced |= Directory.Exists(bundledVpn);
             }
         }
 
@@ -986,21 +998,36 @@ internal sealed class DependencyManager
             .ToList();
     }
 
-    private static bool CopyBundledRuntimeDirectoryIfMissing(
+    // Tor, its transports and the tunnel cores run from a copy of the app's bundle in the per-user
+    // runtime folder. That copy used to be made only for missing files, so an update never reached it
+    // and people kept running the Tor of their first install (#93 showed Tor 0.4.9.6, two releases
+    // after the app had moved on). Files that differ from the bundle are now replaced. A stamp of the
+    // bundle (each file's path, size and date) skips the comparison on starts where the bundle has not
+    // changed. It is written only once every file is in place, so a file that is in use is retried on
+    // the next start.
+    private const string BundleStampFileName = ".onionhop-bundle";
+
+    private static bool SyncBundledRuntimeDirectory(
         string sourceDir,
         string destinationDir,
         string? preserveFileName,
+        bool replaceChanged,
         Action<string> log)
     {
-        if (!Directory.Exists(sourceDir))
+        if (!Directory.Exists(sourceDir) || IsSameDirectory(sourceDir, destinationDir))
         {
             return false;
         }
 
-        var copiedFiles = 0;
         Directory.CreateDirectory(destinationDir);
+        var sourceFiles = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
+        var stampPath = Path.Combine(destinationDir, BundleStampFileName);
+        var stamp = replaceChanged ? ComputeBundleStamp(sourceDir, sourceFiles) : null;
+        var bundleChanged = stamp != null && !string.Equals(TryReadAllText(stampPath), stamp, StringComparison.Ordinal);
 
-        foreach (var filePath in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        var copiedFiles = 0;
+        var failedFiles = 0;
+        foreach (var filePath in sourceFiles)
         {
             var relativePath = Path.GetRelativePath(sourceDir, filePath);
             if (string.IsNullOrWhiteSpace(relativePath) || relativePath.StartsWith("..", StringComparison.Ordinal))
@@ -1009,48 +1036,110 @@ internal sealed class DependencyManager
             }
 
             var destinationPath = Path.Combine(destinationDir, relativePath);
-            var destinationName = Path.GetFileName(destinationPath);
-
             if (File.Exists(destinationPath))
             {
                 // pt_config.json is mutated at runtime (bridge cache, dnstt seeding) - never clobber it.
-                if (!string.IsNullOrWhiteSpace(preserveFileName)
-                    && string.Equals(destinationName, preserveFileName, StringComparison.OrdinalIgnoreCase))
+                if (!bundleChanged
+                    || string.Equals(Path.GetFileName(destinationPath), preserveFileName, StringComparison.OrdinalIgnoreCase)
+                    || FilesHaveSameContent(filePath, destinationPath))
                 {
                     continue;
                 }
-
-                // The bundled bridge lists (bridges-*.txt) are static app data, not runtime-mutated. On
-                // an upgrade the AppData copy must NOT shadow a newer bundled set - that's the bug that
-                // left users connecting through a months-old, mostly-dead bridge list. Refresh them when
-                // the bundled copy differs; leave all other existing runtime files untouched.
-                var isBundledBridgeList = destinationName.StartsWith("bridges-", StringComparison.OrdinalIgnoreCase)
-                    && destinationName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
-                if (!isBundledBridgeList || FilesHaveSameContent(filePath, destinationPath))
-                {
-                    continue;
-                }
-                // else: bundled bridge list changed - fall through and overwrite it.
             }
 
-            var targetFolder = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrWhiteSpace(targetFolder))
+            try
             {
-                Directory.CreateDirectory(targetFolder);
+                ReplaceFile(filePath, destinationPath);
+                copiedFiles++;
             }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                failedFiles++;
+                log($"Could not update {relativePath} in {destinationDir} ({ex.Message}); trying again on the next start.");
+            }
+        }
 
-            File.Copy(filePath, destinationPath, overwrite: true);
-            copiedFiles++;
+        if (stamp != null && bundleChanged && failedFiles == 0)
+        {
+            try
+            {
+                File.WriteAllText(stampPath, stamp);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
         }
 
         if (copiedFiles > 0)
         {
-            log($"Seeded {copiedFiles} bundled runtime file(s) from {sourceDir}.");
+            log($"Copied {copiedFiles} bundled runtime file(s) from {sourceDir}.");
             return true;
         }
 
         return false;
     }
+
+    private static string ComputeBundleStamp(string sourceDir, IEnumerable<string> files)
+    {
+        var builder = new StringBuilder();
+        foreach (var file in files.OrderBy(path => path, StringComparer.Ordinal))
+        {
+            var info = new FileInfo(file);
+            builder.Append(Path.GetRelativePath(sourceDir, file)).Append('|')
+                .Append(info.Length).Append('|')
+                .Append(info.LastWriteTimeUtc.Ticks).Append('\n');
+        }
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
+    }
+
+    // Copies next to the target and renames it over, so a running program keeps its old file on Linux
+    // and macOS, and a file in use on Windows fails cleanly instead of being left half written.
+    private static void ReplaceFile(string sourcePath, string destinationPath)
+    {
+        var targetFolder = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrWhiteSpace(targetFolder))
+        {
+            Directory.CreateDirectory(targetFolder);
+        }
+
+        var temporaryPath = destinationPath + ".new";
+        File.Copy(sourcePath, temporaryPath, overwrite: true);
+        try
+        {
+            File.Move(temporaryPath, destinationPath, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            throw;
+        }
+    }
+
+    private static string? TryReadAllText(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllText(path) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static bool IsSameDirectory(string a, string b) =>
+        string.Equals(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
+            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 
     private static bool FilesHaveSameContent(string a, string b)
     {

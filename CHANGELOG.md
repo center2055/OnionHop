@@ -4,6 +4,7 @@
 
 Fixes
 - **Tor starts with a long SNI list (#93).** OnionHop wrote every custom SNI host into each Snowflake bridge line. With a list like the one "Request SNI" fetches for Iran (56 hosts), a line got longer than the 510 bytes of settings Tor accepts per bridge, and Tor then refused the whole configuration, so nothing connected. Each Snowflake line now gets a random share of the hosts that fits, and a bridge line that is still too long is skipped with a note in the log instead of stopping Tor.
+- **Updates now update Tor and the transports.** OnionHop runs Tor, its transports, sing-box and Xray from a copy in your user folder, and copied a file there only when it was missing. An update never replaced them, so you kept running the versions of your first install. Files that differ from the ones that come with the app are now replaced when you connect.
 
 ## v3.10 (2026-10-29)
 
