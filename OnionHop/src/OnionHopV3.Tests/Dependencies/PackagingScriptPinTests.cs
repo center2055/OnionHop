@@ -60,6 +60,24 @@ public sealed class PackagingScriptPinTests
         }
     }
 
+    // Tor too: download-deps.ps1 took "latest", so the Windows portable zip carried whatever Tor Browser
+    // had just released, while the Linux and macOS packages kept an older pin.
+    private static readonly Regex TorVersionAssignment = new(
+        @"^\s*\$?(?:TOR_VERSION|TorVersion)\s*=\s*""(?<version>[0-9.]+)""",
+        RegexOptions.Multiline);
+
+    [Fact]
+    public void Every_script_bundles_the_same_tor()
+    {
+        var pins = ExistingScripts()
+            .Select(script => (script.Name, Match: TorVersionAssignment.Match(script.Text)))
+            .ToList();
+
+        Assert.NotEmpty(pins);
+        Assert.All(pins, pin => Assert.True(pin.Match.Success, $"{pin.Name} pins no Tor Browser version"));
+        Assert.Single(pins.Select(pin => pin.Match.Groups["version"].Value).Distinct());
+    }
+
     [Fact]
     public void Every_checksum_in_the_scripts_is_the_one_the_app_pins()
     {

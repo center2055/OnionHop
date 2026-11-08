@@ -9,8 +9,10 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
 
 # Configuration
+# The same Tor Browser expert bundle as download-deps.sh (tor 0.4.9.14). "latest" put whatever Tor
+# Browser had just released into the portable build, untested; pass -TorVersion latest to get it anyway.
 if ([string]::IsNullOrWhiteSpace($TorVersion)) {
-    $TorVersion = "latest"
+    $TorVersion = "15.0.26"
 }
 $TorFallbackVersion = "15.0.5"
 $TorBaseUrl = "https://dist.torproject.org/torbrowser"

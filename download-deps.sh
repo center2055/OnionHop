@@ -53,7 +53,10 @@ PT_DIR="$TOR_DIR/pluggable_transports"
 TEMP_DIR="$REPO_ROOT/temp_deps_linux"
 
 # Versions
-TOR_VERSION="15.0.14"
+# Tor Browser's expert bundle, the same release on every platform: 15.0.26 ships tor 0.4.9.14 and
+# lyrebird 0.8.1. A Tor Browser version says nothing about the tor inside it (15.0.14 still had 0.4.9.8),
+# so check the bundle's tor --version when moving this.
+TOR_VERSION="15.0.26"
 WEBTUNNEL_VERSION="v0.0.3"
 # sing-box and Xray stay on the versions OnionHop's configs are tested against
 # (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s.
@@ -73,8 +76,8 @@ ARTI_HOP_REPO_URL="https://github.com/center2055/ArtiHop.git"
 SNOWFLAKE_PROXY_PACKAGE="gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
 PT_GITLAB="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports"
 
-# Built from source for ARM. Tor and its libraries are pinned to these hashes; lyrebird and conjure
-# match what expert bundle $TOR_VERSION ships for x64.
+# Built from source for ARM. Tor and its libraries are pinned to these hashes. Tor, lyrebird and
+# conjure match what expert bundle $TOR_VERSION ships for x64.
 TOR_SRC_VERSION="0.4.9.14"
 TOR_SRC_SHA256="182449ac1c8ff43278da27b69b02040e11d03d0327db6d9126e4190ec6235e4a"
 OPENSSL_VERSION="3.5.9"

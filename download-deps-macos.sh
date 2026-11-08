@@ -14,7 +14,7 @@ PT_DIR="$TOR_DIR/pluggable_transports"
 TEMP_DIR="$REPO_ROOT/temp_deps_macos"
 
 # Versions (keep in sync with download-deps.sh)
-TOR_VERSION="15.0.14"
+TOR_VERSION="15.0.26"
 WEBTUNNEL_VERSION="v0.0.3"
 # sing-box and Xray stay on the versions OnionHop's configs are tested against
 # (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s.
