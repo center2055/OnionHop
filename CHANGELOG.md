@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased
+## v3.10.1 (2026-11-08)
 
 Fixes
 - **Tor starts with a long SNI list (#93).** OnionHop wrote every custom SNI host into each Snowflake bridge line. With a list like the one "Request SNI" fetches for Iran (56 hosts), a line got longer than the 510 bytes of settings Tor accepts per bridge, and Tor then refused the whole configuration, so nothing connected. Each Snowflake line now gets a random share of the hosts that fits, and a bridge line that is still too long is skipped with a note in the log instead of stopping Tor.
 - **Updates now update Tor and the transports.** OnionHop runs Tor, its transports, sing-box and Xray from a copy in your user folder, and copied a file there only when it was missing. An update never replaced them, so you kept running the versions of your first install. Files that differ from the ones that come with the app are now replaced when you connect.
 - **Sites routed around Tor keep loading when Tor stalls (#92).** In TUN mode every DNS lookup went through Tor, also for the domains and site categories set to bypass it, so when Tor stalled on a censored network those sites stopped loading too. Their lookups now go to your network's own DNS server, and everything else still resolves through Tor. Countries are matched by IP address, which is only known after the lookup, so they still resolve through Tor.
-- **Every package ships Tor 0.4.9.14.** The Windows installer had Tor 0.4.9.9, the Linux and macOS packages 0.4.9.8, and the Windows portable zip whatever Tor Browser had just released. All now bundle Tor 0.4.9.14 and lyrebird 0.8.1 from Tor Browser 15.0.26, and with the fix above, existing installs get them too.
+- **Every package ships Tor 0.4.9.14.** The packages came with different versions of Tor, from 0.4.9.5 in the macOS app to whatever Tor Browser had just released in the Windows portable zip. All now bundle Tor 0.4.9.14 and lyrebird 0.8.1 from Tor Browser 15.0.26, and with the fix above, existing installs get them too.
 
 ## v3.10 (2026-10-29)
 
