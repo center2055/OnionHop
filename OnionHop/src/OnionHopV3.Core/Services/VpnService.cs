@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV3.Core;
+using OnionHopV3.Core.Networking;
 using OnionHopV3.Core.Platform;
 using OnionHopV3.Core.Platform.MacOS;
 using OnionHopV3.Core.Platform.Windows;
@@ -680,7 +681,9 @@ internal sealed class VpnService : IDisposable
                 blockSiteCategories,
                 // Rule-sets cached on disk (fetched through Tor in the background, issue #68) are
                 // referenced locally so the start does not depend on GitHub being reachable.
-                GeoRuleSetCache.TryGetLocalPath);
+                GeoRuleSetCache.TryGetLocalPath,
+                // Resolves the domains routed around Tor (#92). Read now, from the real adapter.
+                LanAddressFinder.GetNetworkDnsServerIPv4());
         }
         await File.WriteAllTextAsync(configPath, configJson, token).ConfigureAwait(false);
 

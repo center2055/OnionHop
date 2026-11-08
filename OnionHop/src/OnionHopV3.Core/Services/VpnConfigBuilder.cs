@@ -33,7 +33,8 @@ internal static class VpnConfigBuilder
         IReadOnlyList<string>? blockCountries = null,
         IReadOnlyList<string>? bypassSiteCategories = null,
         IReadOnlyList<string>? blockSiteCategories = null,
-        Func<string, string?>? localRuleSetPath = null)
+        Func<string, string?>? localRuleSetPath = null,
+        string? networkDnsServer = null)
     {
         // Important: Tor's pluggable transports must bypass the tunnel ("tor" outbound),
         // otherwise they can end up routed back into Tor, causing a bootstrap loop and bridge failures.
@@ -290,6 +291,43 @@ internal static class VpnConfigBuilder
             }
         }
 
+        // Lookups for the domains routed around Tor follow their traffic too (#92). They went through
+        // Tor like every other lookup, so whenever Tor stalled on a censored network, the sites set to
+        // go direct stopped loading as well, although their connections never touch Tor. Full-tunnel
+        // mode has no direct resolver, so they use the network's own, read before the tunnel starts;
+        // hybrid mode already sends direct traffic to "remote". Countries are matched by IP address,
+        // which is only known after the lookup, so they keep resolving through Tor.
+        var bypassGeositeTags = GetBypassGeositeTags(bypassSiteCategories, blockSiteCategories);
+        if (bypassDomains.Count > 0 || bypassGeositeTags.Count > 0)
+        {
+            var directDnsTag = "remote";
+            if (!hybridRouting)
+            {
+                directDnsTag = "network";
+                dnsServers.Add(new Dictionary<string, object?>
+                {
+                    ["tag"] = directDnsTag,
+                    ["type"] = "udp",
+                    ["server"] = string.IsNullOrWhiteSpace(networkDnsServer) ? "1.1.1.1" : networkDnsServer.Trim(),
+                    ["server_port"] = 53
+                });
+            }
+
+            var bypassDnsRules = new List<object>();
+            if (bypassDomains.Count > 0)
+            {
+                bypassDnsRules.Add(new { domain_suffix = bypassDomains, server = directDnsTag });
+            }
+
+            if (bypassGeositeTags.Count > 0)
+            {
+                bypassDnsRules.Add(new { rule_set = bypassGeositeTags, server = directDnsTag });
+            }
+
+            // Ahead of the per-app rules, the same way the route rules send these domains direct first.
+            dnsRules.InsertRange(0, bypassDnsRules);
+        }
+
         // With "route all web traffic through Tor" on, everything not explicitly bypassed leaves via
         // Tor, so its DNS has to as well or the domains leak ahead of the connections.
         var dnsFinal = hybridRouting && routeAllWebTrafficThroughTor ? "remote-tor" : "remote";
@@ -499,14 +537,7 @@ internal static class VpnConfigBuilder
         var rules = new List<object>();
 
         var block = NormalizeGeositeCategories(blockCategories);
-        var bypass = new List<string>();
-        foreach (var cat in NormalizeGeositeCategories(bypassCategories))
-        {
-            if (!block.Contains(cat))
-            {
-                bypass.Add(cat);
-            }
-        }
+        var bypass = GetBypassGeositeCategories(bypassCategories, block);
 
         var defined = new HashSet<string>(StringComparer.Ordinal);
         void AddRuleSet(string cat)
@@ -553,6 +584,17 @@ internal static class VpnConfigBuilder
 
         return (ruleSets, rules);
     }
+
+    // The rule-set tags of the categories that end up direct. A category in both lists is blocked.
+    internal static List<string> GetBypassGeositeTags(IReadOnlyList<string>? bypassCategories, IReadOnlyList<string>? blockCategories) =>
+        GetBypassGeositeCategories(bypassCategories, NormalizeGeositeCategories(blockCategories))
+            .Select(cat => "geosite-" + cat)
+            .ToList();
+
+    private static List<string> GetBypassGeositeCategories(IReadOnlyList<string>? bypassCategories, List<string> block) =>
+        NormalizeGeositeCategories(bypassCategories)
+            .Where(cat => !block.Contains(cat))
+            .ToList();
 
     // Accepts sing-geosite category names (case-insensitive), e.g. "category-ads-all", "google", "cn".
     // Keeps only [a-z0-9-] tokens, lowercased and deduped, to match the rule-set file names.

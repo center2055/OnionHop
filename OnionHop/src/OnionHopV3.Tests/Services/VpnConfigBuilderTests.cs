@@ -618,4 +618,91 @@ public sealed class VpnConfigBuilderTests
         Assert.Equal(["category-ads-all", "google"],
             VpnConfigBuilder.NormalizeGeositeCategories(["Category-Ads-All", "google", "bad domain!", "", "google"]));
     }
+
+    private static JsonElement BuildDns(
+        bool hybridRouting,
+        string[]? bypassEntries = null,
+        string[]? bypassCategories = null,
+        string[]? blockCategories = null,
+        string? networkDnsServer = "192.168.8.1",
+        bool routeAllWebTrafficThroughTor = false,
+        string[]? torApps = null)
+    {
+        var json = VpnConfigBuilder.BuildJson(
+            hybridRouting: hybridRouting,
+            secureDns: true,
+            socksPort: 9050,
+            torAppProcessNames: torApps ?? [],
+            bypassAppProcessNames: [],
+            routeAllWebTrafficThroughTor: routeAllWebTrafficThroughTor,
+            blockQuicForTorApps: false,
+            blockUdpTraffic: true,
+            dohServer: "cloudflare-dns.com",
+            dohServerPort: 443,
+            dohPath: "/dns-query",
+            tunStack: "mixed",
+            tunMtu: null,
+            tunStrictRoute: true,
+            bypassRoutingEntries: bypassEntries,
+            bypassSiteCategories: bypassCategories,
+            blockSiteCategories: blockCategories,
+            networkDnsServer: networkDnsServer);
+        return JsonDocument.Parse(json).RootElement.GetProperty("dns").Clone();
+    }
+
+    // #92: in full-tunnel mode every lookup went through Tor, also for the domains routed around it,
+    // so those sites stopped loading whenever Tor stalled.
+    [Fact]
+    public void Full_tunnel_resolves_bypassed_domains_and_categories_through_the_network()
+    {
+        var dns = BuildDns(hybridRouting: false, bypassEntries: ["example.ir", "10.0.0.0/8"], bypassCategories: ["category-ir"]);
+
+        var network = dns.GetProperty("servers").EnumerateArray().Single(s => s.GetProperty("tag").GetString() == "network");
+        Assert.Equal("udp", network.GetProperty("type").GetString());
+        Assert.Equal("192.168.8.1", network.GetProperty("server").GetString());
+        Assert.False(network.TryGetProperty("detour", out _), "the network resolver must not go through Tor");
+
+        var rules = dns.GetProperty("rules").EnumerateArray().ToList();
+        Assert.Equal(2, rules.Count);
+        Assert.Equal(["example.ir"], rules[0].GetProperty("domain_suffix").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("network", rules[0].GetProperty("server").GetString());
+        Assert.Equal(["geosite-category-ir"], rules[1].GetProperty("rule_set").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("network", rules[1].GetProperty("server").GetString());
+
+        // Everything else still resolves through Tor.
+        Assert.Equal("remote", dns.GetProperty("final").GetString());
+        var remote = dns.GetProperty("servers").EnumerateArray().Single(s => s.GetProperty("tag").GetString() == "remote");
+        Assert.Equal("tor", remote.GetProperty("detour").GetString());
+    }
+
+    [Fact]
+    public void Full_tunnel_without_bypass_rules_keeps_every_lookup_on_tor()
+    {
+        var dns = BuildDns(hybridRouting: false, bypassEntries: ["10.0.0.0/8"], bypassCategories: ["category-ir"], blockCategories: ["category-ir"]);
+
+        Assert.Empty(dns.GetProperty("rules").EnumerateArray());
+        Assert.DoesNotContain(dns.GetProperty("servers").EnumerateArray(), s => s.GetProperty("tag").GetString() == "network");
+    }
+
+    [Fact]
+    public void Full_tunnel_falls_back_to_a_public_resolver_when_the_network_one_is_unknown()
+    {
+        var dns = BuildDns(hybridRouting: false, bypassEntries: ["example.ir"], networkDnsServer: null);
+
+        var network = dns.GetProperty("servers").EnumerateArray().Single(s => s.GetProperty("tag").GetString() == "network");
+        Assert.Equal("1.1.1.1", network.GetProperty("server").GetString());
+    }
+
+    [Fact]
+    public void Hybrid_mode_resolves_bypassed_domains_directly_ahead_of_the_tor_apps()
+    {
+        var dns = BuildDns(hybridRouting: true, bypassEntries: ["example.ir"], routeAllWebTrafficThroughTor: true, torApps: ["firefox.exe"]);
+
+        var rules = dns.GetProperty("rules").EnumerateArray().ToList();
+        Assert.Equal(["example.ir"], rules[0].GetProperty("domain_suffix").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("remote", rules[0].GetProperty("server").GetString());
+        Assert.Equal("remote-tor", rules[1].GetProperty("server").GetString());
+        Assert.Equal("remote-tor", dns.GetProperty("final").GetString());
+        Assert.DoesNotContain(dns.GetProperty("servers").EnumerateArray(), s => s.GetProperty("tag").GetString() == "network");
+    }
 }

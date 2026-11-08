@@ -83,6 +83,48 @@ public static class LanAddressFinder
         return null;
     }
 
+    /// <summary>
+    /// The IPv4 DNS server of this computer's real network adapter, the resolver the network itself
+    /// hands out, or null. Falls back to the default gateway, which answers DNS on home routers and
+    /// phone hotspots, when the adapter lists no usable server: on Linux it is often systemd-resolved's
+    /// 127.0.0.53, which a tunnel would only loop back into.
+    /// </summary>
+    public static string? GetNetworkDnsServerIPv4()
+    {
+        try
+        {
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                var candidate = ToCandidate(nic);
+                if (candidate == null || !IsShareable(candidate) || !candidate.HasGateway)
+                {
+                    continue;
+                }
+
+                var properties = nic.GetIPProperties();
+                var server = properties.DnsAddresses.FirstOrDefault(IsUsableDnsServer)
+                    ?? properties.GatewayAddresses
+                        .Select(entry => entry.Address)
+                        .FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork && !address.Equals(IPAddress.Any));
+                if (server != null)
+                {
+                    return server.ToString();
+                }
+            }
+        }
+        catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException or InvalidOperationException)
+        {
+        }
+
+        return null;
+    }
+
+    private static bool IsUsableDnsServer(IPAddress address) =>
+        address.AddressFamily == AddressFamily.InterNetwork
+        && !IPAddress.IsLoopback(address)
+        && !address.Equals(IPAddress.Any)
+        && address.GetAddressBytes() is not [169, 254, _, _];
+
     private static IReadOnlyList<Candidate> ReadCandidates()
     {
         try
