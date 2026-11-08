@@ -37,6 +37,11 @@ jobs:
             rid: linux-arm
             cross: gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
             platform: linux/arm/v7
+            # QEMU mishandles .NET's W^X double mapping of generated code for 32-bit ARM on the
+            # current runners: the CLI died in a reflection stub (reported as a NullReferenceException)
+            # when connecting, v3.10's code included, first seen on 2026-11-08 after passing on
+            # 2026-10-29. Turning W^X off for the emulated test only keeps it meaningful.
+            docker-env: -e DOTNET_EnableWriteXorExecute=0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -96,7 +101,7 @@ jobs:
           if [ -z "${{ matrix.platform }}" ]; then
             bash .github/scripts/linux-cli-smoke.sh "$PWD/publish-cli" binaries
           else
-            docker run --rm --platform ${{ matrix.platform }} \
+            docker run --rm --platform ${{ matrix.platform }} ${{ matrix.docker-env }} \
               -v "$PWD/publish-cli:/opt/onionhop:ro" -v "$PWD/.github/scripts:/scripts:ro" \
               debian:trixie-slim bash /scripts/linux-cli-smoke.sh /opt/onionhop binaries
           fi
@@ -111,7 +116,7 @@ jobs:
           if [ -z "${{ matrix.platform }}" ]; then
             bash .github/scripts/linux-cli-smoke.sh "$PWD/publish-cli" connect eth0
           else
-            docker run --rm --platform ${{ matrix.platform }} \
+            docker run --rm --platform ${{ matrix.platform }} ${{ matrix.docker-env }} \
               -v "$PWD/publish-cli:/opt/onionhop:ro" -v "$PWD/.github/scripts:/scripts:ro" \
               debian:trixie-slim bash -c '
                 apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates openssl >/dev/null \
