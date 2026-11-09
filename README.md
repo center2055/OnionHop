@@ -58,6 +58,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 | **Windows** | `OnionHop-Setup-v3.exe` | Installer (self-contained, .NET runtime bundled) |
 | **Windows** | `OnionHopV3-Portable-…win-x64.zip` | Portable, no install |
 | **Linux** | `OnionHop-x86_64.AppImage` | `chmod +x` and run |
+| **Linux (ARM64)** | `OnionHop-aarch64.AppImage` | 64-bit ARM desktops and laptops; `chmod +x` and run |
 | **macOS** | `OnionHop-3.x-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
 | **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface |
 | **Linux CLI** | `OnionHopCLI-…linux-x64.tar.gz` | Terminal interface |

@@ -5,6 +5,9 @@
 Fixes
 - **The exit location list is complete where Onionoo is blocked.** OnionHop gets the countries with Tor relays from the Tor Project's Onionoo service, which is on torproject.org and blocked in Russia, Iran, China and elsewhere. There the Exit Location list showed only 8 countries, after a 30-second wait, the Relays page stayed empty, and the first connect after starting OnionHop waited up to 30 seconds for the same lookup. The country list now comes with the app, both lists load through Tor once you are connected, and connecting no longer waits for them.
 
+Linux
+- **The desktop app for 64-bit ARM (#95).** Linux on ARM desktops and laptops gets its own AppImage, `OnionHop-aarch64.AppImage`, with Tor and its transports built for ARM like the ARM command line version. Each AppImage is now also started on a machine of its architecture before release.
+
 ## v3.10.1 (2026-11-08)
 
 Fixes

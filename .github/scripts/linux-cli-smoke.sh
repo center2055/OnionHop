@@ -2,7 +2,8 @@
 # Smoke test for a published Linux CLI folder: every bundled binary must start on this machine's
 # architecture, and with "connect" the CLI must reach Tor and stop cleanly on SIGTERM (#89).
 #
-# Usage: linux-cli-smoke.sh <cli dir> [binaries|connect|tun] [lan interface]
+# Usage: linux-cli-smoke.sh <cli dir> [binaries|runtime|connect|tun] [lan interface]
+# runtime checks only the bundled programs, without the CLI (the AppImage's usr/bin, #95).
 # With an interface, connect shares the proxy on that one (--lan-interface), else on all (--lan on).
 # tun runs as a normal user and expects pkexec to start the tunnel as root (#90); see
 # linux-tun-pkexec-test.sh for the container it needs.
@@ -33,6 +34,10 @@ starts() {
 
 check_binaries() {
     starts "OnionHop CLI" "$DIR/OnionHopV3.Cli" version
+    check_runtime
+}
+
+check_runtime() {
     # The x64 expert bundle's tor has no rpath; TorService puts its folder on LD_LIBRARY_PATH too.
     starts tor env LD_LIBRARY_PATH="$DIR/tor" "$DIR/tor/tor" --version
     starts lyrebird "$DIR/tor/pluggable_transports/lyrebird" -version
@@ -154,6 +159,7 @@ tun_connect_and_terminate() {
 
 case "$MODE" in
     binaries) check_binaries ;;
+    runtime) check_runtime ;;
     connect) connect_and_terminate ;;
     tun) tun_connect_and_terminate ;;
     *) fail "unknown mode $MODE" ;;

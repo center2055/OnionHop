@@ -1,13 +1,15 @@
 name: Build Linux AppImage
 
-# Builds a self-contained x86_64 AppImage of OnionHop V3 on Linux (the desktop
-# app can't be packaged for Linux from the Windows dev box). Run it manually and
-# optionally attach the result to an existing release.
+# Builds self-contained AppImages of OnionHop V3 on Linux (the desktop app can't be packaged for
+# Linux from the Windows dev box): x86_64, and aarch64 for 64-bit ARM desktops and laptops (#95).
+# x86_64 uses the Tor Project's expert bundle; aarch64 cross-compiles Tor and its transports from
+# source in download-deps.sh, like the ARM CLI. Each AppImage is then started on a runner of its own
+# architecture. Run it manually and optionally attach the result to an existing release.
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Release tag to attach the AppImage to (e.g. v3.0.0-pre.3). Leave blank to only produce a build artifact."
+        description: "Release tag to attach the AppImages to (e.g. v3.0.0-pre.3). Leave blank to only produce build artifacts."
         required: false
         default: ""
   release:
@@ -18,7 +20,19 @@ permissions:
 
 jobs:
   appimage:
+    name: AppImage ${{ matrix.arch }}
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            deps-arch: x64
+            rid: linux-x64
+          - arch: aarch64
+            deps-arch: arm64
+            rid: linux-arm64
+            cross: gcc-aarch64-linux-gnu libc6-dev-arm64-cross
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,18 +55,21 @@ jobs:
           # zsync provides zsyncmake, which writes the .zsync file AppImageUpdate uses.
           sudo apt-get install -y wget unzip zsync
 
-      - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray)
-        run: |
-          chmod +x download-deps.sh
-          bash download-deps.sh
+      - name: Install the cross compiler
+        if: matrix.cross
+        run: sudo apt-get install -y --no-install-recommends ${{ matrix.cross }}
+
+      - name: Build Linux native dependencies (tor, PTs, dnstt-client, sing-box, xray, ArtiHop)
+        run: bash download-deps.sh ${{ matrix.deps-arch }}
 
       - name: Test
+        if: matrix.arch == 'x86_64'
         run: dotnet test OnionHop/OnionHopV3.sln -c Release
 
-      - name: Publish app (linux-x64, self-contained)
+      - name: Publish app (${{ matrix.rid }}, self-contained)
         run: |
           dotnet publish OnionHop/src/OnionHopV3.App/OnionHopV3.App.csproj \
-            -c Release -r linux-x64 --self-contained true \
+            -c Release -r ${{ matrix.rid }} --self-contained true \
             /p:PublishSingleFile=false /p:PublishReadyToRun=false \
             -o publish
 
@@ -106,29 +123,38 @@ jobs:
 
       # The maintained appimagetool (AppImage/appimagetool) embeds the static type 2 runtime, so the
       # AppImage no longer needs libfuse2 on the user's system; the old AppImageKit build did. The
-      # update information lets AppImageUpdate and similar tools fetch only the changed blocks from
-      # the latest release, using the .zsync file published next to the AppImage.
+      # tool itself runs here on x86_64; for aarch64 it is handed the aarch64 runtime, which is all
+      # that differs, since the rest of an AppImage is the AppDir as a squashfs image. The update
+      # information lets AppImageUpdate and similar tools fetch only the changed blocks from the latest
+      # release, using the .zsync file published next to each AppImage.
       - name: Build AppImage
         run: |
+          NAME="OnionHop-${{ matrix.arch }}.AppImage"
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
-          UPDATE_INFO="gh-releases-zsync|${GITHUB_REPOSITORY_OWNER}|${GITHUB_REPOSITORY#*/}|latest|OnionHop-x86_64.AppImage.zsync"
-          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool -u "$UPDATE_INFO" OnionHop.AppDir OnionHop-x86_64.AppImage
-          # appimagetool writes the .zsync itself when zsyncmake is installed; make sure it exists.
-          if [ ! -f OnionHop-x86_64.AppImage.zsync ]; then
-            zsyncmake -u OnionHop-x86_64.AppImage -o OnionHop-x86_64.AppImage.zsync OnionHop-x86_64.AppImage
+          RUNTIME_ARGS=()
+          if [ "${{ matrix.arch }}" != "x86_64" ]; then
+            wget -q "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${{ matrix.arch }}" -O runtime
+            RUNTIME_ARGS=(--runtime-file runtime)
           fi
-          sha256sum OnionHop-x86_64.AppImage | tee OnionHop-x86_64.AppImage.sha256.txt
-          ls -lh OnionHop-x86_64.AppImage OnionHop-x86_64.AppImage.zsync
+          UPDATE_INFO="gh-releases-zsync|${GITHUB_REPOSITORY_OWNER}|${GITHUB_REPOSITORY#*/}|latest|${NAME}.zsync"
+          ARCH=${{ matrix.arch }} APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool "${RUNTIME_ARGS[@]}" -u "$UPDATE_INFO" OnionHop.AppDir "$NAME"
+          # appimagetool writes the .zsync itself when zsyncmake is installed; make sure it exists.
+          if [ ! -f "$NAME.zsync" ]; then
+            zsyncmake -u "$NAME" -o "$NAME.zsync" "$NAME"
+          fi
+          sha256sum "$NAME" | tee "$NAME.sha256.txt"
+          file "$NAME"
+          ls -lh "$NAME" "$NAME.zsync"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OnionHop-x86_64.AppImage
+          name: OnionHop-${{ matrix.arch }}.AppImage
           path: |
-            OnionHop-x86_64.AppImage
-            OnionHop-x86_64.AppImage.sha256.txt
-            OnionHop-x86_64.AppImage.zsync
+            OnionHop-${{ matrix.arch }}.AppImage
+            OnionHop-${{ matrix.arch }}.AppImage.sha256.txt
+            OnionHop-${{ matrix.arch }}.AppImage.zsync
           if-no-files-found: error
 
       - name: Attach to release
@@ -137,5 +163,48 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag }}"
-          echo "Attaching AppImage to release $TAG"
-          gh release upload "$TAG" OnionHop-x86_64.AppImage OnionHop-x86_64.AppImage.sha256.txt OnionHop-x86_64.AppImage.zsync --repo "${{ github.repository }}" --clobber
+          NAME="OnionHop-${{ matrix.arch }}.AppImage"
+          echo "Attaching $NAME to release $TAG"
+          gh release upload "$TAG" "$NAME" "$NAME.sha256.txt" "$NAME.zsync" --repo "${{ github.repository }}" --clobber
+
+  # Starts each AppImage on a runner of its architecture, the aarch64 one on GitHub's ARM64 runner
+  # rather than under emulation. Does not hold back the release upload above.
+  start-test:
+    name: Start test ${{ matrix.arch }}
+    needs: appimage
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download the AppImage
+        uses: actions/download-artifact@v4
+        with:
+          name: OnionHop-${{ matrix.arch }}.AppImage
+
+      - name: Install a virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb x11-utils imagemagick \
+            libfontconfig1 libice6 libsm6 libx11-6 fonts-dejavu-core
+
+      - name: Start OnionHop
+        run: bash .github/scripts/linux-appimage-start-test.sh "OnionHop-${{ matrix.arch }}.AppImage" "onionhop-${{ matrix.arch }}.png"
+
+      - name: Upload the screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onionhop-${{ matrix.arch }}-screenshot
+          path: onionhop-${{ matrix.arch }}.png
+          if-no-files-found: ignore
