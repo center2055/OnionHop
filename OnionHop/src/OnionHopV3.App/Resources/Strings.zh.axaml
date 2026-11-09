@@ -373,6 +373,7 @@
   <x:String x:Key="Home.DetailProxyOff">系统代理已关闭。只有设置为使用 SOCKS 端口的应用经过 Tor。</x:String>
   <x:String x:Key="Home.DetailLocalOnly">只有你设置为使用 SOCKS 端口的应用经过 Tor。</x:String>
   <x:String x:Key="Home.DetailDisconnected">你的流量没有经过 Tor。</x:String>
+  <x:String x:Key="Home.DetailDisconnectedTorOnly">仅 Tor 模式已开启，连接之前任何流量都无法访问互联网。</x:String>
   <x:String x:Key="Home.DetailConnecting">正在启动 Tor…</x:String>
   <x:String x:Key="Home.DetailDisconnecting">正在停止 Tor 并恢复你的网络设置。</x:String>
   <x:String x:Key="Home.DetailLeaking">Tor 正在运行，但这台电脑的流量正以你的真实 IP 发出。</x:String>
@@ -425,6 +426,11 @@
   <x:String x:Key="Settings.BlockLanAccessHint">默认情况下使本地代理监听器不暴露于你的 LAN。</x:String>
   <x:String x:Key="Settings.DnsLeakProtection">DNS 泄露保护</x:String>
   <x:String x:Key="Settings.DnsLeakProtectionHint">强制所有 DNS 通过 Tor，以使正常查询不会泄露给你的 ISP。在代理模式下这需要管理员权限（Windows）；TUN/VPN 模式始终通过 Tor 路由 DNS。注意：这不会阻止 WebRTC/UDP IP 泄露——为此请使用 TUN/VPN 模式。</x:String>
+  <x:String x:Key="Settings.TorOnlyMode">仅 Tor 模式</x:String>
+  <x:String x:Key="Settings.TorOnlyModeHint">阻止所有不经过 Tor 的连接，即使 OnionHop 已断开或关闭、电脑重启之后也是如此，直到你在这里关闭它。只有 Tor 和 OnionHop 本身可以访问互联网，本地网络中的设备仍可访问，分流和绕过 Tor 的路由不会生效。它通过 Windows 防火墙实现，开启期间会关闭其他程序的出站例外，并需要管理员权限。</x:String>
+  <x:String x:Key="Settings.TorOnlyModeOnStatus">已开启：无论是否连接，只有 Tor 能访问互联网。</x:String>
+  <x:String x:Key="Settings.TorOnlyModeWorking">正在更改 Windows 防火墙...</x:String>
+  <x:String x:Key="Settings.TorOnlyModeFailed">无法更改仅 Tor 模式：{0}</x:String>
   <x:String x:Key="Settings.ClipboardProtection">剪贴板保护</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">如果剪贴板未发生更改，则在短暂延迟后清除 OnionHop 复制的值。</x:String>
   <x:String x:Key="Settings.PersistentHelper">保持管理员助手运行</x:String>

@@ -62,9 +62,17 @@ Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
+; Tor-only mode blocks everything but OnionHop's Tor in Windows Firewall, also after OnionHop is gone.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--disable-tor-only-mode"; Flags: runhidden waituntilterminated; RunOnceId: "DisableTorOnlyMode"; Check: TorOnlyModeIsOn
 Filename: "powershell"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Get-ScheduledTask -TaskName 'OnionHop Persistent Admin Helper *' -ErrorAction SilentlyContinue | Stop-ScheduledTask -ErrorAction SilentlyContinue; Get-ScheduledTask -TaskName 'OnionHop Persistent Admin Helper *' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue"""; Flags: runhidden
 
 [Code]
+// Tor-only mode (#94) records what it changed here; without it there is nothing to undo.
+function TorOnlyModeIsOn(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{commonappdata}\OnionHop\tor-only-mode.json'));
+end;
+
 function FindExistingV3InstallDir(): string;
 var
   uninstallKey: string;

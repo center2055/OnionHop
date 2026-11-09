@@ -373,6 +373,7 @@
   <x:String x:Key="Home.DetailProxyOff">Le proxy système est désactivé. Seules les applications réglées sur le port SOCKS passent par Tor.</x:String>
   <x:String x:Key="Home.DetailLocalOnly">Seules les applications que vous avez réglées sur le port SOCKS passent par Tor.</x:String>
   <x:String x:Key="Home.DetailDisconnected">Votre trafic ne passe pas par Tor.</x:String>
+  <x:String x:Key="Home.DetailDisconnectedTorOnly">Le mode Tor uniquement est activé : rien n'atteint Internet tant que vous n'êtes pas connecté.</x:String>
   <x:String x:Key="Home.DetailConnecting">Démarrage de Tor…</x:String>
   <x:String x:Key="Home.DetailDisconnecting">Arrêt de Tor et restauration de vos paramètres réseau.</x:String>
   <x:String x:Key="Home.DetailLeaking">Tor fonctionne, mais le trafic de cet ordinateur sort avec votre véritable IP.</x:String>
@@ -425,6 +426,11 @@
   <x:String x:Key="Settings.BlockLanAccessHint">Maintient les écouteurs du proxy local hors de votre LAN par défaut.</x:String>
   <x:String x:Key="Settings.DnsLeakProtection">Protection contre les fuites DNS</x:String>
   <x:String x:Key="Settings.DnsLeakProtectionHint">Force tout le DNS via Tor afin que les requêtes normales ne puissent pas fuiter vers votre ISP. En mode proxy, cela nécessite des droits admin (Windows) ; le mode TUN/VPN achemine toujours le DNS via Tor. Remarque : cela n'empêche pas les fuites d'IP WebRTC/UDP — utilisez le mode TUN/VPN pour cela.</x:String>
+  <x:String x:Key="Settings.TorOnlyMode">Mode Tor uniquement</x:String>
+  <x:String x:Key="Settings.TorOnlyModeHint">Bloque toute connexion qui ne passe pas par Tor, même quand OnionHop est déconnecté ou fermé et après un redémarrage, jusqu'à ce que vous le désactiviez ici. Seuls Tor et OnionHop lui-même atteignent Internet, les appareils de votre réseau local restent accessibles, et le tunnel fractionné ainsi que les routes qui contournent Tor ne sont pas utilisés. Il utilise le pare-feu Windows, désactive les exceptions sortantes des autres programmes tant qu'il est actif et nécessite des droits d'administrateur.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeOnStatus">Activé : seul Tor atteint Internet, connecté ou non.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeWorking">Modification du pare-feu Windows...</x:String>
+  <x:String x:Key="Settings.TorOnlyModeFailed">Impossible de modifier le mode Tor uniquement : {0}</x:String>
   <x:String x:Key="Settings.ClipboardProtection">Protection du presse-papiers</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">Efface les valeurs copiées par OnionHop après un court délai si le presse-papiers n'a pas changé.</x:String>
   <x:String x:Key="Settings.PersistentHelper">Garder l'assistant admin actif</x:String>

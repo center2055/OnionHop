@@ -1544,6 +1544,85 @@ public sealed class OnionHopClient : IDisposable
     /// A kill switch block outlives the app on purpose, so a restart can find one still up. Report it
     /// as holding, so the Home page offers to restore internet instead of connecting just failing.
     /// </summary>
+    /// <summary>Tor-only mode (#94) needs Windows Firewall, so it exists on Windows only.</summary>
+    public static bool IsTorOnlyModeAvailable => OperatingSystem.IsWindows();
+
+    /// <summary>Whether Tor-only mode is on: Windows Firewall lets only Tor's programs out, connected or not.</summary>
+    public static bool IsTorOnlyModeOn => TorOnlyFirewall.IsOn;
+
+    /// <summary>
+    /// Turns Tor-only mode on or off through Windows Firewall, which needs administrator rights:
+    /// directly when OnionHop runs elevated, else through the administrator helper (UAC prompt).
+    /// </summary>
+    public async Task<(bool Success, string Message)> SetTorOnlyModeAsync(bool on)
+    {
+        if (!IsTorOnlyModeAvailable)
+        {
+            return (false, "Tor-only mode is only available on Windows.");
+        }
+
+        if (on)
+        {
+            // Tor and its transports run from a copy in the user's folder, made on the first connect.
+            // Make it now, so the programs that get rules exist.
+            await EnsureTorDependenciesAsync().ConfigureAwait(false);
+        }
+
+        var programs = CollectTorOnlyPrograms();
+        if (on && !programs.Any(path => string.Equals(Path.GetFileName(path), "tor.exe", StringComparison.OrdinalIgnoreCase)))
+        {
+            return (false, "Tor was not found in OnionHop's folders, so Tor-only mode would block it too.");
+        }
+
+        if (WindowsAdmin.IsAdministrator())
+        {
+            return await Task.Run(() => on
+                ? TorOnlyFirewall.Enable(programs, RaiseLog)
+                : TorOnlyFirewall.Disable(RaiseLog)).ConfigureAwait(false);
+        }
+
+        var (success, message) = await _adminHelper.SetTorOnlyModeAsync(on, programs).ConfigureAwait(false);
+        RaiseLog(success
+            ? (on ? "Tor-only mode on: only Tor's programs can reach the internet, also while disconnected." : "Tor-only mode off.")
+            : $"Tor-only mode could not be turned {(on ? "on" : "off")}: {message}");
+        return (success, success ? (on ? "Tor-only mode is on." : "Tor-only mode is off.") : message);
+    }
+
+    /// <summary>
+    /// Turns Tor-only mode off from an elevated process without a client: the uninstaller runs this,
+    /// so removing OnionHop never leaves the firewall blocking everything but programs that are gone.
+    /// Does nothing when the mode is off.
+    /// </summary>
+    public static (bool Success, string Message) TurnOffTorOnlyModeElevated(Action<string> log) =>
+        OperatingSystem.IsWindows()
+            ? TorOnlyFirewall.Disable(log)
+            : (true, "Tor-only mode is only available on Windows.");
+
+    /// <summary>OnionHop's own programs that Tor-only mode lets out, as they exist now.</summary>
+    internal IReadOnlyList<string> CollectTorOnlyPrograms()
+    {
+        var roots = new[] { AppContext.BaseDirectory, _baseDir };
+        var candidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(Environment.ProcessPath))
+        {
+            candidates.Add(Environment.ProcessPath);
+        }
+
+        foreach (var root in roots)
+        {
+            foreach (var name in TorOnlyFirewall.AllowedProgramNames)
+            {
+                candidates.Add(Path.Combine(root, name));
+                candidates.Add(Path.Combine(root, "tor", name));
+                candidates.Add(Path.Combine(root, "tor", "pluggable_transports", name));
+                candidates.Add(Path.Combine(root, "arti", name));
+                candidates.Add(Path.Combine(root, "artihop", name));
+            }
+        }
+
+        return TorOnlyFirewall.FilterAllowedPrograms(candidates, roots);
+    }
+
     public async Task DetectKillSwitchLeftOnAsync()
     {
         if (_killSwitchHolding || _isConnected || _isConnecting)
@@ -3920,25 +3999,37 @@ public sealed class OnionHopClient : IDisposable
             doh = dohResolution.Settings;
         }
 
+        // Tor-only mode (#94) lets the tunnel core out so it can carry Tor's own connections past the
+        // tunnel. Nothing else may leave that way while the mode is on: no split tunneling and no
+        // routes around Tor, only the upstream proxy Tor itself connects through.
+        var torOnly = TorOnlyFirewall.IsOn;
+        if (torOnly && (options.UseHybridRouting
+            || !string.IsNullOrWhiteSpace(options.BypassRoutingRules)
+            || !string.IsNullOrWhiteSpace(options.BypassCountries)
+            || !string.IsNullOrWhiteSpace(options.BypassSiteCategories)))
+        {
+            RaiseLog("Tor-only mode is on, so split tunneling and the routes set to bypass Tor are not used.");
+        }
+
         return new VpnLaunchConfig
         {
             SingBoxPath = singBoxPath,
             XrayPath = xrayPath,
             WintunPath = wintunPath,
             VpnCoreMode = tunCoreMode,
-            HybridRouting = options.UseHybridRouting,
+            HybridRouting = options.UseHybridRouting && !torOnly,
             SecureDns = options.UseCensoredMode,
             SocksPort = _activeSocksPort,
             DohServer = doh.Server,
             DohServerPort = doh.Port,
             DohPath = doh.Path,
-            TorAppProcessNames = ResolveHybridTorApps(options),
-            BypassAppProcessNames = ParseProcessNames(options.HybridBypassApps),
-            BypassRoutingEntries = WithUpstreamProxyBypass(ParseRoutingRules(options.BypassRoutingRules), options),
+            TorAppProcessNames = torOnly ? Array.Empty<string>() : ResolveHybridTorApps(options),
+            BypassAppProcessNames = torOnly ? Array.Empty<string>() : ParseProcessNames(options.HybridBypassApps),
+            BypassRoutingEntries = WithUpstreamProxyBypass(torOnly ? Array.Empty<string>() : ParseRoutingRules(options.BypassRoutingRules), options),
             BlockRoutingEntries = ParseRoutingRules(options.BlockRoutingRules),
-            BypassCountryCodes = ParseRoutingRules(options.BypassCountries),
+            BypassCountryCodes = torOnly ? Array.Empty<string>() : ParseRoutingRules(options.BypassCountries),
             BlockCountryCodes = ParseRoutingRules(options.BlockCountries),
-            BypassSiteCategories = ParseRoutingRules(options.BypassSiteCategories),
+            BypassSiteCategories = torOnly ? Array.Empty<string>() : ParseRoutingRules(options.BypassSiteCategories),
             BlockSiteCategories = ParseRoutingRules(options.BlockSiteCategories),
             RouteAllWebTrafficThroughTor = options.HybridRouteAllWebTraffic,
             BlockQuicForTorApps = options.HybridBlockQuicForTorApps,

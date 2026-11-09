@@ -402,6 +402,7 @@
   <x:String x:Key="Home.DetailProxyOff">The system proxy is off. Only apps set to use the SOCKS port go through Tor.</x:String>
   <x:String x:Key="Home.DetailLocalOnly">Only apps you set to use the SOCKS port go through Tor.</x:String>
   <x:String x:Key="Home.DetailDisconnected">Your traffic is not going through Tor.</x:String>
+  <x:String x:Key="Home.DetailDisconnectedTorOnly">Tor-only mode is on, so nothing reaches the internet until you connect.</x:String>
   <x:String x:Key="Home.DetailConnecting">Starting Tor…</x:String>
   <x:String x:Key="Home.DetailDisconnecting">Stopping Tor and restoring your network settings.</x:String>
   <x:String x:Key="Home.DetailLeaking">Tor is running, but traffic from this computer is leaving with your real IP.</x:String>
@@ -454,6 +455,11 @@
   <x:String x:Key="Settings.BlockLanAccessHint">Keeps local proxy listeners off your LAN by default.</x:String>
   <x:String x:Key="Settings.DnsLeakProtection">DNS leak protection</x:String>
   <x:String x:Key="Settings.DnsLeakProtectionHint">Forces all DNS through Tor so normal lookups can't leak to your ISP. In Proxy Mode this needs admin (Windows); TUN/VPN Mode always routes DNS through Tor. Note: does not stop WebRTC/UDP IP leaks — use TUN/VPN Mode for that.</x:String>
+  <x:String x:Key="Settings.TorOnlyMode">Tor-only mode</x:String>
+  <x:String x:Key="Settings.TorOnlyModeHint">Blocks every connection that does not go through Tor, also while OnionHop is disconnected or closed and after a restart, until you turn it off here. Only Tor and OnionHop itself reach the internet, devices on your local network stay reachable, and split tunneling and routes that bypass Tor are not used. It uses Windows Firewall, turns off other programs' outbound exceptions while on, and needs administrator rights.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeOnStatus">On: only Tor can reach the internet, connected or not.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeWorking">Changing Windows Firewall...</x:String>
+  <x:String x:Key="Settings.TorOnlyModeFailed">Tor-only mode could not be changed: {0}</x:String>
   <x:String x:Key="Settings.ClipboardProtection">Clipboard protection</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">Clears OnionHop-copied values after a short delay if the clipboard was not changed.</x:String>
   <x:String x:Key="Settings.PersistentHelper">Keep admin helper running</x:String>

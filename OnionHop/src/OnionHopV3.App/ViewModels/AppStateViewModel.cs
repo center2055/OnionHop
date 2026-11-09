@@ -387,6 +387,15 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> VpnLogLines { get; } = [];
 
     [ObservableProperty] private string _downloadSpeed = "--";
+
+    // Tor-only mode (#94). The toggle shows what Windows Firewall does, read at startup, not a saved
+    // setting: the firewall keeps the mode across restarts, and it can be changed outside OnionHop.
+    [ObservableProperty] private bool _torOnlyModeEnabled = OnionHopClient.IsTorOnlyModeOn;
+    [ObservableProperty] private bool _isTorOnlyModeBusy;
+    [ObservableProperty] private string _torOnlyModeStatusText = OnionHopClient.IsTorOnlyModeOn
+        ? LocalizationService.Get("Settings.TorOnlyModeOnStatus")
+        : string.Empty;
+    private bool _syncingTorOnlyMode;
     [ObservableProperty] private string _uploadSpeed = "--";
     [ObservableProperty] private double _downloadSpeedGauge;
     [ObservableProperty] private double _uploadSpeedGauge;
@@ -594,6 +603,54 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     public bool IsLinux => OperatingSystem.IsLinux();
     public bool IsMacOS => OperatingSystem.IsMacOS();
     public bool ShowWindowsOnlySettings => IsWindows;
+    public bool CanToggleTorOnlyMode => OnionHopClient.IsTorOnlyModeAvailable && !IsTorOnlyModeBusy;
+    public bool HasTorOnlyModeStatus => !string.IsNullOrEmpty(TorOnlyModeStatusText);
+
+    partial void OnIsTorOnlyModeBusyChanged(bool value) => OnPropertyChanged(nameof(CanToggleTorOnlyMode));
+
+    partial void OnTorOnlyModeStatusTextChanged(string value) => OnPropertyChanged(nameof(HasTorOnlyModeStatus));
+
+    partial void OnTorOnlyModeEnabledChanged(bool value)
+    {
+        if (!_syncingTorOnlyMode)
+        {
+            _ = ApplyTorOnlyModeAsync(value);
+        }
+    }
+
+    private async Task ApplyTorOnlyModeAsync(bool on)
+    {
+        IsTorOnlyModeBusy = true;
+        TorOnlyModeStatusText = LocalizationService.Get("Settings.TorOnlyModeWorking");
+        try
+        {
+            var (success, message) = await _client.SetTorOnlyModeAsync(on);
+            if (!success)
+            {
+                AppendLog($"Tor-only mode: {message}");
+            }
+
+            // Show what the firewall does now, also when the change failed half way.
+            _syncingTorOnlyMode = true;
+            TorOnlyModeEnabled = OnionHopClient.IsTorOnlyModeOn;
+            _syncingTorOnlyMode = false;
+            TorOnlyModeStatusText = !success
+                ? string.Format(CultureInfo.CurrentCulture, LocalizationService.Get("Settings.TorOnlyModeFailed"), message)
+                : TorOnlyModeEnabled ? LocalizationService.Get("Settings.TorOnlyModeOnStatus") : string.Empty;
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Tor-only mode: {ex.Message}");
+            _syncingTorOnlyMode = true;
+            TorOnlyModeEnabled = OnionHopClient.IsTorOnlyModeOn;
+            _syncingTorOnlyMode = false;
+            TorOnlyModeStatusText = string.Format(CultureInfo.CurrentCulture, LocalizationService.Get("Settings.TorOnlyModeFailed"), ex.Message);
+        }
+        finally
+        {
+            IsTorOnlyModeBusy = false;
+        }
+    }
     public bool ShowMacOnlySettings => IsMacOS;
     public bool ShowTunStackOptions => !IsMacOS;
     public string VpnLogTabHeader => TunEngineLogTabHeader;

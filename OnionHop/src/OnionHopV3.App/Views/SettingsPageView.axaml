@@ -88,6 +88,17 @@
               <controls:ToggleRow Title="{DynamicResource Settings.DnsLeakProtection}"
                                   Description="{DynamicResource Settings.DnsLeakProtectionHint}"
                                   IsChecked="{Binding State.DnsLeakProtectionEnabled}" />
+              <!-- Tor-only mode (#94): Windows Firewall lets only Tor's programs out, connected or not. -->
+              <StackPanel Spacing="4" IsVisible="{Binding State.ShowWindowsOnlySettings}">
+                <controls:ToggleRow Title="{DynamicResource Settings.TorOnlyMode}"
+                                    Description="{DynamicResource Settings.TorOnlyModeHint}"
+                                    IsChecked="{Binding State.TorOnlyModeEnabled}"
+                                    IsEnabled="{Binding State.CanToggleTorOnlyMode}" />
+                <TextBlock Text="{Binding State.TorOnlyModeStatusText}"
+                           IsVisible="{Binding State.HasTorOnlyModeStatus}"
+                           Classes="Caption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
               <controls:ToggleRow Title="{DynamicResource Settings.ClipboardProtection}"
                                   Description="{DynamicResource Settings.ClipboardProtectionHint}"
                                   IsChecked="{Binding State.ClipboardProtectionEnabled}" />

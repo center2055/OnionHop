@@ -31,6 +31,15 @@ sealed class Program
             return;
         }
 
+        // The uninstaller runs this elevated, so removing OnionHop never leaves Windows Firewall in
+        // Tor-only mode with Tor gone (#94).
+        if (OperatingSystem.IsWindows() && Array.Exists(args, a => string.Equals(a, "--disable-tor-only-mode", StringComparison.OrdinalIgnoreCase)))
+        {
+            var (_, message) = OnionHopV3.Core.OnionHopClient.TurnOffTorOnlyModeElevated(line => OnionHopV3.Core.Services.StartupLogger.Write(line));
+            OnionHopV3.Core.Services.StartupLogger.Write($"--disable-tor-only-mode: {message}");
+            return;
+        }
+
         // Parse --basedir argument (used when relaunched as root on macOS).
         for (int i = 0; i < args.Length - 1; i++)
         {

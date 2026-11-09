@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
@@ -243,6 +244,19 @@ internal sealed class AdminHelperClient : IDisposable
 
         var response = await SendIfConnectedAsync("DisableKillSwitch", null).ConfigureAwait(false);
         return response?.Success == true;
+    }
+
+    public async Task<(bool Success, string Message)> SetTorOnlyModeAsync(bool on, IReadOnlyList<string> programs)
+    {
+        var response = on
+            ? await SendAsync("EnableTorOnlyMode", new TorOnlyModeRequest { Programs = programs.ToArray() }).ConfigureAwait(false)
+            : await SendAsync("DisableTorOnlyMode", null).ConfigureAwait(false);
+        if (response == null)
+        {
+            return (false, "The administrator helper did not start (the Windows permission prompt may have been declined).");
+        }
+
+        return (response.Success, response.Success ? string.Empty : response.Error ?? "The administrator helper reported an error.");
     }
 
     public async Task<bool> EnableOnionDnsProxyAsync(string? nameServerAddress, bool routeAllDns = false)

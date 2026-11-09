@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OnionHopV3.Core;
+using OnionHopV3.Core.Platform;
 using OnionHopV3.Core.Platform.Windows;
 
 namespace OnionHopV3.Core.Services;
@@ -300,6 +301,22 @@ public sealed class AdminHelperServer
                     _killSwitchEnabled = false;
                     DisableKillSwitchEmergencyBlock();
                     return Ok(request, null);
+                case "EnableTorOnlyMode":
+                {
+                    // Requests come from unelevated processes, so only OnionHop's own programs, in this
+                    // install folder or the user's OnionHop runtime folder, are ever let through.
+                    var payload = DeserializePayload<TorOnlyModeRequest>(request.Payload);
+                    var programs = TorOnlyFirewall.FilterAllowedPrograms(
+                        payload?.Programs ?? [],
+                        [AppContext.BaseDirectory, Path.Combine(AppDirectories.LocalData, "OnionHop")]);
+                    var (success, message) = TorOnlyFirewall.Enable(programs, LogVpnHelperLine);
+                    return success ? Ok(request, null) : Fail(request, message);
+                }
+                case "DisableTorOnlyMode":
+                {
+                    var (success, message) = TorOnlyFirewall.Disable(LogVpnHelperLine);
+                    return success ? Ok(request, null) : Fail(request, message);
+                }
                 case "EnableOnionDnsProxy":
                 {
                     var payload = DeserializePayload<AdminHelperDnsProxyRequest>(request.Payload);

@@ -297,6 +297,13 @@ internal sealed class VpnService : IDisposable
                 SetupXrayRoutes(_tunInterfaceName);
             }
         }
+
+        // Tor-only mode blocks every outbound connection but Tor's (#94). In TUN mode apps reach Tor
+        // through this adapter, which gets a new name on every connect, so allow it now.
+        if (OperatingSystem.IsWindows())
+        {
+            TorOnlyFirewall.AllowTunAdapterIfOn(_tunInterfaceName, _log);
+        }
     }
 
     public async Task PrepareMacPrivilegedTunnelAsync(VpnLaunchConfig config, CancellationToken token)

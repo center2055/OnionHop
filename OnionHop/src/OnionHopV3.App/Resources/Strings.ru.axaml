@@ -373,6 +373,7 @@
   <x:String x:Key="Home.DetailProxyOff">Системный прокси выключен. Через Tor идут только приложения, настроенные на порт SOCKS.</x:String>
   <x:String x:Key="Home.DetailLocalOnly">Через Tor идут только приложения, которые вы настроили на порт SOCKS.</x:String>
   <x:String x:Key="Home.DetailDisconnected">Ваш трафик не идёт через Tor.</x:String>
+  <x:String x:Key="Home.DetailDisconnectedTorOnly">Режим «только Tor» включён, поэтому ничто не выходит в интернет, пока вы не подключитесь.</x:String>
   <x:String x:Key="Home.DetailConnecting">Запуск Tor…</x:String>
   <x:String x:Key="Home.DetailDisconnecting">Остановка Tor и восстановление сетевых настроек.</x:String>
   <x:String x:Key="Home.DetailLeaking">Tor работает, но трафик этого компьютера уходит с вашим настоящим IP.</x:String>
@@ -425,6 +426,11 @@
   <x:String x:Key="Settings.BlockLanAccessHint">По умолчанию держит локальные прокси-слушатели вне вашей LAN.</x:String>
   <x:String x:Key="Settings.DnsLeakProtection">Защита от утечек DNS</x:String>
   <x:String x:Key="Settings.DnsLeakProtectionHint">Принудительно направляет весь DNS через Tor, чтобы обычные запросы не утекали к вашему ISP. В режиме прокси требуются права администратора (Windows); режим TUN/VPN всегда маршрутизирует DNS через Tor. Примечание: не останавливает утечки IP через WebRTC/UDP — для этого используйте режим TUN/VPN.</x:String>
+  <x:String x:Key="Settings.TorOnlyMode">Режим «только Tor»</x:String>
+  <x:String x:Key="Settings.TorOnlyModeHint">Блокирует любое соединение не через Tor, даже когда OnionHop отключён или закрыт и после перезагрузки, пока вы не выключите его здесь. В интернет выходят только Tor и сам OnionHop, устройства в локальной сети остаются доступны, а раздельное туннелирование и маршруты в обход Tor не используются. Работает через брандмауэр Windows, пока включён, отключает исходящие исключения других программ и требует прав администратора.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeOnStatus">Включён: в интернет выходит только Tor, с подключением или без.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeWorking">Изменение брандмауэра Windows...</x:String>
+  <x:String x:Key="Settings.TorOnlyModeFailed">Не удалось изменить режим «только Tor»: {0}</x:String>
   <x:String x:Key="Settings.ClipboardProtection">Защита буфера обмена</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">Очищает скопированные OnionHop значения через короткую задержку, если буфер обмена не изменялся.</x:String>
   <x:String x:Key="Settings.PersistentHelper">Держать помощник администратора запущенным</x:String>

@@ -373,6 +373,7 @@
   <x:String x:Key="Home.DetailProxyOff">سیستم Proxy سؤنولودور. یالنیز SOCKS پورتونا قورولان اپلر Tor اوستوندن کئچیر.</x:String>
   <x:String x:Key="Home.DetailLocalOnly">یالنیز SOCKS پورتونا قوردوغونوز اپلر Tor اوستوندن کئچیر.</x:String>
   <x:String x:Key="Home.DetailDisconnected">ترافیکینیز Tor اوستوندن کئچمیر.</x:String>
+  <x:String x:Key="Home.DetailDisconnectedTorOnly">یالنیز Tor مودو آچیقدیر، بونا گؤره باغلانانا جان هئچ نه اینترنته چاتمیر.</x:String>
   <x:String x:Key="Home.DetailConnecting">Tor باشلانیر…</x:String>
   <x:String x:Key="Home.DetailDisconnecting">Tor دایاندیریلیر و شبکه آیارلارینیز گئری قایتاریلیر.</x:String>
   <x:String x:Key="Home.DetailLeaking">Tor ایشلییر، آمّا بو کامپیوترین ترافیکی گئرچک IP‌نیز ایله چیخیر.</x:String>
@@ -425,6 +426,11 @@
   <x:String x:Key="Settings.BlockLanAccessHint">یئرلی پراکسی دینله‌ییجیلرینی ده‌فالت اولاراق LAN-دان اوزاق ساخلاییر.</x:String>
   <x:String x:Key="Settings.DnsLeakProtection">DNS سیزیش قوروماسی</x:String>
   <x:String x:Key="Settings.DnsLeakProtectionHint">بوتون DNS-ی Tor اوستوندن مجبوری کئچیریر کی عادی سوروغلار ISP-نیزه سیزماسین. Proxy موددا بونون اوچون اداره‌چی لازیمدیر (Windows)؛ TUN/VPN مودو هر زامان DNS-ی Tor اوستوندن یؤنله‌ندیریر. قئید: WebRTC/UDP IP سیزیشلارینی دایاندیرمیر — بونون اوچون TUN/VPN موددان ایستیفاده ائدین.</x:String>
+  <x:String x:Key="Settings.TorOnlyMode">یالنیز Tor مودو</x:String>
+  <x:String x:Key="Settings.TorOnlyModeHint">Tor اوستوندن کئچمه‌ین هر باغلانتینی بلوکلاییر، OnionHop کسیلنده یا باغلاناندا و یئنیدن باشلاتماقدان سونرا دا، بورادا سؤندوره‌نه جان. یالنیز Tor و OnionHop اؤزو اینترنته چاتیر، یئرلی شبکه‌نیزده‌کی جیهازلار الچاتان قالیر، بؤلونموش تونل و Tor-u دولانان یوللار ایشلنمیر. ویندوز فایروالیندان ایستیفاده ائدیر، آچیق اولدوقجا آیری پروقراملارین چیخیش ایستثنالارینی سؤندورور و مدیر حاقلاری ایسته‌ییر.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeOnStatus">آچیق: باغلانمیش اولسون یا یوخ، یالنیز Tor اینترنته چاتیر.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeWorking">ویندوز فایروالی دَییشدیریلیر...</x:String>
+  <x:String x:Key="Settings.TorOnlyModeFailed">یالنیز Tor مودو دَییشدیریله بیلمه‌دی: {0}</x:String>
   <x:String x:Key="Settings.ClipboardProtection">پانو قوروماسی</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">پانو دییشدیریلمه‌میشسه OnionHop تارافیندان کوپیله‌نن دییرلری قیسا سورهده‌ن سونرا تمیزلیر.</x:String>
   <x:String x:Key="Settings.PersistentHelper">اداره‌چی کؤمکچیسینی اکتیو ساخلا</x:String>

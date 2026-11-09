@@ -56,7 +56,18 @@ Source: "onionhop.cmd"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{group}\{#MyAppName}"; Filename: "{cmd}"; Parameters: "/K ""{app}\{#MyAppExeName}"""; WorkingDir: "{app}"
 Name: "{userdesktop}\{#MyAppName}"; Filename: "{cmd}"; Parameters: "/K ""{app}\{#MyAppExeName}"""; WorkingDir: "{app}"; Tasks: desktopicon
 
+[UninstallRun]
+; Tor-only mode blocks everything but OnionHop's Tor in Windows Firewall, also after OnionHop is gone.
+; This installer runs without administrator rights, so ask for them, and only when the mode is on.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "tor-only off"; Flags: shellexec runhidden waituntilterminated; Verb: "runas"; RunOnceId: "DisableTorOnlyMode"; Check: TorOnlyModeIsOn
+
 [Code]
+// Tor-only mode (#94) records what it changed here; without it there is nothing to undo.
+function TorOnlyModeIsOn(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{commonappdata}\OnionHop\tor-only-mode.json'));
+end;
+
 function NormalizePathValue(const Value: string): string;
 begin
   Result := Uppercase(RemoveBackslashUnlessRoot(Trim(Value)));

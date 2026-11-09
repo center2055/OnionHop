@@ -36,6 +36,7 @@ public sealed class HomePageViewModel : PageViewModelBase
         nameof(AppStateViewModel.StatusMessage),
         nameof(AppStateViewModel.TunnelCheck),
         nameof(AppStateViewModel.KillSwitchHolding),
+        nameof(AppStateViewModel.TorOnlyModeEnabled),
         nameof(AppStateViewModel.SelectedConnectionMode),
         nameof(AppStateViewModel.UseHybridRouting),
         nameof(AppStateViewModel.SystemProxyEnabled),
@@ -155,7 +156,7 @@ public sealed class HomePageViewModel : PageViewModelBase
                 return State.StatusMessage;
             }
 
-            return L(HeroDetailKey(hero, State.IsTunMode, State.UseHybridRouting, State.IsSystemProxyScope, State.SystemProxyEnabled));
+            return L(HeroDetailKey(hero, State.IsTunMode, State.UseHybridRouting, State.IsSystemProxyScope, State.SystemProxyEnabled, State.TorOnlyModeEnabled));
         }
     }
 
@@ -163,11 +164,12 @@ public sealed class HomePageViewModel : PageViewModelBase
     /// The system proxy line is read live, not from the connect-time message: that is the line that
     /// used to contradict the System Proxy button after a mid-session toggle.
     /// </summary>
-    internal static string HeroDetailKey(HeroState state, bool tunMode, bool hybridRouting, bool systemProxyScope, bool systemProxyOn) => state switch
+    internal static string HeroDetailKey(HeroState state, bool tunMode, bool hybridRouting, bool systemProxyScope, bool systemProxyOn, bool torOnlyMode = false) => state switch
     {
         HeroState.Disconnecting => "Home.DetailDisconnecting",
         HeroState.Connecting => "Home.DetailConnecting",
-        HeroState.Disconnected => "Home.DetailDisconnected",
+        // Tor-only mode blocks everything but Tor (#94), so "not going through Tor" would be wrong.
+        HeroState.Disconnected => torOnlyMode ? "Home.DetailDisconnectedTorOnly" : "Home.DetailDisconnected",
         HeroState.KillSwitch => "Home.DetailKillSwitch",
         HeroState.NotProtected => "Home.DetailLeaking",
         _ => tunMode ? (hybridRouting ? "Home.DetailTunHybrid" : "Home.DetailTunFull")

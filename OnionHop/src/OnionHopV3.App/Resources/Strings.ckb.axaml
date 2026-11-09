@@ -373,6 +373,7 @@
   <x:String x:Key="Home.DetailProxyOff">پرۆکسی سیستەم کوژاوەتەوە. تەنها ئەو ئەپانەی لەسەر پۆرتی SOCKS ڕێکخراون بە Tor دا تێدەپەڕن.</x:String>
   <x:String x:Key="Home.DetailLocalOnly">تەنها ئەو ئەپانەی لەسەر پۆرتی SOCKS ڕێکتخستوون بە Tor دا تێدەپەڕن.</x:String>
   <x:String x:Key="Home.DetailDisconnected">ترافیکەکەت بە Tor دا تێناپەڕێت.</x:String>
+  <x:String x:Key="Home.DetailDisconnectedTorOnly">دۆخی تەنها Tor کارایە، بۆیە تا پەیوەندی نەکەیت هیچ شتێک ناگاتە ئینتەرنێت.</x:String>
   <x:String x:Key="Home.DetailConnecting">Tor دەست پێدەکات…</x:String>
   <x:String x:Key="Home.DetailDisconnecting">Tor دەوەستێت و ڕێکخستنەکانی تۆڕەکەت دەگەڕێنرێنەوە.</x:String>
   <x:String x:Key="Home.DetailLeaking">Tor کاردەکات، بەڵام ترافیکی ئەم کۆمپیوتەرە بە IP ڕاستەقینەکەت دەردەچێت.</x:String>
@@ -425,6 +426,11 @@
   <x:String x:Key="Settings.BlockLanAccessHint">گوێزەرەکانی پرۆکسی شوێنی بە پێشوەخت لە LAN دوور دەهێڵێتەوە.</x:String>
   <x:String x:Key="Settings.DnsLeakProtection">پارێزگاری لە لیکی DNS</x:String>
   <x:String x:Key="Settings.DnsLeakProtectionHint">هەموو DNS لە ڕێگەی Tor دەبەرێت تا گەڕانەکانی ئاساسی نەلیکن بۆ ISP-ەکەت. لە دۆخی پرۆکسیدا ئەمە پێویستی بە بەڕێوەبەر هەیە (Windows)؛ دۆخی TUN/VPN هەمیشە DNS لە ڕێگەی Tor دەبەرێت. تێبینی: لیکی IP-ی WebRTC/UDP ناپارێزێت — بۆ ئەوەی دۆخی TUN/VPN بەکاربهێنە.</x:String>
+  <x:String x:Key="Settings.TorOnlyMode">دۆخی تەنها Tor</x:String>
+  <x:String x:Key="Settings.TorOnlyModeHint">هەر پەیوەندییەک کە بە Tor دا تێناپەڕێت بلۆک دەکات، تەنانەت کاتێک OnionHop پچڕاوە یان داخراوە و دوای دەستپێکردنەوەش، تا لێرەدا دەیکوژێنیتەوە. تەنها Tor و خودی OnionHop دەگەنە ئینتەرنێت، ئامێرەکانی تۆڕی ناوخۆییت بەردەست دەمێننەوە، و تونێلی دابەشکراو و ئەو ڕێگایانەی Tor تێدەپەڕێنن بەکار نایەن. فایەروۆڵی ویندۆز بەکار دەهێنێت، تا کاتێک کارایە ڕێگەپێدانە دەرچووەکانی بەرنامەکانی تر دەکوژێنێتەوە و پێویستی بە مافی بەڕێوەبەر هەیە.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeOnStatus">کارایە: تەنها Tor دەگاتە ئینتەرنێت، پەیوەندیت هەبێت یان نا.</x:String>
+  <x:String x:Key="Settings.TorOnlyModeWorking">فایەروۆڵی ویندۆز دەگۆڕدرێت...</x:String>
+  <x:String x:Key="Settings.TorOnlyModeFailed">دۆخی تەنها Tor نەگۆڕدرا: {0}</x:String>
   <x:String x:Key="Settings.ClipboardProtection">پارێزگاری لە clipboard</x:String>
   <x:String x:Key="Settings.ClipboardProtectionHint">بەهاکانی کۆپیکراوی OnionHop دوای کاتێکی کورت سڕێتەوە ئەگەر clipboard نەگۆڕابێت.</x:String>
   <x:String x:Key="Settings.PersistentHelper">هێشتن چالاکی یارمەتیدەری بەڕێوەبەر</x:String>

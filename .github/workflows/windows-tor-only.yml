@@ -1,0 +1,50 @@
+name: Test Tor-only mode (Windows)
+
+# End-to-end test of Tor-only mode (#94) on a throwaway Windows runner: it changes Windows Firewall,
+# so it never runs anywhere else. Run it manually from the Actions tab after changing the mode.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tor-only:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Download native dependencies (tor, transports, sing-box, xray, wintun, ArtiHop)
+        shell: pwsh
+        run: .\download-deps.ps1 -NoPause
+
+      - name: Publish CLI (win-x64, self-contained)
+        shell: pwsh
+        run: dotnet publish OnionHop\src\OnionHopV3.Cli\OnionHopV3.Cli.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=false -o publish-cli
+
+      - name: Tor-only mode on, connect through Tor, off again
+        shell: pwsh
+        timeout-minutes: 20
+        run: .\.github\scripts\windows-tor-only-test.ps1 -Cli publish-cli\OnionHopV3.Cli.exe
+
+      # The tunnel takes over the runner's own traffic too, which can upset the runner itself, so this
+      # one may fail without failing the run; read its log.
+      - name: Tor-only mode with TUN mode
+        shell: pwsh
+        timeout-minutes: 20
+        continue-on-error: true
+        run: .\.github\scripts\windows-tor-only-tun-test.ps1 -Cli publish-cli\OnionHopV3.Cli.exe

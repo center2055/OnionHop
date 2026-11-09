@@ -44,6 +44,12 @@ internal sealed class AdminHelperDnsProxyRequest
     public bool RouteAllDns { get; set; }
 }
 
+/// <summary>The OnionHop programs Tor-only mode lets out (#94). The helper checks each one itself.</summary>
+internal sealed class TorOnlyModeRequest
+{
+    public string[] Programs { get; set; } = [];
+}
+
 internal sealed class PersistentAdminHelperRequest
 {
     public string? UserSid { get; set; }

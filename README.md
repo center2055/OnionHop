@@ -44,6 +44,7 @@ V3 is a ground-up rebuild on a new cross-platform UI stack, with a much smarter 
 - **Relays browser** — search the live Tor relay list by nickname, country, role, flags and bandwidth, and pin a preferred entry/middle/exit.
 - **Command-line interface** — a full-featured TUI (`OnionHopV3.Cli`) with a live status dashboard, connect/scan/bridges/snowflake/relays commands and settings persistence. Windows, Linux and macOS packages are built by CI.
 - **Stronger leak protection** — optional full DNS-over-Tor, a kill switch, UDP blocking in TUN mode, and an in-app WebRTC/UDP privacy notice.
+- **Tor-only mode (Windows):** Windows Firewall lets only Tor out, also while OnionHop is disconnected or closed, until you turn it off (Settings, Privacy & Security; CLI: `tor-only on|off|status`).
 - **Volunteer as a Snowflake proxy** — help censored users reach Tor, straight from Settings.
 - **Quality-of-life** — decoupled system-proxy toggle (turn it off while Tor stays connected), an opt-in persistent admin helper to skip repeat UAC prompts in TUN mode (off by default), an in-app changelog, and Bitcoin donations.
 
@@ -166,7 +167,7 @@ Settings and Smart Connect's memory of your network live in the service user's `
 ## Permissions
 
 - **Network access** — IP checks, Onionoo relay/country data, GitHub release metadata, bridge sources, and dependency downloads.
-- **Administrator / root** — only for features that change system networking: **TUN/VPN mode**, **kill switch**, or system **DNS/proxy** changes.
+- **Administrator / root** — only for features that change system networking: **TUN/VPN mode**, **kill switch**, **Tor-only mode**, or system **DNS/proxy** changes.
 - **Folder access** — store settings, logs, runtime data, downloaded Tor/transport binaries, the bridge cache, and any log export location you choose.
 
 Settings and runtime data live in the OS application-data folders, e.g. `%AppData%\OnionHop\settings.json` (Windows) or `~/Library/Application Support/OnionHop/` (macOS).

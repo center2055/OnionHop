@@ -181,6 +181,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteHint("  config save", "save the last connect options as defaults");
         WriteHint("  config set proxy-scope <system|socks|local>", "set the default proxy scope (local = never touch system proxy)");
         WriteHint("  deps", "download/verify Tor + transport dependencies");
+        WriteHint("  tor-only <on|off|status>", "Windows: let only Tor reach the internet, also while disconnected (needs an Administrator terminal)");
         WriteHint("  logs <on|off>", "show or hide the live engine/Tor log stream");
         WriteHint("  json <on|off>", "machine-readable output for status/plan/scan");
         WriteHint("  clear", "clear the screen");
@@ -453,6 +454,10 @@ internal sealed class CliHost : IAsyncDisposable
                 WriteWarning("Dependency ensure failed. See logs (`logs on`).");
                 return CommandResult.Failure;
             }
+
+            case "tor-only":
+            case "toronly":
+                return await TorOnlyAsync(rest);
 
             case "logs":
                 _showLogs = rest.Count > 0 ? ParseBoolean(rest[0], !_showLogs) : !_showLogs;
@@ -856,6 +861,52 @@ internal sealed class CliHost : IAsyncDisposable
             spinner.Stop();
             WriteWarning($"Bridge refresh failed: {Shorten(ex.Message)}");
         }
+    }
+
+    // ----- Tor-only mode (#94) ----------------------------------------------------------------
+
+    private async Task<CommandResult> TorOnlyAsync(IReadOnlyList<string> rest)
+    {
+        if (!OnionHopClient.IsTorOnlyModeAvailable)
+        {
+            WriteWarning("Tor-only mode works through Windows Firewall, so it is only available on Windows.");
+            return CommandResult.Failure;
+        }
+
+        var action = rest.Count > 0 ? rest[0].Trim().ToLowerInvariant() : "status";
+        if (action == "status")
+        {
+            WriteInfo(OnionHopClient.IsTorOnlyModeOn
+                ? "Tor-only mode is ON: Windows Firewall lets only Tor's programs reach the internet, connected or not."
+                : "Tor-only mode is OFF.");
+            return CommandResult.Success;
+        }
+
+        if (action is not ("on" or "off"))
+        {
+            WriteWarning("Usage: tor-only <on|off|status>");
+            return CommandResult.Failure;
+        }
+
+        if (!PlatformHelper.IsAdministrator())
+        {
+            WriteWarning("Changing Windows Firewall needs an Administrator terminal. Start it as Administrator and run this again.");
+            return CommandResult.Failure;
+        }
+
+        var on = action == "on";
+        WriteInfo(on ? "Turning Tor-only mode on (Windows Firewall)..." : "Turning Tor-only mode off...");
+        var (success, message) = await _client.SetTorOnlyModeAsync(on);
+        if (!success)
+        {
+            WriteWarning(message);
+            return CommandResult.Failure;
+        }
+
+        WriteInfo(on
+            ? "Tor-only mode is ON: only Tor's programs can reach the internet, also while disconnected. Turn it off with `tor-only off`."
+            : "Tor-only mode is OFF.");
+        return CommandResult.Success;
     }
 
     // ----- Countries / plan -------------------------------------------------------------------
