@@ -144,6 +144,21 @@ public sealed class TorOnlyFirewallTests : IDisposable
         Assert.False(TorOnlyFirewall.TryParseQuery("""QUERY {"Profiles":[]}""", out _));
     }
 
+    // A failure has to say what failed, not show PowerShell's serialized progress records.
+    [Fact]
+    public void Failures_are_reported_as_plain_text()
+    {
+        Assert.Equal(
+            "rule 'OnionHop Tor-only mode: DHCP': The parameter is incorrect.",
+            TorOnlyFirewall.Describe((1, "noise\r\nERROR rule 'OnionHop Tor-only mode: DHCP': The parameter is incorrect.\r\n")));
+
+        const string clixml = "#< CLIXML\r\n<Objs Version=\"1.1.0.1\"><Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\"><T>x</T></TN></Obj>"
+            + "<S S=\"Error\">New-NetFirewallRule : Access is denied._x000D__x000A_</S><S S=\"Error\">At line:1 char:1_x000D__x000A_</S></Objs>";
+        Assert.Equal("New-NetFirewallRule : Access is denied. At line:1 char:1", TorOnlyFirewall.Describe((1, clixml)));
+        Assert.Equal("PowerShell exit code 5", TorOnlyFirewall.Describe((5, "  ")));
+        Assert.StartsWith("$ProgressPreference = 'SilentlyContinue'", TorOnlyFirewall.ScriptPreamble, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_tunnel_rule_follows_the_adapter_name_of_each_connect()
     {

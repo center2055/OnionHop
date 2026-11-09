@@ -267,7 +267,8 @@ internal static class TorOnlyFirewall
         script.AppendLine("$ErrorActionPreference = 'Stop'");
         script.AppendLine($"$group = '{Quote(RuleGroup)}'");
         script.AppendLine("$svchost = Join-Path $env:SystemRoot 'System32\\svchost.exe'");
-        script.AppendLine("function Allow([hashtable]$rule) { New-NetFirewallRule -Group $group -Direction Outbound -Action Allow -Profile Any @rule | Out-Null }");
+        // A failing rule names itself in the error.
+        script.AppendLine("function Allow([hashtable]$rule) { try { New-NetFirewallRule -Group $group -Direction Outbound -Action Allow -Profile Any @rule -ErrorAction Stop | Out-Null } catch { throw ('rule ''' + $rule.DisplayName + ''': ' + $_.Exception.Message) } }");
         script.AppendLine("Get-NetFirewallRule -Group $group -ErrorAction SilentlyContinue | Remove-NetFirewallRule");
 
         foreach (var program in programs)
@@ -377,9 +378,21 @@ internal static class TorOnlyFirewall
 
     private static string Quote(string value) => value.Replace("'", "''", StringComparison.Ordinal);
 
-    private static string Describe((int ExitCode, string Output) result)
+    internal static string Describe((int ExitCode, string Output) result)
     {
-        var text = result.Output.Trim();
+        // The scripts report a failure on a line of its own (ScriptPreamble). PowerShell writes what
+        // goes to a redirected error stream as CLIXML, so take the error text out of that if needed.
+        var error = result.Output
+            .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(line => line.StartsWith("ERROR ", StringComparison.Ordinal));
+        var text = error?["ERROR ".Length..] ?? result.Output.Trim();
+        if (error == null && text.Contains("#< CLIXML", StringComparison.Ordinal))
+        {
+            var errors = System.Text.RegularExpressions.Regex.Matches(text, "<S S=\"Error\">(.*?)</S>")
+                .Select(match => System.Net.WebUtility.HtmlDecode(match.Groups[1].Value.Replace("_x000D__x000A_", " ", StringComparison.Ordinal)).Trim());
+            text = string.Join(" ", errors).Trim();
+        }
+
         if (text.Length > 600)
         {
             text = text[..600] + "...";
@@ -388,9 +401,17 @@ internal static class TorOnlyFirewall
         return string.IsNullOrEmpty(text) ? $"PowerShell exit code {result.ExitCode}" : text;
     }
 
+    // Before every script: no progress records (they come out as CLIXML noise when the output is
+    // redirected), and a failure as one plain line on standard output.
+    internal const string ScriptPreamble = """
+        $ProgressPreference = 'SilentlyContinue'
+        trap { Write-Output ('ERROR ' + ($_.Exception.Message -replace '\s+', ' ')); exit 1 }
+
+        """;
+
     private static (int ExitCode, string Output) RunPowerShell(string script)
     {
-        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(ScriptPreamble + script));
         var psi = new ProcessStartInfo(
             Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"),
             $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}")
