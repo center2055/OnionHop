@@ -390,6 +390,7 @@ public sealed partial class AppStateViewModel
         if (!previouslyConnected && update.IsConnected)
         {
             SessionCircuitCount++;
+            StartCountryStatsRefreshThroughTor();
         }
 
         if (previouslyConnected && !update.IsConnected && ClearSessionDataOnDisconnect)

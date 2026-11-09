@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,7 +30,13 @@ public sealed class TorRelayDirectoryService
             "relay-directory.json");
     }
 
-    public async Task<IReadOnlyList<TorRelayInfo>> GetRelaysAsync(Action<string> log, CancellationToken token)
+    /// <summary>
+    /// Loads the running relays from Onionoo, directly or through <paramref name="torClient"/> (a client
+    /// for the live Tor SOCKS port) when one is given, unless a list from the last 12 hours is cached.
+    /// Onionoo is on torproject.org, which is blocked in Russia, Iran, China and elsewhere, so there the
+    /// list only loads through Tor. Empty when nothing could be loaded and nothing was cached.
+    /// </summary>
+    public async Task<IReadOnlyList<TorRelayInfo>> GetRelaysAsync(Action<string> log, CancellationToken token, HttpClient? torClient = null)
     {
         if (_cachedRelays is { Count: > 0 } &&
             DateTimeOffset.UtcNow - _cacheUpdatedUtc <= CacheTtl)
@@ -54,7 +61,7 @@ public sealed class TorRelayDirectoryService
                 return _cachedRelays;
             }
 
-            var fetched = await FetchFromOnionooAsync(log, token).ConfigureAwait(false);
+            var fetched = await FetchFromOnionooAsync(torClient ?? HttpClientFactory.LongTimeout, torClient != null, log, token).ConfigureAwait(false);
             if (fetched.Count > 0)
             {
                 _cachedRelays = fetched;
@@ -78,14 +85,19 @@ public sealed class TorRelayDirectoryService
         }
     }
 
-    private static async Task<IReadOnlyList<TorRelayInfo>> FetchFromOnionooAsync(Action<string> log, CancellationToken token)
+    private static async Task<IReadOnlyList<TorRelayInfo>> FetchFromOnionooAsync(
+        HttpClient client,
+        bool throughTor,
+        Action<string> log,
+        CancellationToken token)
     {
+        var route = throughTor ? " through Tor" : string.Empty;
         try
         {
-            using var response = await HttpClientFactory.LongTimeout.GetAsync(OnionooUrl, token).ConfigureAwait(false);
+            using var response = await client.GetAsync(OnionooUrl, token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                log($"Relay directory fetch failed: HTTP {(int)response.StatusCode}.");
+                log($"Relay directory fetch{route} failed: HTTP {(int)response.StatusCode}.");
                 return Array.Empty<TorRelayInfo>();
             }
 
@@ -93,7 +105,7 @@ public sealed class TorRelayDirectoryService
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: token).ConfigureAwait(false);
             if (!document.RootElement.TryGetProperty("relays", out var relays) || relays.ValueKind != JsonValueKind.Array)
             {
-                log("Relay directory fetch failed: Onionoo payload missing relay list.");
+                log($"Relay directory fetch{route} failed: Onionoo payload missing relay list.");
                 return Array.Empty<TorRelayInfo>();
             }
 
@@ -167,12 +179,12 @@ public sealed class TorRelayDirectoryService
                 .ThenBy(relay => relay.Nickname, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            log($"Relay directory updated: {ordered.Count} running relays loaded from Onionoo.");
+            log($"Relay directory updated: {ordered.Count} running relays loaded from Onionoo{route}.");
             return ordered;
         }
         catch (Exception ex)
         {
-            log($"Relay directory fetch failed: {ex.Message}");
+            log($"Relay directory fetch{route} failed: {ex.Message}");
             return Array.Empty<TorRelayInfo>();
         }
     }

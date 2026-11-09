@@ -148,11 +148,21 @@ public sealed partial class RelaysPageViewModel : PageViewModelBase
 
         try
         {
-            var relays = await _relayDirectoryService.GetRelaysAsync(State.AppendLog, CancellationToken.None);
+            // Through Tor while connected: Onionoo is on torproject.org, which is blocked in Russia,
+            // Iran, China and elsewhere, and this way the lookup never shows on the local network.
+            using var torClient = State.CreateTorHttpClient(TimeSpan.FromMinutes(3));
+            var relays = await _relayDirectoryService.GetRelaysAsync(State.AppendLog, CancellationToken.None, torClient);
             _allRelays.Clear();
             _allRelays.AddRange(relays.Select(info => new RelayDirectoryItem(info, ToggleFavoriteCommand)));
             RebuildFilterOptions();
             ApplyFilters();
+
+            if (relays.Count == 0)
+            {
+                // Try again the next time the page opens, through Tor once connected.
+                _hasLoadedRelays = false;
+                ErrorText = LocalizationService.Get(torClient == null ? "Relays.LoadFailedDirect" : "Relays.LoadFailedTor");
+            }
         }
         catch (Exception ex)
         {

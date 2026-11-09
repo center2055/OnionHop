@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">نوێکردنەوە</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">لیستی ریلەیەکان بار نەکرا، چونکە onionoo.torproject.org وەڵامی نەدایەوە. هەندێک وڵات بلۆکی دەکەن. دوای پەیوەندیکردن، OnionHop لیستەکە لە ڕێگەی Tor بار دەکات.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">لیستی ریلەیەکان لە ڕێگەی Torیش بار نەکرا. بۆ هەوڵدانەوە «نوێکردنەوە» دابگرە.</x:String>
   <x:String x:Key="Relays.Search">گەڕانی nickname، fingerprint، وڵات، یان IP</x:String>
   <x:String x:Key="Relays.AllCountries">هەموو وڵاتەکان</x:String>
   <x:String x:Key="Relays.AllRoles">هەموو ڕۆڵەکان</x:String>

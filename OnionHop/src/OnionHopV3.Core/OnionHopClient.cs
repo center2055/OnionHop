@@ -530,9 +530,15 @@ public sealed class OnionHopClient : IDisposable
         }
     }
 
+    /// <summary>
+    /// The relay counts per country from Onionoo, through Tor while connected (Onionoo is on
+    /// torproject.org, which censoring countries block), else directly, falling back to the last saved
+    /// list or the one that ships with OnionHop.
+    /// </summary>
     public async Task<IReadOnlyList<TorCountryNodeStats>> GetCountryStatsAsync(CancellationToken token = default)
     {
-        return await _nodeDatabaseService.GetCountryStatsAsync(RaiseLog, token).ConfigureAwait(false);
+        using var torClient = CreateTorHttpClient(TimeSpan.FromSeconds(90));
+        return await _nodeDatabaseService.GetCountryStatsAsync(RaiseLog, token, torClient).ConfigureAwait(false);
     }
 
     public async Task<(long BytesRead, long BytesWritten)?> TryGetTorTrafficBytesAsync(CancellationToken token = default)
@@ -3344,7 +3350,9 @@ public sealed class OnionHopClient : IDisposable
                 .ToList();
         }
 
-        var countries = await _nodeDatabaseService.GetCountryStatsAsync(RaiseLog, token).ConfigureAwait(false);
+        // No lookup here: Tor is not running yet, and where Onionoo is blocked a direct lookup held up
+        // every connect for its 30-second timeout. The list is only used to name the country and warn.
+        var countries = _nodeDatabaseService.GetCountryStatsWithoutLookup();
         var countryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedLocation, countries);
         var entryCode = TorNodeDatabaseService.NormalizeSelectionToCountryCode(options.SelectedEntryLocation, countries);
 
@@ -4036,6 +4044,22 @@ public sealed class OnionHopClient : IDisposable
                 }
             }
         });
+    }
+
+    /// <summary>
+    /// An HTTP client whose requests go through the connected Tor SOCKS port, for the app's own lookups
+    /// of sites that are blocked locally (Onionoo for the country and relay lists). Null while not
+    /// connected. The caller disposes it.
+    /// </summary>
+    public HttpClient? CreateTorHttpClient(TimeSpan timeout)
+    {
+        var socksPort = _activeSocksPort;
+        if (!_isConnected || _isDisconnecting || socksPort <= 0)
+        {
+            return null;
+        }
+
+        return Socks5HttpClient.Create("127.0.0.1", socksPort, timeout);
     }
 
     private void StartCircumventionSettingsBackgroundRefresh()

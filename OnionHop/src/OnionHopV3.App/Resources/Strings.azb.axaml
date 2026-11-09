@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">یئنیله</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">رله لیستی یوکلنه بیلمه‌دی، چونکی onionoo.torproject.org جواب وئرمه‌دی. بعضی اؤلکه‌لر اونو بلوکلاییر. باغلاناندان سونرا OnionHop لیستی Tor اوستوندن یوکله‌ییر.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">رله لیستی Tor اوستوندن ده یوکلنه بیلمه‌دی. یئنیدن سیناماق اوچون «یئنیله» دویمه‌سینی باسین.</x:String>
   <x:String x:Key="Relays.Search">لقب، فینگرپرینت، اولکه یا IP آختار</x:String>
   <x:String x:Key="Relays.AllCountries">بوتون اولکه‌لر</x:String>
   <x:String x:Key="Relays.AllRoles">بوتون رول‌لار</x:String>

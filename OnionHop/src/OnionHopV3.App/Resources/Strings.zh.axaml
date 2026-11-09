@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">刷新</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">无法加载中继列表：onionoo.torproject.org 没有响应，一些国家屏蔽了它。连接后，OnionHop 会通过 Tor 加载该列表。</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">通过 Tor 也无法加载中继列表。点击“刷新”重试。</x:String>
   <x:String x:Key="Relays.Search">搜索昵称、指纹、国家/地区或 IP</x:String>
   <x:String x:Key="Relays.AllCountries">所有国家/地区</x:String>
   <x:String x:Key="Relays.AllRoles">所有角色</x:String>

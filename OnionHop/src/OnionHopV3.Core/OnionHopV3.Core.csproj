@@ -14,6 +14,9 @@
     <!-- Snapshot of Tor's per-country circumvention settings (bridges.torproject.org/moat/
          circumvention/map), used until a newer copy can be downloaded. See CircumventionSettings. -->
     <EmbeddedResource Include="Resources\circumvention-map.json" LogicalName="OnionHopV3.Core.Resources.circumvention-map.json" />
+    <!-- Onionoo's relay counts per country, so the exit location list is complete where Onionoo
+         (torproject.org) is blocked. See TorNodeDatabaseService. -->
+    <EmbeddedResource Include="Resources\tor-countries.json" LogicalName="OnionHopV3.Core.Resources.tor-countries.json" />
   </ItemGroup>
 
   <ItemGroup>

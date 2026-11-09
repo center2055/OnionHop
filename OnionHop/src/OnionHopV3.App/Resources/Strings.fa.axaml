@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">بروزرسانی</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">فهرست relay‌ها بارگیری نشد، چون onionoo.torproject.org پاسخ نداد. برخی کشورها آن را مسدود می‌کنند. پس از اتصال، OnionHop فهرست را از طریق Tor بارگیری می‌کند.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">فهرست relay‌ها از طریق Tor هم بارگیری نشد. برای تلاش دوباره «بروزرسانی» را بزنید.</x:String>
   <x:String x:Key="Relays.Search">جستجوی نام مستعار، اثر انگشت، کشور، یا IP</x:String>
   <x:String x:Key="Relays.AllCountries">همه کشورها</x:String>
   <x:String x:Key="Relays.AllRoles">همه نقش‌ها</x:String>

@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">Aktualisieren</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">Die Relay-Liste konnte nicht geladen werden, weil onionoo.torproject.org nicht geantwortet hat. Manche Länder sperren diese Adresse. Sobald OnionHop verbunden ist, lädt es die Liste über Tor.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">Die Relay-Liste konnte auch über Tor nicht geladen werden. Mit Aktualisieren erneut versuchen.</x:String>
   <x:String x:Key="Relays.Search">Nickname, Fingerprint, Land oder IP suchen</x:String>
   <x:String x:Key="Relays.AllCountries">Alle Länder</x:String>
   <x:String x:Key="Relays.AllRoles">Alle Rollen</x:String>

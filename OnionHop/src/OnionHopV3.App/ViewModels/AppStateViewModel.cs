@@ -1436,9 +1436,21 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         {
             try
             {
+                // Fill the exit and entry lists at once from the last saved list or the one that ships
+                // with the app: Onionoo is blocked in the countries that need Tor most, and a blocked
+                // lookup only gives up after 30 seconds.
+                var offline = _nodeDatabaseService.GetOfflineCountryStats();
+                if (offline.Count > 0)
+                {
+                    Dispatcher.UIThread.Post(() => ApplyCountryStats(offline));
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
                 var countries = await _nodeDatabaseService.GetCountryStatsAsync(AppendLog, CancellationToken.None).ConfigureAwait(false);
-                Dispatcher.UIThread.Post(() => ApplyCountryStats(countries));
+                if (_nodeDatabaseService.HasCurrentData || offline.Count == 0)
+                {
+                    Dispatcher.UIThread.Post(() => ApplyCountryStats(countries));
+                }
             }
             catch (Exception ex)
             {
@@ -3279,6 +3291,44 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         }
 
         return location.ToUpperInvariant();
+    }
+
+    /// <summary>An HTTP client that goes through the connected Tor; null while not connected.</summary>
+    public System.Net.Http.HttpClient? CreateTorHttpClient(TimeSpan timeout) => _client.CreateTorHttpClient(timeout);
+
+    /// <summary>
+    /// Loads the country list through Tor once connected when the one held is not current. The lookup
+    /// at startup goes direct, and Onionoo (torproject.org) is blocked in Russia, Iran, China and
+    /// elsewhere, so there the exit list otherwise never got past the copy that ships with the app.
+    /// </summary>
+    private void StartCountryStatsRefreshThroughTor()
+    {
+        if (_nodeDatabaseService.HasCurrentData)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var client = _client.CreateTorHttpClient(TimeSpan.FromSeconds(90));
+                if (client == null)
+                {
+                    return;
+                }
+
+                using var budget = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+                var countries = await _nodeDatabaseService.RefreshThroughTorIfOutdatedAsync(client, AppendLog, budget.Token).ConfigureAwait(false);
+                if (countries != null)
+                {
+                    Dispatcher.UIThread.Post(() => ApplyCountryStats(countries));
+                }
+            }
+            catch
+            {
+            }
+        });
     }
 
     private void ApplyCountryStats(IReadOnlyList<TorCountryNodeStats> stats)

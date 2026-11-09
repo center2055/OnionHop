@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">Actualiser</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">Impossible de charger la liste des relais : onionoo.torproject.org n'a pas répondu. Certains pays le bloquent. Une fois connecté, OnionHop charge la liste via Tor.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">La liste des relais n'a pas pu être chargée via Tor non plus. Cliquez sur Actualiser pour réessayer.</x:String>
   <x:String x:Key="Relays.Search">Rechercher par pseudonyme, empreinte, pays ou IP</x:String>
   <x:String x:Key="Relays.AllCountries">Tous les pays</x:String>
   <x:String x:Key="Relays.AllRoles">Tous les rôles</x:String>

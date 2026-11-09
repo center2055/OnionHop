@@ -527,6 +527,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">Refresh</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">The relay list could not be loaded because onionoo.torproject.org did not answer. Some countries block it. Once you are connected, OnionHop loads the list through Tor.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">The relay list could not be loaded through Tor either. Press Refresh to try again.</x:String>
   <x:String x:Key="Relays.Search">Search nickname, fingerprint, country, or IP</x:String>
   <x:String x:Key="Relays.AllCountries">All countries</x:String>
   <x:String x:Key="Relays.AllRoles">All roles</x:String>

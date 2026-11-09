@@ -498,6 +498,8 @@
 
   <!-- V3 Relays -->
   <x:String x:Key="Relays.Refresh">Обновить</x:String>
+  <x:String x:Key="Relays.LoadFailedDirect">Не удалось загрузить список реле: onionoo.torproject.org не ответил. В некоторых странах он заблокирован. После подключения OnionHop загрузит список через Tor.</x:String>
+  <x:String x:Key="Relays.LoadFailedTor">Список реле не удалось загрузить и через Tor. Нажмите «Обновить», чтобы попробовать снова.</x:String>
   <x:String x:Key="Relays.Search">Поиск по псевдониму, отпечатку, стране или IP</x:String>
   <x:String x:Key="Relays.AllCountries">Все страны</x:String>
   <x:String x:Key="Relays.AllRoles">Все роли</x:String>
