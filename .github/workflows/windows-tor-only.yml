@@ -1,9 +1,13 @@
 name: Test Tor-only mode (Windows)
 
 # End-to-end test of Tor-only mode (#94) on a throwaway Windows runner: it changes Windows Firewall,
-# so it never runs anywhere else. Run it manually from the Actions tab after changing the mode.
+# so it never runs anywhere else. Run it manually from the Actions tab after changing the mode, or
+# push the change to a ci/tor-only branch.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "ci/tor-only**"
 
 permissions:
   contents: read
