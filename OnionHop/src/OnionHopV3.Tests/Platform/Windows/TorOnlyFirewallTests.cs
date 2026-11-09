@@ -74,7 +74,9 @@ public sealed class TorOnlyFirewallTests : IDisposable
         Assert.Contains("Service = 'Dnscache'; Protocol = 'UDP'; RemotePort = '53'", script, StringComparison.Ordinal);
         Assert.Contains("Service = 'Dhcp'; Protocol = 'UDP'; LocalPort = '68'; RemotePort = '67'", script, StringComparison.Ordinal);
         Assert.Contains("RemoteAddress = @('LocalSubnet', 'fe80::/10', '224.0.0.0/4', 'ff00::/8')", script, StringComparison.Ordinal);
-        Assert.Contains("RemoteAddress = @('127.0.0.0/8', '::1')", script, StringComparison.Ordinal);
+        // Windows Firewall refuses rules that name loopback addresses, and never filters loopback.
+        Assert.DoesNotContain("::1", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("127.0.0.", script, StringComparison.Ordinal);
         Assert.Contains(@"Join-Path $env:SystemRoot 'System32\svchost.exe'", script, StringComparison.Ordinal);
         Assert.Contains("Remove-NetFirewallRule", script, StringComparison.Ordinal);
         Assert.EndsWith("Write-Output 'RULES_ADDED'" + Environment.NewLine, script, StringComparison.Ordinal);

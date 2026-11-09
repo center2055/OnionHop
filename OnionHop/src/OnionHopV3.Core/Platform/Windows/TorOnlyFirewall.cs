@@ -286,9 +286,8 @@ internal static class TorOnlyFirewall
         script.AppendLine($"Allow @{{ DisplayName = '{Quote(RulePrefix)}DHCPv6'; Program = $svchost; Service = 'Dhcp'; Protocol = 'UDP'; LocalPort = '546'; RemotePort = '547' }}");
         script.AppendLine($"Allow @{{ DisplayName = '{Quote(RulePrefix)}IPv6 neighbor discovery'; Protocol = 'ICMPv6'; IcmpType = @('133', '135', '136', '143') }}");
         script.AppendLine($"Allow @{{ DisplayName = '{Quote(RulePrefix)}local network'; RemoteAddress = @('LocalSubnet', 'fe80::/10', '224.0.0.0/4', 'ff00::/8') }}");
-        // Apps reach Tor through its proxy on this computer. Windows Firewall leaves loopback alone,
-        // but say so explicitly, since everything depends on it.
-        script.AppendLine($"Allow @{{ DisplayName = '{Quote(RulePrefix)}this computer (Tor proxy)'; RemoteAddress = @('127.0.0.0/8', '::1') }}");
+        // No rule for loopback, where apps reach Tor's proxy: Windows Firewall does not filter it, and
+        // refuses rules that name it ("an unspecified, multicast, broadcast, or loopback IPv6 address").
 
         // An adapter of an earlier TUN connect is still up when the mode is turned on while connected.
         script.AppendLine("$tun = @(Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'OnionHop*' -and $_.Status -eq 'Up' })");
