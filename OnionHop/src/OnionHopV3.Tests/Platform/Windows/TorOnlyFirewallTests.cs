@@ -70,7 +70,12 @@ public sealed class TorOnlyFirewallTests : IDisposable
         var script = TorOnlyFirewall.BuildRulesScript([@"C:\Users\O'Brien\AppData\Local\OnionHop\tor\tor.exe"]);
 
         Assert.Contains(@"Program = 'C:\Users\O''Brien\AppData\Local\OnionHop\tor\tor.exe'", script, StringComparison.Ordinal);
-        Assert.Contains("DisplayName = 'OnionHop Tor-only mode: tor.exe'", script, StringComparison.Ordinal);
+        if (OperatingSystem.IsWindows())
+        {
+            // The rule is named after the file, and only Windows splits this path at the backslashes.
+            // The mode itself only ever runs on Windows; the rest of this test runs everywhere.
+            Assert.Contains("DisplayName = 'OnionHop Tor-only mode: tor.exe'", script, StringComparison.Ordinal);
+        }
         Assert.Contains("Service = 'Dnscache'; Protocol = 'UDP'; RemotePort = '53'", script, StringComparison.Ordinal);
         Assert.Contains("Service = 'Dhcp'; Protocol = 'UDP'; LocalPort = '68'; RemotePort = '67'", script, StringComparison.Ordinal);
         Assert.Contains("RemoteAddress = @('LocalSubnet', 'fe80::/10', '224.0.0.0/4', 'ff00::/8')", script, StringComparison.Ordinal);
