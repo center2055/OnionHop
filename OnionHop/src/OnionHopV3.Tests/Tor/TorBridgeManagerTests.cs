@@ -235,6 +235,49 @@ public sealed class TorBridgeManagerTests
         }
     }
 
+    // With the "Automatic" bridge type each attempt carries a type, snowflake first. A custom list
+    // keeps its own transports: its lines without a transport name became "snowflake ..." before.
+    [Fact]
+    public async Task GetBridgeLinesAsync_custom_lines_do_not_take_the_automatic_attempts_type()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var manager = new TorBridgeManager(dir);
+            const string obfs4 = "obfs4 85.93.216.115:38450 9A8D5E1C4F6B2A3D7E0F1C2B3A4D5E6F7A8B9C0D cert=c5uFtRe1kVv2D8LwGmY3QzpWqPx7Hn0aJbSdKfUi9oTrEyNlMhXgCvBjA4s6Z1eRtYuIoPwQ iat-mode=0";
+            const string vanilla = "8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875";
+            const string obfs4WithoutName = "88.87.54.244:8080 1B2C3D4E5F60718293A4B5C6D7E8F90A1B2C3D4E cert=Qw1Er2Ty3Ui4Op5As6Df7Gh8Jk9Lz0Xc1Vb2Nm3Qw4Er5Ty6Ui7Op8As9Df0Gh1Jk2Lz3Xc4Vb5Nm iat-mode=0";
+            var options = new OnionHopConnectOptions
+            {
+                SelectedBridgeType = "snowflake",
+                BridgeSourceMode = OnionHopConnectOptions.BridgeSourceCustom,
+                CustomBridges = string.Join("\n", obfs4, vanilla, obfs4WithoutName)
+            };
+
+            var lines = await manager.GetBridgeLinesAsync(options, null, _ => { }, CancellationToken.None);
+
+            Assert.Contains(obfs4, lines);
+            Assert.Contains(vanilla, lines);
+            Assert.Contains("obfs4 " + obfs4WithoutName, lines);
+            Assert.DoesNotContain(lines, line => line.StartsWith("snowflake", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Theory]
+    [InlineData("1.2.3.4:443 9A8D5E1C4F6B2A3D7E0F1C2B3A4D5E6F7A8B9C0D cert=abc iat-mode=0", "obfs4")]
+    [InlineData("[2001:db8::1]:443 DA1ECF055635C1A6ED7F5B5F36296A5E3015CE57 url=https://example.com/x/ ver=0.0.3", "webtunnel")]
+    [InlineData("192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B28 url=https://b/ fronts=a.com,b.com ice=stun:x utls-imitate=hellorandomizedalpn", "snowflake")]
+    [InlineData("8.8.8.8:443 74FAD13168806246602538555B5521A0383A1875", null)]
+    [InlineData("8.8.8.8:443", null)]
+    public void A_bridge_lines_transport_is_told_by_its_parameters(string line, string? expected)
+    {
+        Assert.Equal(expected, TorBridgeManager.InferTransportFromParameters(line));
+    }
+
     [Fact]
     public async Task GetBridgeLinesAsync_custom_vanilla_lines_stay_vanilla()
     {

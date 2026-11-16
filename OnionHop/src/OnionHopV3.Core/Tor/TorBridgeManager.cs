@@ -631,7 +631,9 @@ internal sealed class TorBridgeManager
         {
             // Users sometimes paste bridge lines missing the leading transport (e.g. "Bridge 1.2.3.4:443 ...").
             // Tor expects the first token to be the transport for PT bridges (e.g. "snowflake ...", "obfs4 ...").
-            selected = NormalizeTransportPrefix(selected, selectedBridgeType, log);
+            // A custom list keeps its own transports: with the "Automatic" bridge type each attempt has
+            // a type (snowflake first), and its lines without a transport must not become that type.
+            selected = NormalizeTransportPrefix(selected, usingCustom ? "custom" : selectedBridgeType, log);
         }
 
         // If custom bridges were provided but none are usable, fall back to bundled bridge entries.
@@ -2495,9 +2497,41 @@ internal sealed class TorBridgeManager
         return result;
     }
 
+    /// <summary>
+    /// The transport of a bridge line that starts with its address, told by parameters only that
+    /// transport uses; null for a plain bridge or when it cannot be told.
+    /// </summary>
+    internal static string? InferTransportFromParameters(string lineWithoutTransport)
+    {
+        var keys = lineWithoutTransport
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Skip(1)
+            .Select(token => token.IndexOf('=') is var eq and > 0 ? token[..eq].ToLowerInvariant() : null)
+            .Where(key => key != null)
+            .ToHashSet();
+
+        if (keys.Contains("cert"))
+        {
+            return "obfs4";
+        }
+
+        if (keys.Contains("ice") || keys.Contains("fronts") || (keys.Contains("front") && keys.Contains("fingerprint")))
+        {
+            return "snowflake";
+        }
+
+        if (keys.Contains("url") && keys.Contains("ver"))
+        {
+            return "webtunnel";
+        }
+
+        return null;
+    }
+
     private static IReadOnlyList<string> NormalizeCustomBridgeLines(IReadOnlyList<string> lines, Action<string> log)
     {
         var updated = false;
+        var inferredTransports = false;
         var result = new List<string>(lines.Count);
         foreach (var line in lines)
         {
@@ -2535,13 +2569,23 @@ internal sealed class TorBridgeManager
             if (LooksLikeEndpoint(firstToken))
             {
                 var vanilla = NormalizeVanillaBridgeLine(trimmed);
-                if (IsValidVanillaBridgeLine(vanilla))
+                if (!IsValidVanillaBridgeLine(vanilla))
                 {
-                    result.Add(vanilla);
+                    log($"Ignoring invalid bridge line: {trimmed}");
+                    continue;
+                }
+
+                // A transport's own parameters give away a line pasted without its transport name;
+                // as a plain bridge Tor would refuse it for having parameters.
+                var inferred = InferTransportFromParameters(vanilla);
+                if (inferred != null)
+                {
+                    result.Add($"{inferred} {vanilla}");
+                    inferredTransports = true;
                 }
                 else
                 {
-                    log($"Ignoring invalid bridge line: {trimmed}");
+                    result.Add(vanilla);
                 }
                 continue;
             }
@@ -2552,6 +2596,11 @@ internal sealed class TorBridgeManager
         if (updated)
         {
             log("Normalized custom vanilla bridge lines.");
+        }
+
+        if (inferredTransports)
+        {
+            log("Added the missing transport name to custom bridge lines from their parameters (cert= for obfs4, ver= for webtunnel, ice=/fronts= for snowflake).");
         }
 
         return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
