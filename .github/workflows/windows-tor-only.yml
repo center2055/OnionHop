@@ -36,14 +36,19 @@ jobs:
         shell: pwsh
         run: .\download-deps.ps1 -NoPause
 
-      - name: Publish CLI (win-x64, self-contained)
+      # Installed like the installers do: under the user profile, in a folder with a space, with 8.3
+      # names on as on most Windows system drives. Windows Firewall refuses rules that name such a
+      # path in its 8.3 form (#96).
+      - name: Publish CLI (win-x64, self-contained) into a folder with a space
         shell: pwsh
-        run: dotnet publish OnionHop\src\OnionHopV3.Cli\OnionHopV3.Cli.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=false -o publish-cli
+        run: |
+          fsutil 8dot3name set C: 0
+          dotnet publish OnionHop\src\OnionHopV3.Cli\OnionHopV3.Cli.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=false -o "$env:LOCALAPPDATA\Programs\OnionHop CLI"
 
       - name: Tor-only mode on, connect through Tor, off again
         shell: pwsh
         timeout-minutes: 20
-        run: .\.github\scripts\windows-tor-only-test.ps1 -Cli publish-cli\OnionHopV3.Cli.exe
+        run: .\.github\scripts\windows-tor-only-test.ps1 -Cli "$env:LOCALAPPDATA\Programs\OnionHop CLI\OnionHopV3.Cli.exe"
 
       # The tunnel takes over the runner's own traffic too, which can upset the runner itself, so this
       # one may fail without failing the run; read its log.
@@ -51,4 +56,4 @@ jobs:
         shell: pwsh
         timeout-minutes: 20
         continue-on-error: true
-        run: .\.github\scripts\windows-tor-only-tun-test.ps1 -Cli publish-cli\OnionHopV3.Cli.exe
+        run: .\.github\scripts\windows-tor-only-tun-test.ps1 -Cli "$env:LOCALAPPDATA\Programs\OnionHop CLI\OnionHopV3.Cli.exe"

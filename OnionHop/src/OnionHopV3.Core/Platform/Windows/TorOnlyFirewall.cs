@@ -142,7 +142,11 @@ internal static class TorOnlyFirewall
         state.EnabledUtc ??= DateTimeOffset.UtcNow;
         SaveState(state);
 
-        var rules = RunPowerShell(BuildRulesScript(WithShortPaths(programs)));
+        // One rule per program, by its long path. Windows Firewall matches the program file however it
+        // was started, so Tor's transports started through their 8.3 short path (TorBridgeManager, for
+        // a folder with a space) are covered too. Rules naming 8.3 paths are not only unneeded but
+        // refused under the user profile ("The parameter is incorrect", #96). Both tested on a runner.
+        var rules = RunPowerShell(BuildRulesScript(programs));
         if (rules.ExitCode != 0 || !rules.Output.Contains("RULES_ADDED", StringComparison.Ordinal))
         {
             Disable(log);
@@ -445,38 +449,6 @@ internal static class TorOnlyFirewall
             return (-1, ex.Message);
         }
     }
-
-    // Tor starts transports by their 8.3 short path when the long one has a space (TorBridgeManager),
-    // and a firewall program rule matches the path a process was started with, so allow both.
-    private static IReadOnlyList<string> WithShortPaths(IReadOnlyList<string> programs)
-    {
-        var all = new List<string>(programs);
-        foreach (var program in programs.Where(program => program.Contains(' ', StringComparison.Ordinal)))
-        {
-            var shortPath = GetShortPath(program);
-            if (!string.IsNullOrEmpty(shortPath) && !all.Contains(shortPath, StringComparer.OrdinalIgnoreCase))
-            {
-                all.Add(shortPath);
-            }
-        }
-
-        return all;
-    }
-
-    private static string? GetShortPath(string longPath)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-
-        var buffer = new StringBuilder(1024);
-        var length = GetShortPathNameW(longPath, buffer, (uint)buffer.Capacity);
-        return length > 0 && length < buffer.Capacity ? buffer.ToString() : null;
-    }
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern uint GetShortPathNameW(string lpszLongPath, StringBuilder lpszShortPath, uint cchBuffer);
 
     // ----- State -----------------------------------------------------------------------------------
 

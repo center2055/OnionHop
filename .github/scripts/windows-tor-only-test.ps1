@@ -61,6 +61,8 @@ Ok "outbound defaults: $defaults"
 $ours = @(Get-NetFirewallRule -Group $group | ForEach-Object { $_.DisplayName })
 Write-Host ("Tor-only rules:`n  " + ($ours -join "`n  "))
 if (-not ($ours -match 'tor\.exe')) { Fail 'no rule lets tor.exe out' }
+# Rules go by the long path; the 8.3 form is refused under the user profile and not needed (#96).
+if ($ours -match '~') { Fail "a rule names an 8.3 short path: $(($ours -match '~') -join ', ')" }
 if ($ours -match 'snowflake-proxy') { Fail 'the Snowflake volunteer proxy was let out' }
 
 $left = Enabled-Allow-Rules
