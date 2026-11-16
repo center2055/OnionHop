@@ -1082,7 +1082,10 @@ public sealed class OnionHopClient : IDisposable
                         var enabled = await _adminHelper.EnableOnionDnsProxyAsync(_activeDnsBindAddress!, routeAllDns).ConfigureAwait(false);
                         if (!enabled)
                         {
-                            throw new InvalidOperationException("DNS-over-Tor could not be enabled by the privileged helper.");
+                            var reason = _adminHelper.LastFailure;
+                            throw new InvalidOperationException(string.IsNullOrWhiteSpace(reason)
+                                ? "DNS-over-Tor could not be enabled by the privileged helper."
+                                : $"DNS-over-Tor could not be enabled by the privileged helper: {reason}");
                         }
 
                         RaiseLog(routeAllDns

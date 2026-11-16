@@ -25,8 +25,9 @@ internal enum AdminHelperConnectionKind
 
 internal sealed class AdminHelperClient : IDisposable
 {
-    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultCommandTimeout = TimeSpan.FromSeconds(30);
     private PipeStream? _pipe;
+    private string? _lastFailure;
     private StreamReader? _reader;
     private StreamWriter? _writer;
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -40,6 +41,29 @@ internal sealed class AdminHelperClient : IDisposable
     internal static bool PersistentHelperOptIn { get; set; }
 
     public bool IsConnected => _pipe?.IsConnected == true;
+
+    /// <summary>
+    /// Why the last command got no answer from the helper, as a sentence for the user: the
+    /// permission prompt was declined, the helper did not start, or it did not answer in time.
+    /// </summary>
+    public string? LastFailure => _lastFailure;
+
+    /// <summary>
+    /// How long to wait for the helper's answer to a command. Starting the tunnel waits for Windows
+    /// to create the adapter and its routes, with retries (VpnService.StartAsync), and the DNS and
+    /// firewall changes run PowerShell, which takes a while on slow or busy machines. The single
+    /// 30 seconds for everything was too short there: the app gave up on a tunnel that was still
+    /// coming up and reported "Unknown error". Status and log polling keep the short wait.
+    /// </summary>
+    internal static TimeSpan CommandTimeoutFor(string command) => command switch
+    {
+        "StartVpn" => TimeSpan.FromMinutes(2),
+        // Several PowerShell runs in a row (TorOnlyFirewall.Enable), each allowed up to 3 minutes.
+        "EnableTorOnlyMode" or "DisableTorOnlyMode" => TimeSpan.FromMinutes(10),
+        "StopVpn" or "EnableOnionDnsProxy" or "DisableOnionDnsProxy" or "EnableKillSwitch" or "DisableKillSwitch"
+            or "EnsurePersistentHelper" or "RemovePersistentHelper" => TimeSpan.FromSeconds(90),
+        _ => DefaultCommandTimeout
+    };
 
     public async Task<bool> TryConnectWithoutStartAsync()
     {
@@ -123,9 +147,10 @@ internal sealed class AdminHelperClient : IDisposable
                 StartupLogger.Write($"Creating pipe server: {pipeName}");
                 server = CreateServerPipe(pipeName);
 
-                if (!StartHelperProcess(pipeName))
+                if (!StartHelperProcess(pipeName, out var startError))
                 {
                     StartupLogger.Write("Failed to start helper process.");
+                    _lastFailure = startError;
                     server.Dispose();
                     return false;
                 }
@@ -135,6 +160,7 @@ internal sealed class AdminHelperClient : IDisposable
                 if (!connected)
                 {
                     StartupLogger.Write("AdminHelperClient: Timed out waiting for helper to connect.");
+                    _lastFailure = "The administrator helper did not start within 90 seconds.";
                     server.Dispose();
                     return false;
                 }
@@ -197,7 +223,7 @@ internal sealed class AdminHelperClient : IDisposable
         {
             StartupLogger.Write($"TryStartVpnAsync: Response received. Success={response.Success}, Error={response.Error ?? "none"}");
         }
-        return (response?.Success == true, response?.Error);
+        return (response?.Success == true, response == null ? _lastFailure : response.Error);
     }
 
     public async Task<bool> StopVpnAsync()
@@ -253,7 +279,7 @@ internal sealed class AdminHelperClient : IDisposable
             : await SendAsync("DisableTorOnlyMode", null).ConfigureAwait(false);
         if (response == null)
         {
-            return (false, "The administrator helper did not start (the Windows permission prompt may have been declined).");
+            return (false, _lastFailure ?? "The administrator helper did not start (the Windows permission prompt may have been declined).");
         }
 
         return (response.Success, response.Success ? string.Empty : response.Error ?? "The administrator helper reported an error.");
@@ -264,6 +290,11 @@ internal sealed class AdminHelperClient : IDisposable
         var response = await SendAsync(
             "EnableOnionDnsProxy",
             new AdminHelperDnsProxyRequest { NameServerAddress = nameServerAddress, RouteAllDns = routeAllDns }).ConfigureAwait(false);
+        if (response is { Success: false })
+        {
+            _lastFailure = response.Error;
+        }
+
         return response?.Success == true;
     }
 
@@ -596,11 +627,13 @@ internal sealed class AdminHelperClient : IDisposable
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
+            _lastFailure = null;
             if (ensureConnected)
             {
                 if (!await EnsureConnectedAsync().ConfigureAwait(false))
                 {
                     StartupLogger.Write("SendCoreAsync: EnsureConnectedAsync returned false");
+                    _lastFailure ??= "The administrator helper could not be started.";
                     return null;
                 }
             }
@@ -639,9 +672,20 @@ internal sealed class AdminHelperClient : IDisposable
 
             return response;
         }
+        catch (TimeoutException ex)
+        {
+            // The helper may still finish the command. Dropping the connection makes it undo what it
+            // did once it notices (AdminHelperServer.Cleanup on a broken pipe), so a tunnel that
+            // comes up after the app gave up does not stay behind.
+            StartupLogger.Write("AdminHelperClient.SendCoreAsync timed out.", ex);
+            _lastFailure = $"The administrator helper did not answer within {CommandTimeoutFor(command).TotalSeconds:0} seconds.";
+            ResetPipe();
+            return null;
+        }
         catch (Exception ex)
         {
             StartupLogger.Write("AdminHelperClient.SendCoreAsync failed.", ex);
+            _lastFailure = $"The connection to the administrator helper failed: {ex.Message}";
             ResetPipe();
             return null;
         }
@@ -668,11 +712,11 @@ internal sealed class AdminHelperClient : IDisposable
 
         var json = JsonSerializer.Serialize(request, AdminHelperProtocol.JsonOptions);
         StartupLogger.Write($"SendCoreAsync: Sending JSON ({json.Length} chars)...");
-        await _writer.WriteLineAsync(json).WaitAsync(CommandTimeout).ConfigureAwait(false);
-        await _writer.FlushAsync().WaitAsync(CommandTimeout).ConfigureAwait(false);
+        await _writer.WriteLineAsync(json).WaitAsync(DefaultCommandTimeout).ConfigureAwait(false);
+        await _writer.FlushAsync().WaitAsync(DefaultCommandTimeout).ConfigureAwait(false);
         StartupLogger.Write("SendCoreAsync: Waiting for response...");
 
-        var responseLine = await _reader.ReadLineAsync().WaitAsync(CommandTimeout).ConfigureAwait(false);
+        var responseLine = await _reader.ReadLineAsync().WaitAsync(CommandTimeoutFor(command)).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(responseLine))
         {
             StartupLogger.Write("SendCoreAsync: Empty response received");
@@ -787,21 +831,37 @@ internal sealed class AdminHelperClient : IDisposable
         }
     }
 
-    private static bool StartHelperProcess(string pipeName)
+    private static bool StartHelperProcess(string pipeName, out string? error)
     {
+        error = null;
         if (!TryCreateHelperStartInfo(pipeName, out var psi))
         {
+            error = "OnionHop could not find its own program file to start the administrator helper.";
             return false;
         }
 
         try
         {
             StartupLogger.Write($"Starting elevated helper: \"{psi.FileName}\" {psi.Arguments}");
-            return Process.Start(psi) != null;
+            if (Process.Start(psi) != null)
+            {
+                return true;
+            }
+
+            error = "The administrator helper did not start.";
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            // ERROR_CANCELLED: "No" in the Windows permission prompt.
+            StartupLogger.Write("AdminHelperClient.StartHelperProcess: the permission prompt was declined.");
+            error = "The Windows permission prompt was declined, and TUN/VPN mode needs administrator rights.";
+            return false;
         }
         catch (Exception ex)
         {
             StartupLogger.Write("AdminHelperClient.StartHelperProcess failed.", ex);
+            error = $"The administrator helper could not be started: {ex.Message}";
             return false;
         }
     }
