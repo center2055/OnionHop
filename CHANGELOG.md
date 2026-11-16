@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.11.1 (2026-11-16)
+
+Fixes
+- **Tor-only mode turns on in the default install folder (#96).** For a program in a folder with a space, such as the default "OnionHop V3", OnionHop also added a Windows Firewall rule for the program's short 8.3 path, and Windows Firewall refuses those under the user folder ("The parameter is incorrect"). So Tor-only mode could not be turned on. Rules now name only the full path, which also covers Tor's transports when they are started through their short path.
+- **TUN mode waits long enough for the tunnel.** Without administrator rights, OnionHop has a helper start the tunnel and set DNS, and gave each of those steps 30 seconds. On slower or busy computers that was too short: the connect failed with "Unable to start elevated VPN helper: Unknown error" while the tunnel was still coming up. Starting the tunnel now gets 2 minutes and the DNS and kill switch steps 90 seconds, and a failure says why: the permission prompt was declined, the helper did not start, or it did not answer in time.
+- **Custom bridges keep their own transports.** With Bridge source "Custom list" and Bridge type "Automatic", custom bridge lines without a transport name were used as Snowflake bridges in the first attempt. They are now plain bridges, or obfs4, webtunnel or Snowflake bridges when their parameters show it (cert=, ver= or ice=).
+
 ## v3.11 (2026-11-10)
 
 Fixes
