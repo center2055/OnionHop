@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.12 (2026-11-19)
 
 Fixes
 - **Linux: TUN mode works with ufw and firewalld (#97).** With the Mixed and System TUN stacks the tunnel hands connections to the system through its own network interface, and a firewall that drops incoming traffic by default drops them there: names resolved, but nothing loaded. On Linux OnionHop now uses the gVisor stack unless you choose another, which handles connections inside the tunnel and never meets the firewall. A "Mixed" setting saved under the old default is switched once. The command line version takes `--tun-stack gvisor|mixed|system`, and when the tunnel check cannot get through with Mixed or System, the log says what to do.

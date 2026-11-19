@@ -68,7 +68,7 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
 
-> In releases after 3.11.1, the Windows installers and OnionHop's own programs are signed by **Rana GmbH**, the company behind OnionHop. They are built and signed on GitHub's runners by the [Build Windows release](.github/workflows/windows-release.yml) workflow, not on a developer's computer. To check a download, open its Properties and look at Digital Signatures, or run `Get-AuthenticodeSignature .\OnionHop-Setup-v3.exe` in PowerShell: the status is `Valid` and the signer is Rana GmbH. Tor, sing-box, Xray and the transports inside the package are other projects' programs and stay as those projects ship them.
+> Since version 3.12, the Windows installers and OnionHop's own programs are signed by **Rana GmbH**, the company behind OnionHop. They are built and signed on GitHub's runners by the [Build Windows release](.github/workflows/windows-release.yml) workflow, not on a developer's computer. To check a download, open its Properties and look at Digital Signatures, or run `Get-AuthenticodeSignature .\OnionHop-Setup-v3.exe` in PowerShell: the status is `Valid` and the signer is Rana GmbH. Tor, sing-box, Xray and the transports inside the package are other projects' programs and stay as those projects ship them.
 
 ---
 
