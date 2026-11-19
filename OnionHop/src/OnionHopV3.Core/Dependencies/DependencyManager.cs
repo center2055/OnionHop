@@ -30,8 +30,8 @@ internal sealed class DependencyManager
     // fresh install could get a core the generated configs had never been tested against, and
     // sing-box has broken existing configs between minor releases before. When bumping the bundled
     // cores, update the versions and the hashes below together.
-    internal const string SingBoxVersion = "1.13.13";
-    internal const string XrayVersion = "26.3.27";
+    internal const string SingBoxVersion = "1.14.4";
+    internal const string XrayVersion = "26.11.9";
     private const string SingBoxApiUrl = "https://api.github.com/repos/SagerNet/sing-box/releases/tags/v" + SingBoxVersion;
     private const string XrayApiUrl = "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v" + XrayVersion;
 
@@ -39,18 +39,18 @@ internal sealed class DependencyManager
     // Pinned here so the check does not depend on the same API that hands out the download link.
     private static readonly IReadOnlyDictionary<string, string> PinnedCoreSha256 = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["sing-box-1.13.13-windows-amd64.zip"] = "aea1fa983134a2e2d0600581d1178e98bd6bb93ae12ad8c333eaacae68a1694c",
-        ["sing-box-1.13.13-darwin-amd64.tar.gz"] = "477afd64ad7751214f01338ba244265ecc223966ddb58214963f526dca7f424e",
-        ["sing-box-1.13.13-darwin-arm64.tar.gz"] = "4ac414d4ede9ec21bc79d8ccf40b4679429203b9e06ad96d2d8d34c0fe940558",
-        ["sing-box-1.13.13-linux-amd64.tar.gz"] = "bb99cabf47694625db421ee17898f36cdc1f9c2cb5decf65b12bac8d8437e842",
-        ["sing-box-1.13.13-linux-arm64.tar.gz"] = "d7fab87b921933eb281d8ee7bd5377cdd8228089f1f7c807c9363a6a2329286c",
-        ["sing-box-1.13.13-linux-armv7.tar.gz"] = "3df25c595c8a669fb27d6ffae844dbe8bc049d11b181ae39cffc6e3b0a6b0e9f",
-        ["Xray-windows-64.zip"] = "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad",
-        ["Xray-macos-64.zip"] = "f5b0471d3459eff1b82e48af0aeac186abcc3298210070afbbbd8437a4e8b203",
-        ["Xray-macos-arm64-v8a.zip"] = "2e93a67e8aa1936ecefb307e120830fcbd4c643ab9b1c46a2d0838d5f8409eaf",
-        ["Xray-linux-64.zip"] = "23cd9af937744d97776ee35ecad4972cf4b2109d1e0fe6be9930467608f7c8ae",
-        ["Xray-linux-arm64-v8a.zip"] = "4d30283ae614e3057f730f67cd088a42be6fdf91f8639d82cb69e48cde80413c",
-        ["Xray-linux-arm32-v7a.zip"] = "c7265ae13c63ca0241a037df4ef960ad37938c8a67d984cc08834b2cfdf5654b",
+        ["sing-box-1.14.4-windows-amd64.zip"] = "99185d75d314a07dbba4a130c8ad986cbeb629a07927975636b341ca61f991df",
+        ["sing-box-1.14.4-darwin-amd64.tar.gz"] = "eae86b9b033bba50b7c44ab719e4bfac0aca05efd28483390ed3aa510f32db25",
+        ["sing-box-1.14.4-darwin-arm64.tar.gz"] = "0d8c7f5ed5d587b0f1a5e9772a708ec3bfa4ac4c9329604b01d8d9c2ba406838",
+        ["sing-box-1.14.4-linux-amd64.tar.gz"] = "699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968",
+        ["sing-box-1.14.4-linux-arm64.tar.gz"] = "436441f76ee2f7fe21b5b2d426d3cb261a480455a704865789ad533e4273ec26",
+        ["sing-box-1.14.4-linux-armv7.tar.gz"] = "fd164ed45ebc784f657a3e1d0e0ad0f68afdcff864ee57122c2cfed3ddb80a00",
+        ["Xray-windows-64.zip"] = "1262522266337b824f07beb8e1375786b437683b3890105469088f8e17e0a69d",
+        ["Xray-macos-64.zip"] = "488963e676e06f5e48547f9dd38116aaca8de4234959b4272ae8f284e658dfd0",
+        ["Xray-macos-arm64-v8a.zip"] = "233f0c66681cd0726f81a6b2b6ed6a5710869e312047b522e46ed53035bebd26",
+        ["Xray-linux-64.zip"] = "b651f7e1d9966ee2c1b1ee1bf8b52c72771824d3065dce96bbc8bcc19ed95f82",
+        ["Xray-linux-arm64-v8a.zip"] = "64ed6858982a7f5eb85d88b811089063bd4f17561f4c8f44e0f1dc8e6f6430be",
+        ["Xray-linux-arm32-v7a.zip"] = "19c51e08a6562705fb1cb032a84fd87df21d7e27b194f035be7e754dbe3a97b3",
     };
 
     private const string WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip";

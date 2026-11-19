@@ -53,24 +53,24 @@ PT_DIR="$TOR_DIR/pluggable_transports"
 TEMP_DIR="$REPO_ROOT/temp_deps_linux"
 
 # Versions
-# Tor Browser's expert bundle, the same release on every platform: 15.0.26 ships tor 0.4.9.14 and
-# lyrebird 0.8.1. A Tor Browser version says nothing about the tor inside it (15.0.14 still had 0.4.9.8),
+# Tor Browser's expert bundle, the same release on every platform: 16.0.1 ships tor 0.4.9.16 and
+# lyrebird 0.10.0. A Tor Browser version says nothing about the tor inside it (15.0.14 still had 0.4.9.8),
 # so check the bundle's tor --version when moving this.
-TOR_VERSION="15.0.26"
-WEBTUNNEL_VERSION="v0.0.3"
+TOR_VERSION="16.0.1"
+WEBTUNNEL_VERSION="v0.0.7"
 # sing-box and Xray stay on the versions OnionHop's configs are tested against
 # (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s.
-SING_BOX_VERSION="1.13.13"
-XRAY_VERSION="v26.3.27"
+SING_BOX_VERSION="1.14.4"
+XRAY_VERSION="v26.11.9"
 SING_BOX_URL="https://github.com/SagerNet/sing-box/releases/download/v$SING_BOX_VERSION/sing-box-$SING_BOX_VERSION-linux-$SING_BOX_ARCH.tar.gz"
 XRAY_URL="https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-linux-$XRAY_ARCH.zip"
 CORE_SHA256="
-sing-box-1.13.13-linux-amd64.tar.gz bb99cabf47694625db421ee17898f36cdc1f9c2cb5decf65b12bac8d8437e842
-sing-box-1.13.13-linux-arm64.tar.gz d7fab87b921933eb281d8ee7bd5377cdd8228089f1f7c807c9363a6a2329286c
-sing-box-1.13.13-linux-armv7.tar.gz 3df25c595c8a669fb27d6ffae844dbe8bc049d11b181ae39cffc6e3b0a6b0e9f
-Xray-linux-64.zip 23cd9af937744d97776ee35ecad4972cf4b2109d1e0fe6be9930467608f7c8ae
-Xray-linux-arm64-v8a.zip 4d30283ae614e3057f730f67cd088a42be6fdf91f8639d82cb69e48cde80413c
-Xray-linux-arm32-v7a.zip c7265ae13c63ca0241a037df4ef960ad37938c8a67d984cc08834b2cfdf5654b
+sing-box-1.14.4-linux-amd64.tar.gz 699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968
+sing-box-1.14.4-linux-arm64.tar.gz 436441f76ee2f7fe21b5b2d426d3cb261a480455a704865789ad533e4273ec26
+sing-box-1.14.4-linux-armv7.tar.gz fd164ed45ebc784f657a3e1d0e0ad0f68afdcff864ee57122c2cfed3ddb80a00
+Xray-linux-64.zip b651f7e1d9966ee2c1b1ee1bf8b52c72771824d3065dce96bbc8bcc19ed95f82
+Xray-linux-arm64-v8a.zip 64ed6858982a7f5eb85d88b811089063bd4f17561f4c8f44e0f1dc8e6f6430be
+Xray-linux-arm32-v7a.zip 19c51e08a6562705fb1cb032a84fd87df21d7e27b194f035be7e754dbe3a97b3
 "
 ARTI_HOP_REPO_URL="https://github.com/center2055/ArtiHop.git"
 SNOWFLAKE_PROXY_PACKAGE="gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
@@ -78,16 +78,16 @@ PT_GITLAB="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transport
 
 # Built from source for ARM. Tor and its libraries are pinned to these hashes. Tor, lyrebird and
 # conjure match what expert bundle $TOR_VERSION ships for x64.
-TOR_SRC_VERSION="0.4.9.14"
-TOR_SRC_SHA256="182449ac1c8ff43278da27b69b02040e11d03d0327db6d9126e4190ec6235e4a"
+TOR_SRC_VERSION="0.4.9.16"
+TOR_SRC_SHA256="6180e193152f4525bdca5475168419b2a2035b963c3c60162a187f86e6160e48"
 OPENSSL_VERSION="3.5.9"
 OPENSSL_SHA256="603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a"
-LIBEVENT_VERSION="2.1.12-stable"
-LIBEVENT_SHA256="92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb"
-ZLIB_VERSION="1.3.2"
-ZLIB_SHA256="bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16"
-LYREBIRD_TAG="lyrebird-0.8.1"
-CONJURE_COMMIT="0090962226b82aa4a8fc38506f9b98de67d0781e"
+LIBEVENT_VERSION="2.1.13-stable"
+LIBEVENT_SHA256="f7e9383b8c0baa81b687e5b5eecc01beefaf1b19b64151d95ed61647fe7a315c"
+ZLIB_VERSION="1.4"
+ZLIB_SHA256="02dd159783677a749c04adbdd02b55b8a2bcc7e054f51b76b549199a916ad584"
+LYREBIRD_TAG="0.10.0"
+CONJURE_COMMIT="14e660f0a64bcbb2b55f01f69c1aafdfd5a6dcfa"
 
 mkdir -p "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR" "$PT_DIR" "$TEMP_DIR"
 

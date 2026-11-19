@@ -509,6 +509,10 @@ public sealed class VpnConfigBuilderTests
             Assert.Equal("remote", rs.GetProperty("type").GetString());
             Assert.Equal("7d", rs.GetProperty("update_interval").GetString());
             Assert.Contains("sing-geoip", rs.GetProperty("url").GetString());
+            // Downloaded straight out, in sing-box 1.14's form: "download_detour" is deprecated there
+            // and gone in 1.16.
+            Assert.Equal("direct", rs.GetProperty("http_client").GetProperty("detour").GetString());
+            Assert.False(rs.TryGetProperty("download_detour", out _));
         }
 
         bool block = false, bypass = false;

@@ -9,27 +9,27 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
 
 # Configuration
-# The same Tor Browser expert bundle as download-deps.sh (tor 0.4.9.14). "latest" put whatever Tor
+# The same Tor Browser expert bundle as download-deps.sh (tor 0.4.9.16). "latest" put whatever Tor
 # Browser had just released into the portable build, untested; pass -TorVersion latest to get it anyway.
 if ([string]::IsNullOrWhiteSpace($TorVersion)) {
-    $TorVersion = "15.0.26"
+    $TorVersion = "16.0.1"
 }
-$TorFallbackVersion = "15.0.5"
+$TorFallbackVersion = "15.0.26"
 $TorBaseUrl = "https://dist.torproject.org/torbrowser"
 $TorArchiveBaseUrl = "https://archive.torproject.org/tor-package-archive/torbrowser"
 # sing-box and Xray stay on the versions OnionHop's configs are tested against
 # (DependencyManager.SingBoxVersion / XrayVersion), checked against the same SHA-256s. Taking
 # "latest" put a sing-box the configs were never tested with into the portable build.
-$SingBoxVersion = "1.13.13"
-$XrayVersion = "v26.3.27"
+$SingBoxVersion = "1.14.4"
+$XrayVersion = "v26.11.9"
 $CoreSha256 = @{
-    "sing-box-1.13.13-windows-amd64.zip" = "aea1fa983134a2e2d0600581d1178e98bd6bb93ae12ad8c333eaacae68a1694c"
-    "Xray-windows-64.zip" = "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad"
+    "sing-box-1.14.4-windows-amd64.zip" = "99185d75d314a07dbba4a130c8ad986cbeb629a07927975636b341ca61f991df"
+    "Xray-windows-64.zip" = "1262522266337b824f07beb8e1375786b437683b3890105469088f8e17e0a69d"
 }
 $WintunUrl = "https://www.wintun.net/builds/wintun-0.14.1.zip"
 # Known SHA256 checksum for Wintun 0.14.1
 $WintunExpectedHash = "07C256185D6EE3652E09FA55C0B673E2624B565E02C4B9091C79CA7D2F24EF51"
-$WebTunnelVersion = "v0.0.3"
+$WebTunnelVersion = "v0.0.7"
 $WebTunnelSourceUrl = "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel/-/archive/$WebTunnelVersion/webtunnel-$WebTunnelVersion.tar.gz"
 
 $RepoRoot = $PSScriptRoot

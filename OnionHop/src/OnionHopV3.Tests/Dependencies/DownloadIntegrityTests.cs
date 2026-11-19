@@ -79,17 +79,17 @@ public sealed class DownloadIntegrityTests
     {
         // The pinned value must not be replaceable by the same API that serves the download link.
         Assert.Equal(
-            "aea1fa983134a2e2d0600581d1178e98bd6bb93ae12ad8c333eaacae68a1694c",
-            DependencyManager.ExpectedCoreSha256("sing-box-1.13.13-windows-amd64.zip", "sha256:" + Hex));
+            "99185d75d314a07dbba4a130c8ad986cbeb629a07927975636b341ca61f991df",
+            DependencyManager.ExpectedCoreSha256("sing-box-1.14.4-windows-amd64.zip", "sha256:" + Hex));
     }
 
     [Theory]
-    [InlineData("sing-box-1.13.13-windows-amd64.zip")]
-    [InlineData("sing-box-1.13.13-darwin-amd64.tar.gz")]
-    [InlineData("sing-box-1.13.13-darwin-arm64.tar.gz")]
-    [InlineData("sing-box-1.13.13-linux-amd64.tar.gz")]
-    [InlineData("sing-box-1.13.13-linux-arm64.tar.gz")]
-    [InlineData("sing-box-1.13.13-linux-armv7.tar.gz")]
+    [InlineData("sing-box-1.14.4-windows-amd64.zip")]
+    [InlineData("sing-box-1.14.4-darwin-amd64.tar.gz")]
+    [InlineData("sing-box-1.14.4-darwin-arm64.tar.gz")]
+    [InlineData("sing-box-1.14.4-linux-amd64.tar.gz")]
+    [InlineData("sing-box-1.14.4-linux-arm64.tar.gz")]
+    [InlineData("sing-box-1.14.4-linux-armv7.tar.gz")]
     [InlineData("Xray-windows-64.zip")]
     [InlineData("Xray-macos-64.zip")]
     [InlineData("Xray-macos-arm64-v8a.zip")]
@@ -116,7 +116,7 @@ public sealed class DownloadIntegrityTests
         // Ties the asset names to the table: a platform that picks a name with no pinned hash would
         // fail every download whose release digest is missing.
         Assert.NotNull(DependencyManager.ExpectedCoreSha256(
-            "sing-box-1.13.13-" + PlatformHelper.SingBoxAssetFilterFor(windows, mac, architecture), null));
+            "sing-box-1.14.4-" + PlatformHelper.SingBoxAssetFilterFor(windows, mac, architecture), null));
         Assert.NotNull(DependencyManager.ExpectedCoreSha256(
             PlatformHelper.XrayAssetNameFor(windows, mac, architecture), null));
     }

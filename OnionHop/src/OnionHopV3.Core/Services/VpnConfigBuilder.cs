@@ -472,7 +472,7 @@ internal static class VpnConfigBuilder
                     ["tag"] = tag,
                     ["format"] = "binary",
                     ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-" + cc + ".srs",
-                    ["download_detour"] = "direct",
+                    ["http_client"] = RuleSetHttpClient(),
                     ["update_interval"] = "7d"
                 });
         }
@@ -496,6 +496,17 @@ internal static class VpnConfigBuilder
 
     // Accepts ISO 3166-1 alpha-2 country codes (case-insensitive), one per token. Invalid tokens are
     // dropped and duplicates collapsed. Lowercased to match the sing-geoip file names (geoip-ir.srs).
+    /// <summary>
+    /// How a remote rule-set is downloaded: straight out, not through Tor, since the files are public
+    /// lists on GitHub and the tunnel is not up yet when the core first needs them. sing-box 1.14
+    /// replaced the rule-set's "download_detour" with this "http_client" (the old option goes away in
+    /// 1.16), and older cores reject it, so this goes with DependencyManager.SingBoxVersion.
+    /// </summary>
+    private static Dictionary<string, object?> RuleSetHttpClient() => new()
+    {
+        ["detour"] = "direct"
+    };
+
     internal static List<string> NormalizeCountryCodes(IReadOnlyList<string>? entries)
     {
         var result = new List<string>();
@@ -563,7 +574,7 @@ internal static class VpnConfigBuilder
                     ["tag"] = tag,
                     ["format"] = "binary",
                     ["url"] = "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-" + cat + ".srs",
-                    ["download_detour"] = "direct",
+                    ["http_client"] = RuleSetHttpClient(),
                     ["update_interval"] = "7d"
                 });
         }
