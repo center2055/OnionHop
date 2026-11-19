@@ -8,7 +8,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
+using OnionHopV3.App.Services;
 
 namespace OnionHopV3.App.Views;
 
@@ -46,12 +48,15 @@ public partial class MainWindow : Window
             UpdateMaximizeGlyph();
         }
 
+        RestorePlacement();
+
         Initialized += (_, _) => ApplyWindowChrome();
         Opened += (_, _) =>
         {
             ApplyWindowChrome();
             UpdateMaximizeGlyph();
             FitToScreenWorkingArea();
+            StartTrackingPlacement();
         };
         ActualThemeVariantChanged += (_, _) => ApplyWindowChrome();
 
@@ -151,6 +156,136 @@ public partial class MainWindow : Window
         if (change.Property == WindowStateProperty)
         {
             UpdateMaximizeGlyph();
+        }
+
+        if (change.Property == WindowStateProperty || change.Property == ClientSizeProperty)
+        {
+            SchedulePlacementSave();
+        }
+    }
+
+    // ----- Position and size between runs ------------------------------------------------------
+    // The window used to open centered at its default size every time. Its position, size and
+    // maximized state are now kept in window.json (WindowPlacementStore).
+
+    private WindowPlacement? _normalPlacement;
+    private WindowPlacement? _savedPlacement;
+    private bool _maximizedPlacement;
+    private bool _trackingPlacement;
+    private DispatcherTimer? _placementTimer;
+
+    private void RestorePlacement()
+    {
+        try
+        {
+            if (WindowPlacementStore.Load() is not { } saved)
+            {
+                return;
+            }
+
+            var screens = Screens.All
+                .Select(s => new ScreenArea(s.WorkingArea.X, s.WorkingArea.Y, s.WorkingArea.Width, s.WorkingArea.Height, s.Scaling))
+                .ToList();
+            var placement = WindowPlacementStore.Resolve(saved, screens, MinWidth, MinHeight);
+
+            Width = placement.Width;
+            Height = placement.Height;
+            if (placement is { X: { } x, Y: { } y })
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Position = new PixelPoint(x, y);
+                // The normal window to go back to when it opens maximized and is un-maximized later.
+                _normalPlacement = new WindowPlacement(x, y, placement.Width, placement.Height, false);
+            }
+
+            _maximizedPlacement = placement.Maximized;
+            if (placement.Maximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+        }
+        catch
+        {
+            // Opens centered at the default size, as before.
+        }
+    }
+
+    private void StartTrackingPlacement()
+    {
+        if (_trackingPlacement)
+        {
+            return;
+        }
+
+        _trackingPlacement = true;
+        _savedPlacement = WindowPlacementStore.Load();
+        PositionChanged += (_, _) => SchedulePlacementSave();
+        // Close also means "hide to the tray"; either way the window is still in place here.
+        Closing += (_, _) => SavePlacementNow();
+    }
+
+    // Saved shortly after the last move or resize rather than only on exit: an update's installer
+    // or a shutdown ends the app without asking it.
+    private void SchedulePlacementSave()
+    {
+        if (!_trackingPlacement)
+        {
+            return;
+        }
+
+        _placementTimer ??= CreatePlacementTimer();
+        _placementTimer.Stop();
+        _placementTimer.Start();
+    }
+
+    private DispatcherTimer CreatePlacementTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+        timer.Tick += (_, _) => SavePlacementNow();
+        return timer;
+    }
+
+    private void SavePlacementNow()
+    {
+        _placementTimer?.Stop();
+        if (!_trackingPlacement)
+        {
+            return;
+        }
+
+        try
+        {
+            // Only the normal window has a position and size worth keeping: maximized it fills the
+            // screen, and minimized Windows reports it far off screen.
+            if (WindowState == WindowState.Normal && IsVisible)
+            {
+                _normalPlacement = new WindowPlacement(Position.X, Position.Y, ClientSize.Width, ClientSize.Height, false);
+            }
+
+            if (WindowState == WindowState.Maximized)
+            {
+                _maximizedPlacement = true;
+            }
+            else if (WindowState == WindowState.Normal)
+            {
+                _maximizedPlacement = false;
+            }
+
+            if (_normalPlacement is not { } normal)
+            {
+                return;
+            }
+
+            var placement = normal with { Maximized = _maximizedPlacement };
+            if (placement != _savedPlacement)
+            {
+                _savedPlacement = placement;
+                WindowPlacementStore.Save(placement);
+            }
+        }
+        catch
+        {
+            // The window opens where it was saved last, or centered.
         }
     }
 
