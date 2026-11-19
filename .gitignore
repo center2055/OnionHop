@@ -77,6 +77,7 @@ OnionHop/tor/geoip
 OnionHop/tor/geoip6
 OnionHop/tor/pluggable_transports/*.exe
 OnionHop/vpn/sing-box.exe
+OnionHop/vpn/xray.exe
 OnionHop/vpn/wintun.dll
 
 # ArtiHop engine binary — built from github.com/center2055/ArtiHop at build time.
