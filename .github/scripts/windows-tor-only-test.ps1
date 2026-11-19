@@ -84,8 +84,15 @@ Get-Content $log -Tail 15 | Out-Host
 if (-not $connected) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue; Fail 'the CLI did not connect in Tor-only mode' }
 Ok 'connected in Tor-only mode'
 
-$viaTor = & curl.exe --silent --show-error --max-time 60 --socks5-hostname 127.0.0.1:9050 https://check.torproject.org/api/ip 2>&1
-Write-Host "through the SOCKS port: $viaTor"
+# A few tries: one request can land on an exit that resets it (curl 35), which says nothing about
+# the firewall. Tor moves a failed stream to another circuit.
+$viaTor = ''
+for ($try = 1; $try -le 4; $try++) {
+    $viaTor = & curl.exe --silent --show-error --max-time 60 --socks5-hostname 127.0.0.1:9050 https://check.torproject.org/api/ip 2>&1
+    Write-Host "through the SOCKS port (try $try): $viaTor"
+    if ("$viaTor" -match '"IsTor":\s*true') { break }
+    Start-Sleep -Seconds 5
+}
 Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
 if ("$viaTor" -notmatch '"IsTor":\s*true') { Fail 'Tor did not carry traffic in Tor-only mode' }
 Ok 'traffic through Tor works in Tor-only mode'
