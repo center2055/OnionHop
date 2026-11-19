@@ -445,7 +445,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _preferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
     [ObservableProperty] private bool _allowLanProxyAccess;
     [ObservableProperty] private string _tunCoreMode = TunCoreSingBox;
-    [ObservableProperty] private string _tunStackMode = TunStackMixed;
+    [ObservableProperty] private string _tunStackMode = OnionHopConnectOptions.DefaultTunStackMode;
     [ObservableProperty] private string _tunMtu = string.Empty;
     [ObservableProperty] private bool _tunStrictRoute = true;
     [ObservableProperty] private bool _tunDisableIpv6;
@@ -2278,7 +2278,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             PreferredHttpPort = OnionHopConnectOptions.DefaultHttpPort.ToString();
             AllowLanProxyAccess = false;
             TunCoreMode = TunCoreSingBox;
-            TunStackMode = IsMacOS ? TunStackSystem : TunStackMixed;
+            TunStackMode = IsMacOS ? TunStackSystem : OnionHopConnectOptions.DefaultTunStackMode;
             TunMtu = string.Empty;
             TunStrictRoute = true;
             TunDisableIpv6 = false;
@@ -2808,6 +2808,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             {
                 TunStackMode = TunStackSystem;
             }
+            else if (IsOldLinuxTunStackDefault(settings.TunStackDefaultsVersion, TunStackMode, IsLinux))
+            {
+                TunStackMode = TunStackGvisor;
+            }
             TunMtu = settings.TunMtu is >= 576 and <= 9000
                 ? settings.TunMtu.Value.ToString(CultureInfo.InvariantCulture)
                 : string.Empty;
@@ -2991,6 +2995,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             AllowLanProxyAccess = AllowLanProxyAccess,
             TunCoreMode = TunCoreMode,
             TunStackMode = IsMacOS ? TunStackSystem : TunStackMode,
+            TunStackDefaultsVersion = CurrentTunStackDefaultsVersion,
             TunMtu = ParseTunMtu(TunMtu),
             TunStrictRoute = TunStrictRoute,
             TunDisableIpv6 = TunDisableIpv6,
@@ -3119,6 +3124,7 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
         RefreshProxyScopeOptions();
         RefreshTunCoreOptions();
         RefreshTunStackOptions();
+        OnPropertyChanged(nameof(TunStackHint));
 
         RefreshLocationOptions();
 
@@ -3472,9 +3478,10 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
     {
         return mode switch
         {
-            TunStackMixed => LocalizationService.Get("TunStack.Mixed"),
+            // "Recommended" goes with the platform's default: gVisor on Linux, Mixed elsewhere.
+            TunStackMixed => LocalizationService.Get(OperatingSystem.IsLinux() ? "TunStack.MixedPlain" : "TunStack.Mixed"),
             TunStackSystem => LocalizationService.Get("TunStack.System"),
-            TunStackGvisor => LocalizationService.Get("TunStack.Gvisor"),
+            TunStackGvisor => LocalizationService.Get(OperatingSystem.IsLinux() ? "TunStack.GvisorRecommended" : "TunStack.Gvisor"),
             _ => mode
         };
     }
@@ -3564,8 +3571,29 @@ public sealed partial class AppStateViewModel : ViewModelBase, IDisposable
             return TunStackGvisor;
         }
 
-        return TunStackMixed;
+        if (string.Equals(mode, TunStackMixed, StringComparison.OrdinalIgnoreCase))
+        {
+            return TunStackMixed;
+        }
+
+        // Never chosen: the platform's default, which is gVisor on Linux (#97).
+        return OnionHopConnectOptions.DefaultTunStackMode;
     }
+
+    private const int CurrentTunStackDefaultsVersion = 1;
+
+    /// <summary>
+    /// Linux's default stack became gVisor (#97), and settings saved before that carry "Mixed" for
+    /// everyone, chosen or not. Such a "Mixed" is switched once; after that the saved settings carry
+    /// the new defaults version, and a "Mixed" picked again is the user's choice and stays.
+    /// </summary>
+    internal static bool IsOldLinuxTunStackDefault(int? savedDefaultsVersion, string stackMode, bool linux) =>
+        linux
+        && (savedDefaultsVersion ?? 0) < CurrentTunStackDefaultsVersion
+        && string.Equals(stackMode, TunStackMixed, StringComparison.Ordinal);
+
+    /// <summary>The TUN stack setting's description: on Linux it is about firewalls (#97).</summary>
+    public string TunStackHint => LocalizationService.Get(IsLinux ? "Settings.TunStackHintLinux" : "Settings.TunStackHint");
 
     private static string NormalizeThemeMode(string? mode)
     {

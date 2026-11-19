@@ -1981,6 +1981,32 @@ public sealed class OnionHopClient : IDisposable
     /// deliberately not in the tunnel's direct list, and nothing excludes it by user id), which is
     /// what makes a "leaking" verdict trustworthy.
     /// </summary>
+    private int _linuxFirewallHintLogged;
+
+    /// <summary>
+    /// On Linux the Mixed and System stacks hand TCP to the kernel through the tunnel interface, and
+    /// a firewall that denies incoming traffic by default (ufw, firewalld) drops it there: DNS still
+    /// resolves, but no connection gets through, and the tunnel check times out (#97). Say so once
+    /// per connect when the check cannot get through with one of those stacks.
+    /// </summary>
+    private void LogLinuxFirewallHintOnce(OnionHopConnectOptions options)
+    {
+        if (!TunStackNeedsFirewallRule(OperatingSystem.IsLinux(), options.TunCoreMode, options.TunStackMode)
+            || Interlocked.Exchange(ref _linuxFirewallHintLogged, 1) == 1)
+        {
+            return;
+        }
+
+        RaiseLog("If nothing loads in TUN mode: with the Mixed or System TUN stack, a firewall such as ufw or firewalld " +
+                 "drops the tunnel's connections. Set the TUN stack to gVisor (Settings, or --tun-stack gvisor), " +
+                 "or allow incoming traffic on the tunnel interface, e.g. `sudo ufw allow in on OnionHop`.");
+    }
+
+    internal static bool TunStackNeedsFirewallRule(bool linux, string? tunCoreMode, string? tunStackMode) =>
+        linux
+        && !string.Equals(tunCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.OrdinalIgnoreCase)
+        && TorLogHelper.NormalizeTunStackModeForSingBox(tunStackMode, linux) != "gvisor";
+
     private async Task VerifyTunnelCarriesTrafficAsync(bool force)
     {
         var options = _activeOptions;
@@ -2041,12 +2067,18 @@ public sealed class OnionHopClient : IDisposable
                         ? "Tunnel check skipped: OnionHop had not seen this computer's own IP before connecting, so there is nothing to compare against."
                         : "Tunnel check could not complete (the lookup failed). It will retry."
                 });
+                if (verdict == TunnelCheckState.Unverifiable && !explainedByRules && _lastKnownDirectIp != null)
+                {
+                    LogLinuxFirewallHintOnce(options);
+                }
+
                 PublishStatus();
             }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             RaiseLog($"Tunnel check failed to run: {ex.Message}");
+            LogLinuxFirewallHintOnce(options);
         }
         finally
         {
@@ -2967,6 +2999,7 @@ public sealed class OnionHopClient : IDisposable
             // A new session gets a fresh verdict, checked as soon as it is up.
             _tunnelCheck = TunnelCheckState.NotApplicable;
             _lastTunnelCheckUtc = DateTime.MinValue;
+            Interlocked.Exchange(ref _linuxFirewallHintLogged, 0);
             _connectionStatus = "Disconnected";
             _connectionProgress = 0;
             _activeSocksPort = DefaultSocksPort;
@@ -3855,7 +3888,7 @@ public sealed class OnionHopClient : IDisposable
         _activeVpnCoreMode = tunCoreMode;
         _singBoxLogProcessor.SetSourceLabel(tunCoreMode);
         if (string.Equals(tunCoreMode, OnionHopConnectOptions.TunCoreXray, StringComparison.Ordinal) &&
-            (!string.Equals(options.TunStackMode, OnionHopConnectOptions.TunStackMixed, StringComparison.OrdinalIgnoreCase) || !options.TunStrictRoute))
+            (!string.Equals(options.TunStackMode, OnionHopConnectOptions.DefaultTunStackMode, StringComparison.OrdinalIgnoreCase) || !options.TunStrictRoute))
         {
             RaiseLog("xray currently ignores TUN stack and strict-route tuning; using xray defaults.");
         }

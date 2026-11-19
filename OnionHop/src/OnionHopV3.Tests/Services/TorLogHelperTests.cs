@@ -232,7 +232,34 @@ public sealed class TorLogHelperTests
     [InlineData("invalid", "mixed")]
     public void NormalizeTunStackModeForSingBox_ParsesCorrectly(string? mode, string expected)
     {
-        Assert.Equal(expected, TorLogHelper.NormalizeTunStackModeForSingBox(mode));
+        Assert.Equal(expected, TorLogHelper.NormalizeTunStackModeForSingBox(mode, linux: false));
+    }
+
+    // On Linux, Mixed and System hand TCP to the kernel through the tunnel interface, where ufw and
+    // firewalld drop it as incoming traffic (#97). So gVisor is what Linux gets unless a stack is chosen.
+    [Theory]
+    [InlineData(null, "gvisor")]
+    [InlineData("invalid", "gvisor")]
+    [InlineData("gVisor", "gvisor")]
+    [InlineData("Mixed (recommended)", "mixed")]
+    [InlineData("System", "system")]
+    public void On_Linux_the_tunnel_stack_is_gVisor_unless_one_is_chosen(string? mode, string expected)
+    {
+        Assert.Equal(expected, TorLogHelper.NormalizeTunStackModeForSingBox(mode, linux: true));
+        Assert.Equal(OnionHopV3.Core.OnionHopConnectOptions.TunStackGvisor, OnionHopV3.Core.OnionHopConnectOptions.DefaultTunStackModeFor(linux: true));
+        Assert.Equal(OnionHopV3.Core.OnionHopConnectOptions.TunStackMixed, OnionHopV3.Core.OnionHopConnectOptions.DefaultTunStackModeFor(linux: false));
+    }
+
+    [Theory]
+    [InlineData(true, "sing-box", "Mixed (recommended)", true)]
+    [InlineData(true, "sing-box", "System", true)]
+    [InlineData(true, "sing-box", "gVisor", false)]
+    [InlineData(true, "sing-box", null, false)]
+    [InlineData(true, "xray", "Mixed (recommended)", false)]
+    [InlineData(false, "sing-box", "Mixed (recommended)", false)]
+    public void Only_the_kernel_stacks_on_Linux_get_the_firewall_hint(bool linux, string core, string? stack, bool expected)
+    {
+        Assert.Equal(expected, OnionHopV3.Core.OnionHopClient.TunStackNeedsFirewallRule(linux, core, stack));
     }
 
     [Fact]

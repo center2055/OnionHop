@@ -317,6 +317,9 @@
   <x:String x:Key="TunStack.Mixed">تێکەڵ (پێشنیازکراو)</x:String>
   <x:String x:Key="TunStack.System">سیستەم</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunStack.MixedPlain">تێکەڵ</x:String>
+  <x:String x:Key="TunStack.GvisorRecommended">gVisor (پێشنیازکراو)</x:String>
+  <x:String x:Key="Settings.TunStackHintLinux">شێوازی مامەڵەکردنی تونێل لەگەڵ ترافیک. gVisor لەگەڵ فایەروۆڵەکانی وەک ufw و firewalld کار دەکات. Mixed و System لەوانەیە کەمێک خێراتر بن، بەڵام ئەو کاتە دەبێت فایەروۆڵ ڕێگە بە ترافیکی هاتوو لەسەر ئینتەرفەیسی OnionHop بدات.</x:String>
   <x:String x:Key="TunCore.SingBox">sing-box (پێشنیازکراو)</x:String>
   <x:String x:Key="TunCore.Xray">xray (تاقیکاری)</x:String>
 

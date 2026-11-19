@@ -317,6 +317,9 @@
   <x:String x:Key="TunStack.Mixed">Смешанный (рекомендуется)</x:String>
   <x:String x:Key="TunStack.System">Системный</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunStack.MixedPlain">Смешанный</x:String>
+  <x:String x:Key="TunStack.GvisorRecommended">gVisor (рекомендуется)</x:String>
+  <x:String x:Key="Settings.TunStackHintLinux">Как туннель обрабатывает трафик. gVisor работает с брандмауэрами вроде ufw и firewalld. Mixed и System могут быть немного быстрее, но тогда брандмауэр должен разрешать входящий трафик на интерфейсе OnionHop.</x:String>
   <x:String x:Key="TunCore.SingBox">sing-box (рекомендуется)</x:String>
   <x:String x:Key="TunCore.Xray">xray (экспериментально)</x:String>
 

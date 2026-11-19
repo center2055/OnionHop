@@ -265,7 +265,11 @@ internal static class TorLogHelper
         return null;
     }
 
-    internal static string NormalizeTunStackModeForSingBox(string? mode)
+    internal static string NormalizeTunStackModeForSingBox(string? mode) =>
+        NormalizeTunStackModeForSingBox(mode, OperatingSystem.IsLinux());
+
+    // Anything that is not one of the three stacks means "not chosen": the platform's default.
+    internal static string NormalizeTunStackModeForSingBox(string? mode, bool linux)
     {
         if (string.Equals(mode, OnionHopConnectOptions.TunStackSystem, StringComparison.OrdinalIgnoreCase))
         {
@@ -277,7 +281,12 @@ internal static class TorLogHelper
             return "gvisor";
         }
 
-        return "mixed";
+        if (string.Equals(mode, OnionHopConnectOptions.TunStackMixed, StringComparison.OrdinalIgnoreCase))
+        {
+            return "mixed";
+        }
+
+        return linux ? "gvisor" : "mixed";
     }
 
     internal static IReadOnlyList<string> LimitBridgeLinesForLaunch(IReadOnlyList<string> bridgeLines, int maxLines, int maxChars, Action<string> log)

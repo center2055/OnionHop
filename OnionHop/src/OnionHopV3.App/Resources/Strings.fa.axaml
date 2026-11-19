@@ -317,6 +317,9 @@
   <x:String x:Key="TunStack.Mixed">ترکیبی (توصیه‌شده)</x:String>
   <x:String x:Key="TunStack.System">سیستم</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunStack.MixedPlain">ترکیبی</x:String>
+  <x:String x:Key="TunStack.GvisorRecommended">gVisor (توصیه‌شده)</x:String>
+  <x:String x:Key="Settings.TunStackHintLinux">روشی که تونل ترافیک را پردازش می‌کند. gVisor با فایروال‌هایی مانند ufw و firewalld کار می‌کند. Mixed و System ممکن است کمی سریع‌تر باشند، اما در آن صورت فایروال باید ترافیک ورودی روی رابط OnionHop را مجاز کند.</x:String>
   <x:String x:Key="TunCore.SingBox">sing-box (توصیه‌شده)</x:String>
   <x:String x:Key="TunCore.Xray">xray (آزمایشی)</x:String>
 

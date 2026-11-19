@@ -55,6 +55,9 @@ public sealed class UserSettings
     public bool AllowLanProxyAccess { get; set; }
     public string? TunCoreMode { get; set; }
     public string? TunStackMode { get; set; }
+    // 1 once the Linux default of gVisor (#97) has been applied: a "Mixed" saved before that was
+    // the old default, not a choice, and is switched once. One saved afterwards is a choice.
+    public int? TunStackDefaultsVersion { get; set; }
     public int? TunMtu { get; set; }
     public bool? TunStrictRoute { get; set; }
     public bool? TunDisableIpv6 { get; set; }

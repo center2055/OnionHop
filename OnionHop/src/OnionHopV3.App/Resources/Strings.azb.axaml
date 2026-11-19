@@ -317,6 +317,9 @@
   <x:String x:Key="TunStack.Mixed">قاریشیق (توصیه‌ اولونور)</x:String>
   <x:String x:Key="TunStack.System">سیستم</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunStack.MixedPlain">قاریشیق</x:String>
+  <x:String x:Key="TunStack.GvisorRecommended">gVisor (توصیه‌ اولونور)</x:String>
+  <x:String x:Key="Settings.TunStackHintLinux">تونلین ترافیکی نئجه ایشلتدیگی. gVisor ufw و firewalld کیمی فایروال‌لارلا ایشله‌ییر. Mixed و System بیر آز سورعتلی اولا بیلر، آمما اوندا فایروال OnionHop اینترفئیسینده گلن ترافیکه ایجازه وئرمه‌لیدیر.</x:String>
   <x:String x:Key="TunCore.SingBox">sing-box (توصیه‌ اولونور)</x:String>
   <x:String x:Key="TunCore.Xray">xray (تجربی)</x:String>
 

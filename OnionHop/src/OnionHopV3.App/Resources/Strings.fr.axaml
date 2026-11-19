@@ -317,6 +317,9 @@
   <x:String x:Key="TunStack.Mixed">Mixte (recommandé)</x:String>
   <x:String x:Key="TunStack.System">Système</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunStack.MixedPlain">Mixte</x:String>
+  <x:String x:Key="TunStack.GvisorRecommended">gVisor (recommandé)</x:String>
+  <x:String x:Key="Settings.TunStackHintLinux">La façon dont le tunnel traite le trafic. gVisor fonctionne avec les pare-feu comme ufw et firewalld. Mixed et System peuvent être un peu plus rapides, mais le pare-feu doit alors autoriser le trafic entrant sur l'interface OnionHop.</x:String>
   <x:String x:Key="TunCore.SingBox">sing-box (recommandé)</x:String>
   <x:String x:Key="TunCore.Xray">xray (expérimental)</x:String>
 

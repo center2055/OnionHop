@@ -192,6 +192,7 @@ internal sealed class CliHost : IAsyncDisposable
         WriteLine("Connect options (also accepted by `plan`):", ConsoleColor.White);
         WriteHint("  --smart <on|off>", "Smart Connect (default on)");
         WriteHint("  --mode <proxy|tun>", "connection mode (default proxy)");
+        WriteHint("  --tun-stack <gvisor|mixed|system>", "how TUN mode handles traffic (default gvisor on Linux, which works with ufw and firewalld; mixed elsewhere)");
         WriteHint("  --engine <auto|classic|artihop>", "Tor engine (artihop = fast 2-hop)");
         WriteHint("  --bridges <on|off>", "force bridges (manual mode)");
         WriteHint("  --bridge-type <type>", "automatic, obfs4, snowflake, webtunnel, conjure, dnstt, meek-azure, vanilla, custom (Smart Connect tries it first)");
@@ -1199,6 +1200,7 @@ internal sealed class CliHost : IAsyncDisposable
             ProxyScopeMode = proxyScope,
             TorEngineMode = NormalizeEngine(request.Engine),
             TunCoreMode = NormalizeTunCoreMode(request.TunCore),
+            TunStackMode = NormalizeTunStackMode(request.TunStack),
             SelectedLocation = request.ExitLocation,
             SelectedEntryLocation = request.EntryLocation,
             ExitNodeFingerprint = request.ExitNodeFingerprint,
@@ -1231,7 +1233,7 @@ internal sealed class CliHost : IAsyncDisposable
 
     private static ConnectRequest DefaultRequest() => new(
         "proxy", true, false, false, "automatic", false, null,
-        "sing-box", "socks", false, "auto", false, false,
+        "sing-box", string.Empty, "socks", false, "auto", false, false,
         OnionHopConnectOptions.AutomaticLocationLabel, OnionHopConnectOptions.AutomaticLocationLabel, null, true, "auto", "auto");
 
     // Map the short CLI token (system|socks|local) to the stored proxy-scope constant.
@@ -1316,6 +1318,15 @@ internal sealed class CliHost : IAsyncDisposable
         _ => OnionHopConnectOptions.TunCoreSingBox
     };
 
+    // Not given: the platform's default, gVisor on Linux (#97).
+    private static string NormalizeTunStackMode(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "gvisor" => OnionHopConnectOptions.TunStackGvisor,
+        "mixed" => OnionHopConnectOptions.TunStackMixed,
+        "system" => OnionHopConnectOptions.TunStackSystem,
+        _ => OnionHopConnectOptions.DefaultTunStackMode
+    };
+
     // ----- Status events ----------------------------------------------------------------------
 
     private OnionHopClient.StatusUpdate GetStatusSnapshot() { lock (_statusLock) { return _status; } }
@@ -1355,6 +1366,7 @@ internal sealed class CliHost : IAsyncDisposable
             BridgeTypeProvided: o.ContainsKey("bridge-type"),
             UseCensoredMode: GetNullableBool(o, "censored"),
             TunCore: GetOption(o, "tun-core", "sing-box"),
+            TunStack: GetOption(o, "tun-stack", string.Empty),
             ProxyScope: GetOption(o, "proxy-scope", "socks"),
             ProxyScopeProvided: o.ContainsKey("proxy-scope"),
             DnsProvider: GetOption(o, "dns", "auto"),
@@ -1682,6 +1694,7 @@ internal sealed class CliHost : IAsyncDisposable
         bool BridgeTypeProvided,
         bool? UseCensoredMode,
         string TunCore,
+        string TunStack,
         string ProxyScope,
         bool ProxyScopeProvided,
         string DnsProvider,

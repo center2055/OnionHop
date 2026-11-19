@@ -523,7 +523,7 @@
                                     ItemsSource="{Binding State.TunCoreModeOptions}"
                                     SelectedItem="{Binding State.SelectedTunCoreModeOption}" />
               <controls:DropdownRow Title="{DynamicResource Settings.TunStack}"
-                                    Description="{DynamicResource Settings.TunStackHint}"
+                                    Description="{Binding State.TunStackHint}"
                                     ItemsSource="{Binding State.TunStackModeOptions}"
                                     SelectedItem="{Binding State.SelectedTunStackModeOption}" />
               <controls:SettingRow Title="{DynamicResource Settings.TunMtu}">

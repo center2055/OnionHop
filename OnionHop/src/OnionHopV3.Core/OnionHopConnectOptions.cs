@@ -25,6 +25,17 @@ public sealed record OnionHopConnectOptions
     public const string TunStackMixed = "Mixed (recommended)";
     public const string TunStackSystem = "System";
     public const string TunStackGvisor = "gVisor";
+
+    /// <summary>
+    /// The TUN stack used unless the user picks one. On Linux that is gVisor: with Mixed and System
+    /// the tunnel core hands TCP to the kernel through the tunnel interface, where it arrives as
+    /// incoming connections, and a host firewall that denies incoming traffic by default (ufw,
+    /// firewalld) drops them, so nothing but DNS gets through the tunnel (#97). gVisor handles TCP
+    /// inside the core and never meets the firewall. Windows and macOS keep Mixed.
+    /// </summary>
+    public static string DefaultTunStackMode => DefaultTunStackModeFor(OperatingSystem.IsLinux());
+
+    internal static string DefaultTunStackModeFor(bool linux) => linux ? TunStackGvisor : TunStackMixed;
     public const string TunCoreSingBox = "sing-box";
     public const string TunCoreXray = "xray";
     public const string TorEngineAutomatic = "automatic";
@@ -109,7 +120,7 @@ public sealed record OnionHopConnectOptions
     // still use the SOCKS port directly). Lets the user pre-decide post-connect behavior from Home.
     public bool ApplySystemProxyOnConnect { get; init; } = true;
     public string TunCoreMode { get; init; } = TunCoreSingBox;
-    public string TunStackMode { get; init; } = TunStackMixed;
+    public string TunStackMode { get; init; } = DefaultTunStackMode;
     public int? TunMtu { get; init; }
     public bool TunStrictRoute { get; init; } = true;
     // Build the TUN adapter without an IPv6 address. Some Windows machines refuse to attach one even

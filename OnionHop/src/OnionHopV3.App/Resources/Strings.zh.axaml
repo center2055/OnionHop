@@ -317,6 +317,9 @@
   <x:String x:Key="TunStack.Mixed">混合（推荐）</x:String>
   <x:String x:Key="TunStack.System">系统</x:String>
   <x:String x:Key="TunStack.Gvisor">gVisor</x:String>
+  <x:String x:Key="TunStack.MixedPlain">混合</x:String>
+  <x:String x:Key="TunStack.GvisorRecommended">gVisor（推荐）</x:String>
+  <x:String x:Key="Settings.TunStackHintLinux">隧道处理流量的方式。gVisor 可与 ufw、firewalld 等防火墙配合使用。Mixed 和 System 可能稍快一些，但防火墙必须允许 OnionHop 接口上的入站流量。</x:String>
   <x:String x:Key="TunCore.SingBox">sing-box（推荐）</x:String>
   <x:String x:Key="TunCore.Xray">xray（实验性）</x:String>
 
