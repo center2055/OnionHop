@@ -2,11 +2,13 @@
 # Smoke test for a published Linux CLI folder: every bundled binary must start on this machine's
 # architecture, and with "connect" the CLI must reach Tor and stop cleanly on SIGTERM (#89).
 #
-# Usage: linux-cli-smoke.sh <cli dir> [binaries|runtime|connect|tun] [lan interface]
+# Usage: linux-cli-smoke.sh <cli dir> [binaries|runtime|connect|tun|tun-mixed-blocked] [lan interface]
 # runtime checks only the bundled programs, without the CLI (the AppImage's usr/bin, #95).
 # With an interface, connect shares the proxy on that one (--lan-interface), else on all (--lan on).
 # tun runs as a normal user and expects pkexec to start the tunnel as root (#90); see
-# linux-tun-pkexec-test.sh for the container it needs.
+# linux-tun-pkexec-test.sh for the container it needs. That container has a firewall that drops
+# incoming traffic, like ufw and firewalld (#97): tun must work behind it with the default stack,
+# and tun-mixed-blocked shows that the firewall is real by not getting through with the Mixed stack.
 set -u
 
 DIR="$1"
@@ -157,10 +159,50 @@ tun_connect_and_terminate() {
     echo "ok  TUN mode as a normal user: pkexec started the tunnel, traffic went through Tor, SIGTERM took it down"
 }
 
+# With the Mixed stack the tunnel core hands TCP to the kernel through the tunnel interface, and a
+# firewall that drops incoming traffic drops it there: names resolve, nothing connects (#97). The
+# test container has such a firewall. If the Mixed stack did get through it, the firewall would not
+# be doing what ufw does, and the tun test above would have proved nothing about #97.
+tun_mixed_is_blocked() {
+    local log cli i
+    log="$(mktemp)"
+    "$DIR/OnionHopV3.Cli" connect --mode tun --tun-stack mixed --smart off --proxy-scope local >"$log" 2>&1 &
+    cli=$!
+
+    for i in $(seq 1 100); do
+        grep -q "disconnect and exit" "$log" && break
+        kill -0 "$cli" 2>/dev/null || break
+        sleep 3
+    done
+    if ! grep -q "Connected via" "$log"; then
+        cat "$log"
+        kill -9 "$cli" 2>/dev/null
+        fail "the CLI did not connect in TUN mode with the Mixed stack"
+    fi
+
+    curl -s --max-time 40 https://check.torproject.org/api/ip >/tmp/tun-mixed.txt 2>&1
+    local reached=$?
+    cat /tmp/tun-mixed.txt
+
+    kill -TERM "$cli"
+    for i in $(seq 1 60); do
+        kill -0 "$cli" 2>/dev/null || break
+        sleep 1
+    done
+    kill -9 "$cli" 2>/dev/null
+    wait "$cli" 2>/dev/null
+
+    if [ "$reached" -eq 0 ] && grep -q '"IsTor":true' /tmp/tun-mixed.txt; then
+        fail "the Mixed stack got through the firewall, so this container's firewall is not like ufw's"
+    fi
+    echo "ok  the Mixed stack is blocked by the firewall (curl exit $reached), as in #97"
+}
+
 case "$MODE" in
     binaries) check_binaries ;;
     runtime) check_runtime ;;
     connect) connect_and_terminate ;;
     tun) tun_connect_and_terminate ;;
+    tun-mixed-blocked) tun_mixed_is_blocked ;;
     *) fail "unknown mode $MODE" ;;
 esac
