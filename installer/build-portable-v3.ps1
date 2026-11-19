@@ -4,7 +4,9 @@ param(
   [switch]$FrameworkDependent,
   [switch]$SkipDependencies,
   [switch]$Clean,
-  [string]$ArtiPath = ""
+  [string]$ArtiPath = "",
+  # Signs OnionHop's programs in the ZIP as Rana GmbH. See signing.ps1.
+  [switch]$Sign
 )
 
 $ErrorActionPreference = "Stop"
@@ -144,6 +146,12 @@ if (-not $SkipDependencies) {
 Assert-RequiredRuntimeDependencies -RepoRoot $repoRoot
 Write-Host "Runtime dependencies verified." -ForegroundColor Green
 
+if ($Sign) {
+  # Before the build, so a missing login or tool stops it at once.
+  . (Join-Path $PSScriptRoot "signing.ps1")
+  Initialize-OnionHopSigning | Out-Null
+}
+
 $sc = if ($FrameworkDependent.IsPresent) { "false" } else { "true" }
 
 Write-Host "Publishing OnionHop V3 (portable package)..." -ForegroundColor Cyan
@@ -164,6 +172,10 @@ if (!(Test-Path $publishDir)) {
 }
 
 Copy-OptionalArtiRuntime -RepoRoot $repoRoot -PublishDir $publishDir -ArtiPath $ArtiPath
+
+if ($Sign) {
+  Invoke-OnionHopPublishSigning -PublishDir $publishDir -Names @("OnionHopV3.exe", "OnionHopV3.dll", "OnionHopV3.Core.dll") -Description "OnionHop"
+}
 
 $version = "0.0.0"
 try {

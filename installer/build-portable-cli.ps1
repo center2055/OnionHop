@@ -2,7 +2,9 @@ param(
   [string]$Configuration = "Release",
   [string]$Runtime = "win-x64",
   [switch]$FrameworkDependent,
-  [switch]$SkipDependencies
+  [switch]$SkipDependencies,
+  # Signs OnionHop's programs in the ZIP as Rana GmbH. See signing.ps1.
+  [switch]$Sign
 )
 
 $ErrorActionPreference = "Stop"
@@ -84,6 +86,12 @@ if (-not $SkipDependencies) {
 Assert-RequiredRuntimeDependencies -RepoRoot $repoRoot
 Write-Host "Runtime dependencies verified." -ForegroundColor Green
 
+if ($Sign) {
+  # Before the build, so a missing login or tool stops it at once.
+  . (Join-Path $PSScriptRoot "signing.ps1")
+  Initialize-OnionHopSigning | Out-Null
+}
+
 $sc = if ($FrameworkDependent.IsPresent) { "false" } else { "true" }
 
 Write-Host "Publishing OnionHop CLI (portable package)..." -ForegroundColor Cyan
@@ -97,6 +105,10 @@ Remove-PathWithRetry -Path "$projectDir\obj"
 $publishDir = Join-Path $projectDir "bin\$Configuration\net9.0\$Runtime\publish"
 if (!(Test-Path $publishDir)) {
   throw "Publish directory not found: $publishDir"
+}
+
+if ($Sign) {
+  Invoke-OnionHopPublishSigning -PublishDir $publishDir -Names @("OnionHopV3.Cli.exe", "OnionHopV3.Cli.dll", "OnionHopV3.Core.dll") -Description "OnionHop CLI"
 }
 
 $version = "0.0.0"

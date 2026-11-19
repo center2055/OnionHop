@@ -2,7 +2,9 @@ param(
   [string]$Configuration = "Release",
   [string]$Runtime = "win-x64",
   [switch]$FrameworkDependent,
-  [switch]$SkipDependencies
+  [switch]$SkipDependencies,
+  # Signs OnionHop's programs, the installer and its uninstaller as Rana GmbH. See signing.ps1.
+  [switch]$Sign
 )
 
 $ErrorActionPreference = "Stop"
@@ -84,6 +86,12 @@ if (-not $SkipDependencies) {
 Assert-RequiredRuntimeDependencies -RepoRoot $repoRoot
 Write-Host "Runtime dependencies verified." -ForegroundColor Green
 
+if ($Sign) {
+  # Before the build, so a missing login or tool stops it at once.
+  . (Join-Path $PSScriptRoot "signing.ps1")
+  Initialize-OnionHopSigning | Out-Null
+}
+
 $sc = if ($FrameworkDependent.IsPresent) { "false" } else { "true" }
 
 Write-Host "Cleaning and Publishing OnionHop CLI..." -ForegroundColor Cyan
@@ -110,6 +118,10 @@ if (!(Test-Path $cliHost)) {
 }
 if (!(Test-Path $cliHost)) {
   throw "Build aborted: OnionHopV3.Cli.exe (the CLI launcher) is missing from '$publishDir'. The installer would be broken (CreateProcess failed; code 2)."
+}
+
+if ($Sign) {
+  Invoke-OnionHopPublishSigning -PublishDir $publishDir -Names @("OnionHopV3.Cli.exe", "OnionHopV3.Cli.dll", "OnionHopV3.Core.dll") -Description "OnionHop CLI"
 }
 
 $iss = Join-Path $PSScriptRoot "OnionHopV3.Cli.iss"
@@ -151,6 +163,17 @@ if (-not $iscc) {
 }
 
 Write-Host "Building CLI installer with Inno Setup..." -ForegroundColor Cyan
-& $iscc $iss /DMyAppVersion=$version /DPubDir="$publishDir"
+$signingArguments = @()
+if ($Sign) {
+  $signingArguments = Get-OnionHopInnoSigningArguments -Description "OnionHop CLI Setup"
+}
+& $iscc $iss /DMyAppVersion=$version /DPubDir="$publishDir" @signingArguments
+if ($LASTEXITCODE -ne 0) {
+  throw "Inno Setup failed with exit code $LASTEXITCODE."
+}
+
+if ($Sign) {
+  Assert-OnionHopSigned -Files @(Join-Path $PSScriptRoot "output\OnionHop-CLI-Setup-$version.exe")
+}
 
 Write-Host "Done. CLI installer is in: $PSScriptRoot\output" -ForegroundColor Green

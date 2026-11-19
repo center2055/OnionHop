@@ -1,0 +1,153 @@
+name: Build Windows release
+
+# Builds every Windows download on a clean, GitHub-hosted runner: the installer, the portable ZIP,
+# the CLI installer and the CLI portable ZIP. The whole pipeline (fetch Tor + transports +
+# sing-box/xray/wintun, test, publish, package) runs in a throwaway VM with public logs, so no
+# developer machine is involved and every file has auditable provenance.
+#
+# Signing. With "sign" on, OnionHop's own programs, both installers and their uninstallers are
+# signed as Rana GmbH with Azure Artifact Signing (installer/signing.ps1). The job then runs in the
+# environment "windows-release". The Azure app registration "OnionHop GitHub Signing" trusts
+# exactly that environment of this repository, through GitHub's OIDC token: no Azure secret is
+# stored here. The environment admits only master and v* tags (Settings > Environments), so no
+# other branch can sign. With "sign" off the job builds unsigned, from any branch.
+#
+# For a release: run this on master before creating the release, then create the release with the
+# files from the build artifact, so a release never exists without its Windows downloads. With a
+# release tag given, the files are attached to that release instead.
+on:
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: "Sign as Rana GmbH. Only master and v* tags may; turn off to build unsigned from another branch."
+        type: boolean
+        default: true
+      release_tag:
+        description: "Release tag to attach the files to (e.g. v3.12). Leave blank to only produce a downloadable build artifact."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  # For the Azure login with GitHub's OIDC token.
+  id-token: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    environment: ${{ inputs.sign && 'windows-release' || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # AZURE_CLIENT_ID and AZURE_TENANT_ID are repository variables: identifiers, not secrets.
+      - name: Check the signing setup
+        if: ${{ inputs.sign && (vars.AZURE_CLIENT_ID == '' || vars.AZURE_TENANT_ID == '') }}
+        shell: pwsh
+        run: throw "Signing was asked for, but the repository variables AZURE_CLIENT_ID and AZURE_TENANT_ID are not set."
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Download native dependencies (tor, transports, sing-box, xray, wintun, ArtiHop)
+        shell: pwsh
+        run: .\download-deps.ps1 -NoPause
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test OnionHop\OnionHopV3.sln -c Release
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --version 6.7.1 --allow-downgrade --no-progress -y
+
+      # Microsoft's signing client runs inside signtool and brings no .NET runtime of its own.
+      # Only the runtime is added, so the build keeps using the SDK it used before.
+      - name: .NET runtime for the signing client
+        if: ${{ inputs.sign }}
+        shell: pwsh
+        run: |
+          if (-not (dotnet --list-runtimes | Select-String '^Microsoft\.NETCore\.App 1\d\.')) {
+            $script = Join-Path $env:RUNNER_TEMP "dotnet-install.ps1"
+            Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile $script
+            & $script -Runtime dotnet -Channel 10.0 -InstallDir (Join-Path $env:ProgramFiles "dotnet")
+          }
+          dotnet --list-runtimes
+
+      # As late as possible: the login rests on a short-lived GitHub token, and the build scripts
+      # ask for their signing token right when they start.
+      - name: Azure login
+        if: ${{ inputs.sign }}
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          # The app may only sign: it has a role on the signing account, none on a subscription.
+          allow-no-subscriptions: true
+
+      - name: Build the packages
+        shell: pwsh
+        run: |
+          $options = @{ SkipDependencies = $true }
+          if ('${{ inputs.sign }}' -eq 'true') { $options.Sign = $true }
+          .\installer\build-portable-v3.ps1 @options
+          .\installer\build-installer-v3.ps1 @options
+          .\installer\build-portable-cli.ps1 @options
+          .\installer\build-installer-cli.ps1 @options
+
+      - name: Install, check and uninstall both installers
+        shell: pwsh
+        run: |
+          if ('${{ inputs.sign }}' -eq 'true') { .\.github\scripts\windows-installer-test.ps1 -Signed }
+          else { .\.github\scripts\windows-installer-test.ps1 }
+
+      - name: Collect the files
+        id: files
+        shell: pwsh
+        run: |
+          $out = "installer\output"
+          $files = @(
+            Get-Item "$out\OnionHop-Setup-v3.exe"
+            Get-Item "$out\OnionHopV3-Portable-*-win-x64.zip"
+            Get-Item "$out\OnionHop-CLI-Setup-*.exe"
+            Get-Item "$out\OnionHopCLI-Portable-*-win-x64.zip"
+          )
+          if ($files.Count -ne 4) { throw "Expected 4 files in $out, found $($files.Count)." }
+          $release = New-Item -ItemType Directory -Force "$out\release"
+          $files | Copy-Item -Destination $release
+          $zip = Get-Item "$release\OnionHopV3-Portable-*-win-x64.zip"
+          $hash = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash
+          "$hash  $($zip.Name)" | Out-File "$($zip.FullName).sha256.txt" -Encoding ascii
+          Get-ChildItem $release | ForEach-Object {
+            "{0}  {1}  ({2:N1} MB)" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash, $_.Name, ($_.Length / 1MB)
+          }
+          $version = $zip.BaseName -replace '^OnionHopV3-Portable-', '' -replace '-win-x64$', ''
+          $suffix = if ('${{ inputs.sign }}' -eq 'true') { '' } else { '-unsigned' }
+          "name=OnionHop-Windows-$version$suffix" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.files.outputs.name }}
+          path: installer/output/release/*
+          if-no-files-found: error
+
+      # Never an unsigned build: a release's Windows files are the signed ones.
+      - name: Attach to release
+        if: ${{ inputs.release_tag != '' && inputs.sign }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $files = (Get-ChildItem installer\output\release).FullName
+          gh release upload "${{ inputs.release_tag }}" @files --repo "${{ github.repository }}" --clobber

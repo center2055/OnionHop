@@ -5,7 +5,9 @@ param(
   [switch]$SelfContained,
   [switch]$SkipDependencies,
   [switch]$Clean,
-  [string]$ArtiPath = ""
+  [string]$ArtiPath = "",
+  # Signs OnionHop's programs, the installer and its uninstaller as Rana GmbH. See signing.ps1.
+  [switch]$Sign
 )
 
 $ErrorActionPreference = "Stop"
@@ -145,6 +147,12 @@ if (-not $SkipDependencies) {
 Assert-RequiredRuntimeDependencies -RepoRoot $repoRoot
 Write-Host "Runtime dependencies verified." -ForegroundColor Green
 
+if ($Sign) {
+  # Before the build, so a missing login or tool stops it at once.
+  . (Join-Path $PSScriptRoot "signing.ps1")
+  Initialize-OnionHopSigning | Out-Null
+}
+
 if ($FrameworkDependent.IsPresent -and $SelfContained.IsPresent) {
   throw "Use either -FrameworkDependent or -SelfContained, not both. Installer builds are self-contained by default."
 }
@@ -189,6 +197,10 @@ if (!(Test-Path $appHost)) {
 }
 Write-Host "Verified app launcher present: $appHost" -ForegroundColor Green
 
+if ($Sign) {
+  Invoke-OnionHopPublishSigning -PublishDir $publishDir -Names @("OnionHopV3.exe", "OnionHopV3.dll", "OnionHopV3.Core.dll") -Description "OnionHop"
+}
+
 $iss = Join-Path $PSScriptRoot "OnionHopV3.iss"
 if (!(Test-Path $iss)) {
   throw "Missing Inno Setup script: $iss"
@@ -229,6 +241,17 @@ if (-not $iscc) {
 }
 
 Write-Host "Building installer with Inno Setup..." -ForegroundColor Cyan
-& $iscc $iss /DMyAppVersion=$version /DPubDir="$publishDir"
+$signingArguments = @()
+if ($Sign) {
+  $signingArguments = Get-OnionHopInnoSigningArguments -Description "OnionHop Setup"
+}
+& $iscc $iss /DMyAppVersion=$version /DPubDir="$publishDir" @signingArguments
+if ($LASTEXITCODE -ne 0) {
+  throw "Inno Setup failed with exit code $LASTEXITCODE."
+}
+
+if ($Sign) {
+  Assert-OnionHopSigned -Files @(Join-Path $PSScriptRoot "output\OnionHop-Setup-v3.exe")
+}
 
 Write-Host "Done. Installer is in: $PSScriptRoot\output" -ForegroundColor Green

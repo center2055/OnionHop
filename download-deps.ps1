@@ -500,7 +500,31 @@ try {
     Write-Host "Installing Pluggable Transports..."
     $ExtractedPtDir = Join-Path $ExtractedTorRoot "pluggable_transports"
     if (Test-Path $ExtractedPtDir) {
-        Copy-Item "$ExtractedPtDir\*" $PtDir -Recurse -Force
+        # The repository's pt_config.json stays: it carries OnionHop's own bridge lists (dnstt,
+        # webtunnel), which the bundle's file does not have and would replace. The app keeps it the
+        # same way when it repairs its Tor files (DependencyManager).
+        $KeepPtConfig = Test-Path (Join-Path $PtDir "pt_config.json")
+        Get-ChildItem $ExtractedPtDir |
+            Where-Object { -not ($KeepPtConfig -and $_.Name -eq "pt_config.json") } |
+            Copy-Item -Destination $PtDir -Recurse -Force
+
+        # Say so when Tor's built-in bridges have moved on, so the kept file gets updated by hand.
+        $BundlePtConfig = Join-Path $ExtractedPtDir "pt_config.json"
+        if ($KeepPtConfig -and (Test-Path $BundlePtConfig)) {
+            try {
+                $bundleBridges = (Get-Content $BundlePtConfig -Raw | ConvertFrom-Json).bridges
+                $keptBridges = (Get-Content (Join-Path $PtDir "pt_config.json") -Raw | ConvertFrom-Json).bridges
+                foreach ($transport in $bundleBridges.PSObject.Properties) {
+                    $kept = @($keptBridges.($transport.Name))
+                    $new = @($transport.Value | Where-Object { $kept -notcontains $_ })
+                    if ($new.Count -gt 0) {
+                        Write-Warning "The Tor bundle has $($new.Count) built-in $($transport.Name) bridge line(s) that OnionHop\tor\pluggable_transports\pt_config.json lacks. Update that file."
+                    }
+                }
+            } catch {
+                Write-Warning "Could not compare the Tor bundle's pt_config.json with the repository's: $($_.Exception.Message)"
+            }
+        }
     }
 
     # Handle renamed binaries
