@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+Fixes
+- **Linux: TUN mode works with ufw and firewalld (#97).** With the Mixed and System TUN stacks the tunnel hands connections to the system through its own network interface, and a firewall that drops incoming traffic by default drops them there: names resolved, but nothing loaded. On Linux OnionHop now uses the gVisor stack unless you choose another, which handles connections inside the tunnel and never meets the firewall. A "Mixed" setting saved under the old default is switched once. The command line version takes `--tun-stack gvisor|mixed|system`, and when the tunnel check cannot get through with Mixed or System, the log says what to do.
+- **ArtiHop uses the Exit Location.** With the ArtiHop engine every location setting was ignored, so an exit country you picked had no effect. ArtiHop 0.3 only uses exit relays in the chosen country, in its 2-hop mode as well, and the country can be changed while connected. An entry location and pinned relays, which ArtiHop cannot apply, are now named in the log, and the engine's description in Settings says what applies: bridges mean 3 hops, and an upstream proxy means the Classic engine.
+
+Additions
+- **The window opens where it was.** OnionHop remembers the position and size of its window and whether it was maximized. If the screen it was on is gone, it opens centered with the size it had.
+
+Updates
+- **sing-box 1.14.4 and Xray 26.11.9** as tunnel cores (before: 1.13.13 and 26.3.27). The gVisor stack is part of sing-box and is updated with it.
+- **Tor 0.4.9.16 and lyrebird 0.10.0** from Tor Browser 16.0.1 (before: 0.4.9.14 and 0.8.1), in every package; webtunnel 0.0.7.
+- **ArtiHop 0.3.0** on Arti 2.8 (before: 0.2.0 on Arti 2.7).
+- Avalonia 11.3.23 and the other libraries at their current patch versions.
+
 ## v3.11.1 (2026-11-16)
 
 Fixes
