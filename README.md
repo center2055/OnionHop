@@ -85,19 +85,19 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 
 Notes
 - `.onion` sites require a Tor-aware client (Tor Browser recommended) or SOCKS remote DNS (e.g., Firefox "Proxy DNS when using SOCKS v5").
-- Country/relay pinning and control-port New Identity require the **Classic** engine. Arti and ArtiHop support OnionHop bridge/PT configuration, but Classic remains the most complete choice for manual circuit control.
+- An entry country and relay pinning require the **Classic** engine. ArtiHop applies the exit country and New Identity; Arti applies neither. Both support OnionHop's bridge/PT configuration, but Classic remains the most complete choice for manual circuit control.
 
 ---
 
 ## Tor engines
 
-| Engine | Hops | Admin | Bridges / pinning / NEWNYM | Notes |
+| Engine | Hops | Admin | Bridges / location / NEWNYM | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Classic** (`tor.exe`) | 3 | no (Proxy) | bridges, pinning, NEWNYM | Most features; recommended for censorship + manual circuit control |
+| **Classic** (`tor.exe`) | 3 | no (Proxy) | bridges, exit and entry country, relay pinning, NEWNYM | Most features; recommended for censorship + manual circuit control |
 | **Arti** | 3 | no | bridges/PT | Rust Tor implementation (SOCKS runtime) |
-| **ArtiHop** | 2 (Guard→Exit) | no | bridges/PT | Lower latency, weaker anonymity |
+| **ArtiHop** | 2 (Guard→Exit), 3 with bridges | no | bridges/PT, exit country, NEWNYM | Lower latency, weaker anonymity. Tor exits refuse 2-hop circuits through a bridge, so bridges mean 3 hops |
 
-Use **Classic** when you need country pinning, relay pinning, or control-port New Identity. Use **Arti** or **ArtiHop** when you want the Rust runtime and do not need those Classic-only controls.
+Use **Classic** when you need an entry country or relay pinning, or an upstream proxy (with one, OnionHop uses Classic whatever engine is selected). Use **Arti** or **ArtiHop** when you want the Rust runtime and do not need those Classic-only controls.
 
 ---
 
@@ -110,6 +110,8 @@ Runs Tor locally and sets the OS proxy to Tor's SOCKS5 endpoint. No admin requir
 Runs Tor + **sing-box** and routes traffic at the OS level (Wintun on Windows, system TUN on macOS/Linux). Requires Administrator. Most leak-resistant.
 
 On macOS and Linux OnionHop does not need to run as root for it: when you connect, it asks for your password (on Linux through polkit, `pkexec`) and runs only the tunnel as root. The kill switch and the system DNS settings still need OnionHop itself to run as root on Linux.
+
+On Linux the tunnel uses sing-box's gVisor stack unless you pick another (Settings, "TUN stack", or `--tun-stack`). The Mixed and System stacks hand connections to the system through the tunnel interface, where a firewall that drops incoming traffic by default, such as ufw or firewalld, drops them: names resolve, but nothing loads. If you want one of those stacks, allow incoming traffic on the interface, for example `sudo ufw allow in on OnionHop`.
 
 ### Hybrid (split tunneling)
 Only in TUN/VPN Mode — route selected apps through Tor while others stay direct.
