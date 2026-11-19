@@ -40,6 +40,8 @@ $SnowflakeDir = Join-Path $RepoRoot "OnionHop\snowflake"
 $PtDir = Join-Path $TorDir "pluggable_transports"
 $TempDir = Join-Path $RepoRoot "temp_deps"
 $ArtiHopRepoUrl = "https://github.com/center2055/ArtiHop.git"
+# ArtiHop 0.3.0, the same commit as download-deps.sh: pinned, not whatever main holds that day.
+$ArtiHopCommit = "4a9f72780764960fb39b0f75615a314c3a9a253f"
 $SnowflakeProxyPackage = "gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
 $SnowflakeClientPackage = "gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/client@latest"
 
@@ -333,7 +335,7 @@ function Verify-FileHash($filePath, $expectedHash) {
 
 # Build the ArtiHop 2-hop engine from its own public repo and bundle only the binary.
 # The ArtiHop source is intentionally NOT vendored into OnionHop — it is fetched at build time.
-function Build-ArtiHop($tempDir, $artiHopDir, $repoUrl) {
+function Build-ArtiHop($tempDir, $artiHopDir, $repoUrl, $commit) {
     $exeName = "artihop.exe"
     $output = Join-Path $artiHopDir $exeName
 
@@ -351,9 +353,13 @@ function Build-ArtiHop($tempDir, $artiHopDir, $repoUrl) {
     $cloneDir = Join-Path $tempDir "ArtiHop"
     try {
         if (Test-Path $cloneDir) { Remove-Item $cloneDir -Recurse -Force }
-        Write-Host "Cloning ArtiHop source from $repoUrl ..."
-        & git clone --depth 1 $repoUrl $cloneDir
-        if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
+        Write-Host "Fetching ArtiHop source ($commit) from $repoUrl ..."
+        & git init -q $cloneDir
+        if ($LASTEXITCODE -ne 0) { throw "git init failed (exit $LASTEXITCODE)." }
+        & git -C $cloneDir fetch -q --depth 1 $repoUrl $commit
+        if ($LASTEXITCODE -ne 0) { throw "git fetch of $commit failed (exit $LASTEXITCODE)." }
+        & git -C $cloneDir checkout -q FETCH_HEAD
+        if ($LASTEXITCODE -ne 0) { throw "git checkout failed (exit $LASTEXITCODE)." }
 
         Write-Host "Building ArtiHop (cargo build --release). This compiles Arti and can take several minutes..."
         Push-Location $cloneDir
@@ -763,7 +769,7 @@ try {
 
     # --- 6. ArtiHop 2-hop engine (built from source; optional) ---
     Write-Host "`n[6] Building ArtiHop 2-hop engine..."
-    Build-ArtiHop -tempDir $TempDir -artiHopDir $ArtiHopDir -repoUrl $ArtiHopRepoUrl
+    Build-ArtiHop -tempDir $TempDir -artiHopDir $ArtiHopDir -repoUrl $ArtiHopRepoUrl -commit $ArtiHopCommit
 
     # --- 7. Snowflake volunteer proxy (built from source; optional) ---
     Write-Host "`n[7] Building Snowflake volunteer proxy..."

@@ -73,6 +73,9 @@ Xray-linux-arm64-v8a.zip 64ed6858982a7f5eb85d88b811089063bd4f17561f4c8f44e0f1dc8
 Xray-linux-arm32-v7a.zip 19c51e08a6562705fb1cb032a84fd87df21d7e27b194f035be7e754dbe3a97b3
 "
 ARTI_HOP_REPO_URL="https://github.com/center2055/ArtiHop.git"
+# ArtiHop 0.3.0 (Arti 2.8, exit country). Pinned to a commit like everything else here, so a build
+# gets the ArtiHop it was tested with and not whatever its main branch holds that day.
+ARTI_HOP_COMMIT="4a9f72780764960fb39b0f75615a314c3a9a253f"
 SNOWFLAKE_PROXY_PACKAGE="gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/proxy@latest"
 PT_GITLAB="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports"
 
@@ -272,7 +275,9 @@ cp "$TEMP_DIR/xray_ext/xray" "$VPN_DIR/"
 if command -v cargo >/dev/null 2>&1; then
     echo "Building ArtiHop engine..."
     ARTI_HOP_CLONE="$TEMP_DIR/ArtiHop"
-    git clone --depth 1 "$ARTI_HOP_REPO_URL" "$ARTI_HOP_CLONE"
+    git init -q "$ARTI_HOP_CLONE"
+    git -C "$ARTI_HOP_CLONE" fetch -q --depth 1 "$ARTI_HOP_REPO_URL" "$ARTI_HOP_COMMIT"
+    git -C "$ARTI_HOP_CLONE" checkout -q FETCH_HEAD
     pushd "$ARTI_HOP_CLONE"
     if [ -n "$RUST_TARGET" ]; then
         if command -v rustup >/dev/null 2>&1; then

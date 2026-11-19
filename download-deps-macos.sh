@@ -27,6 +27,8 @@ Xray-macos-64.zip 488963e676e06f5e48547f9dd38116aaca8de4234959b4272ae8f284e658df
 Xray-macos-arm64-v8a.zip 233f0c66681cd0726f81a6b2b6ed6a5710869e312047b522e46ed53035bebd26
 "
 ARTI_HOP_REPO_URL="https://github.com/center2055/ArtiHop.git"
+# ArtiHop 0.3.0, the same commit as download-deps.sh.
+ARTI_HOP_COMMIT="4a9f72780764960fb39b0f75615a314c3a9a253f"
 SNOWFLAKE_REPO_URL="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git"
 
 mkdir -p "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR" "$PT_DIR" "$TEMP_DIR"
@@ -173,7 +175,9 @@ if command -v cargo >/dev/null 2>&1; then
     if (
         set -e
         ARTI_HOP_CLONE="$TEMP_DIR/ArtiHop"
-        git clone --depth 1 "$ARTI_HOP_REPO_URL" "$ARTI_HOP_CLONE"
+        git init -q "$ARTI_HOP_CLONE"
+        git -C "$ARTI_HOP_CLONE" fetch -q --depth 1 "$ARTI_HOP_REPO_URL" "$ARTI_HOP_COMMIT"
+        git -C "$ARTI_HOP_CLONE" checkout -q FETCH_HEAD
         cd "$ARTI_HOP_CLONE"
         rustup target add x86_64-apple-darwin aarch64-apple-darwin
         cargo build --release --target aarch64-apple-darwin
