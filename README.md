@@ -56,17 +56,19 @@ Grab the latest build for your platform from **[Releases](https://github.com/cen
 
 | Platform | File | Notes |
 | :--- | :--- | :--- |
-| **Windows** | `OnionHop-Setup-v3.exe` | Installer (self-contained, .NET runtime bundled) |
-| **Windows** | `OnionHopV3-Portable-…win-x64.zip` | Portable, no install |
+| **Windows** | `OnionHop-Setup-v3.exe` | Installer (self-contained, .NET runtime bundled); signed by Rana GmbH |
+| **Windows** | `OnionHopV3-Portable-…win-x64.zip` | Portable, no install; OnionHop's programs inside are signed |
 | **Linux** | `OnionHop-x86_64.AppImage` | `chmod +x` and run |
 | **Linux (ARM64)** | `OnionHop-aarch64.AppImage` | 64-bit ARM desktops and laptops; `chmod +x` and run |
 | **macOS** | `OnionHop-3.x-macOS.dmg` | Signed & notarized; universal (Apple Silicon + Intel) — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) |
-| **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface |
+| **Windows CLI** | `OnionHop-CLI-Setup-3.x.exe` / portable ZIP | Terminal interface; signed by Rana GmbH |
 | **Linux CLI** | `OnionHopCLI-…linux-x64.tar.gz` | Terminal interface |
 | **Linux CLI (ARM)** | `OnionHopCLI-…linux-arm64.tar.gz` (64-bit) / `…linux-arm.tar.gz` (32-bit ARMv7) | Raspberry Pi and other ARM boards; see [Headless use](#headless-use-cli) |
 | **macOS CLI** | `OnionHopCLI-…macos-arm64.tar.gz` (Apple Silicon) / `…macos-x64.tar.gz` (Intel) | Terminal interface; signed & notarized — from the [macOS repo](https://github.com/rana-gmbh/onionhopMac/releases/latest) like the DMGs |
 
 > The macOS `.dmg` is published from the dedicated, code-signing [rana-gmbh/onionhopMac](https://github.com/rana-gmbh/onionhopMac/releases/latest) repository.
+
+> In releases after 3.11.1, the Windows installers and OnionHop's own programs are signed by **Rana GmbH**, the company behind OnionHop. They are built and signed on GitHub's runners by the [Build Windows release](.github/workflows/windows-release.yml) workflow, not on a developer's computer. To check a download, open its Properties and look at Digital Signatures, or run `Get-AuthenticodeSignature .\OnionHop-Setup-v3.exe` in PowerShell: the status is `Valid` and the signer is Rana GmbH. Tor, sing-box, Xray and the transports inside the package are other projects' programs and stay as those projects ship them.
 
 ---
 

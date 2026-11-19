@@ -9,6 +9,9 @@ Fixes
 Additions
 - **The window opens where it was.** OnionHop remembers the position and size of its window and whether it was maximized. If the screen it was on is gone, it opens centered with the size it had.
 
+Windows
+- **The Windows downloads are signed.** The installer, the CLI installer, their uninstallers and OnionHop's own programs carry a signature of Rana GmbH, the company behind OnionHop. When Windows asks for administrator rights it names Rana GmbH as the verified publisher instead of "Unknown publisher", and under Properties, Digital Signatures you can check that a download is the original. All four Windows downloads are now built and signed on GitHub's runners, not on a developer's computer. Tor, sing-box, Xray and the transports in the package stay as their projects ship them.
+
 Updates
 - **sing-box 1.14.4 and Xray 26.11.9** as tunnel cores (before: 1.13.13 and 26.3.27). The gVisor stack is part of sing-box and is updated with it.
 - **Tor 0.4.9.16 and lyrebird 0.10.0** from Tor Browser 16.0.1 (before: 0.4.9.14 and 0.8.1), in every package; webtunnel 0.0.7 and Snowflake 2.15.4.
