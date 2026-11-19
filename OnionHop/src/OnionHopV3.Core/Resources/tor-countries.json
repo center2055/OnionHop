@@ -1,186 +1,186 @@
 {
- "UpdatedUtc": "2026-11-09T12:00:00Z",
+ "UpdatedUtc": "2026-11-19T18:00:00Z",
  "Countries": [
   {
    "CountryCode": "al",
    "CountryName": "Albania",
    "TotalNodes": 10,
-   "EntryNodes": 5,
+   "EntryNodes": 3,
    "ExitNodes": 0
   },
   {
    "CountryCode": "ar",
    "CountryName": "Argentina",
-   "TotalNodes": 4,
+   "TotalNodes": 5,
    "EntryNodes": 0,
-   "ExitNodes": 0
+   "ExitNodes": 1
   },
   {
    "CountryCode": "am",
    "CountryName": "Armenia",
    "TotalNodes": 1,
-   "EntryNodes": 0,
+   "EntryNodes": 1,
    "ExitNodes": 0
   },
   {
    "CountryCode": "au",
    "CountryName": "Australia",
-   "TotalNodes": 52,
-   "EntryNodes": 6,
-   "ExitNodes": 4
+   "TotalNodes": 55,
+   "EntryNodes": 7,
+   "ExitNodes": 3
   },
   {
    "CountryCode": "at",
    "CountryName": "Austria",
-   "TotalNodes": 205,
-   "EntryNodes": 50,
-   "ExitNodes": 124
+   "TotalNodes": 202,
+   "EntryNodes": 49,
+   "ExitNodes": 122
   },
   {
    "CountryCode": "az",
    "CountryName": "Azerbaijan",
    "TotalNodes": 1,
    "EntryNodes": 0,
-   "ExitNodes": 1
+   "ExitNodes": 0
   },
   {
    "CountryCode": "bd",
    "CountryName": "Bangladesh",
-   "TotalNodes": 2,
-   "EntryNodes": 0,
-   "ExitNodes": 0
+   "TotalNodes": 3,
+   "EntryNodes": 1,
+   "ExitNodes": 1
   },
   {
    "CountryCode": "be",
    "CountryName": "Belgium",
-   "TotalNodes": 26,
-   "EntryNodes": 16,
+   "TotalNodes": 19,
+   "EntryNodes": 7,
+   "ExitNodes": 1
+  },
+  {
+   "CountryCode": "ba",
+   "CountryName": "Bosnia and Herzegovina",
+   "TotalNodes": 1,
+   "EntryNodes": 0,
    "ExitNodes": 1
   },
   {
    "CountryCode": "br",
    "CountryName": "Brazil",
-   "TotalNodes": 32,
-   "EntryNodes": 7,
+   "TotalNodes": 34,
+   "EntryNodes": 6,
    "ExitNodes": 0
   },
   {
    "CountryCode": "bg",
    "CountryName": "Bulgaria",
-   "TotalNodes": 58,
-   "EntryNodes": 29,
-   "ExitNodes": 19
+   "TotalNodes": 53,
+   "EntryNodes": 24,
+   "ExitNodes": 13
   },
   {
    "CountryCode": "ca",
    "CountryName": "Canada",
-   "TotalNodes": 171,
-   "EntryNodes": 82,
+   "TotalNodes": 176,
+   "EntryNodes": 78,
    "ExitNodes": 3
   },
   {
    "CountryCode": "cl",
    "CountryName": "Chile",
-   "TotalNodes": 27,
-   "EntryNodes": 5,
+   "TotalNodes": 25,
+   "EntryNodes": 4,
    "ExitNodes": 4
   },
   {
    "CountryCode": "cn",
    "CountryName": "China",
-   "TotalNodes": 1,
-   "EntryNodes": 0,
+   "TotalNodes": 2,
+   "EntryNodes": 2,
    "ExitNodes": 0
   },
   {
    "CountryCode": "co",
    "CountryName": "Colombia",
-   "TotalNodes": 8,
-   "EntryNodes": 5,
+   "TotalNodes": 9,
+   "EntryNodes": 2,
    "ExitNodes": 0
   },
   {
    "CountryCode": "cr",
    "CountryName": "Costa Rica",
    "TotalNodes": 6,
-   "EntryNodes": 4,
+   "EntryNodes": 2,
    "ExitNodes": 2
   },
   {
    "CountryCode": "hr",
    "CountryName": "Croatia",
-   "TotalNodes": 12,
+   "TotalNodes": 14,
    "EntryNodes": 8,
-   "ExitNodes": 1
+   "ExitNodes": 3
   },
   {
    "CountryCode": "cy",
    "CountryName": "Cyprus",
-   "TotalNodes": 2,
+   "TotalNodes": 3,
    "EntryNodes": 1,
    "ExitNodes": 1
   },
   {
    "CountryCode": "cz",
    "CountryName": "Czechia",
-   "TotalNodes": 106,
-   "EntryNodes": 68,
+   "TotalNodes": 94,
+   "EntryNodes": 52,
    "ExitNodes": 13
   },
   {
    "CountryCode": "dk",
    "CountryName": "Denmark",
-   "TotalNodes": 36,
-   "EntryNodes": 26,
-   "ExitNodes": 16
+   "TotalNodes": 38,
+   "EntryNodes": 23,
+   "ExitNodes": 17
   },
   {
    "CountryCode": "ee",
    "CountryName": "Estonia",
-   "TotalNodes": 27,
-   "EntryNodes": 18,
+   "TotalNodes": 32,
+   "EntryNodes": 11,
    "ExitNodes": 2
   },
   {
    "CountryCode": "eu",
    "CountryName": "European Union",
-   "TotalNodes": 10,
-   "EntryNodes": 3,
-   "ExitNodes": 3
+   "TotalNodes": 9,
+   "EntryNodes": 4,
+   "ExitNodes": 1
   },
   {
    "CountryCode": "fi",
    "CountryName": "Finland",
-   "TotalNodes": 171,
-   "EntryNodes": 99,
-   "ExitNodes": 12
+   "TotalNodes": 167,
+   "EntryNodes": 81,
+   "ExitNodes": 15
   },
   {
    "CountryCode": "fr",
    "CountryName": "France",
-   "TotalNodes": 424,
-   "EntryNodes": 269,
-   "ExitNodes": 67
+   "TotalNodes": 416,
+   "EntryNodes": 266,
+   "ExitNodes": 69
   },
   {
    "CountryCode": "de",
    "CountryName": "Germany",
-   "TotalNodes": 1672,
-   "EntryNodes": 784,
-   "ExitNodes": 358
+   "TotalNodes": 1739,
+   "EntryNodes": 744,
+   "ExitNodes": 375
   },
   {
    "CountryCode": "gr",
    "CountryName": "Greece",
    "TotalNodes": 16,
-   "EntryNodes": 9,
-   "ExitNodes": 0
-  },
-  {
-   "CountryCode": "gp",
-   "CountryName": "Guadeloupe",
-   "TotalNodes": 1,
-   "EntryNodes": 0,
+   "EntryNodes": 7,
    "ExitNodes": 0
   },
   {
@@ -193,43 +193,43 @@
   {
    "CountryCode": "hk",
    "CountryName": "Hong Kong",
-   "TotalNodes": 27,
-   "EntryNodes": 3,
+   "TotalNodes": 26,
+   "EntryNodes": 1,
    "ExitNodes": 8
   },
   {
    "CountryCode": "hu",
    "CountryName": "Hungary",
-   "TotalNodes": 78,
-   "EntryNodes": 33,
-   "ExitNodes": 12
+   "TotalNodes": 77,
+   "EntryNodes": 41,
+   "ExitNodes": 11
   },
   {
    "CountryCode": "is",
    "CountryName": "Iceland",
-   "TotalNodes": 36,
-   "EntryNodes": 18,
-   "ExitNodes": 21
+   "TotalNodes": 32,
+   "EntryNodes": 11,
+   "ExitNodes": 19
   },
   {
    "CountryCode": "in",
    "CountryName": "India",
-   "TotalNodes": 31,
-   "EntryNodes": 6,
-   "ExitNodes": 0
+   "TotalNodes": 35,
+   "EntryNodes": 8,
+   "ExitNodes": 1
   },
   {
    "CountryCode": "id",
    "CountryName": "Indonesia",
-   "TotalNodes": 18,
-   "EntryNodes": 3,
-   "ExitNodes": 7
+   "TotalNodes": 19,
+   "EntryNodes": 5,
+   "ExitNodes": 6
   },
   {
    "CountryCode": "ie",
    "CountryName": "Ireland",
-   "TotalNodes": 16,
-   "EntryNodes": 8,
+   "TotalNodes": 15,
+   "EntryNodes": 5,
    "ExitNodes": 0
   },
   {
@@ -242,16 +242,16 @@
   {
    "CountryCode": "it",
    "CountryName": "Italy",
-   "TotalNodes": 110,
-   "EntryNodes": 54,
+   "TotalNodes": 101,
+   "EntryNodes": 49,
    "ExitNodes": 13
   },
   {
    "CountryCode": "jp",
    "CountryName": "Japan",
-   "TotalNodes": 63,
-   "EntryNodes": 8,
-   "ExitNodes": 3
+   "TotalNodes": 58,
+   "EntryNodes": 9,
+   "ExitNodes": 2
   },
   {
    "CountryCode": "kz",
@@ -263,7 +263,7 @@
   {
    "CountryCode": "kr",
    "CountryName": "Korea, Republic of",
-   "TotalNodes": 24,
+   "TotalNodes": 17,
    "EntryNodes": 4,
    "ExitNodes": 2
   },
@@ -277,85 +277,71 @@
   {
    "CountryCode": "lv",
    "CountryName": "Latvia",
-   "TotalNodes": 24,
-   "EntryNodes": 10,
+   "TotalNodes": 25,
+   "EntryNodes": 14,
    "ExitNodes": 0
   },
   {
    "CountryCode": "lt",
    "CountryName": "Lithuania",
    "TotalNodes": 25,
-   "EntryNodes": 16,
+   "EntryNodes": 13,
    "ExitNodes": 1
   },
   {
    "CountryCode": "lu",
    "CountryName": "Luxembourg",
-   "TotalNodes": 31,
-   "EntryNodes": 15,
-   "ExitNodes": 16
+   "TotalNodes": 33,
+   "EntryNodes": 22,
+   "ExitNodes": 17
   },
   {
    "CountryCode": "mk",
    "CountryName": "Macedonia, the former Yugoslav Republic of",
    "TotalNodes": 1,
-   "EntryNodes": 0,
+   "EntryNodes": 1,
    "ExitNodes": 0
   },
   {
    "CountryCode": "my",
    "CountryName": "Malaysia",
-   "TotalNodes": 14,
-   "EntryNodes": 2,
+   "TotalNodes": 15,
+   "EntryNodes": 4,
    "ExitNodes": 4
   },
   {
    "CountryCode": "mx",
    "CountryName": "Mexico",
-   "TotalNodes": 12,
+   "TotalNodes": 13,
    "EntryNodes": 3,
    "ExitNodes": 2
   },
   {
    "CountryCode": "md",
    "CountryName": "Moldova, Republic of",
-   "TotalNodes": 50,
-   "EntryNodes": 25,
-   "ExitNodes": 5
-  },
-  {
-   "CountryCode": "mn",
-   "CountryName": "Mongolia",
-   "TotalNodes": 1,
-   "EntryNodes": 0,
-   "ExitNodes": 0
+   "TotalNodes": 46,
+   "EntryNodes": 19,
+   "ExitNodes": 6
   },
   {
    "CountryCode": "ma",
    "CountryName": "Morocco",
    "TotalNodes": 2,
-   "EntryNodes": 0,
-   "ExitNodes": 0
-  },
-  {
-   "CountryCode": "mm",
-   "CountryName": "Myanmar",
-   "TotalNodes": 1,
-   "EntryNodes": 0,
+   "EntryNodes": 1,
    "ExitNodes": 0
   },
   {
    "CountryCode": "nl",
    "CountryName": "Netherlands",
-   "TotalNodes": 1194,
-   "EntryNodes": 478,
-   "ExitNodes": 613
+   "TotalNodes": 1205,
+   "EntryNodes": 427,
+   "ExitNodes": 617
   },
   {
    "CountryCode": "nz",
    "CountryName": "New Zealand",
    "TotalNodes": 18,
-   "EntryNodes": 2,
+   "EntryNodes": 4,
    "ExitNodes": 2
   },
   {
@@ -368,9 +354,9 @@
   {
    "CountryCode": "no",
    "CountryName": "Norway",
-   "TotalNodes": 92,
-   "EntryNodes": 79,
-   "ExitNodes": 48
+   "TotalNodes": 103,
+   "EntryNodes": 68,
+   "ExitNodes": 59
   },
   {
    "CountryCode": "pa",
@@ -383,7 +369,7 @@
    "CountryCode": "pe",
    "CountryName": "Peru",
    "TotalNodes": 3,
-   "EntryNodes": 2,
+   "EntryNodes": 1,
    "ExitNodes": 2
   },
   {
@@ -396,63 +382,56 @@
   {
    "CountryCode": "pl",
    "CountryName": "Poland",
-   "TotalNodes": 110,
-   "EntryNodes": 72,
-   "ExitNodes": 11
+   "TotalNodes": 118,
+   "EntryNodes": 63,
+   "ExitNodes": 10
   },
   {
    "CountryCode": "pt",
    "CountryName": "Portugal",
-   "TotalNodes": 19,
-   "EntryNodes": 16,
+   "TotalNodes": 18,
+   "EntryNodes": 7,
    "ExitNodes": 0
   },
   {
    "CountryCode": "ro",
    "CountryName": "Romania",
-   "TotalNodes": 93,
-   "EntryNodes": 43,
-   "ExitNodes": 42
-  },
-  {
-   "CountryCode": "ru",
-   "CountryName": "Russian Federation",
-   "TotalNodes": 2,
-   "EntryNodes": 1,
-   "ExitNodes": 0
+   "TotalNodes": 91,
+   "EntryNodes": 31,
+   "ExitNodes": 43
   },
   {
    "CountryCode": "sa",
    "CountryName": "Saudi Arabia",
-   "TotalNodes": 2,
+   "TotalNodes": 1,
    "EntryNodes": 0,
    "ExitNodes": 0
   },
   {
    "CountryCode": "rs",
    "CountryName": "Serbia",
-   "TotalNodes": 15,
-   "EntryNodes": 9,
-   "ExitNodes": 8
+   "TotalNodes": 13,
+   "EntryNodes": 7,
+   "ExitNodes": 6
   },
   {
    "CountryCode": "sc",
    "CountryName": "Seychelles",
    "TotalNodes": 3,
-   "EntryNodes": 0,
+   "EntryNodes": 3,
    "ExitNodes": 1
   },
   {
    "CountryCode": "sg",
    "CountryName": "Singapore",
-   "TotalNodes": 56,
-   "EntryNodes": 13,
-   "ExitNodes": 7
+   "TotalNodes": 57,
+   "EntryNodes": 10,
+   "ExitNodes": 9
   },
   {
    "CountryCode": "sk",
    "CountryName": "Slovakia",
-   "TotalNodes": 7,
+   "TotalNodes": 4,
    "EntryNodes": 1,
    "ExitNodes": 0
   },
@@ -460,43 +439,43 @@
    "CountryCode": "si",
    "CountryName": "Slovenia",
    "TotalNodes": 4,
-   "EntryNodes": 3,
+   "EntryNodes": 2,
    "ExitNodes": 0
   },
   {
    "CountryCode": "za",
    "CountryName": "South Africa",
-   "TotalNodes": 28,
-   "EntryNodes": 11,
-   "ExitNodes": 11
+   "TotalNodes": 29,
+   "EntryNodes": 12,
+   "ExitNodes": 12
   },
   {
    "CountryCode": "es",
    "CountryName": "Spain",
-   "TotalNodes": 96,
-   "EntryNodes": 49,
-   "ExitNodes": 3
+   "TotalNodes": 97,
+   "EntryNodes": 42,
+   "ExitNodes": 2
   },
   {
    "CountryCode": "se",
    "CountryName": "Sweden",
-   "TotalNodes": 332,
-   "EntryNodes": 125,
-   "ExitNodes": 201
+   "TotalNodes": 334,
+   "EntryNodes": 120,
+   "ExitNodes": 202
   },
   {
    "CountryCode": "ch",
    "CountryName": "Switzerland",
-   "TotalNodes": 221,
-   "EntryNodes": 140,
-   "ExitNodes": 28
+   "TotalNodes": 224,
+   "EntryNodes": 132,
+   "ExitNodes": 27
   },
   {
    "CountryCode": "tw",
    "CountryName": "Taiwan",
-   "TotalNodes": 11,
-   "EntryNodes": 4,
-   "ExitNodes": 3
+   "TotalNodes": 12,
+   "EntryNodes": 2,
+   "ExitNodes": 4
   },
   {
    "CountryCode": "th",
@@ -515,9 +494,9 @@
   {
    "CountryCode": "ua",
    "CountryName": "Ukraine",
-   "TotalNodes": 45,
-   "EntryNodes": 34,
-   "ExitNodes": 7
+   "TotalNodes": 50,
+   "EntryNodes": 21,
+   "ExitNodes": 11
   },
   {
    "CountryCode": "ae",
@@ -529,23 +508,23 @@
   {
    "CountryCode": "gb",
    "CountryName": "United Kingdom of Great Britain and Northern Ireland",
-   "TotalNodes": 219,
-   "EntryNodes": 90,
-   "ExitNodes": 10
+   "TotalNodes": 233,
+   "EntryNodes": 112,
+   "ExitNodes": 11
   },
   {
    "CountryCode": "us",
    "CountryName": "United States of America",
-   "TotalNodes": 3298,
-   "EntryNodes": 1384,
-   "ExitNodes": 1028
+   "TotalNodes": 3284,
+   "EntryNodes": 1646,
+   "ExitNodes": 1047
   },
   {
    "CountryCode": "vn",
    "CountryName": "Viet Nam",
-   "TotalNodes": 13,
-   "EntryNodes": 2,
-   "ExitNodes": 2
+   "TotalNodes": 12,
+   "EntryNodes": 1,
+   "ExitNodes": 3
   }
  ]
 }
