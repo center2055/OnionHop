@@ -447,7 +447,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop سریع (2 گام)</x:String>
   <x:String x:Key="Settings.TorEngineHint">حالت خودکار از محیط اجرای کلاسیک استفاده می‌کند مگر اینکه یک محیط اجرای Arti پشتیبانی‌شده انتخاب شده باشد.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti یک محیط اجرای SOCKS محلی راه‌اندازی می‌کند وقتی باینری arti همراه است، در PATH است، یا از طریق ONIONHOP_ARTI_PATH تنظیم شده است.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop از مدارهای کوتاه‌شده 2 گامه (Guard→Exit) برای تأخیر کمتر استفاده می‌کند. سریع‌تر از Tor استاندارد، اما ناشناسی ضعیف‌تر. نیاز به باینری artihop همراه، در PATH، یا تنظیم‌شده از طریق ONIONHOP_ARTIHOP_PATH دارد.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop از مدارهای کوتاه‌شده 2 گامه (Guard→Exit) استفاده می‌کند: سریع‌تر از Tor استاندارد، اما ناشناسی ضعیف‌تر. با پل‌ها از 3 گام استفاده می‌کند، چون گره‌های خروجی Tor مدارهای 2 گامه از طریق پل را نمی‌پذیرند. مکان خروجی اعمال می‌شود. مکان ورودی و رله‌های سنجاق‌شده پشتیبانی نمی‌شوند، و با پروکسی بالادستی به‌جای آن موتور Classic استفاده می‌شود.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">پل Snowflake (داوطلبانه)</x:String>

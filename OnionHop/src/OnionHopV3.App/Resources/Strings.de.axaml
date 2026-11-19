@@ -447,7 +447,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop schnell (2 Hops)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Automatisch nutzt die klassische Runtime, außer eine unterstützte Arti-Runtime ist ausgewählt.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti startet eine lokale SOCKS-Runtime, wenn die arti-Datei gebündelt, im PATH oder per ONIONHOP_ARTI_PATH gesetzt ist.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop nutzt verkürzte 2-Hop-Schaltkreise (Guard→Exit) für geringere Latenz. Schneller als normales Tor, aber schwächere Anonymität. Benötigt die artihop-Datei gebündelt, im PATH oder per ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop nutzt verkürzte 2-Hop-Schaltkreise (Guard→Exit): schneller als normales Tor, aber schwächere Anonymität. Mit Bridges nutzt es 3 Hops, weil Tor-Exits 2-Hop-Schaltkreise über eine Bridge ablehnen. Der Austrittsort gilt auch hier. Ein Eintrittsort und fest gewählte Relays werden nicht unterstützt, und mit einem vorgeschalteten Proxy wird stattdessen die Classic-Engine verwendet.</x:String>
 
   <!-- Snowflake-Proxy (freiwillig) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake-Bridge (freiwillig)</x:String>

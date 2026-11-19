@@ -447,7 +447,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop سریع (2 آتلاما)</x:String>
   <x:String x:Key="Settings.TorEngineHint">اوتوماتیک دسته‌کله‌نمیش Arti ایجراسی سئچیلمه‌میشسه کلاسیک ایجرانی ایشلدیر.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti بینیل آچیلاندا، PATH-ده یا ONIONHOP_ARTI_PATH اوستوندن قورولاندا یئرلی SOCKS ایجراسی باشلاداجاق.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop داها آز گئجیکمه اوچون قیسالدیلمیش 2 آتلاما (Guard→Exit) دئوره‌لری ایشلدیر. استاندارد Tor-دان سریعدیر، انجا آنونیملیک داها ضعیفدیر. artihop بینیلینین بینیلده، PATH-ده یا ONIONHOP_ARTIHOP_PATH اوستوندن قورولو اولماسینی گرکدیریر.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop قیسالدیلمیش 2 آتلاما (Guard→Exit) دئوره‌لری ایشلدیر: استاندارد Tor-دان سریعدیر، انجا آنونیملیک داها ضعیفدیر. بریجلرله 3 آتلاما ایشلدیر، چونکی Tor چیخیش نودلاری بریج اوستوندن 2 آتلامالی دئوره‌لری قبول ائتمیر. چیخیش یئری اویغولانیر. گیریش یئری و ثابیتلنمیش رله‌لر دستکلنمیر، و یوخاری آخین پراکسی ایله اونون یئرینه کلاسیک موتور ایشلنیر.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake بریجی (گؤنوللو)</x:String>

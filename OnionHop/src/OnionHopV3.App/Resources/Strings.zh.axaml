@@ -447,7 +447,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop 快速（2 跳）</x:String>
   <x:String x:Key="Settings.TorEngineHint">除非选择了受支持的 Arti 运行时，否则“自动”将使用经典运行时。</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">当 arti 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTI_PATH 设置时，Arti 会启动本地 SOCKS 运行时。</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop 使用缩短的 2 跳（守卫→出口）链路以降低延迟。比标准 Tor 更快，但匿名性较弱。需要 artihop 二进制文件已捆绑、位于 PATH 中或通过 ONIONHOP_ARTIHOP_PATH 设置。</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop 使用缩短的 2 跳（守卫→出口）链路：比标准 Tor 更快，但匿名性较弱。使用网桥时为 3 跳，因为 Tor 出口节点会拒绝经网桥的 2 跳链路。出口位置设置有效。不支持入口位置和固定中继；使用上游代理时会改用经典引擎。</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake 网桥（志愿者）</x:String>

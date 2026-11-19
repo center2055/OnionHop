@@ -39,15 +39,41 @@ internal sealed class ArtiHopService : IDisposable
     /// <summary>True when this session's ArtiHop was started with a control listener (New Identity).</summary>
     public bool HasControlEndpoint => _controlEndpoint != null && IsRunning;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> ControlSupportCache =
+    /// <summary>
+    /// True when this session's ArtiHop takes the exit country: at start (--exit-country) and, with
+    /// its control listener, while it runs (EXITCOUNTRY).
+    /// </summary>
+    public bool CanChangeExitCountry => HasControlEndpoint && _exitCountrySupported;
+
+    private bool _exitCountrySupported;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Version?> VersionCache =
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// ArtiHop 0.2.0 added a loopback control listener (--control, accepting NEWNYM). Older builds
     /// reject the flag and exit before opening their SOCKS port, so it is only passed to builds that
-    /// report 0.2.0 or newer. Cached per binary and modification time; a failed probe means no.
+    /// report 0.2.0 or newer.
     /// </summary>
-    internal static bool SupportsControlListener(string artiHopPath)
+    internal static bool SupportsControlListener(string artiHopPath) =>
+        SupportsControlListener(ProbeVersion(artiHopPath));
+
+    internal static bool SupportsControlListener(Version? version) => version >= new Version(0, 2, 0);
+
+    /// <summary>
+    /// ArtiHop 0.3.0 added the exit country (--exit-country, and EXITCOUNTRY on the control listener).
+    /// Older builds reject the flag like any unknown one, so it is only passed to 0.3.0 or newer.
+    /// </summary>
+    internal static bool SupportsExitCountry(string artiHopPath) =>
+        SupportsExitCountry(ProbeVersion(artiHopPath));
+
+    internal static bool SupportsExitCountry(Version? version) => version >= new Version(0, 3, 0);
+
+    /// <summary>
+    /// What "artihop --version" reports, cached per binary and modification time. Null when it
+    /// cannot be told, which counts as supporting none of the newer options.
+    /// </summary>
+    private static Version? ProbeVersion(string artiHopPath)
     {
         string key;
         try
@@ -56,10 +82,10 @@ internal sealed class ArtiHopService : IDisposable
         }
         catch
         {
-            return false;
+            return null;
         }
 
-        return ControlSupportCache.GetOrAdd(key, _ =>
+        return VersionCache.GetOrAdd(key, _ =>
         {
             try
             {
@@ -74,21 +100,21 @@ internal sealed class ArtiHopService : IDisposable
                 using var process = Process.Start(psi);
                 if (process == null)
                 {
-                    return false;
+                    return null;
                 }
 
                 var output = process.StandardOutput.ReadToEndAsync();
                 if (!process.WaitForExit(5000))
                 {
                     try { process.Kill(); } catch { }
-                    return false;
+                    return null;
                 }
 
-                return ParseArtiHopVersion(output.Result) is { } version && version >= new Version(0, 2, 0);
+                return ParseArtiHopVersion(output.Result);
             }
             catch
             {
-                return false;
+                return null;
             }
         });
     }
@@ -174,6 +200,15 @@ internal sealed class ArtiHopService : IDisposable
         {
             arguments.Add("--bridges-config");
             arguments.Add(config.BridgesConfigPath);
+        }
+
+        // Like --control, only for builds that know it (see SupportsExitCountry). The caller checks;
+        // "auto" keeps the option's place so a later EXITCOUNTRY is known to be understood.
+        _exitCountrySupported = config.ExitCountrySupported;
+        if (config.ExitCountrySupported)
+        {
+            arguments.Add("--exit-country");
+            arguments.Add(NormalizeExitCountry(config.ExitCountry));
         }
 
         _log($"ArtiHop arguments: {FormatArgumentsForLog(arguments)}");
@@ -290,7 +325,30 @@ internal sealed class ArtiHopService : IDisposable
     /// Ask the running ArtiHop to rotate to a new identity (fresh isolated circuits) via its control
     /// listener. Returns false if no control endpoint is available or the request fails.
     /// </summary>
-    public async Task<bool> SendNewIdentityAsync(CancellationToken token)
+    public Task<bool> SendNewIdentityAsync(CancellationToken token) =>
+        SendControlCommandAsync("NEWNYM", "new-identity", token);
+
+    /// <summary>
+    /// Ask the running ArtiHop to use exits in this country for streams opened from now on; null or
+    /// empty for any country. Returns false if this build cannot (see CanChangeExitCountry) or the
+    /// request fails.
+    /// </summary>
+    public Task<bool> SendExitCountryAsync(string? countryCode, CancellationToken token) =>
+        CanChangeExitCountry
+            ? SendControlCommandAsync($"EXITCOUNTRY {NormalizeExitCountry(countryCode)}", "exit-country", token)
+            : Task.FromResult(false);
+
+    /// <summary>A two-letter country code in lower case, or "auto" for anything else.</summary>
+    internal static string NormalizeExitCountry(string? countryCode)
+    {
+        var code = countryCode?.Trim() ?? string.Empty;
+        return code.Length == 2 && code.All(char.IsAsciiLetter)
+            ? code.ToLowerInvariant()
+            : "auto";
+    }
+
+    // One command per connection; ArtiHop answers "OK" once it has taken effect for later streams.
+    private async Task<bool> SendControlCommandAsync(string command, string what, CancellationToken token)
     {
         var endpoint = _controlEndpoint;
         if (endpoint == null || !IsRunning)
@@ -306,17 +364,16 @@ internal sealed class ArtiHopService : IDisposable
             await client.ConnectAsync(endpoint.Address, endpoint.Port, cts.Token).ConfigureAwait(false);
 
             await using var stream = client.GetStream();
-            var payload = System.Text.Encoding.ASCII.GetBytes("NEWNYM\n");
+            var payload = System.Text.Encoding.ASCII.GetBytes(command + "\n");
             await stream.WriteAsync(payload, cts.Token).ConfigureAwait(false);
             await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
-            // ArtiHop answers "OK" once later streams will use fresh circuits.
-            var buffer = new byte[32];
+            var buffer = new byte[64];
             var read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
             var reply = System.Text.Encoding.ASCII.GetString(buffer, 0, read).Trim();
             if (!reply.StartsWith("OK", StringComparison.Ordinal))
             {
-                _log($"ArtiHop refused the new-identity request: {reply}");
+                _log($"ArtiHop refused the {what} request: {reply}");
                 return false;
             }
 
@@ -324,7 +381,7 @@ internal sealed class ArtiHopService : IDisposable
         }
         catch (Exception ex)
         {
-            _log($"ArtiHop new-identity request failed: {ex.Message}");
+            _log($"ArtiHop {what} request failed: {ex.Message}");
             return false;
         }
     }
@@ -502,4 +559,10 @@ internal sealed class ArtiHopLaunchConfig
     /// <summary>Path to an Arti-format TOML file with a [bridges] section. When set, ArtiHop is launched
     /// with --bridges-config so it connects through those bridges + pluggable transports.</summary>
     public string? BridgesConfigPath { get; init; }
+
+    /// <summary>Two-letter country streams should leave through; null or empty for any.</summary>
+    public string? ExitCountry { get; init; }
+
+    /// <summary>Whether this ArtiHop build knows --exit-country (ArtiHopService.SupportsExitCountry).</summary>
+    public bool ExitCountrySupported { get; init; }
 }

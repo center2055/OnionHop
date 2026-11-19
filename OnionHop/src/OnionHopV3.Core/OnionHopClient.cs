@@ -2373,9 +2373,29 @@ public sealed class OnionHopClient : IDisposable
             return;
         }
 
+        // ArtiHop 0.3+ takes the country over its control listener; streams opened afterwards use it.
+        if (string.Equals(_activeTorEngine, OnionHopConnectOptions.TorEngineArtiHop, StringComparison.Ordinal) &&
+            _artiHopService.CanChangeExitCountry)
+        {
+            using var hopCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            hopCts.CancelAfter(TimeSpan.FromSeconds(8));
+            if (!await _artiHopService.SendExitCountryAsync(countryCode, hopCts.Token).ConfigureAwait(false))
+            {
+                RaiseLog("ArtiHop did not take the new exit country; reconnect to apply it.");
+                return;
+            }
+
+            RaiseLog(string.IsNullOrWhiteSpace(countryCode)
+                ? "Exit country cleared (Automatic). New connections use any exit."
+                : $"Exit country changed to {countryCode.ToUpperInvariant()}. New connections use exits there.");
+            await Task.Delay(1500, token).ConfigureAwait(false);
+            await RefreshIpAsync(updateStatusMessage: true, token).ConfigureAwait(false);
+            return;
+        }
+
         if (IsUsingArtiRuntime)
         {
-            RaiseLog("Exit country changes are not applied live in Arti mode; reconnect with classic Tor for live exit pinning.");
+            RaiseLog("Exit country changes are not applied live with this engine; reconnect to apply them, or use the Classic engine.");
             return;
         }
 
@@ -3617,6 +3637,28 @@ public sealed class OnionHopClient : IDisposable
         PublishStatus();
     }
 
+    /// <summary>
+    /// The location and relay settings ArtiHop has no way to apply, named as in Settings. The exit
+    /// country is not among them: ArtiHop 0.3+ applies it.
+    /// </summary>
+    internal static IReadOnlyList<string> DescribeSettingsArtiHopIgnores(OnionHopConnectOptions options)
+    {
+        var ignored = new List<string>();
+        if (!IsAutomaticLocation(options.SelectedEntryLocation))
+        {
+            ignored.Add("an entry location");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.EntryNodeFingerprint) ||
+            !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
+            !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
+        {
+            ignored.Add("pinned relays");
+        }
+
+        return ignored;
+    }
+
     private async Task StartArtiHopAsync(OnionHopConnectOptions options, CancellationToken token)
     {
         var artiHopPath = ResolveArtiHopPath();
@@ -3642,13 +3684,34 @@ public sealed class OnionHopClient : IDisposable
             RaiseLog("ArtiHop uses shortened 2-hop (Guard -> Exit) circuits for lower latency. This is faster than standard Tor but provides weaker anonymity than full 3-hop circuits.");
         }
 
-        if (!IsAutomaticLocation(options.SelectedLocation) ||
-            !IsAutomaticLocation(options.SelectedEntryLocation) ||
-            !string.IsNullOrWhiteSpace(options.EntryNodeFingerprint) ||
-            !string.IsNullOrWhiteSpace(options.MiddleNodeFingerprint) ||
-            !string.IsNullOrWhiteSpace(options.ExitNodeFingerprint))
+        // The exit country goes to ArtiHop 0.3+, which only uses exits in that country, in the 2-hop
+        // mode too. Before, every location setting was ignored with ArtiHop and only this log said so.
+        var exitCountrySupported = ArtiHopService.SupportsExitCountry(artiHopPath);
+        var exitCountry = string.Empty;
+        if (!IsAutomaticLocation(options.SelectedLocation))
         {
-            RaiseLog("ArtiHop mode ignores country and relay pinning; use the Classic engine if you need those.");
+            exitCountry = TorNodeDatabaseService.NormalizeSelectionToCountryCode(
+                options.SelectedLocation,
+                _nodeDatabaseService.GetCountryStatsWithoutLookup()) ?? string.Empty;
+            if (!exitCountrySupported)
+            {
+                RaiseLog("This ArtiHop build cannot choose the exit country, so the Exit Location is not used. Update OnionHop's ArtiHop, or use the Classic engine.");
+                exitCountry = string.Empty;
+            }
+            else if (string.IsNullOrWhiteSpace(exitCountry))
+            {
+                RaiseLog($"Exit Location '{options.SelectedLocation}' is not a country ArtiHop can use; exits are chosen automatically.");
+            }
+            else
+            {
+                RaiseLog($"ArtiHop exit country: {exitCountry.ToUpperInvariant()}. Only exit relays in that country are used.");
+            }
+        }
+
+        var ignored = DescribeSettingsArtiHopIgnores(options);
+        if (ignored.Count > 0)
+        {
+            RaiseLog($"ArtiHop does not support {string.Join(", ", ignored)}, so {(ignored.Count == 1 ? "that setting is" : "those settings are")} not used. Use the Classic engine for {(ignored.Count == 1 ? "it" : "them")}.");
         }
 
         // ArtiHop (our Arti fork) now supports bridges + pluggable transports via Arti's native config.
@@ -3757,7 +3820,9 @@ public sealed class OnionHopClient : IDisposable
             ControlPort = controlPort,
             Mode = artiHopMode,
             WorkingDirectory = Path.GetDirectoryName(artiHopPath),
-            BridgesConfigPath = bridgesConfigPath
+            BridgesConfigPath = bridgesConfigPath,
+            ExitCountry = exitCountry,
+            ExitCountrySupported = exitCountrySupported
         }, token).ConfigureAwait(false);
 
         var hopLabel = usingBridges ? "3-hop" : "2-hop";

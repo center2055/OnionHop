@@ -476,7 +476,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop fast (2-hop)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Automatic uses the classic runtime unless a supported Arti runtime is selected.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti starts a local SOCKS runtime when the arti binary is bundled, on PATH, or set through ONIONHOP_ARTI_PATH.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop uses shortened 2-hop (Guard→Exit) circuits for lower latency. Faster than standard Tor, but weaker anonymity. Needs the artihop binary bundled, on PATH, or set via ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop uses shortened 2-hop (Guard→Exit) circuits: faster than standard Tor, but weaker anonymity. With bridges it uses 3 hops, because Tor exits refuse 2-hop circuits through a bridge. The Exit Location applies. An entry location and pinned relays are not supported, and with an upstream proxy the Classic engine is used instead.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Snowflake bridge (volunteer)</x:String>

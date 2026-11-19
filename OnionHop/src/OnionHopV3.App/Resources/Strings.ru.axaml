@@ -447,7 +447,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop быстрый (2 узла)</x:String>
   <x:String x:Key="Settings.TorEngineHint">Автоматически использует классическую среду выполнения, если не выбрана поддерживаемая среда Arti.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti запускает локальную среду SOCKS, когда бинарник arti встроен, находится в PATH или задан через ONIONHOP_ARTI_PATH.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop использует укороченные цепочки из 2 узлов (Сторож→Выход) для меньшей задержки. Быстрее стандартного Tor, но слабее анонимность. Требует бинарник artihop встроенным, в PATH или заданным через ONIONHOP_ARTIHOP_PATH.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop использует укороченные цепочки из 2 узлов (Сторож→Выход): быстрее стандартного Tor, но слабее анонимность. С мостами используется 3 узла, потому что выходные узлы Tor отклоняют цепочки из 2 узлов через мост. Точка выхода учитывается. Точка входа и закреплённые узлы не поддерживаются, а с вышестоящим прокси вместо него используется классический движок.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">Мост Snowflake (волонтёрский)</x:String>

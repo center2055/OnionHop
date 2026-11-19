@@ -447,7 +447,7 @@
   <x:String x:Key="Settings.TorEngineArtiHop">ArtiHop خێرا (2-hop)</x:String>
   <x:String x:Key="Settings.TorEngineHint">خۆکار ڕانتایمی کلاسیک بەکاردەهێنێت مەگەر ڕانتایمی Arti-ی پشتگیریکراو هەڵبژێردرێت.</x:String>
   <x:String x:Key="Settings.TorEnginePreviewHint">Arti ڕانتایمی SOCKS-ی شوێنی دەستپێدەکات کاتێک دووسگای arti کۆکراوەیە، لە PATH-دا، یان لە ڕێگەی ONIONHOP_ARTI_PATH دابنراوێت.</x:String>
-  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop circuit-ی 2-hop-ی کووتکراو (Guard→Exit) بەکاردەهێنێت بۆ ماوەی کەمتر. لە Tor-ی ئاستانداردتر خێراترە، بەڵام ناساناسی کەمتر. پێویستی بە دووسگای artihop-ی کۆکراوە، لە PATH-دا، یان لە ڕێگەی ONIONHOP_ARTIHOP_PATH دابنراوە.</x:String>
+  <x:String x:Key="Settings.TorEngineArtiHopHint">ArtiHop circuit-ی 2-hop-ی کووتکراو (Guard→Exit) بەکاردەهێنێت: لە Tor-ی ئاستاندارد خێراترە، بەڵام ناساناسی کەمتر. لەگەڵ بریج 3 hop بەکاردەهێنێت، چونکە گرێکانی دەرچوونی Tor circuit-ی 2-hop لە ڕێگەی بریجەوە ڕەت دەکەنەوە. شوێنی دەرچوون جێبەجێ دەکرێت. شوێنی چوونەژوورەوە و ڕیلەی جێگیرکراو پشتگیری ناکرێن، و لەگەڵ پرۆکسی سەرەوە لە جیاتی ئەو بزوێنەری Classic بەکاردێت.</x:String>
 
   <!-- Snowflake proxy (volunteer) -->
   <x:String x:Key="Snowflake.SectionTitle">بریجی Snowflake (خۆبەخشی)</x:String>
