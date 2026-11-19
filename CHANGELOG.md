@@ -11,8 +11,8 @@ Additions
 
 Updates
 - **sing-box 1.14.4 and Xray 26.11.9** as tunnel cores (before: 1.13.13 and 26.3.27). The gVisor stack is part of sing-box and is updated with it.
-- **Tor 0.4.9.16 and lyrebird 0.10.0** from Tor Browser 16.0.1 (before: 0.4.9.14 and 0.8.1), in every package; webtunnel 0.0.7.
-- **ArtiHop 0.3.0** on Arti 2.8 (before: 0.2.0 on Arti 2.7).
+- **Tor 0.4.9.16 and lyrebird 0.10.0** from Tor Browser 16.0.1 (before: 0.4.9.14 and 0.8.1), in every package; webtunnel 0.0.7 and Snowflake 2.15.4.
+- **ArtiHop 0.3.0 and Arti 2.8.0** (before: ArtiHop 0.2.0 and Arti 2.7.0).
 - Avalonia 11.3.23 and the other libraries at their current patch versions.
 
 ## v3.11.1 (2026-11-16)
