@@ -96,9 +96,23 @@ mkdir -p "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR" "$PT_DIR" "$TEMP
 
 echo "=== OnionHop Linux Dependency Downloader ($TARGET_ARCH) ==="
 
-# fetch_verified <url> <sha256> <file>: download, and refuse anything that does not match the hash.
+# download <url> <file> [retries]: curl that fails on HTTP errors and tries again when a server is
+# briefly away: a 502 from gitlab.torproject.org once failed a release build that a rerun fixed.
+# curl doubles its wait from one second, so the default of 8 retries rides out about four minutes.
+# --retry-all-errors (curl 7.71 and later) adds what --retry alone leaves out, such as a reset
+# connection; an older curl goes without it.
+CURL_RETRY_ALL=""
+case "$(curl --help all 2>/dev/null)" in
+    *--retry-all-errors*) CURL_RETRY_ALL="--retry-all-errors" ;;
+esac
+download() {
+    curl -fL --connect-timeout 30 --retry "${3:-8}" $CURL_RETRY_ALL "$1" -o "$2"
+}
+
+# fetch_verified <url> <sha256> <file> [retries]: download, and refuse anything that does not match
+# the hash.
 fetch_verified() {
-    curl -fL "$1" -o "$3"
+    download "$1" "$3" "$4"
     echo "$2  $3" | sha256sum -c -
 }
 
@@ -117,7 +131,7 @@ go_build() {
 gitlab_source() {
     local dir="$TEMP_DIR/$1-src"
     mkdir -p "$dir" \
-        && curl -fL "$PT_GITLAB/$1/-/archive/$2/$1-$2.tar.gz" -o "$TEMP_DIR/$1-src.tar.gz" \
+        && download "$PT_GITLAB/$1/-/archive/$2/$1-$2.tar.gz" "$TEMP_DIR/$1-src.tar.gz" \
         && tar -xzf "$TEMP_DIR/$1-src.tar.gz" -C "$dir" --strip-components=1 \
         && echo "$dir"
 }
@@ -160,8 +174,9 @@ build_tor_from_source() {
 
     echo "Building tor $TOR_SRC_VERSION..."
     local tor_archive="$TEMP_DIR/tor-src.tar.gz"
-    # dist.torproject.org only keeps current releases; older ones move to the archive.
-    if ! fetch_verified "https://dist.torproject.org/tor-$TOR_SRC_VERSION.tar.gz" "$TOR_SRC_SHA256" "$tor_archive"; then
+    # dist.torproject.org only keeps current releases; older ones move to the archive. A miss there
+    # is expected, so that try gets a single retry.
+    if ! fetch_verified "https://dist.torproject.org/tor-$TOR_SRC_VERSION.tar.gz" "$TOR_SRC_SHA256" "$tor_archive" 1; then
         fetch_verified "https://archive.torproject.org/tor-package-archive/tor-$TOR_SRC_VERSION.tar.gz" "$TOR_SRC_SHA256" "$tor_archive"
     fi
     tar -xzf "$tor_archive" -C "$TEMP_DIR"
@@ -188,15 +203,16 @@ build_tor_from_source() {
 # dist.torproject.org only serves the *current* releases, so an older pinned version gets rotated off
 # it and the download silently returns a tiny error page (-> "gzip: stdin: not in gzip format"). The
 # archive host keeps every version forever, so fall back to it. -f makes curl fail on HTTP errors
-# instead of saving the error page, and gzip -t verifies we actually got a real tarball.
+# instead of saving the error page, and gzip -t verifies we actually got a real tarball. A miss on
+# dist is expected, so that try gets a single retry.
 # On ARM only its architecture-independent files are used: geoip, geoip6 and pt_config.json.
 echo "Downloading Tor Expert Bundle ($TOR_VERSION)..."
 TOR_ARCHIVE="$TEMP_DIR/tor.tar.gz"
 TOR_REL="$TOR_VERSION/tor-expert-bundle-linux-x86_64-$TOR_VERSION.tar.gz"
-curl -fL "https://dist.torproject.org/torbrowser/$TOR_REL" -o "$TOR_ARCHIVE" || true
+download "https://dist.torproject.org/torbrowser/$TOR_REL" "$TOR_ARCHIVE" 1 || true
 if ! gzip -t "$TOR_ARCHIVE" 2>/dev/null; then
     echo "  dist.torproject.org did not serve $TOR_VERSION; falling back to archive.torproject.org..."
-    curl -fL "https://archive.torproject.org/tor-package-archive/torbrowser/$TOR_REL" -o "$TOR_ARCHIVE"
+    download "https://archive.torproject.org/tor-package-archive/torbrowser/$TOR_REL" "$TOR_ARCHIVE"
 fi
 tar -xzf "$TOR_ARCHIVE" -C "$TEMP_DIR"
 

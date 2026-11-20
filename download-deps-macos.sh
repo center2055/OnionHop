@@ -35,6 +35,19 @@ mkdir -p "$TOR_DIR" "$VPN_DIR" "$ARTI_HOP_DIR" "$SNOWFLAKE_DIR" "$PT_DIR" "$TEMP
 
 echo "=== OnionHop macOS Dependency Downloader (universal arm64 + x86_64) ==="
 
+# download <url> <file> [retries]: curl that fails on HTTP errors and tries again when a server is
+# briefly away: a 502 from gitlab.torproject.org once failed a release build that a rerun fixed.
+# curl doubles its wait from one second, so the default of 8 retries rides out about four minutes.
+# --retry-all-errors (curl 7.71 and later) adds what --retry alone leaves out, such as a reset
+# connection; an older curl goes without it.
+CURL_RETRY_ALL=""
+case "$(curl --help all 2>/dev/null)" in
+    *--retry-all-errors*) CURL_RETRY_ALL="--retry-all-errors" ;;
+esac
+download() {
+    curl -fL --connect-timeout 30 --retry "${3:-8}" $CURL_RETRY_ALL "$1" -o "$2"
+}
+
 # Merge an x86_64 and an arm64 copy of a binary into a universal one at $3.
 # Falls back to whichever copy exists if the other is missing.
 make_universal() {
@@ -64,16 +77,17 @@ go_build_universal() {
 # 1. Tor Expert Bundle (both architectures).
 # dist.torproject.org only serves the *current* releases, so an older pinned version gets rotated
 # off it and the download silently returns a tiny error page. The archive host keeps every version
-# forever, so fall back to it. gzip -t verifies we actually got a real tarball.
+# forever, so fall back to it. gzip -t verifies we actually got a real tarball. A miss on dist is
+# expected, so that try gets a single retry.
 fetch_tor_bundle() {
     local arch="$1" dest_dir="$2"
     local rel="$TOR_VERSION/tor-expert-bundle-macos-${arch}-$TOR_VERSION.tar.gz"
     local archive="$TEMP_DIR/tor-${arch}.tar.gz"
     echo "Downloading Tor Expert Bundle ($TOR_VERSION, macos-${arch})..."
-    curl -fL "https://dist.torproject.org/torbrowser/$rel" -o "$archive" || true
+    download "https://dist.torproject.org/torbrowser/$rel" "$archive" 1 || true
     if ! gzip -t "$archive" 2>/dev/null; then
         echo "  dist.torproject.org did not serve $TOR_VERSION; falling back to archive.torproject.org..."
-        curl -fL "https://archive.torproject.org/tor-package-archive/torbrowser/$rel" -o "$archive"
+        download "https://archive.torproject.org/tor-package-archive/torbrowser/$rel" "$archive"
     fi
     mkdir -p "$dest_dir"
     tar -xzf "$archive" -C "$dest_dir"
@@ -118,7 +132,7 @@ fi
 if command -v go >/dev/null 2>&1; then
     echo "Building webtunnel-client from source ($WEBTUNNEL_VERSION, universal)..."
     WEBTUNNEL_ARCHIVE="$TEMP_DIR/webtunnel.tar.gz"
-    curl -fL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel/-/archive/$WEBTUNNEL_VERSION/webtunnel-$WEBTUNNEL_VERSION.tar.gz" -o "$WEBTUNNEL_ARCHIVE"
+    download "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel/-/archive/$WEBTUNNEL_VERSION/webtunnel-$WEBTUNNEL_VERSION.tar.gz" "$WEBTUNNEL_ARCHIVE"
     tar -xzf "$WEBTUNNEL_ARCHIVE" -C "$TEMP_DIR"
     WEBTUNNEL_SRC_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "webtunnel-*")
     go_build_universal "webtunnel-client" "$WEBTUNNEL_SRC_DIR" "./main/client" "$PT_DIR/webtunnel-client"
@@ -145,7 +159,7 @@ fetch_core() {
         echo "No SHA-256 pinned for $name; update CORE_SHA256 together with the version."
         exit 1
     fi
-    curl -fL "$1" -o "$2"
+    download "$1" "$2"
     echo "$expected  $2" | shasum -a 256 -c -
 }
 
